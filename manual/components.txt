@@ -1,0 +1,22 @@
+Components
+##########
+
+Common session interfaces
+=========================
+
+Classification of components
+============================
+
+* Kernels
+* Device drivers
+* Protocol stacks
+* Resource multiplexers
+* Runtime environments
+
+Component compositions
+======================
+
+Publisher-subscriber mechanism
+==============================
+
+

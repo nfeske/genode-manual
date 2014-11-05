@@ -1,0 +1,52 @@
+Architecture
+############
+
+Capability-based security
+=========================
+
+Recursive system structure
+==========================
+
+* Parent-child relationship
+* Client-server relationship
+* Application-specific trusted computing base
+* Resource accounting
+  * Assignment
+  * Trading of resources
+  * Heap partitioning
+* Parent interface
+  * Dynamic resource balancing
+* Root interface
+
+Core - the root of the process tree
+===================================
+
+* Physical memory allocation
+* Introduction of the services provided by core
+  * LOG
+  * RAM
+  * CAP
+  * CPU
+  * IO_MEM
+  * IO_PORT
+  * IRQ
+  * PD
+  * ROM
+  * RM
+  * SIGNAL
+  * TRACE
+* Bootstrapping
+
+Process creation
+================
+
+Inter-process communication
+===========================
+
+* Synchronous remote procedure calls (RPC)
+* Synchronous notifications
+* Shared memory
+* Synchronous bulk
+* Asynchronous bulk - packet streams
+
+

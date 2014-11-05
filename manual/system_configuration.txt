@@ -1,0 +1,19 @@
+System configuration
+####################
+
+The init process
+================
+
+Session routing
+===============
+
+Configuration of nested subsystems
+==================================
+
+CPU affinities and real-time priorities
+=======================================
+
+Dynamic reconfiguration of components
+=====================================
+
+

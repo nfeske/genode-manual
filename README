@@ -1,0 +1,18 @@
+This repository contains the user manual for the Genode OS Framework.
+
+:[http://genode.org]:
+
+  Website of the Genode OS Framework
+
+The material is published under the terms of the CC-BY-SA license.
+
+To build the manual, the following tools need to be installed:
+
+* GOSH [https://github.com/nfeske/gosh] for converting the text into LaTeX.
+  Make sure that the 'gosh' program can be found via your shell's PATH
+  variable, e.g., by adding a symlink to one of your bin directories.
+* Tcl as required by GOSH
+* pdflatex
+* GNU make
+
+To build the manual, invoke 'make' from within the 'manual/' directory.

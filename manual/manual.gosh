@@ -1,0 +1,78 @@
+
+### WRITE HEADER OF TEX FILE ###
+proc produce_head_latex {} {
+	global title authors
+
+#	printline {\documentclass[11pt,a4paper,normalheadings,twoside,DIV12]{scrartcl}}
+	printline {\documentclass[a4paper,normalheadings]{scrartcl}}
+	printline {\usepackage[T1]{fontenc}}
+	printline {\usepackage{textcomp}}
+	printline {\usepackage[latin1]{inputenc}}
+	printline {\usepackage[english]{babel}}
+	printline {\usepackage[small,bf,hang]{caption}}
+	printline {\usepackage{epsfig}}
+	printline {\emergencystretch = 10pt}
+	printline {\clubpenalty = 10000}
+	printline {\widowpenalty = 10000}
+	printline {\displaywidowpenalty = 10000}
+	printline {\usepackage{fancyhdr}}
+	printline {\usepackage{palatino}}
+	printline {\usepackage{helvet}}
+	printline {\usepackage{courier}}
+	printline {\usepackage{amsmath}}
+	printline {\usepackage{amssymb}}
+	printline {\usepackage{graphicx}}
+	printline {\usepackage{color}}
+	printline {\usepackage[pdftex,pagebackref=true,colorlinks=true,linkcolor=darkblue,citecolor=darkblue,urlcolor=darkblue]{hyperref}}
+	printline {\begin{document}}
+	printline {\definecolor{lightgray}{gray}{0.5}}
+	printline {\definecolor{darkblue}{rgb}{0.1,0,0.55}}
+	
+	if {$title != ""} {
+		printline "\\title{[out_latex $title]}"
+		if {$authors != ""} {
+			printline "\\author{[out_latex $authors]}"
+		}
+		printline {\maketitle}
+	}
+	printline {\pagestyle{fancy}}
+	printline {\fancyhf{}}
+	printline {\fancyhead[RE]{\slshape \uppercase{\leftmark}}}
+	printline {\fancyhead[LO]{\slshape \uppercase{\rightmark}}}
+	printline {\fancyfoot[C]{\thepage \\ \vspace{1cm} \epsfig{file=img/genode_labs,angle=0,height=0.5cm}}}
+	printline {\renewcommand{\footrulewidth}{0pt}}
+	printline {\tableofcontents}
+}
+
+
+### WRITE TAIL OF TEX FILE ###
+proc produce_tail_latex {} {
+	printline "\\end{document}"
+}
+
+
+### CHAPTER ###
+proc process_chapter_latex {txtblock} {
+	global curr_chapter references
+	global chapter_tag;
+	set title [linetxt [lindex $txtblock 0]]
+	set curr_chapter $references($title,index)
+	printline ""
+	printline "%     -+*|\[ [string toupper $title] \]|*+-\n"
+	printline "\\clearpage"
+	printline "\\$chapter_tag[section_env_latex $title]"
+	handle_txtblock chapter [lrange $txtblock 2 end]
+}
+### ANNOTATION ###
+proc process_annotation_latex {txtblock} {
+	set new_txtblock {}
+	foreach txtline $txtblock {
+		set txtline [lineregsub {^\| ?} $txtline ""]
+		lappend new_txtblock $txtline
+	}
+	printline "\\vspace{0.2cm}{\\setlength{\\parindent}{0cm} \\colorbox\[gray\]{0.9}{\\parbox{10cm}{ \\color{lightgray} \\footnotesize \\it"
+	handle_txtblock annotation $new_txtblock
+	printline "}}}\\vspace{0.2cm}"
+}
+
+

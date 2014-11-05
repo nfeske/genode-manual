@@ -1,0 +1,14 @@
+Getting started
+###############
+
+* Obtaining the source code
+* Source-tree structure
+* Downloading 3-rd party source code
+* Installing the tool chain
+* Creating a build directory
+* Configuring the build directory
+* Building a target
+* Executing a simple system scenario
+* Tutorial for building a hello-world program
+
+

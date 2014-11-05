@@ -1,0 +1,30 @@
+Under the hood
+##############
+
+Design of the base-hw kernel
+============================
+
+* Rationale
+* System-call interface
+* Benefits
+
+IOMMU support
+=============
+
+; on NOVA
+
+Capability-based security in depth
+==================================
+
+Life-time management
+~~~~~~~~~~~~~~~~~~~~
+
+Capability protection on the NOVA microhypervisor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Capability protection on the base-hw kernel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dynamic linker
+==============
+

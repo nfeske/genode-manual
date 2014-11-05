@@ -1,0 +1,60 @@
+Functional specification
+########################
+
+Fundamental data structures
+===========================
+
+* Basic types, structured types, allocators
+* Rationale behind using intrusive data structures
+
+XML processing
+==============
+
+* Parsing
+* Generation
+
+Process execution environment
+=============================
+
+; os: config
+
+Inter-process communication
+===========================
+
+; os: static_root
+
+Multi-threading and synchronization
+===================================
+
+; thread-context management
+
+; os: timed_semaphore
+; os: alarm
+; os: synced interface
+
+Process management
+==================
+
+; os: slave
+
+Common utilities
+================
+
+; os: volatile object
+; os: attached dataspaces
+
+Server API
+==========
+
+Support for user-level device drivers
+=====================================
+
+; MMIO framework
+
+Tracing
+=======
+
+C runtime
+=========
+
+; C runtime and process-local VFS
