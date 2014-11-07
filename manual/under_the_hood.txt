@@ -1,6 +1,9 @@
 Under the hood
 ##############
 
+Interaction of core with the underlying kernel
+==============================================
+
 Design of the base-hw kernel
 ============================
 

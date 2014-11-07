@@ -44,7 +44,7 @@ Inter-process communication
 ===========================
 
 * Synchronous remote procedure calls (RPC)
-* Synchronous notifications
+* Asynchronous notifications
 * Shared memory
 * Synchronous bulk
 * Asynchronous bulk - packet streams

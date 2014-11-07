@@ -9,6 +9,8 @@ Getting started
 * Configuring the build directory
 * Building a target
 * Executing a simple system scenario
+  * Linux
+  * Microkernel
 * Tutorial for building a hello-world program
 
 

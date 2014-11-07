@@ -1,17 +1,16 @@
 Components
 ##########
 
-Common session interfaces
-=========================
-
 Classification of components
 ============================
 
-* Kernels
 * Device drivers
 * Protocol stacks
 * Resource multiplexers
 * Runtime environments
+
+Common session interfaces
+=========================
 
 Component compositions
 ======================
