@@ -24,7 +24,12 @@ proc produce_head_latex {} {
 	printline {\usepackage{graphicx}}
 	printline {\usepackage{color}}
 	printline {\usepackage[pdftex,pagebackref=true,colorlinks=true,linkcolor=darkblue,citecolor=darkblue,urlcolor=darkblue]{hyperref}}
+	printline {\input{img/tikz-preamble.tex}}
+
 	printline {\begin{document}}
+
+	printline {\input{img/tikz-common.tex}}
+
 	printline {\definecolor{lightgray}{gray}{0.5}}
 	printline {\definecolor{darkblue}{rgb}{0.1,0,0.55}}
 	

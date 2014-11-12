@@ -1,0 +1,31 @@
+\begin{tikzpicture}
+
+	\node at (-20ex,5ex) {};
+
+	\labeledcompoundnode{pdcompound}{component}{Protection domain}{
+		\rpcobjectnode{rpcobja}{}{3}{RPC object A}
+	}
+
+	\labeledcompoundnode{capspacecompound}
+	            {compound, below of=pdcompound, node distance=17ex}
+	            {Cap space}{
+		\capspacenode{capspace}{5}{}
+	}
+
+	\path [arrow] (rpcobjacap) .. controls +(0,-1) and +(0,1) .. (capspace3);
+
+	\node [kernelobj, below of=capspacecompound, node distance=15ex,
+	       xshift=8ex] (objectidentity)
+	      {Object\\identity\\A};
+
+	\kernelboundary{fit=(capspacecompound) (objectidentity)}
+
+	\path [arrow, *->] (capspace3.center)
+	      .. controls +(0,-1) and +(0,1) ..
+	      node {} (objectidentity);
+
+	\path [arrow, dashed] (rpcobja.south east)
+	      .. controls +(+2.5,-1) and +(2,3) ..
+	      node {owns} (objectidentity);
+
+\end{tikzpicture}

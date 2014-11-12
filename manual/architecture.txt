@@ -4,6 +4,8 @@ Architecture
 Capability-based security
 =========================
 
+: \begin{center}\input{img/object_identity.tikz}\end{center}
+
 Recursive system structure
 ==========================
 

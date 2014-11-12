@@ -1,0 +1,16 @@
+%%
+%% Header used for building a stand-alone version of a Tikz image
+%%
+
+\documentclass{article}
+
+\input{tikz-preamble.tex}
+
+% use the bounding box of the Tikz image as PDF size
+\usepackage[active,tightpage]{preview}
+\PreviewEnvironment{tikzpicture}
+
+\begin{document}
+
+% include the common tikz styles and commands used throughout the manual
+\input{tikz-common.tex}

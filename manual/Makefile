@@ -26,7 +26,7 @@ default: manual.pdf
 manual.txt: $(addsuffix .txt,$(patsubst #%,,$(strip $(CHAPTERS))))
 	cat $^ > $@
 
-%.pdf: %.txt manual.gosh Makefile $(wildcard img/*.pdf)
+%.pdf: %.txt manual.gosh Makefile $(wildcard img/*.pdf) $(wildcard img/*.tikz)
 	gosh --style manual.gosh $< > $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex

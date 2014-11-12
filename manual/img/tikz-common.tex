@@ -1,0 +1,148 @@
+%%
+%% Tikz styles used for diagrams
+%%
+
+\tikzstyle{every node}+=[font=\footnotesize]
+
+\tikzstyle{dropshadow} = [blur shadow={shadow blur steps=5,shadow xshift=.0ex,
+                                       shadow yshift=-0.3ex,opacity=0.9,
+                                       shadow blur radius=0.5ex}];
+
+\tikzstyle{compound} = [rectangle, draw, text centered,
+                         rounded corners,
+                         top color=white,
+                         bottom color=black!5,
+                         dropshadow,
+                         draw=black!10]
+
+\tikzstyle{component} = [compound, draw=black!70]
+
+\tikzstyle{compoundlabel} = [below right,
+                             text opacity=0.6, inner sep=0, outer sep=0.7ex]
+
+\tikzstyle{capability} = [circle, draw, fill, thick,
+                          inner color=white,
+                          outer color=blue!30,
+                          inner sep=1pt,
+                          minimum size=2.8ex,
+                          anchor=mid]
+
+\tikzstyle{capslot} = [minimum size=2.5ex, inner sep=0ex, outer sep=0ex,
+                       fill=white, draw=black!70]
+
+\tikzstyle{kernelobj} = [draw, tape, tape bend top=none,
+                         draw=black!70, align=center, fill=white, dropshadow]
+
+\tikzstyle{arrow} = [draw=black!80, ->, >= stealth, sloped, above]
+
+\tikzstyle{userland} = [fill=green]
+
+\tikzstyle{kernel} = [fill=yellow]
+
+\tikzstyle{every picture}+=[remember picture]
+
+
+%%
+%% Functions for constructing Tikz nodes
+%%
+
+%%
+% Create capability space node
+%
+% argument 1: node name, also used as prefix for the individual slots
+% argument 2: maximum index
+% argument 3: node arguments
+%
+% Uses tikz style "capslot"
+%
+\newcommand\capspacenode[3]{
+	\node[#3] (#1) {
+		\begin{tikzpicture}
+			\begin{scope}[start chain,node distance=0,rounded corners=0]
+				\foreach \i in {0,1,...,#2} {
+					\node [on chain,capslot,draw] (#1\i) {};
+					\path (#1\i) node[yshift=0.5ex, xshift=-0.5ex, inner sep=0.5ex,
+					                  text=black!60] {\tiny \i};
+				}
+				\node [on chain,capslot, fill=none, draw=none, outer sep=0.5ex] {$\ldots$};
+			\end{scope}
+		\end{tikzpicture}
+	};
+}
+
+
+%%
+% Create RPC object node
+%
+% argument 1: node name, also used as prefix for the individual slots
+% argument 2: node arguments
+% argument 3: capability name
+% argument 4: node content
+%
+% The capability node will be named #1cap.
+% The object node will be named #1obj.
+%
+\newcommand\rpcobjectnode[4] {
+	\node[#2] (#1) {
+		\begin{tikzpicture}
+			\node [outer sep=0pt, inner color=white, fill opacity=1.0, dropshadow, capability]
+			       (#1cap) {#3};
+			\node [draw, left color=blue!20, right color=white, minimum size=0pt,
+			       thick, inner sep=1ex, rounded corners=0.5ex, dropshadow]
+			       (#1obj) [right=2ex] {#4};
+			\path [draw, dropshadow, very thick] (#1cap.east) -- (#1obj);
+		\end{tikzpicture}
+	};
+}
+
+
+%%
+% Create compounding node
+%
+% argument 1:  node name
+% argument 2:  node style
+% argument 3:  node content
+%
+\newcommand\compoundnode[3] {
+	\node[#2] (#1) {
+		\begin{tikzpicture}[xshift=0, yshift=0, outer sep=0, inner sep=0]
+			#3
+		\end{tikzpicture}
+	};
+}
+
+
+
+%%
+% Create labeled compounding box node
+%
+% argument 1:  node name
+% argument 2:  node style
+% argument 3:  label to appear at the north-west corner
+% argument 4:  content of the box
+%
+\newcommand\labeledcompoundnode[4] {
+	\compoundnode{#1}{inner sep=3ex, #2}{#4}
+	\path (#1.north west) node[compoundlabel] {#3};
+}
+
+
+%%
+% Create kernel-user boundary
+%
+% argument 1:  nodes that are contained in the kernel,
+%              specified as tikz style, e.g., 'fit=(node1) (node2)...'
+%
+\newcommand\kernelboundary[1]{
+	\node [inner sep=4ex, #1] (kernelboundary) {};
+	\draw [dashed, very thick, color=black!20!red!100] (kernelboundary.north west)
+	      -- (kernelboundary.north east)
+	      node[below left] {kernel};
+}
+
+
+\newcommand\capability[1]{
+	\begin{tikzpicture}[baseline=-0.6ex]
+	\node [capability] {#1};
+	\end{tikzpicture}
+}
