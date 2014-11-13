@@ -41,6 +41,8 @@
 
 \tikzstyle{every picture}+=[remember picture]
 
+\newcommand\kernelred{black!20!red!100}
+
 
 %%
 %% Functions for constructing Tikz nodes
@@ -135,7 +137,7 @@
 %
 \newcommand\kernelboundary[1]{
 	\node [inner sep=4ex, #1] (kernelboundary) {};
-	\draw [dashed, very thick, color=black!20!red!100] (kernelboundary.north west)
+	\draw [dashed, very thick, color=\kernelred] (kernelboundary.north west)
 	      -- (kernelboundary.north east)
 	      node[below left] {kernel};
 }

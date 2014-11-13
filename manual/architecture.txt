@@ -67,8 +67,83 @@ mechanisms in detail.
 Capability-based security
 =========================
 
+This section introduces the nomenclature and the model of the capability-based
+security concept of Genode. Note that this model, in particular the role of
+the kernel, does not directly correspond to the actual kernel mechanisms used
+to implement the model on a specific base platform. For assessing the
+security properties, the respective platform-specific implementation must be
+considered. Section [Capability-based security in depth] provides details for
+selected kernels.
+
+Each component lives inside a protection domain that provides an isolated
+execution environment.
+
+[tikz img/protection_domain]
+
+Genode provides an object-oriented way of letting components interact with
+each other. Analogously to object-oriented programming languages, which have
+the notion of objects and pointers to objects, Genode introduces the notion of
+RPC objects and capabilities to RPC objects.
+
+An _RPC object_ provides a remote-procedure call (RPC) interface. Similar to a
+regular object, an RPC object can be constructed and accessed from within the
+same program. But in contrast to a regular object, it can also be called from
+the outside of the component. What a pointer is to a regular object, a
+_capability_ is to an RPC object. It is a token that unambiguously refers to
+an RPC object. In the following, we represent an RPC object as follows.
+
+[tikz img/rpc_object]
+
+The circle represents the capability associated with the RPC object. Like a
+pointer to an object, that can be used to call a function of the pointed-to
+object, a capability can be used to call a function of its corresponding RPC
+object. However, there are two important differences between a capability and
+a pointer. First, in contrast to a pointer that can be created out of thin air
+(e.g., by casting an arbitrary number to a pointer), a capability cannot be
+created without an RPC object. At the creation time of an RPC object, Genode
+creates a so-called _object identity_ that represents the RPC object in the
+kernel. The Figure [img/object_identity] illustrates the relationship of an
+RPC object and its object identity.
 
 [tikz img/object_identity]
+  Relationship between an RPC object and its corresponding object identity.
+
+For each protection domain, the kernel maintains a so-called capability space,
+which is a name space local to the protection domain. At the creation time of
+an RPC object, the kernel creates a corresponding object identity and lets a
+slot in the protection domain's capability space refer to the RPC object's
+identity. From the component's point of view, the RPC object A has the name 3.
+When interacting with the kernel, the component can use this number to refer
+to the RPC object A.
+
+[tikz img/delegation]
+  The transitive delegation of a capability from one protection domain to
+  others.
+
+The second difference between a pointer and a capability is that a capability
+can be passed to different components without losing its meaning. The transfer
+of a capability from one protection domain to another is called _delegation_
+and can be performed only by the kernel. Figure [img/delegation] shows the
+delegation of the RPC object's capability to a second protection domain
+and a further delegation of the capability from the second to a third
+protection domain.
+When the kernel delegates a capability from one to another protection domain, it
+inserts a reference to the RPC object's identity a free slot in the
+target's capability space. Within protection domain 2, the RPC object can
+be referred to by the number 5. Within protection domain 3, the same RPC
+object is known as 2.
+Note that the capability delegation does not hand over the ownership of the
+object identity to the target protection domain. The ownership is always
+retained by the protection domain that created the RPC object.
+
+Only the owner of an RPC object is able to destroy it along with the
+corresponding object identity. Upon destruction of an object identity, the
+kernel removes all references to the vanishing object identity from all
+capability spaces. This effectively renders the RPC object inaccessible for
+all protection domains. Once the object identity for an RPC object is gone,
+the owner can destruct the actual RPC object.
+
+
 
 
 Recursive system structure

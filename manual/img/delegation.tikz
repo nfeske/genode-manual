@@ -1,0 +1,112 @@
+\begin{tikzpicture}
+
+%	\node at (-20ex,5ex) {};
+
+	%
+	% Protection domain 1
+	%
+	\labeledcompoundnode{pdcompound1}
+	                    {component,
+	                     minimum width=22ex,
+	                     minimum height=5ex}
+	                    {Protection domain 1}{
+		\rpcobjectnode{rpcobja}{}{3}{RPC object A}
+	}
+
+	\labeledcompoundnode{capspacecompound1}
+	            {compound, below of=pdcompound1, node distance=17ex}
+	            {Cap space 1}{
+		\capspacenode{capspace1}{5}{}
+	}
+
+	\path [arrow] (rpcobjacap) .. controls +(0,-1) and +(0,1) .. (capspace13);
+
+	\node [kernelobj, below of=capspacecompound1, node distance=12ex,
+	       xshift=8ex] (objectidentity)
+	      {Object\\identity\\A};
+
+	\path [arrow, *->] (capspace13.center)
+	      .. controls +(0,-1) and +(0,1) ..
+	      node {} (objectidentity);
+
+	\path [arrow, dashed] (rpcobjaobj.south east)
+	      .. controls +(+1,-2) and +(1,2) ..
+	      node {owns} (objectidentity);
+
+	%
+	% Protection domain 2
+	%
+	\labeledcompoundnode{pdcompound2}
+	                    {component, right of=pdcompound1,
+	                     node distance=27ex,
+	                     minimum width=22ex,
+	                     minimum height=10ex}
+	                    {Protection domain 2}{
+		\node[capability] (delegatedcap) {5};
+	}
+
+	\labeledcompoundnode{capspacecompound2}
+	            {compound, below of=pdcompound2, node distance=17ex}
+	            {Cap space 2}{
+		\capspacenode{capspace2}{5}{}
+	}
+
+	\path [arrow] (delegatedcap) .. controls +(0,-1) and +(0,1) .. (capspace25);
+
+	\path [arrow, *->] (capspace25.center)
+	      .. controls +(0,-1) and +(1,1) ..
+	      node {} (objectidentity.north east);
+
+	\path [color=lightgray, text=black!80,
+	       decoration={markings,
+	                   mark=between positions 0 and 1 step 1ex with {\arrow{to}}},
+	       postaction={decorate}]
+	      (rpcobjacap)
+	      .. controls +(0.3,2) and +(-0.3,2) ..
+	      node {delegate} (delegatedcap);
+
+	%
+	% Protection domain 3
+	%
+	\labeledcompoundnode{pdcompound3}
+	                    {component, right of=pdcompound2,
+	                     node distance=27ex,
+	                     minimum width=22ex,
+	                     minimum height=10ex}
+	                    {Protection domain 3}{
+		\node[capability] (furtherdelegatedcap) {2};
+	}
+
+	\labeledcompoundnode{capspacecompound3}
+	            {compound, below of=pdcompound3, node distance=17ex}
+	            {Cap space 3}{
+		\capspacenode{capspace3}{5}{}
+	}
+
+	\path [arrow] (furtherdelegatedcap) .. controls +(0,-1) and +(0,1) .. (capspace32);
+
+	\path [arrow, *->] (capspace32.center)
+	      .. controls +(0,-2) and +(1,0) ..
+	      node {} (objectidentity.east);
+
+
+	\newcommand\delegationpath{
+		\path [color=lightgray, text=black!80,
+		       decoration={markings,
+		                   mark=between positions 0 and 1 step 1ex with {\arrow{to}}},
+		       postaction={decorate}]}
+
+	\delegationpath
+	      (rpcobjacap)
+	      .. controls +(0.3,2) and +(-0.3,2) ..
+	      node {delegate} (delegatedcap);
+
+	\delegationpath
+	      (delegatedcap)
+	      .. controls +(0.3,2) and +(-0.3,2) ..
+	      node {delegate} (furtherdelegatedcap);
+
+	\kernelboundary{fit=(capspacecompound1) (capspacecompound2)
+	                    (capspacecompound3) (objectidentity)}
+
+\end{tikzpicture}

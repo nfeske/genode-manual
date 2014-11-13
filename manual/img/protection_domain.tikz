@@ -1,0 +1,7 @@
+\begin{tikzpicture}
+
+	\labeledcompoundnode{pdcompound}{component}{Protection domain}{
+		\node[minimum width=15ex] {};
+	}
+
+\end{tikzpicture}

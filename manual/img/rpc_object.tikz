@@ -1,0 +1,7 @@
+\begin{tikzpicture}
+
+	\labeledcompoundnode{pdcompound}{component}{Protection domain}{
+		\rpcobjectnode{rpcobj}{}{}{RPC object}
+	}
+
+\end{tikzpicture}

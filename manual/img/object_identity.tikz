@@ -14,7 +14,7 @@
 
 	\path [arrow] (rpcobjacap) .. controls +(0,-1) and +(0,1) .. (capspace3);
 
-	\node [kernelobj, below of=capspacecompound, node distance=15ex,
+	\node [kernelobj, below of=capspacecompound, node distance=12ex,
 	       xshift=8ex] (objectidentity)
 	      {Object\\identity\\A};
 
