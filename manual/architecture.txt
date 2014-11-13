@@ -1,10 +1,75 @@
 Architecture
 ############
 
+Contemporary operating systems provide are immensely complex to accommodate a
+large variety of applications on an ever diversifying spectrum of hardware
+platforms. Among the functionalities provided by a commodity operating system
+are device drivers, protocol stacks such as file systems and network
+protocols, the management of hardware resources, as well as the provisioning
+of security functions. The latter category is meant for protecting the
+confidentiality and integrity of information and the lifelines of critical
+functionality. For assessing the effectiveness of such a security function,
+two questions must be considered. First, what is the potential attack surface
+on the function? The answer to this question yields an assessment about the
+likelihood of a breach. Naturally, if there is a large number of potential
+attack vectors, the security function is at high risk. The second question is:
+What is the reach of a defect? If the compromised function has unlimited
+access to all information processed on the system, the privacy of all users
+may be affected. If the function is able to permanently install software, the
+system may become prone to back doors.
+
+Today's widely deployed operating systems do not isolate security-critical
+functions from the rest of the operating system. In contrary, they are
+co-located with most other operating-system functionality in a single
+high-complexity kernel. Thereby, those functions are exposed to the other
+parts of the operating system. The likelihood for of a security breach is as
+high as the likelihood for bugs in the overly complex kernel. In other words,
+it is certain. Moreover, once an in-kernel function has been compromised, the
+defect has an unlimited reach on the system.
+
+The Genode architecture was designed to give more assuring answers to the two
+stated questions. Each piece of functionality should be exposed to only those
+parts of the system, on which it ultimately depends. But it remains hidden
+from all unrelated parts. This minimizes the attack surface on individual
+security functions and thereby reduces the likelihood for a security breach.
+In the event that one part of the system gets compromised, the reach of the
+defect is limited to the particular part and its dependent parts. But
+unrelated functionalities remain unaffected. To realize this idea, Genode
+composes the system out of many components that interact with each other. Each
+component serves a specific role and uses well-defined interfaces to interact
+with its peers. For example, a network driver accesses a physical network card
+and provides a bidirectional stream of network packets to another component,
+which, in turn, may process the packets using a TCP/IP stack and a network
+application. Even though the network driver and the TCP/IP stack cooperate
+when processing network packets, they are living in separate protection
+domains. So a bug in one component cannot observe or corrupt the internal
+state of another.
+
+Such a component-based architecture, however, raises a number of questions,
+which will be addressed throughout this chapter.
+Section [Capability-based security] explains how components can cooperate
+without inherently trusting each other.
+Section [Recursive system structure] answers the questions of who defines the
+relationship between components and how components become acquainted with each
+other.
+An operating system ultimately acts on physical hardware resources such
+as memory, CPUs, and peripheral devices.
+Section [Core - the root of the process tree] describes how such resources
+are made available to components.
+Section [Process creation] answers the question of how a new component comes
+to life.
+The variety of relationships between components and their respective
+interfaces call for different communication primitives. Section
+[Inter-process communication] introduces inter-component communication
+mechanisms in detail.
+
+
 Capability-based security
 =========================
 
-: \begin{center}\input{img/object_identity.tikz}\end{center}
+
+[tikz img/object_identity]
+
 
 Recursive system structure
 ==========================
