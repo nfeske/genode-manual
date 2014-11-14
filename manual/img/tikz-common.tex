@@ -40,6 +40,8 @@
 
 \tikzstyle{kernel} = [fill=yellow]
 
+\tikzstyle{thread} = [font=\normalsize]
+
 \tikzstyle{every picture}+=[remember picture]
 
 \newcommand\kernelred{black!20!red!100}
@@ -115,7 +117,6 @@
 }
 
 
-
 %%
 % Create labeled compounding box node
 %
@@ -136,12 +137,32 @@
 % argument 1:  nodes that are contained in the kernel,
 %              specified as tikz style, e.g., 'fit=(node1) (node2)...'
 %
-\newcommand\kernelboundary[1]{
+\newcommand\kernelboundary[1] {
 	\node [inner sep=4ex, #1] (kernelboundary) {};
 	\draw [dashed, very thick, color=\kernelred] (kernelboundary.north west)
 	      -- (kernelboundary.north east)
 	      node[below left] {kernel};
 }
+
+
+%%
+% Create node for an upward pointing thread
+%
+% argument 1:  node name
+% argument 2:  node style
+%
+\newcommand\upwardthreadnode[2] {
+	\node [thread, #2] (#1) {$\downrsquigarrow$}; }
+
+
+%%
+% Create node for an downward pointing thread
+%
+% argument 1:  node name
+% argument 2:  node style
+%
+\newcommand\downwardthreadnode[2] {
+	\node [thread, #2] (#1) {$\uplsquigarrow$}; }
 
 
 \newcommand\capability[1]{
