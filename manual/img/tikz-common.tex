@@ -95,7 +95,7 @@
 			       (#1obj) {#4};
 			\node [outer sep=0pt, capability, right of=#1obj, right=2ex]
 			       (#1cap) {#3};
-			\path [draw, dropshadow, very thick] (#1cap.west) -- (#1obj);
+			\path [draw, dropshadow, very thick] (#1cap.west) -- node (#1link) {} (#1obj);
 		\end{tikzpicture}
 	};
 }
@@ -152,7 +152,7 @@
 % argument 2:  node style
 %
 \newcommand\upwardthreadnode[2] {
-	\node [thread, #2] (#1) {$\downrsquigarrow$}; }
+	\node [thread, #2] (#1) {$\uplsquigarrow$}; }
 
 
 %%
@@ -162,7 +162,36 @@
 % argument 2:  node style
 %
 \newcommand\downwardthreadnode[2] {
-	\node [thread, #2] (#1) {$\uplsquigarrow$}; }
+	\node [thread, #2] (#1) {$\downrsquigarrow$}; }
+
+
+%%
+% Create entrypoint node
+%
+% argument 1:  node name
+% argument 2:  node style
+% argument 3:  component where the entrypoint resides
+%
+% The command creates sub nodes for the semicircle called #1ep and the
+% thread called #1thread.
+%
+\newcommand\entrypointnode[3]{
+	\node [above, inner sep=0, outer sep=0, #2] at (#3.south) (#1) {
+		\begin{tikzpicture}
+
+			\node [draw=black, draw opacity=0.2, ball color=blue, fill opacity=0.1,
+			       rounded corners=0, shape=semicircle,
+			       inner sep=1.3ex, outer sep=0, above]
+			(#1ep) {};
+
+			\path (#1ep.arc end) node[compoundlabel, right, yshift=1ex] {EP};
+
+			\path (#1ep.arc start) [thread]
+				node [left, xshift=-0.3ex, yshift=1ex] (#1thread) {$\uplsquigarrow$};
+
+		\end{tikzpicture}
+	};
+}
 
 
 \newcommand\capability[1]{

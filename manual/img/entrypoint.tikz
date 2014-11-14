@@ -1,0 +1,9 @@
+\begin{tikzpicture}
+
+	\labeledcompoundnode{pdcompound}{component}{Protection domain}{
+		\node[minimum width=15ex] {};
+	}
+
+	\entrypointnode{ep}{}{pdcompound}
+
+\end{tikzpicture}

@@ -7,7 +7,7 @@
 	%
 	\labeledcompoundnode{pdcompound1}
 	                    {component,
-	                     minimum width=22ex,
+	                     minimum width=5ex,
 	                     minimum height=5ex}
 	                    {Protection domain 1}{
 		\rpcobjectnode{rpcobja}{}{3}{RPC object A}
