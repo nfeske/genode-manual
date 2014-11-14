@@ -29,9 +29,9 @@
 	      .. controls +(0,-1) and +(0,1) ..
 	      node {} (objectidentity);
 
-	\path [arrow, dashed] (rpcobjaobj.south east)
-	      .. controls +(+1,-2) and +(1,2) ..
-	      node {owns} (objectidentity);
+	\path [arrow, dashed] (rpcobjaobj.south west)
+	      .. controls +(-2,-3) and +(-3,0) ..
+	      node [pos=0.7] {owns} (objectidentity.west);
 
 	%
 	% Protection domain 2
@@ -56,14 +56,6 @@
 	\path [arrow, *->] (capspace25.center)
 	      .. controls +(0,-1) and +(1,1) ..
 	      node {} (objectidentity.north east);
-
-	\path [color=lightgray, text=black!80,
-	       decoration={markings,
-	                   mark=between positions 0 and 1 step 1ex with {\arrow{to}}},
-	       postaction={decorate}]
-	      (rpcobjacap)
-	      .. controls +(0.3,2) and +(-0.3,2) ..
-	      node {delegate} (delegatedcap);
 
 	%
 	% Protection domain 3
@@ -91,20 +83,20 @@
 
 
 	\newcommand\delegationpath{
-		\path [color=lightgray, text=black!80,
+		\path [color=black!30!blue!30, text=black,
 		       decoration={markings,
-		                   mark=between positions 0 and 1 step 1ex with {\arrow{to}}},
+		                   mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
 		       postaction={decorate}]}
 
 	\delegationpath
 	      (rpcobjacap)
-	      .. controls +(0.3,2) and +(-0.3,2) ..
-	      node {delegate} (delegatedcap);
+	      .. controls +(0.3,-2.3) and +(-0.3,-2.3) ..
+	      node [above=1ex] {delegate} (delegatedcap);
 
 	\delegationpath
 	      (delegatedcap)
-	      .. controls +(0.3,2) and +(-0.3,2) ..
-	      node {delegate} (furtherdelegatedcap);
+	      .. controls +(0.3,-2.3) and +(-0.3,-2.3) ..
+	      node [above=1ex] {delegate} (furtherdelegatedcap);
 
 	\kernelboundary{fit=(capspacecompound1) (capspacecompound2)
 	                    (capspacecompound3) (objectidentity)}

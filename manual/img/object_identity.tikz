@@ -24,8 +24,8 @@
 	      .. controls +(0,-1) and +(0,1) ..
 	      node {} (objectidentity);
 
-	\path [arrow, dashed] (rpcobja.south east)
-	      .. controls +(+2.5,-1) and +(2,3) ..
-	      node {owns} (objectidentity);
+	\path [arrow, dashed] (rpcobjaobj.south west)
+	      .. controls +(-2,-3) and +(-4,0) ..
+	      node [pos=0.7] {owns} (objectidentity.west);
 
 \end{tikzpicture}

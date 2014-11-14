@@ -25,6 +25,7 @@
                           outer color=blue!30,
                           inner sep=1pt,
                           minimum size=2.8ex,
+                          fill opacity=1.0, dropshadow,
                           anchor=mid]
 
 \tikzstyle{capslot} = [minimum size=2.5ex, inner sep=0ex, outer sep=0ex,
@@ -87,12 +88,12 @@
 \newcommand\rpcobjectnode[4] {
 	\node[#2] (#1) {
 		\begin{tikzpicture}
-			\node [outer sep=0pt, inner color=white, fill opacity=1.0, dropshadow, capability]
-			       (#1cap) {#3};
 			\node [draw, left color=blue!20, right color=white, minimum size=0pt,
 			       thick, inner sep=1ex, rounded corners=0.5ex, dropshadow]
-			       (#1obj) [right=2ex] {#4};
-			\path [draw, dropshadow, very thick] (#1cap.east) -- (#1obj);
+			       (#1obj) {#4};
+			\node [outer sep=0pt, capability, right of=#1obj, right=2ex]
+			       (#1cap) {#3};
+			\path [draw, dropshadow, very thick] (#1cap.west) -- (#1obj);
 		\end{tikzpicture}
 	};
 }
