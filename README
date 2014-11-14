@@ -12,7 +12,7 @@ To build the manual, the following tools need to be installed:
   Make sure that the 'gosh' program can be found via your shell's PATH
   variable, e.g., by adding a symlink to one of your bin directories.
 * Tcl as required by GOSH
-* pdflatex
+* texlive-latex-extra (for pdflatex), texlive-pictures (for Tikz)
 * GNU make
 
 To build the manual, invoke 'make' from within the 'manual/' directory.
