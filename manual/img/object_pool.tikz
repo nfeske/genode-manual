@@ -1,6 +1,4 @@
-
 \begin{tikzpicture}
-
 
 	\node [inner sep=0, outer sep=0] (anchor) {};
 
@@ -47,6 +45,5 @@
 	\path [draw, dashed] (rpcobjacap)
 	      .. controls +(1,0) and +(-1,0) ..
 	      node [pos=0.7] {} (delegatedcap);
-
 
 \end{tikzpicture}

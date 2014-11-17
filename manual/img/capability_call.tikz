@@ -1,0 +1,76 @@
+\begin{tikzpicture}
+
+	\node [inner sep=0, outer sep=0] (anchor) {};
+
+
+	%
+	% Server PD
+	%
+
+	\labeledcompoundnode{serverpdcompound}
+	                    {component,
+	                     below=0ex of anchor}
+	                    {Server PD}{
+	    \node (vspace) {};
+
+		\rpcobjectnode{rpcobja}{below of=vspace}{3}{RPC object A}
+
+		\rpcobjectnode{rpcobjb}{below of=rpcobja, xshift=-10ex}{7}{RPC object B}
+
+		\node[below of=rpcobjb, minimum height=2ex] {};
+	}
+
+	\entrypointnode{ep}{}{serverpdcompound}
+
+	%
+	% Client PD
+	%
+
+	\labeledcompoundnode{clientpdcompound}
+	                    {component,
+	                     below=0ex of anchor,
+	                     minimum width=10ex,
+	                     xshift=30ex}
+	                    {Client PD}{
+
+	    \downwardthreadnode{clientthread}{outer sep=0.5ex}
+		\node[capability, below of=clientthread] (delegatedcap) {5};
+
+		% client invokes capability
+		\path [arrow, right, rotate=90] (clientthread) -- node [xshift=1ex] {$call(fn, args)$} (delegatedcap);
+	}
+
+	\node[fit=(serverpdcompound) (clientpdcompound)] (userland) {};
+
+	\kernelboundary{minimum width=58ex, node distance=0, minimum height=0,
+	                below of=userland, yshift=-25ex}
+
+	\coordinate (clientkernel) at (delegatedcap |- kernelboundary.north);
+	\coordinate (serverkernel) at (epep |- kernelboundary.north);
+
+
+	% client calls kernel
+	\path [arrow, right] (delegatedcap)
+	      -- node [rotate=90] {$call(5, fn, args)$} (clientkernel);
+
+	% kernel IPC operation
+	\draw [dotted] (clientkernel) -- +(0,-5ex) -| (serverkernel);
+
+	% kernel delivers request to server
+	\path [arrow, right] (serverkernel)
+	      -- node [rotate=270] {$request(3, fn, args)$} (epep);
+
+	% ep calls RPC object
+	\coordinate[xshift=-2ex] (leftofrpcobjb) at (rpcobjb.west)+(-13ex,0);
+	\path [arrow] (epep) -- +(0,3ex) -| (leftofrpcobjb) node[right, yshift=-4ex] {$A\rightarrow dispatch(fn, args)$} |- (rpcobja);
+
+	% RPC object A executes member function
+	\path [arrow] (rpcobjaobj.north)+(-1ex,0)
+	      .. controls +(-1,1) and +(1,1) ..
+	      node[xshift=6ex, yshift=-4ex] {$fn(args)$} (rpcobjaobj.north);
+
+	% line to delegated cap
+	\path [draw, dashed] (rpcobjacap) --
+	      node [pos=0.7] {} (delegatedcap);
+
+\end{tikzpicture}

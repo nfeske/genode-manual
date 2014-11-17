@@ -75,6 +75,10 @@ security properties, the respective platform-specific implementation must be
 considered. Section [Capability-based security in depth] provides details for
 selected kernels.
 
+
+Capability spaces, object identities, and RPC objects
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Each component lives inside a protection domain that provides an isolated
 execution environment.
 
@@ -116,14 +120,23 @@ identity. From the component's point of view, the RPC object A has the name 3.
 When interacting with the kernel, the component can use this number to refer
 to the RPC object A.
 
+
+Delegation of authority and ownership
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 [tikz img/delegation]
   The transitive delegation of a capability from one protection domain to
   others.
 
 The second difference between a pointer and a capability is that a capability
 can be passed to different components without losing its meaning. The transfer
-of a capability from one protection domain to another is called _delegation_
-and can be performed only by the kernel. Figure [img/delegation] shows the
+of a capability from one protection domain to another delegates the authority
+to use the capability to the receiving protection domain.
+This operation is called _delegation_ and can be performed only by the kernel.
+Note that originator of the delegation does not diminish its authority by
+delegating a capability. It merely shares its authority with the receiving
+protection domain.
+Figure [img/delegation] shows the
 delegation of the RPC object's capability to a second protection domain
 and a further delegation of the capability from the second to a third
 protection domain.
@@ -143,7 +156,11 @@ capability spaces. This effectively renders the RPC object inaccessible for
 all protection domains. Once the object identity for an RPC object is gone,
 the owner can destruct the actual RPC object.
 
-We have learned that capabilities enable components to use RPC objects
+
+Capability invocation
+~~~~~~~~~~~~~~~~~~~~~
+
+Capabilities enable components to call methods of RPC objects
 provided by different protection domains. A component that uses
 an RPC object plays the role of a _client_ whereas a component that
 owns the RPC object acts in the role of a _server_. The interplay between
@@ -184,6 +201,41 @@ delegated to a client.
   not depicted. Instead, the dashed line between the capabilities shows that
   both capabilities refer to the same object identity.
 
+If a protection domain is on possession of a capability, a thread executed
+within this protection domain can issue a call to a member function of the RPC
+object that is referred to by the capability. Because this is not a normal
+function call but the invocation of an object located in a different
+protection domain, this operation has to be provided by the kernel. Figure
+[img/capability_call] illustrates the interaction of the client, the kernel,
+and the server. The kernel operation takes the client-local name of the
+invoked capability, the opcode of the called function, and the function
+arguments as parameters. When entering the kernel, the client's thread is
+blocked until the it receives a response.
+The kernel takes the supplied capability number as an
+index into the client's capability space to look up the object identity, to
+which the capability refers. Given the object identity, kernel is able to
+determine the entrypoint that is associated with the object identity and wakes
+up the entrypoint's thread with the information about the incoming request.
+Among those information is the server-local name of the capability that was
+invoked. Note that the kernel has translated the client-local capability
+number into a server-local number. The capability name spaces of client and
+server are entirely different. The entrypoint uses this number as a key into
+its object pool to find the locally implemented RPC object A that belongs to
+the invoked capability. It then performs a local function call a so-called
+_dispatch_ function in the RPC object. The dispatch function maps the supplied
+function opcode to a member function of the object and calls this function
+with the request arguments.
+
+[tikz img/capability_call]
+  Control flow between client and server when the client calls a method of an
+  RPC object.
+
+
+| TODO RPC reply
+
+| TODO delegation by using capabilities as RPC function arguments
+
+| TODO result
 
 
 Recursive system structure
