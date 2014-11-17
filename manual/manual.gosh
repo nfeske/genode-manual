@@ -59,7 +59,7 @@ proc produce_tail_latex {} {
 ### CHAPTER ###
 proc process_chapter_latex {txtblock} {
 	global curr_chapter references
-	global chapter_tag;
+	global chapter_tag
 	set title [linetxt [lindex $txtblock 0]]
 	set curr_chapter $references($title,index)
 	printline ""
