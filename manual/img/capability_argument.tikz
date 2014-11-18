@@ -1,0 +1,109 @@
+
+
+\tikzstyle{flowborder} = [draw=black!50]
+
+\tikzstyle{flowbox} = [flowborder, fill=white, dropshadow,
+                       rounded corners=0.5ex,
+                       fill=yellow!20,
+                       path fading=flow fade]
+
+\tikzstyle{flowdecision} = [flowborder, diamond, fill=blue!20,
+                           text badly centered, align=center,
+                           inner sep=0.5ex,
+                           dropshadow, path fading=flow fade]
+
+
+\begin{tikzpicture}[node distance=1.5cm]
+
+	\node (client) {$cap_{arg}$};
+
+	%
+	% Create fading to be used in the flowchart boxes
+	%
+	% Placing the fading into a node is a hack to prevent the
+	% tikzfadingfrompicture environment to mess with the margins of the actual
+	% tikzpicture.
+	%
+	\node [below of=client] {
+		\begin{tikzpicture}[yshift=2]
+			\begin{tikzfadingfrompicture}[name=flow fade]
+				\shade[left color=transparent!0,
+				       right color=transparent!60] (0,0) rectangle (2,2);
+			\end{tikzfadingfrompicture}
+		\end{tikzpicture}
+	};
+
+	\node[flowbox, below of=client, align=left] (lookupobj) {
+		lookup object identity for $cap_{arg}$};
+
+	\path[arrow, sloped=false] (client) -- (lookupobj);
+
+	\labeledcompoundnode{clientcapspace}
+	            {compound, right of=lookupobj, node distance=27ex}
+	            {Client capability space}{
+		\capspacenode{capspace}{5}{}
+	}
+
+	\path[arrow, dashed] (lookupobj) -- (clientcapspace);
+
+	\node[flowdecision, below of=lookupobj] (lookupobjdecision) {success?};
+
+	\path[arrow] (lookupobj) -- (lookupobjdecision);
+
+	\path (lookupobjdecision)+(30ex,0) node (objlookupfailed) {call failed};
+	\path[arrow] (lookupobjdecision) -- node {no} (objlookupfailed);
+
+	\node[flowbox, below of=lookupobjdecision, align=left] (search) {
+		find cap for object identity};
+
+	\path[arrow, sloped=false] (lookupobjdecision) -- node[right] {yes} (search);
+
+	\node [kernelobj, left of=lookupobjdecision, yshift=2ex, node distance=20ex] (objectidentity)
+	      {Object\\identity};
+
+	\path[arrow, dashed] (lookupobjdecision.south)+(0,-1ex)
+	      .. controls +(-2,0) and +(2,0) .. (objectidentity);
+
+	\labeledcompoundnode{servercapspace}
+	            {compound, left of=search, node distance=25ex}
+	            {Server capability space}{
+		\capspacenode{capspace}{5}{}
+	}
+
+	\path[arrow, dashed] (search) -- (servercapspace);
+
+	\node[flowdecision, below of=search] (searchdecision) {found?};
+
+	\path[arrow, sloped=false] (search) -- node[right] {$cap_{found}$} (searchdecision);
+
+	\node[flowbox, below of=searchdecision, align=left] (translate) {
+		$cap_{translated}$ = $cap_{found}$};
+
+	\node[flowbox, left of=searchdecision, align=left, node distance=25ex] (newcap) {
+		create and insert $cap_{new}$};
+
+	\node[capability, left of=newcap, node distance=15ex] (cap) {};
+
+	\path[arrow, dashed] (newcap) -- (cap);
+
+	\path [arrow, dashed] (cap)
+	      .. controls +(0,3) and +(-3,0) .. (objectidentity);
+
+	\path[arrow, sloped=false] (searchdecision) -- node[right] {yes} (translate);
+
+	\path[arrow, sloped=false] (searchdecision) -- node[above] {no} (newcap);
+
+	\path[arrow, dashed] (newcap) -- (servercapspace);
+
+	\node[flowbox, left of=translate, align=left, node distance=25ex] (returnnew) {
+		$cap_{translated}$ = $cap_{new}$};
+
+	\path[arrow, sloped=false] (newcap) -- (returnnew);
+
+	\node[below of=translate] (server) {$cap_{translated}$};
+	
+	\path[arrow] (translate) -- (server);
+	\path[arrow] (returnnew) |- +(0,-4ex) -| (server.north);
+
+
+\end{tikzpicture}

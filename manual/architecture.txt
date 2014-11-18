@@ -255,9 +255,9 @@ function can pass a pointer as an argument, a client can pass a capability as
 an argument to an RPC call. If the kernel encounters a capability as as an
 argument of a call operation, it performs the following steps.
 
-;[tikz img/capability_argument]
-;  Procedure of delegating a capability from a client to a server as RPC
-;  argument.
+[tikz img/capability_argument]
+  Procedure of delegating a capability specified as RPC argument from a
+  client to a server.
 
 The kernel looks up the object identity in the capability space of the sender.
 This lookup may fail if the sender specified a number of an empty slot of
