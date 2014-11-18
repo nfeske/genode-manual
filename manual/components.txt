@@ -1,8 +1,12 @@
 Components
 ##########
 
+| TODO
+
 Classification of components
 ============================
+
+| TODO
 
 * Device drivers
 * Protocol stacks
@@ -12,10 +16,14 @@ Classification of components
 Common session interfaces
 =========================
 
+| TODO
+
 Component compositions
 ======================
+
+| TODO
 
 Publisher-subscriber mechanism
 ==============================
 
-
+| TODO

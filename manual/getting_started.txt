@@ -1,6 +1,8 @@
 Getting started
 ###############
 
+| TODO
+
 * Obtaining the source code
 * Source-tree structure
 * Downloading 3-rd party source code

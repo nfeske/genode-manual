@@ -247,6 +247,8 @@ with the request arguments.
 Recursive system structure
 ==========================
 
+| TODO
+
 * Parent-child relationship
 * Client-server relationship
 * Application-specific trusted computing base
@@ -260,6 +262,8 @@ Recursive system structure
 
 Core - the root of the process tree
 ===================================
+
+| TODO
 
 * Physical memory allocation
 * Introduction of the services provided by core
@@ -280,8 +284,12 @@ Core - the root of the process tree
 Process creation
 ================
 
+| TODO
+
 Inter-process communication
 ===========================
+
+| TODO
 
 * Synchronous remote procedure calls (RPC)
 * Asynchronous notifications

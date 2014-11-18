@@ -1,19 +1,31 @@
 System configuration
 ####################
 
+| TODO
+
 The init process
 ================
+
+| TODO
 
 Session routing
 ===============
 
+| TODO
+
 Configuration of nested subsystems
 ==================================
+
+| TODO
 
 CPU affinities and real-time priorities
 =======================================
 
+| TODO
+
 Dynamic reconfiguration of components
 =====================================
+
+| TODO
 
 

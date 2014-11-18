@@ -1,11 +1,17 @@
 Under the hood
 ##############
 
+| TODO
+
 Interaction of core with the underlying kernel
 ==============================================
 
+| TODO
+
 Design of the base-hw kernel
 ============================
+
+| TODO
 
 * Rationale
 * System-call interface
@@ -14,20 +20,30 @@ Design of the base-hw kernel
 IOMMU support
 =============
 
+| TODO
 ; on NOVA
 
 Capability-based security in depth
 ==================================
 
+| TODO
+
 Life-time management
 ~~~~~~~~~~~~~~~~~~~~
+
+| TODO
 
 Capability protection on the NOVA microhypervisor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+| TODO
+
 Capability protection on the base-hw kernel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
 
 Dynamic linker
 ==============
 
+| TODO
