@@ -236,16 +236,67 @@ with the request arguments.
   Control flow between client and server when the client calls a method of an
   RPC object.
 
+The member function may produce function results. Once the RPC object's member
+function returns, the entrypoint thread passes the function results to the
+kernel by performing the kernel's _reply_ operation. At this point, the
+server's entrypoint becomes ready for the next request. The kernel, in turn,
+passes the function results as return values of the original call operation to
+the client and wakes up the client thread.
 
-| TODO RPC reply
 
-| TODO delegation by using capabilities as RPC function arguments
+Capability delegation through capability invocation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO result
+Section [Delegation of authority and ownership] explained that capabilities
+can be delegated from one protection domain to another via a kernel operation.
+But it left open the question how this procedure works. The answer is the use
+of capabilities as RPC message payload. Similar to how a caller of a regular
+function can pass a pointer as an argument, a client can pass a capability as
+an argument to an RPC call. If the kernel encounters a capability as as an
+argument of a call operation, it performs the following steps.
+
+;[tikz img/capability_argument]
+;  Procedure of delegating a capability from a client to a server as RPC
+;  argument.
+
+The kernel looks up the object identity in the capability space of the sender.
+This lookup may fail if the sender specified a number of an empty slot of
+sender's capability space. Only if the lookup succeeds, the kernel is able
+obtain the object identity referred to by the argument. Note that under no
+circumstances, the client can refer to object identities for which it has no
+authority because it can merely specify the object identities reachable
+through its capability space. The capability space can be populated only via a
+delegation operation. For all object identities reachable through its
+capability space, the protection domain had explicitly obtained the
+authorization via prior delegation operations.
+Given the object identity of the argument, the kernel searches the server's
+capability space for a slot that refers to the object identity. If the server
+already possesses a capability to the object identity, the kernel translates
+the argument to the corresponding local name when passing it as part of the
+request to the server. If the server does not yet possess a capability to the
+argument, the kernel installs a new entry into the server's capability space.
+The new entry refers to the object identity of the argument. At this point,
+the authority over the object identity has been delegated from the client to
+the server. The kernel passes the just-created local name of the argument
+as part of the request to the server.
+Even though the above description covered the delegation of a single
+capability specified as argument, it is possible to delegate more than one
+capability with a single RPC call.
+
+Analogously to how capabilities can be delegated from a client to a server as
+arguments of an RPC call, capabilities can be delegated in the other direction
+as part of the reply of an RPC call. The procedure in the kernel is the same
+in both cases.
 
 
 Recursive system structure
 ==========================
+
+The previous section introduced capability delegation as the fundamental
+mechanism to pass authority over RPC objects between protection domains. But
+in the given examples, the client was already in possession to a capability to
+the server's RPC object. This raises the question of how do clients get
+acquainted to servers?
 
 | TODO
 
