@@ -1,0 +1,13 @@
+\begin{tikzpicture}[node distance=10ex]
+
+	\node [component, inner sep=1.5ex] (gui) {GUI};
+	\node [component, inner sep=1.5ex, right of=gui, xshift=6ex, align=center] (launcher) {Launcher};
+	\node [component, inner sep=1.5ex, above of=launcher, xshift=8ex] (app) {Application};
+	\node [fit=(gui) (launcher), inner sep=0, outer sep=0] (children) {};
+	\node [component, inner sep=1.5ex, below of=children, node distance=10ex] (init) {Init};
+
+	\path[sloped] (init)     -- node [ownership, rotate=180] {} (gui);
+	\path[sloped] (init)     -- node [ownership]             {} (launcher);
+	\path[sloped] (launcher) -- node [ownership]             {} (app);
+
+\end{tikzpicture}

@@ -1,0 +1,22 @@
+\begin{tikzpicture}[node distance=17ex]
+
+	\labeledcompoundnode{child}{component}{Child}{
+		
+		\downwardthreadnode{childthread}{}
+		\node[capability, right of=childthread, node distance=12ex] (parentcap) {};
+	}
+
+	\labeledcompoundnode{parent}{component, below of=child}{Parent}{
+		\rpcobjectnode{parentrpcobj}{node distance=4ex}{}{Parent}
+		\upwardthreadnode{parentthread}{above of=parentrpcobj, node distance=4ex}
+	}
+
+	% line between rpc object can parent cap in child pd
+	\path [draw, dashed] (parentrpcobjcap) -- (parentcap);
+
+	\path [arrow, dashed] (parentthread) -- node[below, rotate=7, yshift=0.5ex] {$create$}  (childthread);
+	\path (child.south west)+(1ex,0.7ex) node (childsouthwest) {};
+	\path [arrow, dashed] (parentthread) -- (childsouthwest);
+	\path [arrow, dashed] (parentthread) -- node[pos=0.45] {$install$} (parentcap);
+
+\end{tikzpicture}

@@ -1,0 +1,10 @@
+\begin{tikzpicture}[node distance=12ex, inner sep=1ex]
+
+	\node [component] (child) {Child};
+
+	\node [component, below of=child] (parent) {Parent};
+
+	\path[sloped] (parent) -- node [pos=0.4, ownership] {owns}
+	              (child);
+
+\end{tikzpicture}

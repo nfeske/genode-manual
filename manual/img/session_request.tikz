@@ -1,0 +1,71 @@
+\begin{tikzpicture}[node distance=10ex]
+
+	%
+	% init
+	%
+	\labeledcompoundnode{init}
+	                    {component}
+	                    {Init}{
+
+		\rpcobjectnode{parentgui}{node distance=3.5ex}{}{Parent}
+		\node[capability, right of=parentgui] (rootcap) {};
+		\rpcobjectnode{parentlauncher}{node distance=3.5ex, xshift=7ex,
+		                               right of=rootcap, opacity=0.5}{}{Parent}
+	}
+
+	%
+	% launcher
+	%
+	\labeledcompoundnode{launcher}
+	                    {component, above=5ex of init, xshift=15ex}
+	                    {Launcher}{
+		\rpcobjectnode{parentapplication}{node distance=3.5ex}{}{Parent}
+		\downwardthreadnode{launcherthread}{below of=parentapplication,
+		                                    node distance=4ex}
+		\node[capability, below=0ex of launcherthread] (launcherparentcap) {};
+	}
+
+	%
+	% application
+	%
+	\labeledcompoundnode{application}
+	                    {component, above=5ex of launcher, xshift=8ex,
+	                     minimum width=15ex}
+	                    {Application}{
+		\downwardthreadnode{applicationthread}{}
+		\node[capability, below=0ex of applicationthread] (applicationparentcap) {};
+	}
+
+	%
+	% gui
+	%
+	\labeledcompoundnode{gui}
+	                    {component, above=5ex of init, xshift=-12ex}
+	                    {GUI}{
+		\rpcobjectnode{guiroot}{node distance=5ex}{}{GUI root}
+		\downwardthreadnode{guithread}{below of=guiroot, text opacity=0, node distance=4ex}
+		\node[capability, below=0ex of guithread] (guiparentcap) {};
+	}
+
+	% session call from application to launcher
+	\path[arrow] (applicationparentcap) .. controls +(0,-4ex) and +(0,4ex)
+	                            .. node [sloped=false, pos=0.6]
+	                            {$session$("GUI", input:read label:browser)} (parentapplicationobj);
+
+	% session call from launcher to init
+	\path[arrow] (launcherparentcap) .. controls +(0,-4ex) and +(0,4ex)
+	                            .. node [sloped=false, pos=0.6, xshift=8ex]
+	                            {$session$("GUI", input:read label:arora)} (parentlauncherobj);
+
+	% invisible, just for keeping the layout consistent with announce.tikz
+	\path (guiparentcap) .. controls +(0,-4ex) and +(0,4ex)
+	                            .. node [sloped=false, pos=0.6, xshift=-10ex, text opacity=0]
+	                            {$announce$("GUI", 3)} (parentguiobj);
+
+	% capability delegations
+	\path [draw, dashed] (guirootcap)           .. controls +(5ex,-5ex) and +(0,5ex) .. (rootcap);
+	\path [draw, dashed] (guiparentcap)         .. controls +(5ex,-5ex) and +(0,5ex) .. (parentguicap);
+	\path [draw, dashed] (applicationparentcap) .. controls +(0ex,-5ex) and +(0,5ex) .. (parentapplicationcap);
+	\path [draw, dashed] (launcherparentcap)    .. controls +(0ex,-5ex) and +(0,5ex) .. (parentlaunchercap);
+
+\end{tikzpicture}
