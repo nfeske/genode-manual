@@ -63,7 +63,7 @@
 	% root call from init to gui
 	\path[arrow] (rootcap) .. controls +(0,4ex) and +(4ex,-4ex)
 	                            .. node [sloped=false, pos=0.3, xshift=-6ex]
-	                            {$session$("GUI", input:none label:arora)} (guirootobj);
+	                            {$session$(input:none label:arora)} (guirootobj);
 
 	% session creation
 	\path[arrow] (guirootobj) -- node [sloped=false, pos=0.3]

@@ -426,23 +426,47 @@ the launcher imposes the use of a different label to the session. When
 init receives the session request from the launcher, it is up to the init
 to take a policy decision with the same principle options. In fact, each
 component that sits in between the client and the server along the branches
-of the ownership tree can impose its policy
-to sessions. The final session arguments as received by the server are the
-result of the successive application of all policies along the route.
+of the ownership tree can impose its policy to sessions. The routing of the
+session request and the final session arguments as received by the server are
+the result of the successive application of all policies along the route.
 
 [tikz img/session_root]
   Session creation at the server.
 
+In the example, init decides to override the "input" argument.
+Because the GUI announced its "GUI" service beforehand, init is in possession
+of the root capability, which enables it to create create and destroy GUI
+sessions. It decides to respond to the launcher's session request by
+triggering the GUI session creation at the GUI component's root interface.
+The GUI component responds to this request with the creation of a new GUI
+session and attaches the received session arguments to the new session.
+The accumulated session policy is thereby tied to the session's RPC object.
+The RPC object is accompanied with its corresponding session capability,
+which is delegated along the entire call chain of the originator of the
+session request. Once the application's session request returns, the
+application can interact directly with the GUI session using the session
+capability.
 
-* Client-server relationship
-* Application-specific trusted computing base
-* Resource accounting
-  * Assignment
-  * Trading of resources
-  * Heap partitioning
-* Parent interface
-  * Dynamic resource balancing
-* Root interface
+| TODO rationale behind this design
+
+
+| TODO Client-server relationship
+
+| TODO Application-specific trusted computing base
+| * Trusted != trustworthy
+| * Tailoring the TCB
+| * Resolving mutual distrust
+
+| TODO Resource accounting
+| * Assignment
+| * Trading of resources
+| * Heap partitioning
+
+| TODO Parent interface
+| * Dynamic resource balancing
+
+| TODO Root interface
+
 
 Core - the root of the process tree
 ===================================
