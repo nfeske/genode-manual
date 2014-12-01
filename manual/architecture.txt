@@ -105,20 +105,20 @@ an RPC object. In the following, we represent an RPC object as follows.
 
 The circle represents the capability associated with the RPC object. Like a
 pointer to an object, that can be used to call a function of the pointed-to
-object, a capability can be used to call a function of its corresponding RPC
+object, a capability can be used to call functions of its corresponding RPC
 object. However, there are two important differences between a capability and
 a pointer. First, in contrast to a pointer that can be created out of thin air
 (e.g., by casting an arbitrary number to a pointer), a capability cannot be
 created without an RPC object. At the creation time of an RPC object, Genode
 creates a so-called _object identity_ that represents the RPC object in the
-kernel. The Figure [img/object_identity] illustrates the relationship of an
+kernel. Figure [img/object_identity] illustrates the relationship of an
 RPC object and its object identity.
 
 [tikz img/object_identity]
   Relationship between an RPC object and its corresponding object identity.
 
 For each protection domain, the kernel maintains a so-called capability space,
-which is a name space local to the protection domain. At the creation time of
+which is a name space that is local to the protection domain. At the creation time of
 an RPC object, the kernel creates a corresponding object identity and lets a
 slot in the protection domain's capability space refer to the RPC object's
 identity. From the component's point of view, the RPC object A has the name 3.
@@ -206,7 +206,7 @@ delegated to a client.
   not depicted. Instead, the dashed line between the capabilities shows that
   both capabilities refer to the same object identity.
 
-If a protection domain is on possession of a capability, a thread executed
+If a protection domain is in possession of a capability, each thread executed
 within this protection domain can issue a call to a member function of the RPC
 object that is referred to by the capability. Because this is not a normal
 function call but the invocation of an object located in a different
@@ -215,16 +215,16 @@ protection domain, this operation has to be provided by the kernel. Figure
 and the server. The kernel operation takes the client-local name of the
 invoked capability, the opcode of the called function, and the function
 arguments as parameters. When entering the kernel, the client's thread is
-blocked until the it receives a response. The operation of the kernel is
+blocked until it receives a response. The operation of the kernel is
 represented by the dotted line.
-The kernel takes the supplied capability number as an
+The kernel takes the supplied local name as an
 index into the client's capability space to look up the object identity, to
 which the capability refers. Given the object identity, kernel is able to
 determine the entrypoint that is associated with the object identity and wakes
 up the entrypoint's thread with the information about the incoming request.
 Among those information is the server-local name of the capability that was
-invoked. Note that the kernel has translated the client-local capability
-number into a server-local number. The capability name spaces of client and
+invoked. Note that the kernel has translated the client-local name
+into the corresponding server-local name. The capability name spaces of client and
 server are entirely different. The entrypoint uses this number as a key into
 its object pool to find the locally implemented RPC object A that belongs to
 the invoked capability. It then performs a method call of the so-called
@@ -252,36 +252,42 @@ can be delegated from one protection domain to another via a kernel operation.
 But it left open the question how this procedure works. The answer is the use
 of capabilities as RPC message payload. Similar to how a caller of a regular
 function can pass a pointer as an argument, a client can pass a capability as
-an argument to an RPC call. If the kernel encounters a capability as as an
-argument of a call operation, it performs the following steps.
+an argument to an RPC call. In fact, passing capabilities as RPC arguments or
+results is synonymous to delegating authority between components.
+If the kernel encounters a capability as an argument of a call operation, it
+performs the following steps.
 
 [tikz img/capability_argument]
   Procedure of delegating a capability specified as RPC argument from a
   client to a server.
 
-The kernel looks up the object identity in the capability space of the sender.
-This lookup may fail if the sender specified a number of an empty slot of
-sender's capability space. Only if the lookup succeeds, the kernel is able
-obtain the object identity referred to by the argument. Note that under no
-circumstances, the client can refer to object identities for which it has no
-authority because it can merely specify the object identities reachable
-through its capability space. The capability space can be populated only via a
-delegation operation. For all object identities reachable through its
-capability space, the protection domain had explicitly obtained the
-authorization via prior delegation operations.
-Given the object identity of the argument, the kernel searches the server's
-capability space for a slot that refers to the object identity. If the server
-already possesses a capability to the object identity, the kernel translates
-the argument to the corresponding local name when passing it as part of the
-request to the server. If the server does not yet possess a capability to the
-argument, the kernel installs a new entry into the server's capability space.
-The new entry refers to the object identity of the argument. At this point,
-the authority over the object identity has been delegated from the client to
-the server. The kernel passes the just-created local name of the argument
-as part of the request to the server.
-Even though the above description covered the delegation of a single
-capability specified as argument, it is possible to delegate more than one
-capability with a single RPC call.
+# The kernel looks up the object identity in the capability space of the
+  client. This lookup may fail if the client specified a number of an empty
+  slot of its capability space. Only if the lookup succeeds, the kernel is
+  able obtain the object identity referred to by the argument. Note that under
+  no circumstances, the client can refer to object identities, for which it
+  has no authority because it can merely specify the object identities
+  reachable through its capability space. For all non-empty slots of its
+  capability space, the protection domain was authorized to use their
+  referenced object identities by the means of prior delegations.
+
+# Given the object identity of the argument, the kernel searches the server's
+  capability space for a slot that refers to the object identity. Note that
+  the term "search" does not necessarily refer to an expensive linear search.
+  The efficiency of the operation largely depends on the kernel implementation.
+
+# If the server already possesses a capability to the object identity, the
+  kernel translates the argument to the corresponding local name when passing
+  it as part of the request to the server. If the server does not yet possess
+  a capability to the argument, the kernel installs a new entry into the
+  server's capability space. The new entry refers to the object identity of
+  the argument. At this point, the authority over the object identity has been
+  delegated from the client to the server.
+
+# The kernel passes the just-created local name of the argument as part of the
+  request to the server. Even though the above description covered the
+  delegation of a single capability specified as argument, it is possible to
+  delegate more than one capability with a single RPC call.
 
 Analogously to how capabilities can be delegated from a client to a server as
 arguments of an RPC call, capabilities can be delegated in the other direction
@@ -372,7 +378,7 @@ the launcher.
 Services and sessions
 ~~~~~~~~~~~~~~~~~~~~~
 
-The primary purpose of the parent interface is the establishment of
+The primary purpose of the parent interface is the establishment
 of communication channels between components. Any component can inform
 its parent about a service that it provides. In order to provide a service,
 a component needs to create an RPC object implementing the so-called
@@ -395,7 +401,7 @@ subsequent announce calls.
 [tikz img/session_request]
   The application requests a GUI session using the parent interface.
 
-The counterpart of the service announcement is the creation of session by
+The counterpart of the service announcement is the creation of a session by
 a client by issuing a _session_ request to its parent. Figure
 [img/session_request] shows the scenario where the application requests a
 "GUI" session. Along with the session call, the client specifies the
@@ -435,7 +441,7 @@ the result of the successive application of all policies along the route.
 
 In the example, init decides to override the "input" argument.
 Because the GUI announced its "GUI" service beforehand, init is in possession
-of the root capability, which enables it to create create and destroy GUI
+of the root capability, which enables it to create and destroy GUI
 sessions. It decides to respond to the launcher's session request by
 triggering the GUI session creation at the GUI component's root interface.
 The GUI component responds to this request with the creation of a new GUI
