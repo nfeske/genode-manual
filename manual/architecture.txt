@@ -236,6 +236,8 @@ with the request arguments.
   Control flow between client and server when the client calls a method of an
   RPC object.
 
+; We could illustrate the lookup of the RPC object from the object pool.
+
 The member function may produce function results. Once the RPC object's member
 function returns, the entrypoint thread passes the function results to the
 kernel by performing the kernel's _reply_ operation. At this point, the
@@ -255,7 +257,15 @@ function can pass a pointer as an argument, a client can pass a capability as
 an argument to an RPC call. In fact, passing capabilities as RPC arguments or
 results is synonymous to delegating authority between components.
 If the kernel encounters a capability as an argument of a call operation, it
-performs the following steps.
+performs the steps illustrated in Figure [img/capability_argument].
+;
+; We direct the following lines directly to LaTeX to parse the math
+; environments.
+;
+: The local names are denoted as $cap$, e.g., $cap_{arg}$
+: is the local name of the object identity at the client side, and
+: $cap_{translated}$ is the local name of the same object identity at the
+: server side.
 
 [tikz img/capability_argument]
   Procedure of delegating a capability specified as RPC argument from a
@@ -295,6 +305,8 @@ as part of the reply of an RPC call. The procedure in the kernel is the same
 in both cases.
 
 
+\clearpage
+
 Recursive system structure
 ==========================
 
@@ -308,9 +320,9 @@ acquainted to servers?
 Component ownership
 ~~~~~~~~~~~~~~~~~~~
 
-In a Genode system, each component (except for the initial component) has a
-parent, which owns the component. The _ownership_ relation between a parent
-and a child is two-fold.
+In a Genode system, each component (except for the initial component called
+core) has a parent, which owns the component. The _ownership_ relation between
+a parent and a child is two-fold.
 
 [tikz img/parent_child]
 
@@ -325,12 +337,19 @@ contact for seeking acquaintances with other components.
 [tikz img/parent_capability]
   Initial relationship between a parent and a new created child.
 
-On the other hand, ownership stands for _control_. Because the parent has
-created its children out of its own resources, it is in the position to
-exercise ultimate power over its children. This includes the decision to
-destruct a child at anytime to regain the resources that were assigned
-to the child. But it is also in control over the relationships of the child
-with other components known to the parent.
+On the one hand, ownership stands for _responsibility_.
+Each component requires physical resources such as the memory used by the
+component or in-kernel data structures that represent the component in the
+kernel.
+The parent is responsible to provide a budget of those physical resources to
+the child at the child's creation time but also during the child's entire
+lifetime.
+As the parent has to assign a fraction of its own physical resources to its
+children, it is the parent's natural interest to maintain the balance of
+the physical resources split between itself and each of its children.
+Besides being the provider of resources, the parent defines all aspects of the
+child's execution and serves as the child's primary point of contact for
+seeking acquaintances with other components.
 
 Each new component is created as an empty protection domain. It is up to the
 parent to populate the protection domain with code and data, and to create a
@@ -344,12 +363,14 @@ capability. Figure [img/parent_capability] depicts the situation right after
 the creation of a child component. A thread in the parent component created a
 new protection domain and a thread residing in the protection domain. It also
 installed the parent capability referring to an RPC object provided by the
-parent. Section [Process creation] covers the procedure of creating a
-component in detail.
+parent. To provide the RPC object, the parent has to maintain an entrypoint.
+For brevity, entrypoints are not depicted in this and the following figures.
+Section [Process creation] covers the procedure of creating a component in
+detail.
 
 The ownership relation between parent and child implies that each component
 has to inherently trust its parent. From a child's perspective, its parent
-plays the role of the kernel. Whereas the child has to trust its parent,
+is as powerful as the kernel. Whereas the child has to trust its parent,
 a parent does not necessarily need to trust its children.
 
 
@@ -448,10 +469,11 @@ The GUI component responds to this request with the creation of a new GUI
 session and attaches the received session arguments to the new session.
 The accumulated session policy is thereby tied to the session's RPC object.
 The RPC object is accompanied with its corresponding session capability,
-which is delegated along the entire call chain of the originator of the
-session request. Once the application's session request returns, the
-application can interact directly with the GUI session using the session
-capability.
+which is delegated along the entire call chain up to the originator of the
+session request (Section [Delegation of authority and ownership]). Once the
+application's session request returns, the application can interact directly
+with the GUI session using the session capability.
+
 
 | TODO rationale behind this design
 
