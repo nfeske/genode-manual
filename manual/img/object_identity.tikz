@@ -3,7 +3,7 @@
 	\node at (-20ex,5ex) {};
 
 	\labeledcompoundnode{pdcompound}{component}{Protection domain}{
-		\rpcobjectnode{rpcobja}{}{3}{RPC object A}
+		\rpcobjectrnode{rpcobja}{}{3}{RPC object A}
 	}
 
 	\labeledcompoundnode{capspacecompound}

@@ -10,7 +10,7 @@
 	                     minimum width=5ex,
 	                     minimum height=5ex}
 	                    {Protection domain 1}{
-		\rpcobjectnode{rpcobja}{}{3}{RPC object A}
+		\rpcobjectrnode{rpcobja}{}{3}{RPC object A}
 	}
 
 	\labeledcompoundnode{capspacecompound1}

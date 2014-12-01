@@ -7,9 +7,9 @@
 	                    {component}
 	                    {Init}{
 
-		\rpcobjectnode{parentgui}{node distance=3.5ex}{}{Parent}
+		\rpcobjectrnode{parentgui}{node distance=3.5ex}{}{Parent}
 		\node[capability, right of=parentgui] (rootcap) {};
-		\rpcobjectnode{parentlauncher}{node distance=3.5ex, xshift=7ex,
+		\rpcobjectrnode{parentlauncher}{node distance=3.5ex, xshift=7ex,
 		                               right of=rootcap, opacity=0.5}{}{Parent}
 	}
 
@@ -19,7 +19,7 @@
 	\labeledcompoundnode{launcher}
 	                    {component, above=5ex of init, xshift=15ex}
 	                    {Launcher}{
-		\rpcobjectnode{parentapplication}{node distance=3.5ex}{}{Parent}
+		\rpcobjectrnode{parentapplication}{node distance=3.5ex}{}{Parent}
 		\downwardthreadnode{launcherthread}{below of=parentapplication,
 		                                    node distance=4ex}
 		\node[capability, below=0ex of launcherthread] (launcherparentcap) {};
@@ -42,7 +42,7 @@
 	\labeledcompoundnode{gui}
 	                    {component, above=5ex of init, xshift=-12ex}
 	                    {GUI}{
-		\rpcobjectnode{guiroot}{node distance=5ex}{}{GUI root}
+		\rpcobjectrnode{guiroot}{node distance=5ex}{}{GUI root}
 		\downwardthreadnode{guithread}{below of=guiroot, text opacity=0, node distance=4ex}
 		\node[capability, below=0ex of guithread] (guiparentcap) {};
 	}

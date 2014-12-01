@@ -96,22 +96,41 @@
 % argument 2: node arguments
 % argument 3: capability name
 % argument 4: node content
+% argument 5: capability node arguments
 %
 % The capability node will be named #1cap.
 % The object node will be named #1obj.
 %
-\newcommand\rpcobjectnode[4] {
+\newcommand\rpcobjectnodebase[5] {
 	\node[#2] (#1) {
 		\begin{tikzpicture}
 			\node [draw, left color=blue!20, right color=white, minimum size=0pt,
 			       thick, inner sep=1ex, rounded corners=0.5ex, dropshadow]
 			       (#1obj) {#4};
-			\node [outer sep=0pt, capability, right of=#1obj, right=2ex]
+			\node [outer sep=0pt, capability, #5]
 			       (#1cap) {#3};
-			\path [draw, dropshadow, very thick] (#1cap.west) -- node (#1link) {} (#1obj);
+			\path [draw, dropshadow, very thick] (#1cap) -- node (#1link) {} (#1obj);
 		\end{tikzpicture}
 	};
 }
+
+
+%%
+% Create RPC object node with the capability to the right of the object
+%
+% The four arguments are the same as for 'rpcobjectnodebase'.
+%
+\newcommand\rpcobjectrnode[4] {
+	\rpcobjectnodebase{#1}{#2}{#3}{#4}{right=1.5ex of #1obj} }
+
+
+%%
+% Create RPC object node with the capability to the left of the object
+%
+% The four arguments are the same as for 'rpcobjectnodebase'.
+%
+\newcommand\rpcobjectlnode[4] {
+	\rpcobjectnodebase{#1}{#2}{#3}{#4}{left=1.5ex of #1obj} }
 
 
 %%

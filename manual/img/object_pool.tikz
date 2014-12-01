@@ -2,24 +2,6 @@
 
 	\node [inner sep=0, outer sep=0] (anchor) {};
 
-
-	%
-	% Server PD
-	%
-
-	\labeledcompoundnode{serverpdcompound}
-	                    {component,
-	                     below=0ex of anchor}
-	                    {Server PD}{
-		\rpcobjectnode{rpcobja}{}{3}{RPC object A}
-
-		\rpcobjectnode{rpcobjb}{below of=rpcobja, xshift=-10ex}{7}{RPC object B}
-
-		\node[below of=rpcobjb, minimum height=2ex] {};
-	}
-
-	\entrypointnode{ep}{}{serverpdcompound}
-
 	%
 	% Client PD
 	%
@@ -27,14 +9,33 @@
 	\labeledcompoundnode{clientpdcompound}
 	                    {component,
 	                     below=0ex of anchor,
-	                     minimum width=15ex,
-	                     xshift=30ex}
+	                     minimum width=15ex}
 	                    {Client PD}{
 		\node[capability] (delegatedcap) {5};
 	}
 
+
+	%
+	% Server PD
+	%
+
+	\labeledcompoundnode{serverpdcompound}
+	                    {component,
+	                     below=0ex of anchor,
+	                     xshift=28ex,
+	                     node distance=7ex}
+	                    {Server PD}{
+		\rpcobjectlnode{rpcobja}{}{3}{RPC object A}
+
+		\rpcobjectlnode{rpcobjb}{below of=rpcobja, xshift=10ex}{7}{RPC object B}
+
+		\node[below of=rpcobjb, minimum height=2ex] {};
+	}
+
+	\entrypointnode{ep}{}{serverpdcompound}
+
 	\path [draw, dashed] (rpcobjalink)
-	      .. controls +(0,-1) and +(1,1) ..
+	      .. controls +(0,-1) and +(-1,1) ..
 	      node [pos=0.7] {} (epep);
 
 	\path [draw, dashed] (rpcobjblink)
@@ -43,7 +44,7 @@
 
 	% line to delegated cap
 	\path [draw, dashed] (rpcobjacap)
-	      .. controls +(1,0) and +(-1,0) ..
+	      .. controls +(-1,0) and +(1,0) ..
 	      node [pos=0.7] {} (delegatedcap);
 
 \end{tikzpicture}

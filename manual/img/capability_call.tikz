@@ -2,26 +2,6 @@
 
 	\node [inner sep=0, outer sep=0] (anchor) {};
 
-
-	%
-	% Server PD
-	%
-
-	\labeledcompoundnode{serverpdcompound}
-	                    {component,
-	                     below=0ex of anchor}
-	                    {Server PD}{
-	    \node (vspace) {};
-
-		\rpcobjectnode{rpcobja}{below of=vspace}{3}{RPC object A}
-
-		\rpcobjectnode{rpcobjb}{below of=rpcobja, xshift=-10ex}{7}{RPC object B}
-
-		\node[below of=rpcobjb, minimum height=2ex] {};
-	}
-
-	\entrypointnode{ep}{}{serverpdcompound}
-
 	%
 	% Client PD
 	%
@@ -29,8 +9,7 @@
 	\labeledcompoundnode{clientpdcompound}
 	                    {component,
 	                     below=0ex of anchor,
-	                     minimum width=10ex,
-	                     xshift=30ex}
+	                     minimum width=10ex}
 	                    {Client PD}{
 
 	    \downwardthreadnode{clientthread}{outer sep=0.5ex}
@@ -39,6 +18,27 @@
 		% client invokes capability
 		\path [arrow, right, rotate=90] (clientthread) -- node [xshift=1ex] {$call(fn, args)$} (delegatedcap);
 	}
+
+	%
+	% Server PD
+	%
+
+	\labeledcompoundnode{serverpdcompound}
+	                    {component,
+	                     below=0ex of anchor,
+	                     xshift=30ex}
+	                    {Server PD}{
+	    \node (vspace) {};
+
+		\rpcobjectlnode{rpcobja}{below of=vspace}{3}{RPC object A}
+
+		\rpcobjectlnode{rpcobjb}{below of=rpcobja, xshift=10ex}{7}{RPC object B}
+
+		\node[below of=rpcobjb, minimum height=2ex] {};
+	}
+
+	\entrypointnode{ep}{}{serverpdcompound}
+
 
 	\node[fit=(serverpdcompound) (clientpdcompound)] (userland) {};
 
@@ -61,8 +61,8 @@
 	      -- node [rotate=270] {$request(3, fn, args)$} (epep);
 
 	% ep calls RPC object
-	\coordinate[xshift=-2ex] (leftofrpcobjb) at (rpcobjb.west)+(-13ex,0);
-	\path [arrow] (epep) -- +(0,3ex) -| (leftofrpcobjb) node[right, yshift=-4ex] {$A\rightarrow dispatch(fn, args)$} |- (rpcobja);
+	\coordinate[xshift=2ex] (rightofrpcobjb) at (rpcobjb.east)+(13ex,0);
+	\path [arrow] (epep) -- +(0,3ex) -| (rightofrpcobjb) node[left, yshift=-4ex] {$A\rightarrow dispatch(fn, args)$} |- (rpcobja);
 
 	% RPC object A executes member function
 	\path [arrow] (rpcobjaobj.north)+(-1ex,0)

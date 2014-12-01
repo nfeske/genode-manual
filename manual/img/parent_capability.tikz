@@ -7,7 +7,7 @@
 	}
 
 	\labeledcompoundnode{parent}{component, below of=child}{Parent}{
-		\rpcobjectnode{parentrpcobj}{node distance=4ex}{}{Parent}
+		\rpcobjectrnode{parentrpcobj}{node distance=4ex}{}{Parent}
 		\upwardthreadnode{parentthread}{above of=parentrpcobj, node distance=4ex}
 	}
 
