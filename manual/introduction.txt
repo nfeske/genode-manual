@@ -1,4 +1,24 @@
 Introduction
 ############
 
-| TODO
+| TODO motivation
+;
+; Application-specific trusted computing base
+; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+; 
+; The rigid hierarchy imposed on the components of a Genode system is
+; instrumental for optimizing the system structure for the high assurance of
+; critical system functions. The primary optimization criterion for a given
+; critical function is the low complexity of its trusted computing base.
+; 
+; [tikz img/tcb]
+;   Application-specific trusted computing base
+;
+; TODO
+; * Trusted != trustworthy
+; * Tailoring the TCB
+
+| TODO define term "trusted computing base"
+
+| TODO summary of features
+

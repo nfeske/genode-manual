@@ -3,6 +3,20 @@ Functional specification
 
 | TODO
 
+Parent-child interaction
+========================
+
+* Parent interface
+; The parent interface consists of the following functions. The detailed
+; interface is covered in Section [Process execution environment].
+;
+; :announce: Announce a service 
+;
+; :session: Request a new session of the specified service.
+;   The optional session arguments allow the child to specify the desired
+;   behavior of the session. The function returns a session capability.
+* Root interface
+
 Fundamental data structures
 ===========================
 
@@ -20,8 +34,8 @@ Process execution environment
 
 ; os: config
 
-Inter-process communication
-===========================
+Inter-component communication
+=============================
 
 ; os: static_root
 
@@ -59,4 +73,4 @@ Tracing
 C runtime
 =========
 
-; C runtime and process-local VFS
+; C runtime and component-local VFS

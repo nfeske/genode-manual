@@ -465,9 +465,6 @@ of the ownership tree can impose its policy to sessions. The routing of the
 session request and the final session arguments as received by the server are
 the result of the successive application of all policies along the route.
 
-[tikz img/session_root]
-  Session creation at the server.
-
 In the example, init decides to override the "input" argument.
 Because the GUI announced its "GUI" service beforehand, init is in possession
 of the root capability, which enables it to create and destroy GUI
@@ -481,6 +478,9 @@ which is delegated along the entire call chain up to the originator of the
 session request (Section [Delegation of authority and ownership]). Once the
 application's session request returns, the application can interact directly
 with the GUI session using the session capability.
+
+[tikz img/session_root]
+  Session creation at the server.
 
 The differentiation between session creation and session use aligns two
 seemingly conflicting goals with each other, namely efficiency and the
@@ -542,8 +542,8 @@ used memory, it could revoke the memory from the server at any time, possibly
 triggering a fault at the server. The establishment of shared memory is
 described in detail in Section [Shared memory].
 Similarly to the role as client, the internal state of a server is protected
-from its clients with respect to integrity and confidentaliy.
-In contrast to a client, however, the lifeliness of a server is protected as
+from its clients with respect to integrity and confidentiality.
+In contrast to a client, however, the liveliness of a server is protected as
 well. A server does never need to wait for any response from a client.
 By responding to an RPC request, the server does immediately become ready
 to accept the next RPC request without any prior handshake with the client
@@ -561,26 +561,19 @@ its parent, which, as the owner of the server, represents an authority that
 must be ultimately obeyed. Otherwise, the parent of a server might take steps
 to enforce its will by destructing the server altogether.
 
+| TODO Resolving mutual distrust and cyclic dependencies
 
-Application-specific trusted computing base
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
-| * Trusted != trustworthy
-| * Tailoring the TCB
-| * Resolving mutual distrust
 
+Resource accounting
+~~~~~~~~~~~~~~~~~~~
 
 | TODO Resource accounting
 | * Assignment
 | * Trading of resources
 | * Heap partitioning
 | * Session upgrades
-
-| TODO Parent interface
 | * Dynamic resource balancing
-
-| TODO Root interface
 
 
 Core - the root of the component tree
@@ -588,7 +581,14 @@ Core - the root of the component tree
 
 | TODO
 
-* Physical memory allocation
+Physical memory allocation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+Core services
+~~~~~~~~~~~~~
+
 * Introduction of the services provided by core
   * LOG
   * RAM
@@ -603,6 +603,7 @@ Core - the root of the component tree
   * SIGNAL
   * TRACE
 * Bootstrapping
+
 
 Component creation
 ==================
