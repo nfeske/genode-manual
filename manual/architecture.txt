@@ -54,13 +54,13 @@ relationship between components and how components become acquainted with each
 other.
 An operating system ultimately acts on physical hardware resources such
 as memory, CPUs, and peripheral devices.
-Section [Core - the root of the process tree] describes how such resources
+Section [Core - the root of the component tree] describes how such resources
 are made available to components.
-Section [Process creation] answers the question of how a new component comes
+Section [Component creation] answers the question of how a new component comes
 to life.
 The variety of relationships between components and their respective
 interfaces call for different communication primitives. Section
-[Inter-process communication] introduces inter-component communication
+[Inter-component communication] introduces inter-component communication
 mechanisms in detail.
 
 
@@ -365,7 +365,7 @@ new protection domain and a thread residing in the protection domain. It also
 installed the parent capability referring to an RPC object provided by the
 parent. To provide the RPC object, the parent has to maintain an entrypoint.
 For brevity, entrypoints are not depicted in this and the following figures.
-Section [Process creation] covers the procedure of creating a component in
+Section [Component creation] covers the procedure of creating a component in
 detail.
 
 The ownership relation between parent and child implies that each component
@@ -405,7 +405,7 @@ its parent about a service that it provides. In order to provide a service,
 a component needs to create an RPC object implementing the so-called
 _root interface_. The root interface offers functions for creating
 and destroying sessions of the service. Figure [img/announce] shows a
-scenario where the GUI component announces its service to the init process.
+scenario where the GUI component announces its service to the init component.
 The announce function takes the service name and the capability for the
 service's root interface as arguments. Thereby, the root capability is
 delegated from the GUI to init.
@@ -437,16 +437,24 @@ _session capability_.
 
 When the parent receives a session request from a child, it is free to take
 a policy decision of how to respond to the request. There are several
-options. First, the parent may deny the request and thereby prevent
-the child from using a particular service. Second, the parent could decide
-to implement the requested service by itself by handing out a session
-capability to a locally implemented RPC object to the child. Third, if the
-parent has received an announcement of the service from another child, it
-may decide to direct the session request to the other child. Finally,
-the parent may decide to request a session in the name of its child from
-its own parent. The figure illustrates the latter option where the
+options.
+
+* The parent may deny the request and thereby prevent the child from using
+  a particular service.
+
+* The parent could decide
+  to implement the requested service by itself by handing out a session
+  capability to a locally implemented RPC object to the child.
+
+* If the parent has received an announcement of the service from another
+  child, it may decide to direct the session request to the other child.
+
+* The parent may decide to request a session in the name of its child from
+  its own parent.
+
+The figure illustrates the latter option where the
 launcher responds to the session request by the application by
-issuing a session request from its parent, the init process. Note that by
+issuing a session request from its parent, the init component. Note that by
 requesting a session in the name of its child, the launcher is able to
 modify the session arguments according to its policy. In the example,
 the launcher imposes the use of a different label to the session. When
@@ -474,21 +482,100 @@ session request (Section [Delegation of authority and ownership]). Once the
 application's session request returns, the application can interact directly
 with the GUI session using the session capability.
 
+The differentiation between session creation and session use aligns two
+seemingly conflicting goals with each other, namely efficiency and the
+application of the security policies of potentially many components. On the
+one hand, all components on the route between client and server are involved
+in the creation of the session and thereby can impose their policies on the
+session. On the other hand, once established, the direct communication channel
+between client and server via the session capability allows for the efficient
+interaction between the two components. For the actual use of the session, the
+intermediate components are not on the performance-critical path.
 
-| TODO rationale behind this design
+
+Client-server relationship
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Whereas the role of a component as a child is dictated by the strict
+ownership relation that implies that the child has to ultimately trust
+its parent, the role of a component as client or server is more diverse.
+
+In its _role of a client_ that obtained a session capability as result of a
+session request from its parent, a component is unaware of the real identity
+of the server. It is unable to judge the trustworthiness of the server.
+However, it obtained the session from its parent, which the client ultimately
+trusts. Whichever session capability was handed out by the parent, the client
+is not in the position to question the parent's decision.
+
+However, even though the integrity of the session capability can be taken for
+granted, the client does not need to trust the server in the same way as it
+trusts its parent. By invoking the capability, the client is in full control
+over the information it reveals to the server in the form of RPC arguments.
+The confidentiality of its internal state is protected. Furthermore, the
+invocation of a capability cannot have side effects to the client's protection
+domain other than the retrieval of RPC results. So the integrity of the
+client's internal state is protected. However, when invoking a capability, the
+clients hands over the flow of execution to the server. The client is blocked
+until the server responds to the request. A misbehaving server may never
+respond and thereby block the client infinitely. Therefore, with respect to
+the liveliness of the client, the client has to trust the server. To empathize
+with the role of a component as a client, a capability invocation can be
+compared to the call of a function of an opaque 3rd-party library. When
+calling such a library function, the caller can never be certain to regain
+control. It just expects that a function returns at some point. However, in
+contrast to a call of a library function, a capability invocation does not put
+the integrity and confidentiality of the client's internal state at risk.
+
+If being in the _role of a server_, a component should generally not trust
+its clients. In contrary, from the server's perspective, clients should be
+expected to misbehave. This has two practical implications. First, a server is
+responsible to validate the arguments of incoming RPC requests. Second, a
+server should never make itself dependent on the good will of its clients.
+For example, a server should generally not invoke a capability obtained
+from one of its clients. A malicious client could have delegated a
+capability to a non-responding RPC object, which may block the server
+forever when invoked and thereby make the server unavailable for all other
+clients. As another example, the server must always be in control
+over the physical memory resources used for a sharing-memory interface between
+itself and its clients. Otherwise, if a client was in control over the
+used memory, it could revoke the memory from the server at any time, possibly
+triggering a fault at the server. The establishment of shared memory is
+described in detail in Section [Shared memory].
+Similarly to the role as client, the internal state of a server is protected
+from its clients with respect to integrity and confidentaliy.
+In contrast to a client, however, the lifeliness of a server is protected as
+well. A server does never need to wait for any response from a client.
+By responding to an RPC request, the server does immediately become ready
+to accept the next RPC request without any prior handshake with the client
+of the first request.
+
+Regarding the lifetime of a session, the client is not in the immediate
+position to dictate the server when to close a session because it has no power
+over the server. Instead, the procedure of closing a session follows the same
+chain of commands as involved at the session creation. The common parent of
+both client and server plays the role of a broker, which is trusted by both
+parties. From the client's perspective, closing a session is a request to its
+parent and it is up to the policy of the parent to respond to such a request.
+From the server's perspective, the request to close a session originates from
+its parent, which, as the owner of the server, represents an authority that
+must be ultimately obeyed. Otherwise, the parent of a server might take steps
+to enforce its will by destructing the server altogether.
 
 
-| TODO Client-server relationship
+Application-specific trusted computing base
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO Application-specific trusted computing base
+| TODO
 | * Trusted != trustworthy
 | * Tailoring the TCB
 | * Resolving mutual distrust
+
 
 | TODO Resource accounting
 | * Assignment
 | * Trading of resources
 | * Heap partitioning
+| * Session upgrades
 
 | TODO Parent interface
 | * Dynamic resource balancing
@@ -496,8 +583,8 @@ with the GUI session using the session capability.
 | TODO Root interface
 
 
-Core - the root of the process tree
-===================================
+Core - the root of the component tree
+=====================================
 
 | TODO
 
@@ -517,20 +604,29 @@ Core - the root of the process tree
   * TRACE
 * Bootstrapping
 
-Process creation
-================
+Component creation
+==================
 
 | TODO
 
-Inter-process communication
-===========================
+Inter-component communication
+=============================
 
 | TODO
 
-* Synchronous remote procedure calls (RPC)
-* Asynchronous notifications
-* Shared memory
-* Synchronous bulk
-* Asynchronous bulk - packet streams
+Synchronous remote procedure calls (RPC)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Asynchronous notifications
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Shared memory
+~~~~~~~~~~~~~
+
+Synchronous bulk transfer
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Asynchronous bulk transfer - packet streams
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
