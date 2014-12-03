@@ -1,0 +1,32 @@
+\begin{tikzpicture}[node distance=12ex]
+
+	\labeledcompoundnode{child}{component}{Child}{
+		
+		\node[capability] (childramcap) {};
+	}
+
+	\labeledcompoundnode{init}{component, below of=child, xshift=-7ex}{Init}{
+		
+		\node[capability] (initramcap) {2};
+		\downwardthreadnode{initthread}{inner sep=0, node distance=0ex, left=4ex of initramcap}
+		\node[capability, right of=initramcap] (initchildramcap) {3};
+	}
+
+	\labeledcompoundnode{core}{component, below of=init, xshift=-10ex}{Core}{
+
+		\rpcobjectrnode{raminit}{}{}{RAM session}
+
+		\rpcobjectrnode{ramchild}{node distance=25ex, right of=raminit}{}{RAM session}
+	}
+
+	% capability associations
+	\path [draw, dashed] (raminitcap) -- (initramcap);
+	\path [draw, dashed] (ramchildcap) -- (initchildramcap);
+	\path [draw, dashed] (initchildramcap) -- (childramcap);
+
+	% transfer quota
+	\path [arrow, sloped=false] (initthread)
+	      .. controls +(-1,0) and +(0,1) ..
+	      node[pos=0.8] {$transfer$(amount, 3)} (raminitobj);
+
+\end{tikzpicture}

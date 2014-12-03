@@ -561,19 +561,301 @@ its parent, which, as the owner of the server, represents an authority that
 must be ultimately obeyed. Otherwise, the parent of a server might take steps
 to enforce its will by destructing the server altogether.
 
-| TODO Resolving mutual distrust and cyclic dependencies
+; XXX  Description how to resolve mutual distrust and cyclic dependencies.
+;      Maybe this topic is better suited for Chapter [Components]?
 
 
+Resource trading
+================
 
-Resource accounting
+As introduced in Section [Component ownership], child components are created
+out of the resources of their respective parent components. This section
+describes the underlying mechanism. It first introduces the concept of
+RAM sessions in Section [Resource assignment]. Section [Trading of resources]
+explains how RAM sessions are used to trade resources between components.
+The resource-trading mechanism ultimately allows servers to become resilient
+against client-driven resource-exhaustion attacks. However, such servers need
+to take special precautions that are explained in Section
+[Server-side heap partitioning]. Section [Dynamic resource balancing] presents
+a mechanism for the dynamic balancing of resources among cooperative
+components.
+
+
+Resource assignment
 ~~~~~~~~~~~~~~~~~~~
 
-| TODO Resource accounting
-| * Assignment
-| * Trading of resources
-| * Heap partitioning
-| * Session upgrades
-| * Dynamic resource balancing
+In general, it is the operating system's job to manage the physical resources
+of the machine in a way that enables multiple applications to utilize them in
+a safe and efficient manner. The physical resources are foremost the physical
+memory, the processing time of the CPUs, and devices.
+Traditional operating systems use to provide abstractions of those resource
+to applications running on top of the operating system. For example, instead
+of exposing the real interface of a device to an application, the OS kernel
+provides a representation of the device as a pseudo file in the virtual file
+system. An application interacts with a device indirectly by operating on
+the respective pseudo file via an device-class-specific API (ioctl
+operations). As another example, a traditional OS kernel provides each
+application with an arbitrary amount of virtual memory, which may be much
+larger than the available physical memory. The application's virtual memory is
+backed with physical memory on not before the application actually uses the
+memory. The pretension of unlimited memory by the kernel relieves application
+developers from considering memory as a limited resource. On the other hand,
+this convenient abstraction creates problems that are extremely hard or even
+impossible to solve by the OS kernel.
+
+* The amount of physical memory that is at the disposal to back the
+  virtual memory is limited. Traditional OS kernels use to employ strategies
+  to uphold the illusion of unlimited memory by swapping memory pages to disk.
+  However, the swap space on disk is ultimately limited, too. At one point,
+  when the physical resources are exhausted, the pretension of unlimited
+  memory becomes a leaky abstraction and forces the kernel to take extreme
+  decisions such as killing arbitrary processes to free up physical memory.
+
+* Multiple applications including critical applications as well as
+  potentially misbehaving applications share one pool of physical resources.
+  In the presence of a misbehaving application that exhausts the physical
+  memory, all applications are equally put at risk.
+
+* Third, by granting each application the legitimate ability to consume as
+  much memory as the application desires, applications cannot be held
+  accountable for their consumption of physical memory. The kernel cannot
+  distinguish a misbehaving from a well-behaving memory-demanding application.
+
+There are several approaches to relieve those problems. For example, OS
+kernels that are optimized for resource utilization may employ heuristics that
+take the application behavior into account for parametrizing page-swapping
+strategies. Another example is the provisioning of a facility for pinned
+memory to application. Such memory is guaranteed to be backed by physical
+memory. But such a facility bears the risk of allowing any application to
+exhaust physical memory directly. Hence, further heuristics are needed to
+limit the amount of pinned memory an application may use. Those counter
+measures and heuristics, while making the OS kernel more complex, are mere
+attempts to fight symptoms but unable to solve the actual problems caused by
+the lack of accounting. The behaviour of the such systems remains largely
+indeterministic.
+
+As a further consequence of the abstraction from physical resources, the
+kernel has to entail functionality to support the abstraction. For example,
+for swapping memory pages to disk, the kernel has to depend on an in-kernel
+disk driver. For each application, whether or not it ever touches the disk,
+the in-kernel disk driver is part of its trusted computing base.
+
+
+RAM sessions and balances
+-------------------------
+
+Genode does not abstract from physical resources. Instead, it solely
+arbitrates the access to such resources and provides means to delegate the
+authority over resources between components.
+Each low-level physical resource is represented as a dedicated service
+provided by the core component at the root of the component tree.
+The core component is described in detail in Section
+[Core - the root of the component tree].
+The following description focuses on memory as the most prominent low-level
+resource managed by the operating system.
+
+Physical memory is represented by the RAM service of core. The best way to
+describe the idea behind the RAM service is to draw the analogy to a bank.
+Each RAM session corresponds to a bank account. Initially, when opening
+a new account, there is no balance. However, by having the authority over
+an existing bank account with a balance, one can transfer funds from the
+existing account to the new account.
+Naturally, such a transaction will decrease the balance of the
+originating account. Internally at the bank, the transfer does not involve any
+physical bank notes. The transaction is merely a change of balances of both
+involved bank accounts. In order to pay with physical bank notes, the bank
+customer has to withdraw bank notes via an ATM. Such a withdrawal will
+naturally decrease the balance on the account. If the account is depleted,
+the bank denies the attempt. Analogously to withdrawing
+money via an ATM, physical memory can be allocated from a RAM session.
+A piece of allocated physical memory is represented by a so-called dataspace
+(see Section [Dataspaces] for more details). A RAM dataspace is a container
+of physical memory that can be used for storing data.
+
+
+Subdivision of budgets
+----------------------
+
+Similar to a person with a bank account, each component of a Genode system
+has a session at core's RAM service.
+At boot time, the core component creates an initial RAM session with a balance
+set to the amount of available physical memory. This RAM session is designated
+for the init component, which is the first and only child of core.
+On request by init, core delegates the capability for this initial RAM session
+to the init component.
+
+[tikz img/memory_assignment]
+  Init assigns a portion of its memory to a child.
+  In addition to its own RAM session, init has created a second RAM session
+  designated for its child. Init transfers a certain amount
+  from its own RAM session to the child's RAM session by invoking its own RAM
+  session capability and specifying the beneficiary's RAM-session capability
+  as argument. Core will respond to the request by atomically
+  adjusting the quotas of both RAM sessions by the specified amount.
+
+For each child component spawned by the init component, init creates a new
+RAM session at core. As result from the session creation, it obtains the
+capability for the new RAM session. Because it has the authority over both
+its own and the child's RAM session, it can transfer a certain amount of RAM
+quota from its own account to the child's account. The amount depends on the
+configuration of the init component. Thereby, init explicitly splits its
+own RAM budget among its child components. Each child created by init can
+obtain the capability for its own RAM session via the parent interface and
+thereby gains the authority over memory budget that was assigned to it.
+Note however, that no child has the authority over init's RAM session nor
+the RAM sessions of any siblings. The mechanism for distributing a given
+budgets among multiple children works recursively. The children of init
+can follow the same procedure to further subdivide their budgets for
+spawning grandchildren.
+
+
+Protection against resource stealing
+------------------------------------
+
+[tikz img/resource_stealing]
+  Memory-stealing attempt. The client and server components conspire to
+  steal memory from the child. The client was created by the child and
+  received a portion of the child's memory budget. The client requested
+  a session for a service that was eventually routed to the server.
+  The client-server relationship allows the client to delegate capabilities
+  to the server. Therefore, it is able to delegate its own RAM session
+  capability to the server.
+  The server, now in possession of the client's and its own RAM session
+  capabilities can transfer memory from the client's to its own RAM session.
+  After this transaction,
+  the child has no way to regain its memory resources because it has no
+  authority over the server's RAM session.
+
+A parent that created a child subsystem out of its own memory resources,
+expects to regain the spent resources when destructing the subsystem. For
+this reason it must not be possible for a child to transfer funds to
+another branch of the component tree without the consent of the parent.
+Figure [img/resource_stealing] illustrates an example scenario that
+violates this expectation.
+
+To prevent such such resource-stealing scenarios, Genode restricts the
+transfer between arbitrary RAM sessions. Each RAM session must have a
+reference RAM session, which can be defined only once. Transfers are
+permitted only between a RAM session and its reference RAM session.
+
+
+RAM session destruction
+-----------------------
+
+The analogy between bank accounts and RAM sessions ends when closing a RAM
+session. When a RAM session is closed, core destroys all dataspaces that were
+allocated from the RAM session and transfers the RAM session's final budget
+to the corresponding reference RAM session.
+
+
+Trading of memory between clients and servers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An initial assignment of memory to a child is not always practical because
+the memory demand of a given component may be unknown at its construction
+time. For example, the memory needed by a GUI server over its lifetime
+is not prior known but depends on the number of its clients, the number
+of windows on screen, or the amount of pixels that must be held at the
+server. In many cases, the memory usage of a server depends on the
+behavior of its clients. In traditional operating systems, system services
+like a GUI server would allocate memory on behalf of its clients. Even though
+the allocation was induced by a client, the server performs the allocation.
+The OS kernel remains unaware of the fact that the server solely needs the
+allocated memory for serving its client. In the presence of a misbehaving
+client that issues an infinite amount of requests to the server where each
+request triggers a server-side allocation (for example the creation of a new
+window), the kernel will observe the server as a resource hog. Under
+resource pressure, it will likely select the server to be punished.
+Each server that performs allocations on behalf of its clients is prone to
+this kind of attack. Genode solves this problem by letting clients pay for
+server-side allocations. Client and server may be arbitrary nodes in
+the component tree.
+
+As described in the previous section, at the creation time of a child, the
+parent assigns a part of its own memory quota to the new child. Since the
+parent retains the RAM-session capabilities of all its children, it can issue
+further quota transfers back and forth between the child's and its own RAM
+sessions.
+When a child requests a session at the parent interface, it can attach a part
+of its quota to the new session by specifying an amount of memory
+to be donated to the server as a session argument.
+When receiving a session request, the parent has to distinct
+three different cases depending on where in the tree the server
+resides relative to the parent:
+
+;:Parent provides the service:
+;
+;  If the parent provides the requested services by itself,
+;  it transfers the donated amount of memory quota from the
+;  requesting child's account to its own account to compensate
+;  the session-specific memory allocation on behalf of its own
+;  child.
+;
+;:Server is another child:
+;
+;  If there exists a matching entry in the parent's root list,
+;  the requested service is provided by another child (or a
+;  node within the child subsystem). In this case, the parent
+;  transfers the donated memory quota from the requesting child
+;  to the service-providing child.
+;
+;:Delegation to grandparent:
+;
+;  The parent may decide to delegate the session request to
+;  its own parent because the requested service is provided by
+;  a lower node of the process tree.
+;  Thus, the parent will request a session on behalf of its child.
+;  The grandparent neither knows nor cares about the actual
+;  origin of the request and will simply decrease the memory
+;  quota of the parent.
+;  For this reason, the parent transfers the donated memory
+;  quota from the requesting child to its own account before
+;  calling the grandparent.
+;
+;This algorithm works recursively.
+;Once, the server receives the session request, it checks if
+;the donated memory quota suffices for storing the session-specific
+;data and, on success, creates the session.
+;If the initial quota donation turns out to be too scarce during
+;the lifetime of a session, the client may make further donations
+;via the 'transfer_quota' function of the parent interface that
+;works analogously.
+;
+;If a child requests to close a session, the parent must distinguish
+;the three cases as above.
+;Once, the server receives the session-close request from its parent,
+;it is responsible to release all resources that were used for this session.
+;After the server releases the session-specific resources, the
+;server's quota can be decreased to the prior state.
+;However, an ill-behaving server may fail to release those resources by malice
+;or caused by a bug.
+;
+;If the misbehaving service was provided by the parent himself,
+;it has the full authority to not hand back session-quota to
+;its child.
+;If the misbehaving service was provided by the grandparent,
+;the parent (and its whole subsystem) has to subordinate.
+;If, however, the service was provided by another child and the
+;child refuses to release resources, decreasing its quota after
+;closing the session will fail.
+;It is up to the policy of the parent to handle such a failure either by
+;punishing it (e.g., killing the misbehaving server) or by granting more of its
+;own quota.
+;Generally, misbehavior is against the server's own interests and
+;each server would obey the parent's 'close' request to avoid intervention.
+
+
+; * Session upgrades
+
+Server-side heap partitioning
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+Dynamic resource balancing
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
 
 
 Core - the root of the component tree
@@ -581,34 +863,83 @@ Core - the root of the component tree
 
 | TODO
 
-Physical memory allocation
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; XXX * Bootstrapping
+
+
+
+Dataspaces
+~~~~~~~~~~
 
 | TODO
 
-Core services
+
+Physical memory allocation (RAM)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Access to boot modules (ROM)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Protection domains (PD)
+~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Address-space management (RM)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Processing-time allocation (CPU)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Object-identity allocation (CAP)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Access to device resources (IO_MEM, IO_PORT, IRQ)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Logging (LOG)
 ~~~~~~~~~~~~~
 
-* Introduction of the services provided by core
-  * LOG
-  * RAM
-  * CAP
-  * CPU
-  * IO_MEM
-  * IO_PORT
-  * IRQ
-  * PD
-  * ROM
-  * RM
-  * SIGNAL
-  * TRACE
-* Bootstrapping
+| TODO
+
+
+Asynchonous notifications (SIGNAL)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Event tracing (TRACE)
+~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
 
 
 Component creation
 ==================
 
 | TODO
+
 
 Inter-component communication
 =============================

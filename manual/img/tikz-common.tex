@@ -226,6 +226,16 @@
 }
 
 
+%%
+% Create path that illustrates a capability delegation
+%
+\newcommand\delegationpath{
+	\path [color=black!30!blue!30, text=black,
+	       decoration={markings,
+	                   mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	       postaction={decorate}]}
+
+
 \newcommand\capability[1]{
 	\begin{tikzpicture}[baseline=-0.6ex]
 	\node [capability] {#1};

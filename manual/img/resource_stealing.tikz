@@ -1,0 +1,58 @@
+\begin{tikzpicture}[node distance=12ex]
+
+	\labeledcompoundnode{client}{component}{Client}{
+		
+		\node[capability] (clientramcap) {};
+	}
+
+	\labeledcompoundnode{child}{component, below of=client, xshift=-10ex}{Child}{
+		
+		\node[capability] (childramcap) {};
+		\node[capability, right of=childramcap] (childclientramcap) {};
+	}
+
+	\labeledcompoundnode{server}{component, left of=child, xshift=-18ex}{Server}{
+		
+		\node[capability] (serverramcap) {};
+		\node[capability, right of=serverramcap] (serverclientramcap) {};
+	}
+
+	\labeledcompoundnode{init}{component, node distance=10ex, below of=child, xshift=-15ex}{Init}{
+		
+%		\node[capability] (initramcap) {2};
+%		\downwardthreadnode{initthread}{inner sep=0, node distance=0ex, left=4ex of initramcap}
+%		\node[capability, right of=initramcap] (initchildramcap) {3};
+	}
+
+	\labeledcompoundnode{core}{component, node distance=10ex, below of=init}{Core}{
+
+		\rpcobjectrnode{ramserver}{}{}{RAM session}
+
+		\rpcobjectrnode{ramchild}{node distance=25ex, right of=ramserver}{}{RAM session}
+
+		\rpcobjectrnode{ramclient}{node distance=25ex, right of=ramchild}{}{RAM session}
+	}
+
+	% capability associations
+	\path [draw, dashed] (ramservercap) -- (serverramcap);
+	\path [draw, dashed] (ramchildcap) -- (childramcap);
+	\path [draw, dashed] (ramclientcap) -- (childclientramcap);
+	\path [draw, dashed] (childclientramcap) -- (clientramcap);
+	\path [draw, dashed] (clientramcap) -- (serverclientramcap);
+
+	% delegation of the client's RAM session to the server
+	\delegationpath (clientramcap)
+	      .. controls +(-1,0) and +(0,1) ..
+	      node[sloped, above] {delegate} (serverclientramcap);
+
+	\newcommand\transferpath{
+		\path [color=green!50!black!70, text=black,
+		       decoration={markings,
+		                   mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+		       postaction={decorate}]}
+
+	\transferpath (ramchildobj) .. controls +(0,1) and +(0,1) .. (ramclientobj);
+	\transferpath (ramclientobj) .. controls +(0,-1) and +(0,-1) .. (ramserverobj);
+
+
+\end{tikzpicture}
