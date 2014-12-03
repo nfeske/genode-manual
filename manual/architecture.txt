@@ -791,7 +791,6 @@ When receiving a session request, the parent has to distinct three different
 cases depending on its session-routing decision.
 
 :Parent provides the service:
-
   If the parent provides the requested service by itself, it first checks
   whether the session quota meets its need for providing the service. If so,
   it transfers the session quota from the requesting child's RAM session to
@@ -799,7 +798,6 @@ cases depending on its session-routing decision.
   larger than the available quota in the child's RAM session.
 
 :Server is another child:
-
   If the parent decides to route the session request to another child, it
   transfers the session quota from the client's RAM session to the server's
   RAM session. Because each of RAM sessions are not related to each other as
@@ -814,7 +812,6 @@ cases depending on its session-routing decision.
   interface along with the information about transferred the session quota.
 
 :Delegation to grandparent:
-
   The parent may decide to delegate the session request to its own parent. In
   this case, the parent will request a session on behalf of its child. The
   grandparent neither knows nor cares about the actual origin of the request
@@ -871,13 +868,6 @@ server's best interest is to obey the parent's close request to avoid
 intervention.
 
 
-Server-side heap partitioning
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-| TODO
-
-; illustration of anonymous memory allocations
-
 Dynamic resource balancing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -897,67 +887,62 @@ memory. A better alternative is to enable a component to adapt its resource
 use to the resource constraints of its parent. The parent interface supports
 this alternative with a protocol for the dynamic balancing of resources.
 
-; The protocol consists of the following functions.
-; 
-; ! void resource_avail_sigh(Signal_context_capability)
-; 
-; By calling this function, the child can install a custom signal handler that
-; gets notified on the arrival of additional resources. Such a signal gets
-; fired by the parent after upgrading the resource quota of the child.
-; 
-; ! void resource_request(Resource_args const &)
-; 
-; Using this function, the child is able to apply for additional resources
-; at its parent. The request takes the amount of desired resources as argument.
-; A child would invoke this function if it detects scarceness of resources.
-; If a custom signal handler is installed via 'resource_avail_sigh', the
-; function returns immediately and the child must wait for the reception
-; of the corresponding signal. If no signal handler was explicitly installed,
-; the 'Genode::env()' handles the request via a built-in signal handler that
-; blocks until the parent satisfies the request.
-; 
-; ! void yield_sigh(Signal_context_capability)
-; 
-; By calling this function, a child installs a signal handler that gets
-; notified about so-called yield requests from the parent. A parent issues
-; a yield request to a subsystem to express its wish for regaining resources.
-; It is up to the child to comply with a yield request or not. Some kinds
-; of subsystems have meaningful ways to handle yield requests. For example,
-; an in-memory block cache could write back the cached information and release
-; the RAM consumed by the cache.
-; 
-; ! Resource_args yield_request()
-; 
-; The 'yield_request' function returns the amount of resources desired by the
-; parent. This information can be used by the child to tailor the resource
-; deallocation strategy according to the needs of the parent.
-; 
-; ! void yield_response()
-; 
-; Once the child has taken steps to yield resources, it calls the
-; 'yield_response' function to inform the parent about the availability of
-; released resources. The parent may respond to this function by withdrawing
-; those resources from the child's RAM quota.
-; 
-; The protocol described above has been implemented into the base system
-; (i.e., 'Genode::Parent', 'Genode::Child', 'Genode::env()') as well as
-; the interactive console called _cli_monitor_. For the latter, we introduced
-; new commands for dynamically balancing RAM between subsystems. The 'status'
-; command prints a table with the RAM status of each subsystem. The 'ram'
-; command changes the quota or a quota limit of a given subsystem. The quota
-; limit can be defined to allow the on-demand expansion of the quota. Finally,
-; the 'yield' command can be used to instruct a subsystem to yield a specified
-; amount of resources.
+The resource-balancing protocol uses a combination of synchronous
+remote procedure calls and asynchronous notifications. Both mechanism
+are described in Section [Inter-component communication]. The child
+uses remote procedure calls to talk to its parent whereas the parent
+uses asynchronous notification to signal state changes to the child.
+The protocol consists of two parts, which are complementary.
+
+
+Resource requests
+-----------------
+
+By issuing a resource request to it parent, a child applies for an upgrade
+of its resources. The request takes the amount of desired resources as
+argument. A child would issue such a request if it detects scarceness of
+resources. A resource request returns immediately regardless of whether
+additional resources had been granted or not. The child may proceed working
+under the low resource conditions or it may block for a resource-available
+signal from its parent.
+The parent may respond to this request in different ways. It
+may just ignore the request, possibly stalling the child. Alternatively,
+it may immediately transfer additional quota to the child's RAM session.
+Or it may take further actions to free up resources to accommodate the child.
+Those actions may involve long-taking operations such as the destruction
+of subsystems or the further propagation of resource request towards the
+root of the component tree.
+Once the parent has freed up enough resources to accommodate the child's
+request, it transfers the new resources to the child's RAM session and
+notifies the child by sending a resource-available signal.
+
+
+Yield requests
+--------------
+
+The second part of the protocol enables the parent to express its wish for
+regaining resources. The parent notifies the child about this condition by
+sending a yield signal to the child. On the reception of such a signal, the
+child picks up the so-called yield request at the parent using an remote
+procedure call. The yield request contains the amount of resources, the parent
+wishes to regain. It is up to the child to comply with a yield request or not.
+Some subsystems have meaningful ways to respond to yield requests. For
+example, an in-memory block cache could write back the cached information and
+release the memory consumed by the cache. Once the child has succeeded in
+freeing up resource, it reports to parent by issuing a so-called yield
+response via an remote procedure call to the parent. The parent may respond to
+a yield response by withdrawing resources from the child's RAM session.
+
+| XXX
+|
+| Sequence diagrams might be nice to illustrate the interplay between
+| parent and child for resource requests and yield requests.
 
 
 Core - the root of the component tree
 =====================================
 
 | TODO
-
-
-; XXX * Bootstrapping
-
 
 
 Dataspaces
@@ -1024,7 +1009,6 @@ Event tracing (TRACE)
 ~~~~~~~~~~~~~~~~~~~~~
 
 | TODO
-
 
 
 Component creation

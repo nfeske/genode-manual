@@ -11,6 +11,9 @@ Classification of components
 * Device drivers
 * Protocol stacks
 * Resource multiplexers
+  * Server-side heap partitioning
+    (illustration of anonymous memory allocations)
+
 * Runtime environments
 
 Common session interfaces
