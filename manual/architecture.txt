@@ -748,8 +748,8 @@ allocated from the RAM session and transfers the RAM session's final budget
 to the corresponding reference RAM session.
 
 
-Trading of memory between clients and servers
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Trading memory between clients and servers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 An initial assignment of memory to a child is not always practical because
 the memory demand of a given component may be unknown at its construction
@@ -771,91 +771,183 @@ this kind of attack. Genode solves this problem by letting clients pay for
 server-side allocations. Client and server may be arbitrary nodes in
 the component tree.
 
+
+Session quotas
+--------------
+
 As described in the previous section, at the creation time of a child, the
 parent assigns a part of its own memory quota to the new child. Since the
 parent retains the RAM-session capabilities of all its children, it can issue
 further quota transfers back and forth between the child's and its own RAM
 sessions.
 When a child requests a session at the parent interface, it can attach a part
-of its quota to the new session by specifying an amount of memory
-to be donated to the server as a session argument.
-When receiving a session request, the parent has to distinct
-three different cases depending on where in the tree the server
-resides relative to the parent:
+of its quota to the new session by specifying an amount of memory to be
+donated to the server as a session argument. This amount is called
+_session quota_. The session quota can be used by the server during the
+lifetime of the session. It is returned to the client when the session is
+closed.
 
-;:Parent provides the service:
-;
-;  If the parent provides the requested services by itself,
-;  it transfers the donated amount of memory quota from the
-;  requesting child's account to its own account to compensate
-;  the session-specific memory allocation on behalf of its own
-;  child.
-;
-;:Server is another child:
-;
-;  If there exists a matching entry in the parent's root list,
-;  the requested service is provided by another child (or a
-;  node within the child subsystem). In this case, the parent
-;  transfers the donated memory quota from the requesting child
-;  to the service-providing child.
-;
-;:Delegation to grandparent:
-;
-;  The parent may decide to delegate the session request to
-;  its own parent because the requested service is provided by
-;  a lower node of the process tree.
-;  Thus, the parent will request a session on behalf of its child.
-;  The grandparent neither knows nor cares about the actual
-;  origin of the request and will simply decrease the memory
-;  quota of the parent.
-;  For this reason, the parent transfers the donated memory
-;  quota from the requesting child to its own account before
-;  calling the grandparent.
-;
-;This algorithm works recursively.
-;Once, the server receives the session request, it checks if
-;the donated memory quota suffices for storing the session-specific
-;data and, on success, creates the session.
-;If the initial quota donation turns out to be too scarce during
-;the lifetime of a session, the client may make further donations
-;via the 'transfer_quota' function of the parent interface that
-;works analogously.
-;
-;If a child requests to close a session, the parent must distinguish
-;the three cases as above.
-;Once, the server receives the session-close request from its parent,
-;it is responsible to release all resources that were used for this session.
-;After the server releases the session-specific resources, the
-;server's quota can be decreased to the prior state.
-;However, an ill-behaving server may fail to release those resources by malice
-;or caused by a bug.
-;
-;If the misbehaving service was provided by the parent himself,
-;it has the full authority to not hand back session-quota to
-;its child.
-;If the misbehaving service was provided by the grandparent,
-;the parent (and its whole subsystem) has to subordinate.
-;If, however, the service was provided by another child and the
-;child refuses to release resources, decreasing its quota after
-;closing the session will fail.
-;It is up to the policy of the parent to handle such a failure either by
-;punishing it (e.g., killing the misbehaving server) or by granting more of its
-;own quota.
-;Generally, misbehavior is against the server's own interests and
-;each server would obey the parent's 'close' request to avoid intervention.
+When receiving a session request, the parent has to distinct three different
+cases depending on its session-routing decision.
+
+:Parent provides the service:
+
+  If the parent provides the requested service by itself, it first checks
+  whether the session quota meets its need for providing the service. If so,
+  it transfers the session quota from the requesting child's RAM session to
+  its own RAM session. This step may fail if the child offered a session quota
+  larger than the available quota in the child's RAM session.
+
+:Server is another child:
+
+  If the parent decides to route the session request to another child, it
+  transfers the session quota from the client's RAM session to the server's
+  RAM session. Because each of RAM sessions are not related to each other as
+  both have the parent's RAM session as reference account, this the transfer
+  from the client to the server consists of two steps. First, the parent
+  transfers the session quota to its own RAM session. If this step succeeded,
+  it transfers the session quota from its own RAM session to the server's RAM
+  session. The parent keeps track of the session quota for each session so
+  that the quota transfers can be reverted later when closing the session. Not
+  before the transfer of the session quota to the server's RAM session
+  succeeded, the parent issues the actual session request at the server's root
+  interface along with the information about transferred the session quota.
+
+:Delegation to grandparent:
+
+  The parent may decide to delegate the session request to its own parent. In
+  this case, the parent will request a session on behalf of its child. The
+  grandparent neither knows nor cares about the actual origin of the request
+  and will simply decrease the memory quota of the parent. For this reason,
+  the parent transfers the session quota from the requesting child to its own
+  RAM session before issuing the session request at the grandparent.
+
+This procedure works recursively. Once the server receives the session request
+along with the information about the provided session quota, it can use this
+information to decide whether or not to provide the session under these
+resource conditions. It can also use the information to tailor the quality of
+the service according to the provided session quota. For example, a larger
+session quota might enable the server to use larger caches or communication
+buffers for the client's session.
 
 
-; * Session upgrades
+Session upgrades
+----------------
+
+If the initial session quota turns out to be too scarce during
+the lifetime of a session, the client may upgrade the session quota of an
+existing session via issuing an upgrade request to is parent along with
+the targeted session capability and the additional session quota. The
+upgrade works analogously to the session creation. The server will
+receive the information about the upgrade via the root interface of the
+service.
+
+
+Closing sessions
+----------------
+
+If a child issues a session-close request to its parent, the parent determines
+routes the close request to the corresponding server, which, depending on the
+route of the original session request, may be locally implemented, provided by
+another child, or provided by the grandparent. Once the server receives the
+session-close request, it is responsible to release all resources that were
+allocated from the session quota. After the server reverts all
+session-specific allocations, the server's RAM session is expected to have at
+least as much available budget as the session quota of the to-be-closed
+session. So the session quota can be transferred back to the client.
+
+However, an misbehaving server may fail to release those resources by malice
+or caused by a bug. If the misbehaving service was locally provided by the
+parent, it has the full authority to not hand back the session quota to its
+child. If the misbehaving service was provided by the grandparent, the parent
+(and its whole subsystem) has to subordinate. If, however, the service was
+provided by another child and the child refuses to release resources, the
+parent's attempt to withdraw the session quota from the server's RAM session
+will fail.
+It is up to the policy of the parent to handle such a failure either by
+punishing the server (e.g., killing the component) or by granting more of its
+own quota. Generally, misbehavior is against the server's own interests. A
+server's best interest is to obey the parent's close request to avoid
+intervention.
+
 
 Server-side heap partitioning
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 | TODO
 
+; illustration of anonymous memory allocations
+
 Dynamic resource balancing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+As described in Section [Resource assignment], parent components explicitly
+assign physical resource budgets to its children. Once assigned, the assigned
+budget is at the disposal of the respective child subsystem until the
+subsystem gets destroyed by the parent.
+
+However, not all components have well-defined resource demands. For example, a
+block cache should utilize as much memory as possible unless the memory is
+needed by another component. The assignment of fixed amount of memory to such
+a block cache cannot accommodate changes of workloads over the potentially
+long lifetime of the component. If dimensioned too small, there may be a lot
+of slack memory remaining unutilized. If dimensioned too large, the block
+cache would prevent other and possibly more important components to use the
+memory. A better alternative is to enable a component to adapt its resource
+use to the resource constraints of its parent. The parent interface supports
+this alternative with a protocol for the dynamic balancing of resources.
+
+; The protocol consists of the following functions.
+; 
+; ! void resource_avail_sigh(Signal_context_capability)
+; 
+; By calling this function, the child can install a custom signal handler that
+; gets notified on the arrival of additional resources. Such a signal gets
+; fired by the parent after upgrading the resource quota of the child.
+; 
+; ! void resource_request(Resource_args const &)
+; 
+; Using this function, the child is able to apply for additional resources
+; at its parent. The request takes the amount of desired resources as argument.
+; A child would invoke this function if it detects scarceness of resources.
+; If a custom signal handler is installed via 'resource_avail_sigh', the
+; function returns immediately and the child must wait for the reception
+; of the corresponding signal. If no signal handler was explicitly installed,
+; the 'Genode::env()' handles the request via a built-in signal handler that
+; blocks until the parent satisfies the request.
+; 
+; ! void yield_sigh(Signal_context_capability)
+; 
+; By calling this function, a child installs a signal handler that gets
+; notified about so-called yield requests from the parent. A parent issues
+; a yield request to a subsystem to express its wish for regaining resources.
+; It is up to the child to comply with a yield request or not. Some kinds
+; of subsystems have meaningful ways to handle yield requests. For example,
+; an in-memory block cache could write back the cached information and release
+; the RAM consumed by the cache.
+; 
+; ! Resource_args yield_request()
+; 
+; The 'yield_request' function returns the amount of resources desired by the
+; parent. This information can be used by the child to tailor the resource
+; deallocation strategy according to the needs of the parent.
+; 
+; ! void yield_response()
+; 
+; Once the child has taken steps to yield resources, it calls the
+; 'yield_response' function to inform the parent about the availability of
+; released resources. The parent may respond to this function by withdrawing
+; those resources from the child's RAM quota.
+; 
+; The protocol described above has been implemented into the base system
+; (i.e., 'Genode::Parent', 'Genode::Child', 'Genode::env()') as well as
+; the interactive console called _cli_monitor_. For the latter, we introduced
+; new commands for dynamically balancing RAM between subsystems. The 'status'
+; command prints a table with the RAM status of each subsystem. The 'ram'
+; command changes the quota or a quota limit of a given subsystem. The quota
+; limit can be defined to allow the on-demand expansion of the quota. Finally,
+; the 'yield' command can be used to instruct a subsystem to yield a specified
+; amount of resources.
 
 
 Core - the root of the component tree
