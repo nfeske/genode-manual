@@ -942,73 +942,371 @@ a yield response by withdrawing resources from the child's RAM session.
 Core - the root of the component tree
 =====================================
 
-| TODO
+Core is the initial component and thereby represents the root of the
+component tree. Technically, it is the first user-level program started
+by the kernel.
+It has access to the raw physical resources such as memory, CPUs,
+memory-mapped devices, interrupts, I/O ports, and boot modules.
+Core exposes those low-level resources as services so that they
+can be used by other components. For each type of resource, there exists
+a service in core. For example, memory resources are represented by the
+RAM service, interrupts are represented by the IRQ service, and CPUs are
+represented by the CPU service. In order to access a resource, a component
+has to establish a session to the corresponding service. Thereby the
+access to physical resources is subjected to the routing of session requests
+as explained in Section [Services and sessions]. Moreover, the
+resource-trading concept described in Section
+[Trading memory between clients and servers] applies to core services in
+the same way as for any other service.
+
+In addition to making hardware resources available as services, core
+provides all prerequisites to bootstrap the component tree.
+These prerequisites comprise services for creating protection domains,
+for managing address-space layouts, and for creating object identities.
+
+Core is almost free from policy. There are no configuration options.
+The only policy of core is the startup of the init process, to which core
+grants all available resources. Init, in turn, uses those resources to
+spawn further components according to a configuration.
+
+Section [Dataspaces] introduces dataspaces as containers of memory or
+memory-like resources. Dataspaces form the foundation for most of the core
+services described in the subsequent sections.
 
 
 Dataspaces
 ~~~~~~~~~~
 
-| TODO
+A dataspace is an RPC object that represents a contiguous physical
+address-space region with an arbitrary size. Its base address and size are
+subjected to the granularity of physical pages as dictated by the
+memory-management unit (MMU) hardware. Typically the granularity is 4 KiB.
+
+Dataspaces are created and managed via core's services.
+Because each dataspace is a distinct RPC object, the authority over the
+contained physical address range is represented by a capability and can
+thereby be delegated between components.
+Each component in possession of a dataspace capability can make the
+dataspace content visible in its local address space (using core's RM service
+described in Section [Address-space management (RM)]). Hence, by the means of
+delegating dataspace capabilities, components can establish shared memory.
+
+The system on top of core never deals with physical memory pages but
+uses dataspaces as a uniform abstraction for memory, memory-mapped I/O
+regions, and boot modules.
 
 
 Physical memory allocation (RAM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+A RAM session is a quota-bounded allocator physical memory.
+At session-creation time, its quota is zero.
+To make the RAM session functional, it must first receive quota from
+another already existing RAM session, which is called the _reference account_.
+Once the reference account is defined, quota can be transferred back and
+forth between the reference account and the new RAM session.
+
+Provided that the RAM session is equipped with sufficient quota, the RAM
+client can allocate RAM dataspaces from the RAM session. The size of
+each RAM dataspace is defined by the client at the allocation time.
+The location of the dataspace in physical memory is defined by core.
+
+Each RAM dataspace is physically
+contiguous and can thereby be used as DMA buffer by a user-level device
+driver. In order to set up DMA transactions, such a device driver can request
+the physical address of a RAM dataspace by invoking the dataspace capability.
+
+Closing a RAM session destroys all dataspaces allocated from
+the RAM session and restores the original quota. This implies that these
+dataspaces disappear in all components. The quota of a closed RAM session
+is transferred to the reference account.
+
+For book keeping and the creation of dataspace RPC object within core, the RAM
+service requires memory. This memory is allocation from the session quota as
+supplied by the RAM client. Note that this session quota is not related to the
+quota managed by the RAM session.
 
 
 Access to boot modules (ROM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+Boot modules are chunks of data loaded by the boot loader into memory.
+Examples for such modules are the ELF images of the core component, the
+init component, the components created by init, and the configuration of the
+init component.
+Core makes each boot modules available as a ROM session. Because boot modules
+are read-only memory, they are generally called ROM modules.
+On session construction, the client specifies the name of the ROM module
+as session argument.
+Once created, the ROM session allows its client to obtain a ROM dataspace
+capability. Using this capability, the client can make the ROM module
+visible within its local address space.
 
 
 Protection domains (PD)
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+A protection domain (PD) corresponds to a unit of protection within the Genode
+system. Typically, there is a one-to-one relationship between a component and
+a PD. At the hardware-level the CPU isolates different protection domains via
+a memory-management unit. Each domain is represented by a different page
+directory, or an address-space ID. A PD session is a representation of the
+used hardware-based protection facility.
+
+In addition to representing the unit of memory protection, a PD comprises a
+capability space as introduced in
+Section [Capability spaces, object identities, and RPC objects].
+Initially, the PD's capability space is empty. However, the PD client can
+populate the capability space with a single capability, which is the
+parent capability of the component within the PD. The assignment of the
+parent capability is done at the creation time of the component by its
+parent.
+
+A PD on its own is not useful unless is becomes associated with an
+address-space layout (RM session) and at least one thread of execution
+(CPU session). Section [Component creation] explains how those sessions
+can be combined as basic building blocks for creating a component.
 
 
 Address-space management (RM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+An region manager (RM) session represents the layout of a virtual address
+space. The size of the virtual address space can be defined via session
+arguments at the session-creation time.
+
+
+Populating an address space
+---------------------------
+
+The concept behind RM sessions is a generalization of the MMU's page-table
+mechanism. Analogously to how a page table is populated with physical page
+frames, an RM session is populated with dataspaces.
+Under the hood, core uses the MMU's page-table mechanism as a cache for RM
+sessions.
+An RM client in possession of a dataspace capability is
+able to _attach_ the dataspace to the RM session.
+Thereby the content of the dataspace becomes visible within the RM session's
+virtual address space.
+When attaching a dataspace to an RM session, core selects an appropriate
+virtual address range that is not yet populated with dataspaces.
+Alternatively, the client can specify a designated virtual address.
+It also has the option to attach a mere window of the dataspace to the RM
+session. Furthermore, the client can specify whether the content of the
+dataspace should be executable or not.
+
+The counter part of the _attach_ operation, the RM client is able to remove
+dataspaces from its RM session by specifying a virtual address. Under the
+hood, this operations flushes the MMU mappings of the corresponding virtual
+address range so that the dataspace content becomes invisible.
+
+Note that a single dataspace may be attached to any number of RM sessions.
+A dataspace may also be attached multiple times to one RM session. In this
+case, each attach operation populates a distinct region of the virtual
+address space.
+
+
+Assigning threads to an address space
+-------------------------------------
+
+As for a PD session, an RM session is not useful on its own. To enable the
+use of the RM-session's address-space layout for a component, it must first be
+associated with a thread of execution. An RM client can establish this
+association with the RM session's _add-client_ operation, which takes a
+thread capability (obtained from a CPU session) as argument.
+Once associated, core uses the address-space layout of the RM session to
+resolve page faults caused by the thread.
+
+
+Realizing managed dataspaces
+----------------------------
+
+The entirety of an RM session can be used as a dataspace. Such a
+_managed dataspace_ is not backed by a range of physical addresses but
+by the range of virtual addresses of its underlying RM session.
+This makes RM sessions a generalization of nested page tables.
+An RM client can obtain a dataspace capability for a given RM session
+and use this dataspace capability in the same way as any other dataspace
+capability, i.e., attaching it to its local address space, or delegating
+it to other components.
+
+Managed dataspaces are used in two ways. First, they allow for the manual
+management of portions of a component's virtual address space. For example,
+the so-called thread-context area is a dedicated virtual-address ranged
+preserved for stacks. Between the stacks, the virtual address space must
+remain empty so that stack overflows won't silently corrupt data. This
+is achieved by creating a RM session that represents the complete
+thread-context area. This RM session is attached as a dataspace to the
+component's virtual address space. When creating a new thread with its
+corresponding stack, the thread's stack is not directly attached to the
+component's RM session but to the context area's RM session. Another
+example is the virtual-address range managed by a dynamic linker to load
+shared libraries into.
+
+The second use of managed dataspaces is the provision of on-demand-paged
+dataspaces. A server may hand out dataspace capabilities that are backed by RM
+sessions to its clients. Once the client has attached this dataspace to its
+address space and touches the content, the client triggers a page fault. Core
+responds to this page fault by blocking the client thread and delivering a
+notification to the RM client of the managed dataspace (the server) along with
+the information about the fault address within the RM session. The server can
+resolve this condition by attaching a dataspace with real backing store at the
+fault address, which prompts core to resume the execution of the faulted
+thread.
+
+| XXX Managed dataspaces could be described in more detail, in particular
+| the on-demand paging protocol. On the other hand, the on-demand paging
+| facility is not very important in practice.
 
 
 Processing-time allocation (CPU)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+A CPU session is an allocator for processing time that allows for the creation,
+the control, and the destruction of threads of execution.
+At session-construction time, the affinity of a CPU session with CPU cores can
+be defined via session arguments.
+
+Once created, the session can be used to create, control, and kill threads.
+Each thread created via a CPU session is represented by a thread capability.
+The thread capability is used for associating the thread with its address
+space layout (RM session) as well as for subsequent thread-control operations.
+The most prominent thread-control operation is the _start_ of the thread,
+which takes the thread's initial stack pointer and instruction pointer as
+arguments.
+
+During the lifetime of a thread, the CPU client can retrieve and manipulate
+the _state_ of the thread. This includes the register state as well as the
+execution state (whether the thread is paused or running). Those operations
+are primarily designated for realizing user-level debuggers.
+
+To aid the graceful destruction of threads, the CPU client can issue a
+_cancel-blocking_ operation, which causes the specified thread to cancel a
+current blocking operation such as waiting for an RPC response
+or the attempt to acquire a contended a lock.
 
 
 Object-identity allocation (CAP)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+Genode regards object identities as a physical resource because each object
+identity is represented as a kernel object. Core's CAP service allows for the
+creation and destructions of new object identities. For each RPC object
+associated to an RPC entrypoint, the entrypoint requests the creation of
+a new object identity from a CAP session and associates the RPC object with
+the capability allocated from the CAP service.
+
+The interplay between RPC objects, the RPC entrpoint, and core's CAP service
+is described in more depth in
+Section [Synchronous remote procedure calls (RPC)].
 
 
 Access to device resources (IO_MEM, IO_PORT, IRQ)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+Core's IO_MEM, IO_PORT, and IRQ services enable the realization of user-level
+device drivers as Genode components.
+
+
+Memory mapped I/O (IO_MEM)
+--------------------------
+
+An IO_MEM session provides a dataspace representation for a non-memory part of
+the physical address space such as memory-mapped I/O regions or BIOS areas.
+In contrast to a memory block that is used for storing information, of which
+the physical location in memory is of no matter, a non-memory object has
+special semantics attached to its location within the physical address space.
+Its location is either fixed (by standard) or can be determined at runtime,
+for example by scanning the PCI bus for PCI resources. If the physical
+location of such a non-memory object is known, an IO_MEM session can be
+created by specifying the physical base address, the size, and the
+write-combining policy of the memory-mapped resource as session arguments.
+Once an IO_MEM session is created, the IO_MEM client can request a dataspace
+containing the specified physical address range.
+
+Core hands out each physical address range only once. Session requests for
+ranges that intersect with physical memory are denied. Even though the
+granularity of memory protection is limited by the MMU page size, the IO_MEM
+service accepts the specification of the physical base address and size at the
+granularity of byes. The rationale behind this contradiction is the
+unfortunate existence of platforms that host memory-mapped resources of
+unrelated devices on the same physical page. When driving such devices from
+different components, each of those components requires access to its
+corresponding device. So the same physical page must be handed out to multiple
+components. Of course, those components must be trusted to not touch any
+portion of the page that is unrelated to its own device.
+
+
+Port I/O (IO_PORT)
+------------------
+
+For platforms that rely on I/O ports for device access, core's IO_PORT service
+enables fine-grained assignment of port ranges to individual components.
+Each IO_PORT session corresponds to the exclusive access right to a port range
+specified as session arguments. Core creates the new IO_PORT session only if
+the specified port range does not overlap with an already existing session.
+This ensures that each I/O port is driven by only one IO_PORT client at a
+time.
+The IO_PORT session interface resembles the physical I/O port access
+instructions.
+Reading from an I/O port can be performed via an 8bit, 16bit, or 32bit access.
+Vice versa, there exist operations for writing to an I/O port via an 8bit,
+16bit, or 32bit access.
+The read and write operations take absolute port addresses as arguments.
+Core performs the I/O port operating only if the specified port address lies
+within the port range of the session.
+
+
+Reception of device interrupts (IRQ)
+------------------------------------
+
+Core's IRQ service provides enables device-drivers components to respond to
+device interrupts. Each IRQ session corresponds to an interrupt.
+The physical interrupt number is specified as session argument.
+Each physical interrupt number can be specified to only one session.
+The IRQ session
+interface provides an operation to wait for the next interrupt.
+Only while the IRQ client is waiting for an interrupt, core unmasks the
+interrupt at the interrupt controller.
+Once the interrupt occurs, core wakes up the IRQ client and masks the
+interrupt at the interrupt controller until the driver has completed the IRQ
+handing and waits for the next interrupt.
+
+| XXX A sequence diagram showing the interplay of the device, IRQ controller,
+| core, and the user-level device driver might be helpful.
 
 
 Logging (LOG)
 ~~~~~~~~~~~~~
 
-| TODO
+The LOG service is used by the lowest-level system components such as the init
+process for printing diagnostic output.
+Each LOG session takes a label as session argument, which is used to prefix
+the output of this session.
+This enables developers to distinguish the output of different components with
+each component having a unique label.
+The LOG client transfers the to-be-printed characters as payload of plain RPC
+messages as the simplest possible communication mechanism between the LOG
+client and core's LOG service.
 
 
 Asynchonous notifications (SIGNAL)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+Core's SIGNAL service plays the role of a broker of asynchronous notifications
+on kernels that lack the semantics of Genode's signalling API. The service
+is not used directly by components at the framework's API level but is merely
+an implementation artifact.
+
+| XXX The role of the SIGNAL service could be substantiated in
+| Chapter [Under the hood].
 
 
 Event tracing (TRACE)
 ~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+| XXX This service is not fundamental to the architecture. To which degree
+| should we introduce it here?
 
 
 Component creation
