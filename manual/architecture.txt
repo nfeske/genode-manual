@@ -294,11 +294,12 @@ performs the steps illustrated in Figure [img/capability_argument].
   the argument. At this point, the authority over the object identity has been
   delegated from the client to the server.
 
-# The kernel passes the just-created local name of the argument as part of the
-  request to the server. Even though the above description covered the
-  delegation of a single capability specified as argument, it is possible to
-  delegate more than one capability with a single RPC call.
+# The kernel passes the translated or just-created local name of the argument
+  as part of the request to the server.
 
+Even though the above description covered the delegation of a single
+capability specified as argument, it is possible to delegate more than one
+capability with a single RPC call.
 Analogously to how capabilities can be delegated from a client to a server as
 arguments of an RPC call, capabilities can be delegated in the other direction
 as part of the reply of an RPC call. The procedure in the kernel is the same
@@ -436,23 +437,30 @@ the session interface of the requested service. Such a capability is called
 _session capability_.
 
 When the parent receives a session request from a child, it is free to take
-a policy decision of how to respond to the request. There are several
-options.
+a policy decision of how to respond to the request. This decision is closely
+related to the management of resources described in Section
+[Trading memory between clients and servers].
+There are the following options.
 
-* The parent may deny the request and thereby prevent the child from using
+:Parent denies the service:
+  The parent may deny the request and thereby prevent the child from using
   a particular service.
 
-* The parent could decide
+:Parent provides the service:
+  The parent could decide
   to implement the requested service by itself by handing out a session
   capability to a locally implemented RPC object to the child.
 
-* If the parent has received an announcement of the service from another
+:Server is another child:
+  If the parent has received an announcement of the service from another
   child, it may decide to direct the session request to the other child.
 
-* The parent may decide to request a session in the name of its child from
+:Forward to grandparent:
+  The parent may decide to request a session in the name of its child from
   its own parent.
 
-The figure illustrates the latter option where the
+
+Figure [img/session_request] illustrates the latter option where the
 launcher responds to the session request by the application by
 issuing a session request from its parent, the init component. Note that by
 requesting a session in the name of its child, the launcher is able to
@@ -556,10 +564,11 @@ chain of commands as involved at the session creation. The common parent of
 both client and server plays the role of a broker, which is trusted by both
 parties. From the client's perspective, closing a session is a request to its
 parent and it is up to the policy of the parent to respond to such a request.
-From the server's perspective, the request to close a session originates from
-its parent, which, as the owner of the server, represents an authority that
-must be ultimately obeyed. Otherwise, the parent of a server might take steps
-to enforce its will by destructing the server altogether.
+From the perspective of a server that is implemented by a child, the request
+to close a session originates from its parent, which, as the owner of the
+server, represents an authority that must be ultimately obeyed. Otherwise, the
+parent of a server might take steps to enforce its will by destructing the
+server altogether.
 
 ; XXX  Description how to resolve mutual distrust and cyclic dependencies.
 ;      Maybe this topic is better suited for Chapter [Components]?
@@ -588,6 +597,11 @@ In general, it is the operating system's job to manage the physical resources
 of the machine in a way that enables multiple applications to utilize them in
 a safe and efficient manner. The physical resources are foremost the physical
 memory, the processing time of the CPUs, and devices.
+
+
+The traditional approach to resource management
+-----------------------------------------------
+
 Traditional operating systems use to provide abstractions of those resource
 to applications running on top of the operating system. For example, instead
 of exposing the real interface of a device to an application, the OS kernel
@@ -652,7 +666,10 @@ provided by the core component at the root of the component tree.
 The core component is described in detail in Section
 [Core - the root of the component tree].
 The following description focuses on memory as the most prominent low-level
-resource managed by the operating system.
+resource managed by the operating system. Conceptually, the approach could
+be applied to other physical resources such as processing time, network
+bandwidth, disk space, or even power. However, at the time of writing,
+Genode employs the mechanism for memory only.
 
 Physical memory is represented by the RAM service of core. The best way to
 describe the idea behind the RAM service is to draw the analogy to a bank.
@@ -663,11 +680,15 @@ existing account to the new account.
 Naturally, such a transaction will decrease the balance of the
 originating account. Internally at the bank, the transfer does not involve any
 physical bank notes. The transaction is merely a change of balances of both
-involved bank accounts. In order to pay with physical bank notes, the bank
-customer has to withdraw bank notes via an ATM. Such a withdrawal will
-naturally decrease the balance on the account. If the account is depleted,
-the bank denies the attempt. Analogously to withdrawing
-money via an ATM, physical memory can be allocated from a RAM session.
+involved bank accounts.
+A bank customer with the authority over a given
+bank account can use the value stored on the bank account to purchase physical
+goods while withdrawing the costs from the account.
+Such a withdrawal will naturally decrease the balance on the account. If the
+account is depleted, the bank denies the purchase attempt.
+Analogously to purchasing physical goods by withdrawing balances from a bank
+account, physical memory can be allocated from a RAM session. The balance
+of RAM session is the RAM session's quota.
 A piece of allocated physical memory is represented by a so-called dataspace
 (see Section [Dataspaces] for more details). A RAM dataspace is a container
 of physical memory that can be used for storing data.
@@ -700,8 +721,9 @@ its own and the child's RAM session, it can transfer a certain amount of RAM
 quota from its own account to the child's account. The amount depends on the
 configuration of the init component. Thereby, init explicitly splits its
 own RAM budget among its child components. Each child created by init can
-obtain the capability for its own RAM session via the parent interface and
-thereby gains the authority over memory budget that was assigned to it.
+obtain the capability for its own RAM session from init via the parent
+interface and thereby gains the authority over memory budget that was assigned
+to it.
 Note however, that no child has the authority over init's RAM session nor
 the RAM sessions of any siblings. The mechanism for distributing a given
 budgets among multiple children works recursively. The children of init
@@ -737,13 +759,16 @@ To prevent such such resource-stealing scenarios, Genode restricts the
 transfer between arbitrary RAM sessions. Each RAM session must have a
 reference RAM session, which can be defined only once. Transfers are
 permitted only between a RAM session and its reference RAM session.
+When creating the RAM session of a child component, the parent registers
+its own RAM session as the child's reference RAM session. This way, the
+parent becomes able to transfer budgets between its own and
+the child's RAM session.
 
 
 RAM session destruction
 -----------------------
 
-The analogy between bank accounts and RAM sessions ends when closing a RAM
-session. When a RAM session is closed, core destroys all dataspaces that were
+When a RAM session is closed, core destroys all dataspaces that were
 allocated from the RAM session and transfers the RAM session's final budget
 to the corresponding reference RAM session.
 
@@ -778,8 +803,8 @@ Session quotas
 As described in the previous section, at the creation time of a child, the
 parent assigns a part of its own memory quota to the new child. Since the
 parent retains the RAM-session capabilities of all its children, it can issue
-further quota transfers back and forth between the child's and its own RAM
-sessions.
+further quota transfers back and forth between the children's RAM sessions
+and its own RAM session, which represents the reference account for all children.
 When a child requests a session at the parent interface, it can attach a part
 of its quota to the new session by specifying an amount of memory to be
 donated to the server as a session argument. This amount is called
@@ -788,7 +813,8 @@ lifetime of the session. It is returned to the client when the session is
 closed.
 
 When receiving a session request, the parent has to distinct three different
-cases depending on its session-routing decision.
+cases depending on its session-routing decision as described in Section
+[Services and sessions].
 
 :Parent provides the service:
   If the parent provides the requested service by itself, it first checks
@@ -811,13 +837,18 @@ cases depending on its session-routing decision.
   succeeded, the parent issues the actual session request at the server's root
   interface along with the information about transferred the session quota.
 
-:Delegation to grandparent:
-  The parent may decide to delegate the session request to its own parent. In
+:Forward to grandparent:
+  The parent may decide to forward the session request to its own parent. In
   this case, the parent will request a session on behalf of its child. The
   grandparent neither knows nor cares about the actual origin of the request
   and will simply decrease the memory quota of the parent. For this reason,
   the parent transfers the session quota from the requesting child to its own
   RAM session before issuing the session request at the grandparent.
+
+Quota transfers may fail if there is not enough budgets on the originating
+account. In this case, the parent aborts the session creation and reflects
+the lack of resources as an error to the originator of the session
+request.
 
 This procedure works recursively. Once the server receives the session request
 along with the information about the provided session quota, it can use this
@@ -831,8 +862,10 @@ buffers for the client's session.
 Session upgrades
 ----------------
 
-If the initial session quota turns out to be too scarce during
-the lifetime of a session, the client may upgrade the session quota of an
+During the lifetime of a session, the initial session quota may turn out to be
+too scarce. Usually, the server returns such a scarcity condition as an
+error of operations that imply server-side allocations.
+The client may handle such a condition by upgrading the session quota of an
 existing session via issuing an upgrade request to is parent along with
 the targeted session capability and the additional session quota. The
 upgrade works analogously to the session creation. The server will
@@ -848,16 +881,28 @@ routes the close request to the corresponding server, which, depending on the
 route of the original session request, may be locally implemented, provided by
 another child, or provided by the grandparent. Once the server receives the
 session-close request, it is responsible to release all resources that were
-allocated from the session quota. After the server reverts all
-session-specific allocations, the server's RAM session is expected to have at
-least as much available budget as the session quota of the to-be-closed
-session. So the session quota can be transferred back to the client.
+allocated from the session quota. The release of resources should revert
+all allocations the server has performed on behalf its client. Stressing the
+analogy with the bank account, the server has to sell the physical goods
+(i.e., RAM dataspaces) it purchased from the client's session quota to restore
+the balance on its RAM session.
+After the server has reverted all session-specific allocations, the server's
+RAM session is expected to have at least as much available budget as the
+session quota of the to-be-closed session. So the session quota can be
+transferred back to the client.
 
 However, an misbehaving server may fail to release those resources by malice
-or caused by a bug. If the misbehaving service was locally provided by the
+or caused by a bug. For example, the server may be unable to free a dataspace
+because it mistakenly used the dataspace for other clients data.
+Another example would be a memory leak in the server.
+Such misbehavior is detected on the attempt to withdraw the session
+quota from the server's RAM session. If the server's available RAM quota after
+closing a session remains lower than the session quota, the server apparently
+peculated memory.
+If the misbehaving server was locally provided by the
 parent, it has the full authority to not hand back the session quota to its
 child. If the misbehaving service was provided by the grandparent, the parent
-(and its whole subsystem) has to subordinate. If, however, the service was
+(and its whole subsystem) has to subordinate. If, however, the server was
 provided by another child and the child refuses to release resources, the
 parent's attempt to withdraw the session quota from the server's RAM session
 will fail.
@@ -942,9 +987,8 @@ a yield response by withdrawing resources from the child's RAM session.
 Core - the root of the component tree
 =====================================
 
-Core is the initial component and thereby represents the root of the
-component tree. Technically, it is the first user-level program started
-by the kernel.
+Core is the first user-level component, which is directly created by the
+kernel. It thereby represents the root of the component tree.
 It has access to the raw physical resources such as memory, CPUs,
 memory-mapped devices, interrupts, I/O ports, and boot modules.
 Core exposes those low-level resources as services so that they
@@ -972,6 +1016,10 @@ spawn further components according to a configuration.
 Section [Dataspaces] introduces dataspaces as containers of memory or
 memory-like resources. Dataspaces form the foundation for most of the core
 services described in the subsequent sections.
+The section is followed by the introduction of each individual service
+provided by core. In the following, a component that has established a
+session to such a service is called _client_. E.g., a component that
+obtained a session to core's RAM service is a RAM client.
 
 
 Dataspaces
@@ -991,9 +1039,9 @@ dataspace content visible in its local address space (using core's RM service
 described in Section [Address-space management (RM)]). Hence, by the means of
 delegating dataspace capabilities, components can establish shared memory.
 
-The system on top of core never deals with physical memory pages but
-uses dataspaces as a uniform abstraction for memory, memory-mapped I/O
-regions, and boot modules.
+On Genode, only core deals with physical memory pages. All other components
+use dataspaces as a uniform abstraction for memory, memory-mapped I/O
+regions, and ROM modules.
 
 
 Physical memory allocation (RAM)
@@ -1021,17 +1069,27 @@ the RAM session and restores the original quota. This implies that these
 dataspaces disappear in all components. The quota of a closed RAM session
 is transferred to the reference account.
 
-For book keeping and the creation of dataspace RPC object within core, the RAM
-service requires memory. This memory is allocation from the session quota as
-supplied by the RAM client. Note that this session quota is not related to the
-quota managed by the RAM session.
+The book keeping of quotas and the creation of dataspace RPC objects consumes
+memory within core. Core's RAM service allocates such memory from the session
+quota supplied by its clients. Note that this session quota is unrelated
+to the quota managed by the RAM session. For this reason, an allocation may
+fail for two different reasons. The account represented by the RAM session
+may be depleted. So the allocation cannot be performed unless additional quota
+is transferred to the account. But also, the RAM session's session quota may
+be depleted so that core is not able to create a new dataspace RPC object for
+the allocated memory. The latter condition can be resolved by upgrading the
+existing RAM session as detailed in
+Section [Trading memory between clients and servers].
 
 
 Access to boot modules (ROM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Boot modules are chunks of data loaded by the boot loader into memory.
-Examples for such modules are the ELF images of the core component, the
+During the initial bootstrap phase of the machine, a boot loader loads the
+kernel's binary and additional chunks of data called _boot modules_ into the
+physical memory. After those preparations, the boot loader passes control to
+the kernel.
+Examples for boot modules are the ELF images of the core component, the
 init component, the components created by init, and the configuration of the
 init component.
 Core makes each boot modules available as a ROM session. Because boot modules
@@ -1050,7 +1108,7 @@ A protection domain (PD) corresponds to a unit of protection within the Genode
 system. Typically, there is a one-to-one relationship between a component and
 a PD. At the hardware-level the CPU isolates different protection domains via
 a memory-management unit. Each domain is represented by a different page
-directory, or an address-space ID. A PD session is a representation of the
+directory, or an address-space ID (ASID). A PD session is a representation of the
 used hardware-based protection facility.
 
 In addition to representing the unit of memory protection, a PD comprises a
@@ -1196,8 +1254,10 @@ associated to an RPC entrypoint, the entrypoint requests the creation of
 a new object identity from a CAP session and associates the RPC object with
 the capability allocated from the CAP service.
 
+For more information about the relationship between RPC objects and object
+identities, refer to Section [Capability-based security].
 The interplay between RPC objects, the RPC entrpoint, and core's CAP service
-is described in more depth in
+is described in depth in
 Section [Synchronous remote procedure calls (RPC)].
 
 

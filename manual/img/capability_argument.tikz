@@ -74,7 +74,7 @@
 
 	\node[flowdecision, below of=search] (searchdecision) {found?};
 
-	\path[arrow, sloped=false] (search) -- node[right] {$cap_{found}$} (searchdecision);
+	\path[arrow, sloped=false] (search) -- (searchdecision);
 
 	\node[flowbox, below of=searchdecision, align=left] (translate) {
 		$cap_{translated}$ = $cap_{found}$};
