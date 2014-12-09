@@ -1,0 +1,61 @@
+\begin{tikzpicture}
+
+	% object-pool entry
+	\node[umlclass2] (objpoolentry) {
+		\bf Object-pool entry
+		\nodepart{two}
+		capability
+	};
+
+	% RPC-object base
+	\node[umlclass3, below of=objpoolentry, node distance=15ex] (rpcobjbase) {
+		\bf RPC-object base
+		\nodepart{two}
+		\nodepart{three}
+		$dispatch()$
+	};
+
+	% RPC object
+	\node[umlclass3, below of=rpcobjbase, node distance=18ex] (rpcobj) {
+		\bf RPC-object
+		\nodepart{two}
+		\nodepart{three}
+		dispatch()
+	};
+	\path (rpcobj.north east)+(4ex,1ex) node[umlclass, dashed] {RPC interface};
+
+	% object pool
+	\node[umlclass, right of=objpoolentry, node distance=35ex, inner sep=2ex] (objpool)
+		{\bf Object pool};
+	\path (objpool.north east) node[umlclass, dashed] {T};
+
+	% info about object pool
+	\node[umlinfo, right of=objpool, node distance=25ex] (objpoolinfo)
+		{associates \\capabilities with \\ local objects};
+	\path[umlinfoline] (objpool) -- (objpoolinfo);
+
+	% RPC entrpoint
+	\node[umlclass3, below of=objpool, node distance=15ex] (rpcentrypoint) {
+		\bf RPC entrypoint
+		\nodepart{two}
+		\nodepart{three}
+		manage(RPC object base \&) : Capability \\
+		dissolve(RPC object base \&)
+	};
+
+	% info about RPC entrypoint
+	\node[umlinfo, below of=rpcentrypoint, node distance=15ex] (rpcentrypointinfo)
+		{receives \\ incoming RPC \\ requests};
+	\path[umlinfoline] (rpcentrypoint) -- (rpcentrypointinfo);
+
+	% relationships
+	\path[umlinherit] (rpcobjbase)    -- (objpoolentry);
+	\path[umlinherit] (rpcobj)        -- (rpcobjbase);
+	\path[umlinherit] (rpcentrypoint) -- (objpool);
+
+	\path[umlrelated] (objpoolentry) -- node[pos=0.1] {*} node[pos=0.9] {1} (objpool);
+
+	\path[umloperate] (rpcentrypoint) -- node {lookup} (objpoolentry.south east);
+	\path[umloperate] (rpcentrypoint) -- node {call}   (rpcobjbase);
+
+\end{tikzpicture}

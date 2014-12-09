@@ -97,6 +97,25 @@
 
 
 %%
+%% Styles for UML class diagrams
+%%
+
+\tikzstyle{umlclass}  = [draw, fill=white, dropshadow, align=left]
+\tikzstyle{umlclass2} = [umlclass, rectangle split, rectangle split parts=2]
+\tikzstyle{umlclass3} = [umlclass, rectangle split, rectangle split parts=3]
+
+\tikzstyle{umlinfo} = [umlclass,
+                       chamfered rectangle,
+                       chamfered rectangle corners=north east,
+                       text opacity=0.5, draw opacity=0.5, align=center]
+
+\tikzstyle{umlinfoline} = [draw, draw opacity=0.5, dotted, thick]
+\tikzstyle{umlinherit} = [draw, ->, >= open triangle 60]
+\tikzstyle{umlrelated} = [draw, above];
+\tikzstyle{umloperate} = [arrow, dashed, above];
+
+
+%%
 %% Functions for constructing Tikz nodes
 %%
 
