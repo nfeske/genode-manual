@@ -13,7 +13,28 @@
                 fit,
                 chains,
                 fadings,
+                patterns,
                 decorations.pathmorphing,
                 decorations.markings,
                 scopes,
                 backgrounds}
+
+%%
+%% TikZ fading definitions
+%%
+
+%%
+% Fading used in timeline diagrams
+%
+\begin{tikzfadingfrompicture}[name=timeline fade right]
+	\shade[left color=transparent!0,
+	       right color=transparent!60] (0,0) rectangle (2,2);
+\end{tikzfadingfrompicture}
+
+%%
+% Fading used in flow charts
+%
+\begin{tikzfadingfrompicture}[name=flow fade]
+	\shade[left color=transparent!0,
+	       right color=transparent!60] (0,0) rectangle (2,2);
+\end{tikzfadingfrompicture}

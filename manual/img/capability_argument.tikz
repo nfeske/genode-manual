@@ -1,37 +1,6 @@
-
-
-\tikzstyle{flowborder} = [draw=black!50]
-
-\tikzstyle{flowbox} = [flowborder, fill=white, dropshadow,
-                       rounded corners=0.5ex,
-                       fill=yellow!20,
-                       path fading=flow fade]
-
-\tikzstyle{flowdecision} = [flowborder, diamond, fill=blue!20,
-                           text badly centered, align=center,
-                           inner sep=0.5ex,
-                           dropshadow, path fading=flow fade]
-
-
 \begin{tikzpicture}[node distance=1.5cm]
 
 	\node (client) {$cap_{arg}$};
-
-	%
-	% Create fading to be used in the flowchart boxes
-	%
-	% Placing the fading into a node is a hack to prevent the
-	% tikzfadingfrompicture environment to mess with the margins of the actual
-	% tikzpicture.
-	%
-	\node [below of=client] {
-		\begin{tikzpicture}[yshift=2]
-			\begin{tikzfadingfrompicture}[name=flow fade]
-				\shade[left color=transparent!0,
-				       right color=transparent!60] (0,0) rectangle (2,2);
-			\end{tikzfadingfrompicture}
-		\end{tikzpicture}
-	};
 
 	\node[flowbox, below of=client, align=left] (lookupobj) {
 		lookup object identity for $cap_{arg}$};
@@ -104,6 +73,5 @@
 	
 	\path[arrow] (translate) -- (server);
 	\path[arrow] (returnnew) |- +(0,-4ex) -| (server.north);
-
 
 \end{tikzpicture}

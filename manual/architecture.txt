@@ -1383,6 +1383,12 @@ Inter-component communication
 Synchronous remote procedure calls (RPC)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+[tikz img/new_rpc_obj_seq]
+  Creation of a new RPC object
+
+[tikz img/call_rpc_obj_seq]
+  Invocation of an RPC object
+
 Asynchronous notifications
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -61,6 +61,42 @@
 
 
 %%
+%% Styles for flow charts
+%%
+\tikzstyle{flowborder} = [draw=black!50]
+
+\tikzstyle{flowbox} = [flowborder, fill=white, dropshadow,
+                       rounded corners=0.5ex,
+                       fill=yellow!20,
+                       path fading=flow fade]
+
+\tikzstyle{flowdecision} = [flowborder, diamond, fill=blue!20,
+                           text badly centered, align=center,
+                           inner sep=0.5ex,
+                           dropshadow, path fading=flow fade]
+
+%%
+%% Styles for timeline diagrams
+%%
+
+\tikzstyle{activetimeline} = [draw,
+                              blur shadow={shadow blur steps=5},
+                              shadow yshift=-0.3ex, shadow xshift=0em,
+                              rounded corners=0.4ex,
+                              color=black!30,
+                              path fading=timeline fade right,
+                              left color=yellow!90!white!50,
+                              right color=yellow!100!white!50,
+                              minimum width=2.5ex]
+
+\tikzstyle{timelinemessage} = [draw=black!80, ->, >= stealth, sloped,
+                               shorten >= 0.8ex, shorten <= 0.8ex]
+
+\tikzstyle{timelinegroup} = [draw=black!50, dashed,
+                             rounded corners, fill=black, fill opacity=0.05]
+
+
+%%
 %% Functions for constructing Tikz nodes
 %%
 
@@ -240,4 +276,123 @@
 	\begin{tikzpicture}[baseline=-0.6ex]
 	\node [capability] {#1};
 	\end{tikzpicture}
+}
+
+
+%%
+%% Timeline diagrams
+%%
+
+\newcounter{numtimelines}
+
+
+%%
+% Create new vertical timeline
+%
+% argument: timeline name
+%
+\newcommand{\newtimeline}[1] {
+
+	\stepcounter{numtimelines}
+
+	\path (timelineanchor) node (#1)     {};
+	\path (timelineanchor) node (last#1) {};
+
+	\pgfkeyssetvalue{/timeline\thenumtimelines/name}{#1}
+
+	\pgfkeyssetvalue{/timeline #1/state}{idle}
+}
+
+
+%%
+% Draw vertical state representation of the specified timeline (internal)
+%
+% argument: timeline name
+%
+\newcommand{\finishtimeline}[1] {
+
+	\def\state{\pgfkeysvalueof{/timeline #1/state}}
+
+	\ifthenelse{\equal{\state}{idle}}{
+
+		\draw[dashed, thick, draw opacity=0.1] (last#1) -- (#1);
+	}{}
+
+	\ifthenelse{\equal{\state}{active}}{
+
+		\path (last#1)+(0,-0.1) node (top)    {};
+		\path     (#1)+(0, 0.1) node (bottom) {};
+
+		\path (last#1) node[inner sep=0pt, fit=(top) (bottom), activetimeline] {};
+	}{}
+
+	\path (#1) node (last#1) {};
+}
+
+
+%%
+% Timeline environment
+%
+% The environment can only be used within a tikzpicture environment
+%
+\newenvironment{timelinediagram} {
+
+	% reset timeline counter
+	\setcounter{numtimelines}{0}
+
+	% reset anchor used for next call of 'newtimeline'
+	\path (0,0) node (timelineanchor) {};
+
+	\newcommand{\timestepvector}{0,-1}
+
+	%%
+	% Add time step
+	%
+	\newcommand{\timestep} {
+
+		\foreach \i in {1,...,\thenumtimelines}{
+
+			\def\name{\pgfkeysvalueof{/timeline\i/name}}
+
+			% move timeline forward in time
+			\path (\name)+(\timestepvector) node (\name) {};
+		}
+	}
+
+	%%
+	% Activate timeline
+	%
+	\newcommand{\activate}[1] {
+		\finishtimeline{##1}
+		\pgfkeyssetvalue{/timeline ##1/state}{active}
+	}
+
+	%%
+	% Deactivate timeline
+	%
+	\newcommand{\deactivate}[1] {
+		\finishtimeline{##1}
+		\pgfkeyssetvalue{/timeline ##1/state}{idle}
+	}
+
+	%%
+	% Create transition from one timeline to another
+	%
+	\newcommand{\transition}[3] {
+		%
+		% The named 'transitionlabel' node can be used to attach further
+		% information to the message. The unnamed second node is designated
+		% for labeling simple transitions.
+		%
+		\draw[timelinemessage] (##1) -- node (transitionlabel) {} node[above] {##3} (##2);
+		\deactivate{##1}
+		\activate{##2}
+	}
+
+} {
+	% finish all timelines
+	\foreach \i in {1,...,\thenumtimelines}{
+		\def\name{\pgfkeysvalueof{/timeline\i/name}}
+		\finishtimeline{\name}
+	}
 }
