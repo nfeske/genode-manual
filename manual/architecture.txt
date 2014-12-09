@@ -705,18 +705,19 @@ to the init component.
 
 [tikz img/memory_assignment]
   Init assigns a portion of its memory to a child.
-  In addition to its own RAM session, init has created a second RAM session
-  designated for its child. Init transfers a certain amount
-  from its own RAM session to the child's RAM session by invoking its own RAM
-  session capability and specifying the beneficiary's RAM-session capability
-  as argument. Core will respond to the request by atomically
-  adjusting the quotas of both RAM sessions by the specified amount.
+  In addition to its own RAM session (2), init has created a second RAM
+  session (3) designated for its child.
 
 For each child component spawned by the init component, init creates a new
-RAM session at core. As result from the session creation, it obtains the
+RAM session at core. Figure [img/memory_assignment] exemplifies this
+step for one child. As result from the session creation, it obtains the
 capability for the new RAM session. Because it has the authority over both
-its own and the child's RAM session, it can transfer a certain amount of RAM
-quota from its own account to the child's account. The amount depends on the
+its own and the child's designated RAM session, it can transfer a certain amount of RAM
+quota from its own account to the child's account by invoking its own RAM
+session capability and specifying the beneficiary's RAM-session capability
+as argument. Core responds to the request by atomically
+adjusting the quotas of both RAM sessions by the specified amount.
+In the case of init, the amount depends on the
 configuration of the init component. Thereby, init explicitly splits its
 own RAM budget among its child components. Each child created by init can
 obtain the capability for its own RAM session from init via the parent
@@ -733,18 +734,7 @@ Protection against resource stealing
 ------------------------------------
 
 [tikz img/resource_stealing]
-  Memory-stealing attempt. The client and server components conspire to
-  steal memory from the child. The client was created by the child and
-  received a portion of the child's memory budget. The client requested
-  a session for a service that was eventually routed to the server.
-  The client-server relationship allows the client to delegate capabilities
-  to the server. Therefore, it is able to delegate its own RAM session
-  capability to the server.
-  The server, now in possession of the client's and its own RAM session
-  capabilities can transfer memory from the client's to its own RAM session.
-  After this transaction,
-  the child has no way to regain its memory resources because it has no
-  authority over the server's RAM session.
+  Memory-stealing attempt
 
 A parent that created a child subsystem out of its own memory resources,
 expects to regain the spent resources when destructing the subsystem. For
@@ -752,6 +742,18 @@ this reason it must not be possible for a child to transfer funds to
 another branch of the component tree without the consent of the parent.
 Figure [img/resource_stealing] illustrates an example scenario that
 violates this expectation.
+The client and server components conspire to
+steal memory from the child. The client was created by the child and
+received a portion of the child's memory budget. The client requested
+a session for a service that was eventually routed to the server.
+The client-server relationship allows the client to delegate capabilities
+to the server. Therefore, it is able to delegate its own RAM session
+capability to the server.
+The server, now in possession of the client's and its own RAM session
+capabilities can transfer memory from the client's to its own RAM session.
+After this transaction,
+the child has no way to regain its memory resources because it has no
+authority over the server's RAM session.
 
 To prevent such such resource-stealing scenarios, Genode restricts the
 transfer between arbitrary RAM sessions. Each RAM session must have a
