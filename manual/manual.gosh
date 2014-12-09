@@ -68,6 +68,19 @@ proc process_chapter_latex {txtblock} {
 	printline "\\$chapter_tag[section_env_latex $title]"
 	handle_txtblock chapter [lrange $txtblock 2 end]
 }
+
+### SECTION ###
+proc process_section_latex {txtblock} {
+	set title [linetxt [lindex $txtblock 0]]
+	global section_tag
+	printline ""
+	printline "%     -+*|\[ [string toupper $title] \]|*+-\n"
+	printline "\\clearpage"
+	printline "\\$section_tag[section_env_latex $title]"
+	handle_txtblock section [lrange $txtblock 2 end]
+}
+
+
 ### ANNOTATION ###
 proc process_annotation_latex {txtblock} {
 	set new_txtblock {}

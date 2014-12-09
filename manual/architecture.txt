@@ -306,8 +306,6 @@ as part of the reply of an RPC call. The procedure in the kernel is the same
 in both cases.
 
 
-\clearpage
-
 Recursive system structure
 ==========================
 
