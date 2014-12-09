@@ -1383,6 +1383,9 @@ Inter-component communication
 Synchronous remote procedure calls (RPC)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+[tikz img/rpc_layers]
+  Layered architecture of the RPC mechanism
+
 [tikz img/new_rpc_obj_seq]
   Creation of a new RPC object
 

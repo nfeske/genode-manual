@@ -1,0 +1,37 @@
+\begin{tikzpicture}
+
+	\tikzstyle{layerbox} = [minimum width=20ex, minimum height=4ex, dropshadow,
+	                        node distance=4ex, draw, draw opacity=0.3,
+	                        left color=black!5]
+
+	\node[layerbox, right color=black!10] (connection) {Connection};
+	\node[layerbox, right color=black!10!yellow!30, below of=connection]    (client)        {Client object};
+	\node[layerbox, right color=black!10!green!30,  below of=client]        (rpcstubclient) {RPC stub code};
+	\node[layerbox, right color=black!10!blue!30,   below of=rpcstubclient] (ipcclient)     {IPC library};
+
+	\node[layerbox, right color=black!10, right=10ex of connection]         (server)        {Server};
+	\node[layerbox, right color=black!10!yellow!30, below of=server]        (objframework)  {RPC object};
+	\node[layerbox, right color=black!10!green!30,  below of=objframework]  (rpcstubserver) {RPC stub code};
+	\node[layerbox, right color=black!10!blue!30,   below of=rpcstubserver] (ipcserver)     {IPC library};
+
+	% helper for positioning the kernel node
+	\node[fit=(connection) (ipcserver)] (userland) {};
+
+	\node[layerbox, minimum width=50ex, minimum height=6ex,
+	      right color=black!10!blue!30, below=0ex of userland] (kernel) {Kernel IPC mechanism};
+
+	% dashed line between typed and untyped capabilities
+	\path (rpcstubclient.south west)+(-1,0) node (typeborderleft)  {};
+	\path (rpcstubserver.south east)+(3,0)  node (typeborderright) {};
+	\draw[dashed, thick] (typeborderleft) --
+		node[above, pos=0.9] {$typed$}
+		node[below, pos=0.9] {$untyped$} (typeborderright);
+
+	% double-headed arrow across all layers
+	\path (connection)+(7ex,0) node (arrowstart) {};
+	\path (server)+(-7ex,0)    node (arrowend)   {};
+	\draw[ultra thick, <->, >= stealth, draw opacity=0.2, fill opacity=0.2] (arrowstart)
+		.. controls +(0,-1)  and +(-1.5,0) .. (kernel.center)
+		.. controls +(1.5,0) and +(0,-1)   .. (arrowend);
+
+\end{tikzpicture}
