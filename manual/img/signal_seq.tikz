@@ -1,0 +1,128 @@
+\begin{tikzpicture}
+
+	\begin{timelinediagram}
+
+		\renewcommand{\timestepvector}{0,-0.4}
+
+		% initial timelines
+
+		\node[minimum width=30ex, font=\normalsize]
+			(producerlabel) {Signal producer};
+		\node[minimum width=38ex, font=\normalsize, right of=producerlabel,
+		     node distance=42ex]
+			(handlerlabel)  {Signal handler};
+
+		\path (producerlabel)+(10ex,-3ex) node (timelineanchor) {};
+		\newtimeline{producer}
+
+		\path (handlerlabel)+(-14ex,-3ex) node (timelineanchor) {};
+		\newtimeline{handler}
+
+		\activate{producer}
+		\activate{handler}
+		\timestep
+
+		% create signal receiver
+
+		\path (handler)+(2.5,0) node (timelineanchor) {};
+		\newtimeline{receiver}
+		\node[draw, fill=white, align=center, dropshadow] at (receiver)
+			(signalreceiver) {Signal\\ receiver};
+		\draw[timelinemessage, dashed] (handler) -- node[above] {$create$} (signalreceiver);
+		\renewcommand{\timestepvector}{0,-1}
+		\timestep
+
+		% create signal context
+
+		\path (handler)+(4,0) node[draw, fill=white, align=center, dropshadow]
+			(context) {Signal\\ context \bf c};
+		\draw[timelinemessage, dashed] (handler) -- node[above] {$create$} (context);
+		\renewcommand{\timestepvector}{0,-0.6}
+		\timestep
+
+		% manage context
+
+		\transition{handler}{receiver}{$manage$ \bf c}
+		\timestep
+		\transition{receiver}{handler}{}
+		\path (transitionlabel)+(1ex,0)
+			node[align=center, below] {$signal$-$context$ \\ $capability$ $\bf cap_c$};
+		\renewcommand{\timestepvector}{0,-0.3}
+		\timestep
+
+		% delegate context capability
+
+		\draw[timelinemessage, dashed] (handler) -- node[align=center]
+			{$delegate$ \\ ${\bf{cap_c}}$} (producer);
+		\timestep
+
+		% create signal transmitter
+
+		\path (producer)+(-2.5,0) node (timelineanchor) {};
+		\newtimeline{transmitter}
+		\node[draw, fill=white, align=center, dropshadow] at (transmitter)
+			(signaltransmitter) {Signal\\ transmitter\\ for $\bf cap_c$};
+		\draw[timelinemessage, dashed] (producer) -- node[above] {$create$} (signaltransmitter);
+		\timestep
+
+		\deactivate{producer}
+		\deactivate{handler}
+		\renewcommand{\timestepvector}{0,-1}
+		\timestep
+
+		% second part
+
+		\activate{producer}
+		\activate{handler}
+		\renewcommand{\timestepvector}{0,-0.4}
+		\timestep
+
+		% producer submits two signals
+
+		\renewcommand{\timestepvector}{0,-0.2}
+		\transition{producer}{transmitter}{submit} \timestep
+		\renewcommand{\timestepvector}{0,-0.4}
+		\transition{transmitter}{producer}{} \timestep
+
+		\renewcommand{\timestepvector}{0,-0.2}
+		\transition{producer}{transmitter}{submit} \timestep
+		\renewcommand{\timestepvector}{0,-0.4}
+		\transition{transmitter}{producer}{} \timestep
+
+		% handler receives 2 signals
+
+		\renewcommand{\timestepvector}{0,-0.2}
+		\transition{handler}{receiver}{$wait$ $for$ $signal$} \timestep
+		\renewcommand{\timestepvector}{0,-0.6}
+		\transition{receiver}{handler}{} \timestep
+		\path (transitionlabel)+(1ex,0)
+			node[align=center, below] {$context$ {\bf c} $count$ {\bf 2}};
+		\timestep
+
+		% handler waits for signal
+
+		\renewcommand{\timestepvector}{0,-0.8}
+		\transition{handler}{receiver}{$wait$ $for$ $signal$} \timestep
+
+		% producer submits one signal and immediately wakes up handler
+
+		\transition{producer}{transmitter}{submit}
+		\renewcommand{\timestepvector}{0,-0.1}
+		\timestep
+		\transition{receiver}{handler}{}
+		\path (transitionlabel)+(1ex,0)
+			node[align=center, below] {$context$ {\bf c} $count$ {\bf 1}};
+		\draw[timelinemessage, dotted, pos=0.75] (transmitter) -- node[above] {$wake$ $up$} (handler);
+		\timestep
+		\renewcommand{\timestepvector}{0,-0.4}
+		\transition{transmitter}{producer}{} \timestep
+		\timestep
+
+	\end{timelinediagram}
+
+	\begin{scope}[on background layer]
+	\node[timelinegroup, fit=(producerlabel) (transmitter) (producer)] {};
+	\node[timelinegroup, fit=(handlerlabel) (context)  (handler)] {};
+	\end{scope}
+
+\end{tikzpicture}

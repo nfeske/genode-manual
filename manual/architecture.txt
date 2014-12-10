@@ -1406,6 +1406,8 @@ between components.
 
 Each of the three basic mechanisms is rarely found in isolation.
 Most inter-component interactions are a combination of the mechanisms.
+Section [Asynchronous state propagation] introduces a pattern for propagating
+state information by combining asynchronous notifications with RPC.
 Section [Synchronous bulk transfer] shows how synchronous RPC can be
 combined with shared memory to transfer large bulks of information in a
 synchronous way. Section [Asynchronous bulk transfer - packet streams]
@@ -1673,10 +1675,133 @@ calls an RPC object by invoking a capability.
   of the client, which can pick up the results of the RPC call.
 
 
+\clearpage
+
 Asynchronous notifications
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+The synchronous RPC mechanism described in the previous section is not
+sufficient to cover all forms of inter-component interactions. It shows
+its limitations in the following situations.
+
+:Waiting for multiple conditions:
+
+  In principle, the RPC mechanism can be used by a RPC client to block
+  for a condition at a server. For example, a timer server could provide
+  a blocking sleep function that, when called by a client, blocks the client
+  for a certain amount of time. However, if the client wanted to respond to
+  multiple conditions such as a timeout, incoming user input, and network
+  activity, it would need to spawn one thread for each condition where each
+  thread would block for a different condition. If one condition triggers, the
+  respective thread would resume its execution and respond to the condition.
+  However, because all threads could potentially be woken up independently
+  from each other -- as their execution depends only on their respective
+  condition -- they needs to synchronize access to shared state.
+  Consequently, components that need to respond to multiple conditions
+  would not only waste threads but also suffer from synchronization overheads.
+
+  At the server side, the approach of blocking RPC calls is equally bad
+  in the presence of multiple clients. For example, a timer service with
+  the above outlined blocking interface would need to spawn one thread per
+  client.
+
+:Signaling events to untrusted parties:
+
+  With merely synchronous RPC a server cannot deliver sporadic events to
+  its clients. If the server wanted to inform one of its clients about such
+  an event, it would need to act as a client itself performing an RPC call to
+  its own client. However, by performing an RPC call, the caller
+  passes the control of execution to the callee. In the case for a server
+  that serves multiple clients, it would put the availability of the server
+  at the discretion of all its clients, which is unacceptable.
+
+  A similar situation is the interplay between a parent and a child where
+  the parent does not trust its child but still needs to propagate sporadic
+  events to the child.
+
+The solution to those problems is the use of asynchronous notifications,
+also named signals.
+Figure [img/signal_seq] shows the interplay between two components.
+The component labeled as signal handler responds to potentially many
+external conditions propagated as signals. The component labeled as signal
+producer triggers a condition. Note that both can be arbitrary components.
+
+\clearpage
+
+[tikz img/signal_seq]
+  Interplay between signal producer and signal handler
+
+
+Signal-context creation and delegation
+--------------------------------------
+
+The upper part of the Figure [img/signal_seq] depicts the steps needed by a
+signal handler to become able to receive asynchronous notifications.
+
+# Initially, the signal handler creates a so-called _signal receiver_.
+  Similar to an entrypoint that can respond to RPC request to a number
+  of RPC objects, a signal receiver is able to receive signals for an
+  arbitrary number of sources. Within the signal-handler component,
+  each source is represented as a so-called _signal context_. A component
+  that needs to respond to multiple conditions creates one signal context
+  for each condition. In the figure, a signal context "c" is created.
+
+# The signal-handler component associates the signal context with the
+  signal receiver via the manage function.
+  Analogous to the way how RPC objects are associated with entrypoints,
+  the manage function returns a capability for the signal context.
+  Under the hood, the signal receiver uses core's SIGNAL service to create
+  this kind of capability.
+
+# As for regular capabilities, a signal-context capability can be delegated
+  to other components. Thereby, the authority to trigger signals for the
+  associated context is delegated.
+
+
+Triggering signals
+------------------
+
+The lower part of Figure [img/signal_seq] illustrates the use of a
+signal-context capability by the signal producer.
+
+# Now in possession of the signal-context capability, the signal producer
+  creates a so-called _signal transmitter_ for the capability.
+  The signal transmitter can be used to trigger a signal by calling the
+  _submit_ function. This function returns immediately. In contrast to
+  a remote procedure call, the submission of a signal is a fire-and-forget
+  operation.
+
+# At the time when the signal producer submitted the first signals, the
+  signal handler is not yet ready to handle them It is still busy with other
+  things.
+  However, the number of submitted signals is recorded.
+  Once the signal handler finally calls the wait-for-signal function at the
+  signal receiver, the call immediately returns the information about the
+  context, to which the signals refer, and the number of signals that were
+  submitted for this context.
+
+# After handling the first batch of signals, the signal handler component
+  blocks its execution by calling the signal receiver's wait-for-signal
+  function again. This time, no signals are immediately pending. After
+  a while, however, the signal producer submits another signal, which
+  eventually wakes up the signal handler with information of the associated
+  context.
+
+
+In contrast to remote procedure calls, signals carry no payload. If signals
+carried any payload, this payload would need to be buffered somewhere.
+Regardless of where this information is buffered, the buffer could overrun
+if signals are submitted at a higher rate than handled. There might be
+two approaches to deal with this situation. The first option would be to
+drop payload once the buffer overruns, which would make the mechanism
+indeterministic, which is hardly desirable. The second option would be
+to sacrifice the fire-and-forget semantics at the producer side, blocking
+the producer when the buffer is full. However, this approach would put the
+liveliness of the producer at the whim of the signal handler. Consequently,
+signals are void of payload. However, the number of signals is recorded,
+which does not require a buffer but merely a counter. Note that this counter
+could overflow in the presence of a producer that constantly submits signals.
+
 
 \clearpage
 
@@ -1766,6 +1891,22 @@ The client has to trust the server with respect to its liveliness, which
 is consistent with the discussion in Section [Client-server relationship].
 A well-behaving server should tie the lifetime of a shared-memory dataspace
 to the lifetime of the client session.
+
+
+Asynchronous state propagation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In many cases, the mere information that a signal occurred is insufficient
+to handle the signal in a meaningful manner. For example, a component that
+registers a timeout handler at a timer server will eventually receive a
+timeout. But in order to handle the timeout properly, it needs to know the
+actual time. The time could not be delivered along with the timeout because
+signals cannot carry any payload. But the timeout handler may issue a
+subsequent RPC call to the timer server for requesting the time.
+
+Another example of this combination of asynchronous notifications and
+remote procedure calls is the resource-balancing protocol described in Section
+[Dynamic resource balancing].
 
 
 Synchronous bulk transfer

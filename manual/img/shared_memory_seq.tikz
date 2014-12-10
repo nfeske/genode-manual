@@ -1,11 +1,5 @@
 \begin{tikzpicture}
 
-	\tikzstyle{dataspace} = [tape, draw, tape bend top=none, fill=white,
-	                         dropshadow, minimum height=6ex, align=center,
-	                         tape bend height=0.5ex, fill opacity=0.95]
-
-	\tikzstyle{dataspacemapped} = [draw, draw, dotted]
-
 	\begin{timelinediagram}
 
 		\renewcommand{\timestepvector}{0,-0.4}
