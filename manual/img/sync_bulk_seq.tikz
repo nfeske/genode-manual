@@ -1,0 +1,93 @@
+\begin{tikzpicture}
+
+	\begin{timelinediagram}
+
+		\renewcommand{\timestepvector}{0,-0.4}
+
+		% initial timelines
+
+		\node[minimum width=10ex, font=\normalsize]
+			(clientlabel) {Client};
+		\node[minimum width=10ex, font=\normalsize, right of=clientlabel,
+		      node distance=9cm]
+			(serverlabel) {Server};
+
+		\path (clientlabel)+(0,-3ex) node (timelineanchor) {};
+		\newtimeline{client}
+
+		\path (serverlabel)+(0,-3ex) node (timelineanchor) {};
+		\newtimeline{server}
+
+		\activate{client}
+		\activate{server}
+
+		% server creates and attaches dataspace
+
+		\path (client) -- node[dataspace, below=2.5] (dataspace) {Data\\space} (server);
+		\timestep
+		\draw[timelinemessage, dashed] (server)
+			.. controls +(-2,0) and +(1,2) .. node[above] {$create$, $attach$} (dataspace);
+		\timestep
+		\deactivate{server}
+		\timestep
+
+		% client requests dataspace from server
+
+		\transition{client}{server}{}
+		\path (transitionlabel)+(-1.5,0) node[above] {request dataspace};
+		\renewcommand{\timestepvector}{0,-0.2}
+		\timestep
+		\transition{server}{client}{}
+		\path (transitionlabel)+(-1.5,0) node[below] {return dataspace capability};
+
+		\renewcommand{\timestepvector}{0,-0.7}
+		\timestep
+
+		% client attached dataspace
+
+		\draw[timelinemessage, dashed] (client)
+			.. controls +(2,0) and +(-1,0.5) .. node[above] {$attach$} (dataspace);
+
+		\renewcommand{\timestepvector}{0,-0.3}
+		\timestep
+		\deactivate{client}
+
+		\renewcommand{\timestepvector}{0,-1.2}
+		\timestep
+		\renewcommand{\timestepvector}{0,-0.4}
+
+		% client writes
+
+		\activate{client}
+		\renewcommand{\timestepvector}{0,-0.4}
+		\timestep
+		\draw[timelinemessage, dashed] (client)
+			.. controls +(2,0) and +(-1,0) .. node[above] {$write$} (dataspace);
+		\timestep
+
+		% client notifies server via RPC call
+
+		\transition{client}{server}{RPC call}
+		\renewcommand{\timestepvector}{0,-0.6}
+		\timestep
+		\node at (server) (serverdispatch) {};
+		\timestep
+		\transition{server}{client}{RPC reply}
+		\node[rotate=90] at (serverdispatch) {dispatch};
+
+		% client reads
+
+		\renewcommand{\timestepvector}{0,-0.2}
+		\timestep
+		\draw[timelinemessage, dashed] (client)
+			.. controls +(2,0) and +(-1,-0.5) .. node[above, pos=0.6] {$read$} (dataspace);
+		\timestep
+
+	\end{timelinediagram}
+
+	\begin{scope}[on background layer]
+	\node[timelinegroup, fit=(clientlabel) (client)] {};
+	\node[timelinegroup, fit=(serverlabel) (server)] {};
+	\end{scope}
+
+\end{tikzpicture}

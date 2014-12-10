@@ -1912,7 +1912,9 @@ remote procedure calls is the resource-balancing protocol described in Section
 Synchronous bulk transfer
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+[tikz img/sync_bulk_seq]
+  Transferring bulk data by combining synchronous RPC with shared memory
+
 
 Asynchronous bulk transfer - packet streams
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
