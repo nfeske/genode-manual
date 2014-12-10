@@ -34,16 +34,17 @@
 		{associates \\capabilities with \\ local objects};
 	\path[umlinfoline] (objpool) -- (objpoolinfo);
 
-	% RPC entrpoint
+	% entrpoint
 	\node[umlclass3, below of=objpool, node distance=15ex] (rpcentrypoint) {
-		\bf RPC entrypoint
+		\bf Entrypoint
 		\nodepart{two}
+		IPC server
 		\nodepart{three}
 		manage(RPC object base \&) : Capability \\
 		dissolve(RPC object base \&)
 	};
 
-	% info about RPC entrypoint
+	% info about entrypoint
 	\node[umlinfo, below of=rpcentrypoint, node distance=15ex] (rpcentrypointinfo)
 		{receives \\ incoming RPC \\ requests};
 	\path[umlinfoline] (rpcentrypoint) -- (rpcentrypointinfo);

@@ -21,11 +21,11 @@
 		\activate{servermain}
 		\timestep
 
-		% create RPC entrypoint and object pool
+		% create entrypoint and object pool
 
 		\path (servermain)+(2.5,0) node (timelineanchor) {};
 		\newtimeline{serverep}
-		\node[draw, fill=white, align=center, dropshadow] at (serverep) (ep) {RPC\\Entrypoint};
+		\node[draw, fill=white, align=center, dropshadow] at (serverep) (ep) {Entrypoint};
 		\draw[timelinemessage, dashed] (servermain) -- node[above] {$create$} (ep);
 
 		\path (serverep)+(2.5,0) node (timelineanchor) {};

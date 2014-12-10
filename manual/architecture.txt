@@ -1378,25 +1378,307 @@ Component creation
 Inter-component communication
 =============================
 
-| TODO
+Genode provides three principle mechanisms for inter-component communication,
+namely synchronous remote procedure calls (RPC), asynchronous notifications, and
+shared memory.
+Section [Synchronous remote procedure calls (RPC)] describes synchronous RPC
+as the most prominent one. In addition to
+transferring information across component boundaries, the RPC mechanism
+provides the means for delegating capabilities and thereby authority
+throughout the system.
+
+The RPC mechanism closely resembles the semantics
+of a function call where the control is transferred from the caller to
+the callee until the function returns.
+As discussed in Section [Client-server relationship], there are situations
+where the provider of information does not wish depend on the recipient to
+return control. Such situations are addressed by the means of an asynchronous
+notification mechanism explained in Section [Asynchronous notifications].
+
+Neither synchronous RPC nor asynchronous notifications are suitable for
+transferring large bulks of information between components. RPC messages
+are strictly bound to a small size and asynchronous notifications do not
+carry any payload at all. This is where shared memory comes into play.
+By sharing memory between components, large bulks of information
+can be propagated without the active participation of the kernel.
+Section [Shared memory] explains the procedure of establishing shared memory
+between components.
+
+Each of the three basic mechanisms is rarely found in isolation.
+Most inter-component interactions are a combination of the mechanisms.
+Section [Synchronous bulk transfer] shows how synchronous RPC can be
+combined with shared memory to transfer large bulks of information in a
+synchronous way. Section [Asynchronous bulk transfer - packet streams]
+combines asynchronous notifications with shared memory to largely
+decouple producers and consumers of high-throughput data streams.
+
+
+\clearpage
 
 Synchronous remote procedure calls (RPC)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Section [Capability invocation] introduced remote procedure calls (RPC)
+Genode's fundamental mechanism to delegate authority between
+components.
+It introduced the terminology for RPC objects, capabilities, object
+identities, and entrypoints.
+It also outlined the flow of control between a client, the kernel, and a
+server during an RPC call.
+This section complements Section [Capability invocation] with the information
+of how the mechanism presents itself at the C++ language level.
+It first introduces the layered structure of the RPC mechanism and the notion
+of _typed capabilities_.
+After presenting the class structure of an RPC server, it shows how those
+classes interact when RPC objects are created and called.
+
+
+Typed capabilities
+------------------
+
 [tikz img/rpc_layers]
   Layered architecture of the RPC mechanism
+
+Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
+
+:Kernel inter-process-communication (IPC) mechanism:
+  At the lowest level, the kernel's IPC mechanism is used to transfer messages
+  back and forth between client and server. The actual mechanism largely
+  differs between the various kernels supported by Genode.
+  Section [Capability-based security in depth] gives insights into the
+  functioning of the IPC mechanism as used on specific kernels.
+  Genode's capability-based security model is based on the presumption
+  that the kernel protects _object identities_ as kernel objects,
+  allows user-level components to refer to kernel objects via capabilities,
+  and supports the delegation of capabilities between components using
+  the kernel's IPC mechanism.
+  At the kernel-interface level, the kernel is not aware of language
+  semantics like the C++ type system. From the kernel's point of view,
+  an object identity merely exists and can be referred to, but it has no type.
+
+:IPC library:
+  The IPC library introduces a kernel-independent programming interface
+  that is needed to implement the principle semantics of clients and servers
+  For each kernel supported by Genode, there exists a distinct IPC library
+  that uses the respective kernel mechanism. The IPC library introduces the
+  notions of untyped capabilities, message buffers,  IPC clients,
+  and IPC servers.
+
+  An _untyped capability_ is the representation of a Genode capability at
+  the C++ language level. It consists of the local name of the referred-to
+  object identity as well as a means to manage the lifetime of the
+  capability, i.e., a reference counter. The exact representation of an
+  untyped capability depends on the used kernel.
+
+  A _message buffer_ is a statically sized buffer that carries the payload
+  of an IPC message. It distinguishes two types of payloads, namely raw data
+  and capabilities. Payloads of both kinds can be simultaneously present.
+  A message buffer can carry up to 1 KiB of raw data and up to four
+  capabilities.
+  Prior issuing the kernel IPC operation, the IPC library translates the
+  message-buffer content to the format understood by the kernel's IPC
+  operation.
+
+  The _IPC client_ represents the calling side of the communication channel
+  to a given destination capability. It uses two message buffers, a
+  send buffer for the arguments to be sent to the server and a receive buffer
+  for the results delivered as a reply by the server.
+  The user of an IPC client object can populate the send buffer with raw data
+  and capabilities using the C++ insertion operator, invoke the kernel's call
+  operation, and obtain the results by using the C++ extraction operator.
+  The kernel's call operation blocks the execution of the IPC client until the
+  server replied to the call.
+
+  The _IPC server_ represents the callee side of the communication with
+  potentially many IPC clients.
+  Analogously to the IPC client, it uses two message buffers, a receive buffer
+  for incoming requests and a send buffer for delivering the reply of the last
+  request.
+  Each IPC server has a corresponding untyped capability that can be used to
+  perform calls to the server using an IPC client object.
+  An IPC server object can be used to wait for incoming messages, read the
+  arguments from the receive buffer using the C++ extraction operator,
+  populate the send buffer with the reply message, and submit the reply to the
+  client.
+  The IPC server does not obtain any form of client identification along with
+  an incoming message that could be used to implement server-side
+  access-control policies.
+  Instead of performing access control based on a client identification in the
+  server, access control is solely performed by the kernel on the invocation
+  of capabilities.
+  If a request was delivered to the server, the client has -- by definition --
+  a capability for communicating with the server and thereby the authority
+  to perform the request.
+
+:RPC stub code:
+  The RPC stub code complements the IPC library with the semantics of RPC
+  interfaces and RPC functions. An RPC interface is an abstract C++ class
+  with the declarations of the functions callable by RPC clients.
+  Thereby each RPC interface is represented as a C++ type.
+  The declarations are accompanied with annotations that allow the C++
+  compiler to generate the so-called RPC stub code on both the client side and
+  server side. Traditionally, the generation of communication stub codes
+  employed code-generating tools like IDL compilers. In contrast, Genode uses
+  C++ templates to generate the stub code, which avoids the crossing of a
+  language barrier when designing RPC interfaces and alleviates the need for
+  code-generating tools in addition to the compiler.
+
+  The client-side stub code translates C++ method calls to a sequence of
+  operations on an IPC client object. I.e., each RPC function of an
+  RPC interface has an associated opcode (according to the order of RPC
+  functions). This opcode along with the method arguments are inserted
+  into the IPC client's send buffer. Vice versa, the stub code translates
+  the content of the IPC client's receive buffer to return values of the
+  method invocation.
+
+  The server-side stub code implements the so-called dispatch function,
+  which takes the IPC server's receive buffer, translates the message
+  into a proper C++ method call, calls the corresponding server-side function
+  of the RPC interface, and translates the function results into the
+  IPC server's send buffer.
+
+:RPC object and client object:
+  Thanks to the RPC stub code, the server-side implementation of an RPC
+  object comes down to the implementation of the abstract interface of the
+  corresponding RPC interface.
+  When an RPC object is associated with an entrypoint, the entrypoint creates
+  a unique capability for the given RPC object.
+  RPC objects are typed with their corresponding RPC interface. This C++ type
+  information is propagated to the their corresponding capabilities. I.e.,
+  When associating a RPC object that implements the LOG-session interface
+  with an entrypoint, the resulting capability is a LOG-session capability.
+
+  This capability represents
+  the authority to invoke the functions of the RPC object.
+  On the client side, the client object plays the role of a proxy of the RPC
+  object within the client's component.
+  Thereby, the client becomes able to interact with the RPC object in a
+  natural manner.
+
+:Sessions and connections:
+  Section [Services and sessions] introduced sessions between client and
+  server components as the basic building blocks of system compositions.
+  At the server side each session is represented by an RPC object that
+  implements the session interface. At the client side, an open session
+  is represented by a _connection_ object. The connection object encapsulates
+  the session arguments and also represents a client object to interact
+  with the session.
+
+As depicted in Figure [img/rpc_layers], capabilities are associated with
+types on all levels above the IPC library. Because the IPC library is solely
+used by the RPC stub code but not at the framework's API level,
+capabilities appear as being C++ type safe, even across component boundaries.
 
 [tikz img/rpc_classes]
   Server-side structure of the RPC mechanism
 
+
+Server-side class structure
+---------------------------
+
+Figure [img/rpc_classes] gives on overview of the C++ classes that are
+involved in the RPC mechanism. As described in Section [Capability invocation]
+each entrypoint maintains a so-called object pool. The object pool contains
+references to RPC objects associated with the entrypoint. When receiving
+an RPC request along with the local name of the invoked object identity,
+the entrpoint uses the object pool to lookup the corresponding RPC object.
+As seen in the figure, the RPC object is a class template parametrized with
+its RPC interface. When instantiated, the dispatch function is generated
+by the C++ compiler according to the RPC interface.
+
+
+\clearpage
+
+RPC-object creation
+-------------------
+
+Figure [img/new_rpc_obj_seq] shows the procedure of creating a new RPC object.
+
 [tikz img/new_rpc_obj_seq]
   Creation of a new RPC object
+
+# The server component creates a new entrypoint, which, in turn, creates
+  its corresponding object pool.
+
+# The server component creates an instance of an RPC object.
+  "RPC object" denotes an object that inherits the RPC object class
+  template typed with the RPC interface and that implements the virtual
+  functions of this interface. By inheriting the RPC object class template,
+  it gets equipped with a dispatch function for the given RPC interface.
+
+  Note that a single entrypoint can be used to manage any number of RPC
+  objects of arbitrary types.
+
+# The server component associates the RPC object with the entrypoint by
+  calling the entrypoint's _manage_ function with the RPC object as argument.
+  The entrypoint responds to this call by allocating a new object identity
+  using a session to core's CAP service
+  (Section [Object-identity allocation (CAP)]).
+  For allocating the new object identity, the entrypoint specifies the
+  untyped capability of its IPC server as argument.
+  Core's CAP service returns the new object identity in the form of a new
+  capability that is derived from the specified capability. When invoked, the
+  derived capability refers to the same IPC server as the original capability.
+  But it represents a distinct object identity. The IPC server retrieves
+  the local name of this object identity when called via the derived
+  capability.
+  The entrypoint stores the association of the derived capability
+  with the RPC object in the object pool.
+
+# The entrypoint hands out the derived capability as return value of the
+  manage function. At this step, the derived capability is converted into
+  a typed capability with its type corresponding to the type of the RPC
+  object that was specified as argument. This way, the link between the
+  types of the RPC object and the corresponding capability is preserved
+  at the C++ language level.
+
+# The server delegates the capability to another component, e.g., as
+  payload of a remote procedure call. At this point, the client received
+  the authority to call the RPC object.
+
+
+RPC-object invocation
+---------------------
+
+Figure [img/call_rpc_obj_seq] shows the flow of execution when a client
+calls an RPC object by invoking a capability.
 
 [tikz img/call_rpc_obj_seq]
   Invocation of an RPC object
 
+# The client invokes the given capability using an instance of an RPC client
+  object, which uses the IPC library to invoke the kernel's IPC mechanism.
+  The kernel delivers the request to the IPC server that that belongs to the
+  invoked capability and wakes up the corresponding entrypoint. On reception
+  of the request, the entrypoint obtains the local name of the invoked
+  object identity.
+
+# The entrypoint uses the local name of the invoked object identity as a key
+  into its object pool to look up the matching RPC object. If the lookup
+  fails, the entrypoint replies with an error.
+
+# If the matching RPC object could be found, the entrypoint calls the
+  RPC object's dispatch function. This function is implemented by the
+  server-side stub code. It converts the content of the receive buffer of the
+  IPC server to a method call. I.e., it obtains the opcode of the RPC function
+  from the receive buffer to decide which method to call, and supplies
+  the arguments according to the definition in the RPC interface.
+
+# On the return of the RPC function, the RPC stub code populates the send
+  buffer of the IPC server with the function results and invokes the kernel's
+  reply operation via the IPC library. Thereby, the entrypoint becomes ready
+  to serve the next request.
+
+# When delivering the reply to the client, the kernel resumes the execution
+  of the client, which can pick up the results of the RPC call.
+
+
 Asynchronous notifications
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+\clearpage
 
 Shared memory
 ~~~~~~~~~~~~~
@@ -1404,10 +1686,95 @@ Shared memory
 [tikz img/shared_memory_seq]
   Establishing shared memory between client and server
 
+By sharing memory between components, large amounts of information can be
+propagated across protection domains without the active help of the kernel.
+
+However, sharing memory between components raises a number of questions.
+First, Section [Resource trading] explained that physical memory resources
+must be explicitly assigned to components either by their respective parents
+or by the means of resource trading. This raises the question of which
+component is bound to pay for the memory shared between multiple components.
+Second, unlike traditional operating systems where different programs can
+refer to globally visible files and thereby establish shared memory by
+mapping prior-agreed file into their respective virtual memory spaces, Genode
+does not have a global name space. How do components refer to the to-be-shared
+piece of memory?
+Figure [img/shared_memory_seq] answers these questions with the sequence of
+establishing shared memory between a server and its client. The diagram
+depicts a client, core, and a server.
+The notion of a client-server relationship is intrinsic for the shared-memory
+mechanism.
+When establishing shared memory between components, the component's roles as
+client and server must be clearly defined.
+
+# The server interacts with core's RAM service to allocate a new RAM dataspace.
+  Because the server uses its own RAM session for that allocation, the
+  dataspace is paid by the server. At the first glance, this is seemingly a
+  contradiction with the principle that clients should have to pay for using
+  services as discussed in
+  Section [Trading memory between clients and servers].
+  However, this is not the case. By establishing the client-server
+  relationship, the client has transferred a budget of RAM to the server
+  via the session-quota mechanism.
+  So the client already paid for the memory. Still, it is the server's
+  responsibility to limit the size of the allocation to the client's session
+  quota.
+
+  Because the server allocates the dataspace, it is the owner of the
+  dataspace. Hence, the lifetime of the dataspace is controlled by the
+  server.
+
+  Core's RAM service returns a dataspace capability as the result of the
+  allocation.
+
+# The server makes the content of the dataspace visible in its virtual
+  address space by attaching the dataspace in its RM session. The server
+  refers to the dataspace via the dataspace capability as returned from the
+  prior allocation.
+  When attaching the dataspace to the server's RM session, core's RM service
+  maps the dataspace content at a suitable virtual-address range that is
+  not occupied with existing mappings and returns the base
+  address of the occupied range to the server.
+  Using this base address and the known dataspace size, the server can
+  savely access the dataspace content by reading or writing its virtual
+  memory.
+
+# The server delegates the authority to use the dataspace to the client.
+  This delegation can happen in different ways, e.g., the client could
+  request the dataspace capability via an RPC function at the server.
+  But the delegation could also involve further components that transitively
+  delegate the dataspace capability. Therefore the delegation operation is
+  depicted as a dashed line.
+
+# Once the client has obtained the dataspace capability, it can use its
+  own RM session to make the dataspace content visible in its address
+  space. Note that even though both client and server use core's RM service,
+  each component uses a different session.
+  Analogous to the server, the client receives a client-local address
+  within its virtual address space as the result of the attach function.
+
+# After the client has attached the dataspace in its RM session,
+  both client and server can access the shared memory using their respective
+  virtual addresses.
+
+In contrast to the server, the client is not in control over the lifetime of
+the dataspace.
+In principle, the server as the owner of the dataspace could free the
+dataspace at its RAM session at any time and thereby revoke the corresponding
+memory mappings in all components that attached the dataspace.
+The client has to trust the server with respect to its liveliness, which
+is consistent with the discussion in Section [Client-server relationship].
+A well-behaving server should tie the lifetime of a shared-memory dataspace
+to the lifetime of the client session.
+
+
 Synchronous bulk transfer
 ~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
 
 Asynchronous bulk transfer - packet streams
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+| TODO
 

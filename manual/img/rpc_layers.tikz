@@ -9,8 +9,8 @@
 	\node[layerbox, right color=black!10!green!30,  below of=client]        (rpcstubclient) {RPC stub code};
 	\node[layerbox, right color=black!10!blue!30,   below of=rpcstubclient] (ipcclient)     {IPC library};
 
-	\node[layerbox, right color=black!10, right=10ex of connection]         (server)        {Server};
-	\node[layerbox, right color=black!10!yellow!30, below of=server]        (objframework)  {RPC object};
+	\node[layerbox, right color=black!10, right=10ex of connection]         (session)       {Session};
+	\node[layerbox, right color=black!10!yellow!30, below of=session]       (objframework)  {RPC object};
 	\node[layerbox, right color=black!10!green!30,  below of=objframework]  (rpcstubserver) {RPC stub code};
 	\node[layerbox, right color=black!10!blue!30,   below of=rpcstubserver] (ipcserver)     {IPC library};
 
@@ -29,7 +29,7 @@
 
 	% double-headed arrow across all layers
 	\path (connection)+(7ex,0) node (arrowstart) {};
-	\path (server)+(-7ex,0)    node (arrowend)   {};
+	\path (session)+(-7ex,0)    node (arrowend)   {};
 	\draw[ultra thick, <->, >= stealth, draw opacity=0.2, fill opacity=0.2] (arrowstart)
 		.. controls +(0,-1)  and +(-1.5,0) .. (kernel.center)
 		.. controls +(1.5,0) and +(0,-1)   .. (arrowend);
