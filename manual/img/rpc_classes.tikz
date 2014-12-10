@@ -17,7 +17,7 @@
 
 	% RPC object
 	\node[umlclass3, below of=rpcobjbase, node distance=18ex] (rpcobj) {
-		\bf RPC-object
+		\bf RPC object
 		\nodepart{two}
 		\nodepart{three}
 		dispatch()
