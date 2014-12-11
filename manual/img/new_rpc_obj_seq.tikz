@@ -44,24 +44,24 @@
 
 		% manage RPC object
 
-		\transition{servermain}{serverep}{$manage$ \bf{a}}
+		\transition{servermain}{serverep}{manage \bf{a}}
 		\timestep
-		\transition{serverep}{corecap}{$allocate$ $capability$}
+		\transition{serverep}{corecap}{allocate capability}
 		\timestep
-		\transition{corecap}{serverep}{$return$ $capability$ $\bf{cap_a}$}
+		\transition{corecap}{serverep}{return capability $\bf{cap_a}$}
 		\timestep
 		\transition{serverep}{serverobjpool}{}
-		\node[align=center] at (transitionlabel) {$associate$ \\ {\bf{a}} $with$ $\bf{cap_a}$};
+		\node[align=center] at (transitionlabel) {associate \\ {\bf{a}} with $\bf{cap_a}$};
 		\timestep
 		\transition{serverobjpool}{serverep}{}
 		\timestep
 		\transition{serverep}{servermain}{}
-		\node[align=center] at (transitionlabel) {$return$ \\ $\bf{cap_a}$};
+		\node[align=center] at (transitionlabel) {return \\ $\bf{cap_a}$};
 		\timestep
 
 		% delegate capability to client
 		\transition{servermain}{client}{}
-		\node[align=center] at (transitionlabel) {$delegate$ \\ $\bf cap_a$};
+			\node[align=center] at (transitionlabel) {$delegate$ \\ $\bf cap_a$};
 		\timestep
 
 	\end{timelinediagram}

@@ -9,7 +9,7 @@
 		\path (0,0) node (timelineanchor) {};
 		\newtimeline{client}
 		\path (client) node[above=2pt, align=center] (clientlabel) {\normalsize Client\\};
-	
+
 		\path (timelineanchor)+(2.5,0) node (timelineanchor) {};
 		\newtimeline{servermain}
 		\path (servermain) node[above=2pt, align=center] (serverlabel) {\normalsize Server\\};
@@ -32,18 +32,18 @@
 		% invoke capability
 
 		\transition{client}{serverep}{}
-		\node[align=center] at (transitionlabel) {$invoke$ \\ $\bf{cap_a}$};
+		\node[align=center] at (transitionlabel) {invoke \\ $\bf{cap_a}$};
 		\timestep
 		\transition{serverep}{serverobjpool}{}
-		\node[align=center] at (transitionlabel) {$lookup$ $by$ \\ $\bf{cap_a}$};
+		\node[align=center] at (transitionlabel) {lookup by \\ $\bf{cap_a}$};
 		\timestep
 		\renewcommand{\timestepvector}{0,-0.4}
 		\draw[timelinemessage, dashed, shorten >= 0.0ex] (serverobjpool) -- node[above] {$lookup$} (serverrpcobj);
 		\renewcommand{\timestepvector}{0,-0.8}
 		\timestep
-		\transition{serverobjpool}{serverep}{$return$ \bf{a}}
+		\transition{serverobjpool}{serverep}{return \bf{a}}
 		\timestep
-		\transition{serverep}{serverrpcobj}{$dispatch$}
+		\transition{serverep}{serverrpcobj}{dispatch}
 		\renewcommand{\timestepvector}{0,-1}
 		\timestep
 		% remember current serverrpcobj position as node rpcfunction
@@ -54,7 +54,7 @@
 		% draw rpcfunction label on top of activetimeline of serverrpcobj
 		\node[rotate=90] at (rpcfunction) {RPC function};
 		\timestep
-		\transition{serverep}{client}{$reply$}
+		\transition{serverep}{client}{reply}
 		\timestep
 
 	\end{timelinediagram}

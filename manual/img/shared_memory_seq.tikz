@@ -29,28 +29,28 @@
 
 		% allocate dataspace
 
-		\transition{server}{coreram}{$allocate$ $dataspace$}
+		\transition{server}{coreram}{allocate dataspace}
 		\renewcommand{\timestepvector}{0,-0.3}
 		\timestep
 		\node[dataspace, below=1.3 of corelabel] (physdataspace) {Data \\space};
-		\draw[timelinemessage, dashed, above] (coreram) -- node {create} (physdataspace);
+		\draw[timelinemessage, dashed, above] (coreram) -- node {$create$} (physdataspace);
 		\timestep
 		\transition{coreram}{server}{}
-		\node[align=center] at (transitionlabel) {$return$ \\ $capability$ $\bf{cap_{ds}}$};
+		\node[align=center] at (transitionlabel) {return \\ capability $\bf{cap_{ds}}$};
 		\renewcommand{\timestepvector}{0,-1.4}
 		\timestep
 
 		% server attaches dataspace
 
 		\transition{server}{corerm}{}
-		\node[align=center] at (transitionlabel) {$attach$ \\ $dataspace$ $\bf{cap_{ds}}$};
+		\node[align=center] at (transitionlabel) {attach \\ dataspace $\bf{cap_{ds}}$};
 		\renewcommand{\timestepvector}{0,-0.8}
 		\timestep
 		\path (server)+(-1,0) node[dataspace, dotted] (serverdataspace) {Data \\space};
 		\path[dataspacemapped] (serverdataspace.north east) -- (physdataspace.north east);
 		\path[dataspacemapped] (serverdataspace.south west) -- (physdataspace.south west);
 		\timestep
-		\transition{corerm}{server}{$return$ $server$-$local$ $address$}
+		\transition{corerm}{server}{return server-local address}
 		\renewcommand{\timestepvector}{0,-0.6}
 		\timestep
 
@@ -64,7 +64,7 @@
 		% client attaches dataspace
 
 		\transition{client}{corerm}{}
-		\node[align=center] at (transitionlabel) {$attach$ \\ $dataspace$ $\bf{cap_{ds}}$};
+		\node[align=center] at (transitionlabel) {attach \\ dataspace $\bf{cap_{ds}}$};
 		\renewcommand{\timestepvector}{0,-0.8}
 		\timestep
 		\path (client)+(1,0) node[dataspace, dotted] (clientdataspace) {Data \\space};
@@ -72,12 +72,12 @@
 		\path[dataspacemapped] (clientdataspace.south east) -- (physdataspace.south east);
 		\timestep
 		\transition{corerm}{client}{}
-		\path (transitionlabel)+(4ex,0) node[align=center] {$return$ \\ $client$-$local$ $address$};
+		\path (transitionlabel)+(4ex,0) node[align=center] {return \\ client-local address};
 
 		% server access
 
 		\draw[timelinemessage, dashed, below] (server) .. controls +(-1,0) and +(0,-1) ..
-			node {access} (serverdataspace);
+			node {$access$} (serverdataspace);
 
 		\renewcommand{\timestepvector}{0,-1.2}
 		\timestep
@@ -85,7 +85,7 @@
 		% client access
 
 		\draw[timelinemessage, dashed, below] (client) .. controls +(1,0) and +(0,-1) ..
-			node {access} (clientdataspace);
+			node {$access$} (clientdataspace);
 		\renewcommand{\timestepvector}{0,-0.4}
 		\timestep
 
