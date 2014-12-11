@@ -13,7 +13,7 @@ To build the manual, the following tools need to be installed:
   variable, e.g., by adding a symlink to one of your bin directories.
 * Tcl as required by GOSH
 * texlive-latex-extra (for pdflatex), texlive-pictures (for Tikz),
-  texlive-fonts-extra
+  texlive-fonts-extra, texlive-fonts-recommended
 * GNU make
 
 To build the manual, invoke 'make' from within the 'manual/' directory.
