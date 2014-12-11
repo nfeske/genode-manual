@@ -8,8 +8,18 @@ Work flow
 
 | TODO
 
+Tool chain
+==========
+
+| TODO
+
 Build system
 ============
+
+| TODO
+
+Ports of 3rd-party software
+===========================
 
 | TODO
 
