@@ -1,20 +1,140 @@
 Components
 ##########
 
-| TODO
+The architecture introduced in Chapter [Architecture] clears the way to
+compose sophisticated systems out of many building blocks. Each building
+block is represented by an individual component that resides in a dedicated
+protection domain and interacts with other components in a well-defined manner.
+Those components do not merely represent applications but all typical
+operating-system functionalities.
+
+Components can come in a large variety of shape and form. Section
+[Classification of components] systematizes this variety by identifying
+the typical roles components play in a Genode system. By distinguishing
+those roles, it becomes possible to assess the possible security
+implications of individual components.
+
+The versatility of a component-based systems does not come from the
+existence of a many components alone. Even more important is the
+composability of components. Components can be combined only if their
+interfaces match. To maximize composability, the number of interfaces
+throughout the system should be as low as possible, and all interfaces
+should be largely orthogonal to each other.
+Section [Common session interfaces] reviews Genode's common session
+interfaces.
+
+Components can be used in different ways depending on their position
+within the component tree. Section [Component compositions] discusses
+the most prominent options of composing components.
+
 
 Classification of components
 ============================
 
-| TODO
+Compared to a monolithic operating-system kernel, a component-based operating
+system widens the design space by the decision of the functional scope of each
+component and thereby the granularity of componentization. This decision
+depends on several factors:
 
-* Device drivers
-* Protocol stacks
-* Resource multiplexers
-  * Server-side heap partitioning
-    (illustration of anonymous memory allocations)
+:Security:
+  The smaller a component, the lower the risk for bugs and vulnerabilities.
+  The more rigid a component's interfaces, the smaller its attack surface
+  becomes.
+  Hence, the security of a complex system function can potentially be vastly
+  improved by splitting it into a low-complexity component that encapsulates
+  the security-critical part and a high-complexity component that is
+  uncritical for security.
 
-* Runtime environments
+:Performance:
+  The split of functionality into multiple components introduces
+  inter-component communication and thereby context-switch overhead.
+  If a functionality is known to be critical for performance, such a split
+  should be clearly motivated by a benefit for security.
+
+:Reusability:
+  Componentization can be pursued for improved reusability while sometimes
+  disregarding performance considerations. However, reusability can also be achieved by
+  moving functionality into libraries that can be easily reused by linking
+  them directly against library-using components. By using a dynamic linker,
+  the linking can even happen at run time, which yields the same flexibility
+  as the use of multiple distinct components. Therefore, the split of
+  functionality into multiple components for the sole sake of modularization
+  is to be questioned.
+
+The following sections aid the navigation within the componentization design
+space by classifying components into different types.
+
+
+Device drivers
+~~~~~~~~~~~~~~
+
+A device driver translates a device interface to a Genode API, in particular
+a session interface.
+
+
+Raw device access
+-----------------
+
+The device interface is defined by the device vendor and typically
+comprises the driving of state machines of the device, the
+notification of device-related events via interrupts, and a means to
+transfer data from and to the device.
+A device-driver component accesses the device interface via sessions to the
+core services IO_MEM, IO_PORT, and IRQ as described in
+Section [Access to device resources (IO_MEM, IO_PORT, IRQ)].
+
+
+Translator, not multiplexer
+---------------------------
+
+In general, a physical device cannot be driven by multiple users at the same
+time.
+It keep its complexity low, a device driver should not attempt to multiplex
+devices.
+Instead, it should act as a server that serves only a single client
+per physical device.
+Whereas a device driver for a simple device usually accepts only one client,
+a device driver for a complex device with multiple sub devices (such as
+a USB driver) may hand out each sub device to a different client.
+
+
+Defines no policy
+-----------------
+
+A device driver should be largely void of built-in policy.
+Instead, the device driver should obtain policy information from its
+configuration.
+
+
+Enforces policy
+---------------
+
+Even though a device driver should not contain policy, it must enforce
+the policy according to its configuration. This policy may define the
+assignment of sub devices or device features to different clients.
+
+
+Direct memory access (DMA) transactions
+---------------------------------------
+
+
+
+Protocol stacks
+~~~~~~~~~~~~~~~
+
+Resource multiplexers
+~~~~~~~~~~~~~~~~~~~~~
+
+;  * Server-side heap partitioning
+;    (illustration of anonymous memory allocations)
+
+
+Runtime environments
+~~~~~~~~~~~~~~~~~~~~
+
+Applications
+~~~~~~~~~~~~
+
 
 Common session interfaces
 =========================
@@ -25,6 +145,12 @@ Component compositions
 ======================
 
 | TODO
+
+; client server with common parent
+; resolving circular dependencies
+; slaves
+; monitors
+
 
 Publisher-subscriber mechanism
 ==============================
