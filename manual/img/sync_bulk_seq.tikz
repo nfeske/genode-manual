@@ -74,6 +74,8 @@
 		\timestep
 		\transition{server}{client}{RPC reply}
 		\node[rotate=90] at (serverdispatch) {dispatch};
+		\draw[timelinemessage, dashed] (serverdispatch)
+			.. controls +(-2,0) and +(1,0) .. node[above] {$read$, $write$} (dataspace);
 
 		% client reads
 

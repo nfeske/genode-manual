@@ -1912,8 +1912,70 @@ remote procedure calls is the resource-balancing protocol described in Section
 Synchronous bulk transfer
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The synchronous RPC mechanism described in
+Section [Synchronous remote procedure calls (RPC)] enables components
+to exchange information via a kernel operation. In contrast to shared
+memory, the kernel plays an active role by copying information (and
+delegating capabilities) between the communication partners.
+Most kernels impose a restriction onto the maximum
+message size, i.e. the RPC message buffer limits messages to a maximum
+of 1 KiB. In principle, larger payloads could be transferred as a sequence
+of RPCs. But since each RPC implies the costs of two context switches, this
+approach is not suitable for transferring large bulks of data. But by combining
+synchronous RPC with shared memory, these costs can be mitigated.
+
 [tikz img/sync_bulk_seq]
   Transferring bulk data by combining synchronous RPC with shared memory
+
+Figure [img/sync_bulk_seq] shows the procedure of transferring large bulk
+data using shared memory as a communication buffer while using synchronous
+RPCs for arbitrating the use of the buffer.
+The upper half of the figure depicts the setup phase that needs to performed
+only once. The lower half exemplifies an operation where the client transfers
+a large amount of data to the server, which processes the data before
+transferring a large amount of data back to the client.
+
+# At session-creation time, the server allocates the dataspace, which
+  represents the designated communication buffer.
+  The steps resemble those described in Section [Shared memory].
+  The server uses session quote provided by the client for the allocation.
+  This way, the client is able to aid the dimensioning of the dataspace by
+  supplying an appropriate amount of session quota to the server.
+  Since the server performed the allocation, the server is in control over the
+  lifetime of the dataspace.
+
+# After the client established a session to the server, it initially queries
+  the dataspace capability from the server using a synchronous RPC and
+  attaches the dataspace to its own address space. After this step, both
+  client and server can read and write the shared communication buffer.
+
+# Initially the client plays the role as the user of the dataspace.
+  The client writes the bulk data into the dataspace. Naturally, the maximum
+  amount of data is limited by the dataspace size.
+
+# The client performs an RPC call to the server. Thereby, it hands over the
+  role of the dataspace user to the server. Note that this handover is not
+  enforced. The client's PD retains the right to access the dataspace, i.e.,
+  by another thread running in the same PD.
+
+# On reception of the RPC, the server becomes active. It reads and processes
+  the bulk data, and writes its results to the dataspace. The server must not
+  assume to be the exclusive user of the dataspace. A misbehaving client
+  may change the buffer content at any time. Hence, the server must take
+  appropriate precautions. In particular, if the data must be validated at
+  the server side, the server must copy the data from the shared dataspace to
+  a private buffer before validating and using it.
+
+# Once the server finished the processing of the data and wrote the results
+  to the dataspace, it replies to the RPC. Thereby, it hands over the role
+  as the user of the dataspace back to the client.
+
+# The client resumes its execution with the return of the RPC call, and
+  can read the result of the server-side operation from the dataspace.
+
+The RPC call may be used for carrying control information. For example, the
+client may provide the amount of data to process, or the server may provide
+the amount of data produced.
 
 
 Asynchronous bulk transfer - packet streams
