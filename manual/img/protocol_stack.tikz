@@ -1,0 +1,33 @@
+\begin{tikzpicture}
+
+	\labeledcompoundnode{fbdrv}{component}{Framebuffer driver}{
+
+		\rpcobjectrnode{fbsession}{align=center}{}{Framebuffer \\ session}
+	}
+
+	\labeledcompoundnode{inputdrv}{component, below=5ex of fbdrv}{Input driver}{
+
+		\rpcobjectrnode{inputsession}{align=center}{}{Input \\ session}
+	}
+
+	\node[fit=(fbdrv) (inputdrv)] (drivers) {};
+
+	\labeledcompoundnode{terminal}{component, right=5ex of drivers}{Terminal}{
+
+		\rpcobjectrnode{terminalsession}{align=center}{}{Terminal \\ session}
+		\node[capability, xshift=-5ex, yshift=-2ex] (terminalinputsessioncap) {};
+		\node[capability, xshift=-5ex, yshift=2ex] (terminalfbsessioncap) {};
+	}
+
+	\labeledcompoundnode{app}{component, right=5ex of terminal,
+	                          minimum width=14ex}{Application}{
+
+		\node[capability] (appterminalsessioncap) {};
+	}
+
+	% capability associations
+	\path [draw, dashed] (fbsessioncap) -- (terminalfbsessioncap);
+	\path [draw, dashed] (inputsessioncap)   -- (terminalinputsessioncap);
+	\path [draw, dashed] (terminalsessioncap)    -- (appterminalsessioncap);
+
+\end{tikzpicture}

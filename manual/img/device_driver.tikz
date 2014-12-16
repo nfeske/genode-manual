@@ -1,0 +1,34 @@
+\begin{tikzpicture}
+
+	\node (anchor) {};
+
+	\labeledcompoundnode{driver}{component, below=0 of anchor}{Device driver}{
+
+		\rpcobjectrnode{nicsession}{}{}{NIC session}
+
+		\node[capability, below of=nicsession] (driveriomemcap) {};
+		\node[capability, right of=driveriomemcap] (driverirqcap) {};
+	}
+
+	\labeledcompoundnode{nicclient}{component, below=0 of anchor, xshift=25ex,
+	                                minimum width=10ex}{NIC client}{
+
+		\node[capability] (nicclientcap) {};
+	}
+
+	\node[fit=(driver) (nicclient)] (components) {};
+
+	\labeledcompoundnode{core}{component, node distance=18ex,
+	                           below of=components}{Core}{
+
+		\rpcobjectlnode{iomemsession}{}{}{IO-MEM session}
+
+		\rpcobjectlnode{irqsession}{node distance=25ex, right of=iomemsession}{}{IRQ session}
+	}
+
+	% capability associations
+	\path [draw, dashed] (iomemsessioncap) -- (driveriomemcap);
+	\path [draw, dashed] (irqsessioncap)   -- (driverirqcap);
+	\path [draw, dashed] (nicclientcap)    -- (nicsessioncap);
+
+\end{tikzpicture}

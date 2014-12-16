@@ -8,33 +8,11 @@ protection domain and interacts with other components in a well-defined manner.
 Those components do not merely represent applications but all typical
 operating-system functionalities.
 
-Components can come in a large variety of shape and form. Section
-[Classification of components] systematizes this variety by identifying
-the typical roles components play in a Genode system. By distinguishing
-those roles, it becomes possible to assess the possible security
-implications of individual components.
-
-The versatility of a component-based systems does not come from the
-existence of a many components alone. Even more important is the
-composability of components. Components can be combined only if their
-interfaces match. To maximize composability, the number of interfaces
-throughout the system should be as low as possible, and all interfaces
-should be largely orthogonal to each other.
-Section [Common session interfaces] reviews Genode's common session
-interfaces.
-
-Components can be used in different ways depending on their position
-within the component tree. Section [Component compositions] discusses
-the most prominent options of composing components.
-
-
-Classification of components
-============================
-
+Components can come in a large variety of shape and form.
 Compared to a monolithic operating-system kernel, a component-based operating
-system widens the design space by the decision of the functional scope of each
-component and thereby the granularity of componentization. This decision
-depends on several factors:
+system challenges the system designed by enlarging the design space by the
+decision of the functional scope of each component and thereby the granularity
+of componentization. This decision depends on several factors:
 
 :Security:
   The smaller a component, the lower the risk for bugs and vulnerabilities.
@@ -61,19 +39,39 @@ depends on several factors:
   functionality into multiple components for the sole sake of modularization
   is to be questioned.
 
-The following sections aid the navigation within the componentization design
-space by classifying components into different types.
+The Sections [Device drivers], [Protocol stacks], [Resource multiplexers],
+[Runtime environments], and [Applications] aid the navigation within the
+componentization design space by discussing the different roles a component
+can play within a Genode system. Those can be be the role of a device driver,
+protocol stack, resource multiplexer, runtime environment, and that of an
+application. By distinguishing those roles, it becomes possible to assess the
+possible security implications of each individual component.
+
+The versatility of a component-based systems does not come from the
+existence of a many components alone. Even more important is the
+composability of components. Components can be combined only if their
+interfaces match. To maximize composability, the number of interfaces
+throughout the system should be as low as possible, and all interfaces
+should be largely orthogonal to each other.
+Section [Common session interfaces] reviews Genode's common session
+interfaces.
+
+Components can be used in different ways depending on their position
+within the component tree. Section [Component compositions] discusses
+the most prominent options of composing components.
 
 
 Device drivers
-~~~~~~~~~~~~~~
+==============
 
-A device driver translates a device interface to a Genode API, in particular
-a session interface.
+A device driver translates a device interface to a Genode session interface.
+Figure [img/device_driver] illustrates the typical role of a device driver.
 
+[tikz img/device_driver]
+  A network device driver provides a NIC service to a single client and uses
+  core's IO-MEM and IRQ services to interact with the physical network adaptor.
 
-Raw device access
------------------
+; Raw device access
 
 The device interface is defined by the device vendor and typically
 comprises the driving of state machines of the device, the
@@ -83,57 +81,332 @@ A device-driver component accesses the device interface via sessions to the
 core services IO_MEM, IO_PORT, and IRQ as described in
 Section [Access to device resources (IO_MEM, IO_PORT, IRQ)].
 
+; Translator, not multiplexer
 
-Translator, not multiplexer
----------------------------
-
-In general, a physical device cannot be driven by multiple users at the same
-time.
-It keep its complexity low, a device driver should not attempt to multiplex
-devices.
-Instead, it should act as a server that serves only a single client
-per physical device.
+In general, a physical device cannot safely be driven by multiple users at the
+same time. If multiple users accessed one device concurrently, the device
+state would eventually become inconsistent.
+A device driver should not attempt to multiplex device.
+Instead, to keep its complexity low, it should act as a server that serves
+only a single client per physical device.
 Whereas a device driver for a simple device usually accepts only one client,
 a device driver for a complex device with multiple sub devices (such as
-a USB driver) may hand out each sub device to a different client.
+an USB driver) may hand out each sub device to a different client.
+
+; Void of built-in policy but enforces policy
+
+A device driver should be largely void of built-in policy. If it merely
+translates the interface of a single device to a session interface, there is
+not much room for policy anyway. If, however, a device driver hands out
+multiple sub devices to different clients, the assignment of sub devices
+to clients must be subjected to a policy. In this case, the device driver
+should obtain this policy information from its configuration as provided by
+the driver's parent component.
 
 
-Defines no policy
+Platform driver
+~~~~~~~~~~~~~~~
+
+There are three problems that are fundamentally important for a running an
+operating system on modern hardware but that lie outside the scope of a
+ordinary device driver because they are affect the platform as a whole rather
+than a single device. Those problems are the enumeration of devices, the
+discovery of interrupt routing, and the initial setup of the platform.
+
+
+Device enumeration
+------------------
+
+Modern hardware platforms are rather complex and vary a lot. For example,
+the devices attached to the PCI bus of a PC are usually not known at the
+build time of the system but need to be discovered at run time. Technically,
+each individual device driver could probe its respective device at the
+PCI bus. But in the presence of multiple drivers, this approach would not
+work. First, the configuration interface of the PCI bus is a device itself.
+The concurrent access to the PCI configuration interface by multiple drivers
+would ultimately yield undefined behaviour. Second, if each driver spoke
+directly to the PCI configuration interface, each driver would need to
+carry with it the functionality to interact with PCI.
+
+
+Interrupt routing
 -----------------
 
-A device driver should be largely void of built-in policy.
-Instead, the device driver should obtain policy information from its
-configuration.
+On PC platforms with multiple processors, the use of legacy interrupts as
+provided by the Intel 8259 programmable interrupt controller (PIC) is not
+suitable because, among several other reasons, there is no way to express the
+assignment of interrupts to CPUs. To overcome the limitations of the PIC,
+Intel introduced the Advanced Programmable Interrupt Controller (APIC). The
+APIC, however, comes with a different name space for interrupt numbers, which
+creates an inconsistency between the numbers provided by the PCI configuration
+(interrupt lines) and interrupt numbers as understood by the APIC. The
+assignment of legacy interrupts to APIC interrupts is provided by tables
+provided by the Advanced Configuration and Power Interface (ACPI).
+Consequently, in order to support multi-processor PC platforms, the operating
+system needs to interpret those tables. Within a component-based system, we
+need to answer the question of which component is responsible to interpret the
+ACPI tables and how this information is applied to the individual device
+drivers.
 
 
-Enforces policy
----------------
+Initial hardware setup
+----------------------
 
-Even though a device driver should not contain policy, it must enforce
-the policy according to its configuration. This policy may define the
-assignment of sub devices or device features to different clients.
+In embedded systems, the interaction of the SoC (system on chip) with its surrounding
+peripheral hardware is often not fixed in hardware but rather a
+configuration issue. For example, the power supply and clocks of certain
+peripherals may be enabled by speaking an I2C protocol with a separate
+power-management chip. Also, the direction and polarity of the general-purpose
+I/O pins depends largely on the way how the SoC is used. Naturally, such
+hardware setup steps could be performed by the kernel. But this would require
+the kernel to become aware of potentially complex platform intrinsics.
+
+
+Central platform driver
+-----------------------
+
+The natural solution to these problems is the introduction of a so-called
+platform driver, which encapsulates the peculiarities outlined above. On PC
+platforms, the role of the platform driver is played by the ACPI driver. The
+ACPI driver provides an interface to the PCI bus in the form of a PCI service.
+Device drivers obtain the information about PCI devices by creating a PCI
+session at the ACPI driver. Furthermore, the ACPI driver provides an IRQ
+service that transparently applies the interrupt routing based on the
+information provided by the ACPI tables. Furthermore, the ACPI driver provides
+the means to allocate DMA buffers, which is further explained in Section
+[Direct memory access (DMA) transactions].
+
+On ARM platforms, the corresponding component is named platform driver
+and provides a so-called platform service. Because of the large variety of
+ARM-based SoCs, the session interface for this service differs from platform
+to platform.
+
+
+Interrupt handling
+~~~~~~~~~~~~~~~~~~
+
+Most device drivers need to respond to sporadic events produced by the
+device and propagated to the CPU as interrupts. In Genode, a device-driver
+component obtains device interrupts via core's IRQ service introduced in
+Section [Access to device resources (IO_MEM, IO_PORT, IRQ)]. On PC platforms,
+device driver usually do not use core's IRQ service directly but rather
+use the IRQ service provided by the platform driver
+(Section [Platform driver]).
+
+; XXX sequence diagram of handling an interrupt?
 
 
 Direct memory access (DMA) transactions
----------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Devices that need to transfer large amounts of data usually support a means
+to issue data transfers from and to the system's physical memory
+without the active participation of the CPU. Such transfers are called
+_direct memory access (DMA) transactions_. DMA transactions relieve the CPU
+from actively copying data between device registers and memory, optimize
+the throughput of the system bus by the effective use of burst transfers, and
+may even be used to establish direct data paths between devices.
+However, the benefits of DMA transaction come at the risk of corrupting
+the physical memory by misguided DMA transactions.
+Because those DMA-capable devices can issue bus requests
+targeting the physical memory directly and not involving the CPU altogether, such requests
+are naturally not subjected by the virtual-memory mechanism implemented in the
+CPU in the form of a memory-management unit (MMU).
+Figure [img/no_iommu] illustrates the problem. From the device's point of
+view, there is just physical memory.
+Hence, if a driver sets up a DMA transaction, e.g., if a disk driver reads a
+block from the disk, the driver programs the memory-mapped registers of the
+device with the address and size of a physical-memory buffer where it expects
+to receive the data.
+If the driver lives in a user-level component, as is the case for a
+Genode-based system, it still needs to know the physical address of the DMA
+buffer to program the device correctly.
+Unfortunately, there is nothing to prevent the driver from specifying any
+physical address to the device.
+Consequently, a malicious driver could misuse the device to read and
+manipulate all parts of the physical memory, including the kernel.
+Consequently, device drivers and devices should ideally be trustworthy.
+However, there are several situations where this is ultimately not
+the case.
+
+[tikz img/no_iommu 100%]
+  The MMU restricts the access of physical memory pages by different
+  components according to their virtual address spaces.
+  However, direct memory accesses issued by the disk controller are not
+  subjected to the MMU. The disk controller can access the entirety of the
+  physical memory present in the system.
+
+
+Direct device assignment to virtual machines
+--------------------------------------------
+
+When hosting virtual machines as Genode components, the direct assignment of
+a physical device such as a USB controller, a GPU, or a dedicated network
+card to the guest OS running in the virtual machine can be
+useful in two ways. First, if the guest OS is the sole user of the device,
+the direct assignment of the device maximizes the I/O performance of the
+guest OS using the device. Second, the guest OS may be equipped with a
+proprietary device driver that is not present as a Genode component otherwise.
+In this case, the guest OS may be used as a runtime executing the device
+driver and providing a driver interface to the Genode world. In both cases
+the guest OS should not be considered as trustworthy.
+In contrary, it bears the risk to subvert the isolation between components.
+A misbehaving guest OS could issue DMA requests referring
+to the physical memory used by other components and even the kernel and
+thereby break out of its virtual machine.
+
+
+Firmware-driven attacks
+-----------------------
+
+Modern peripherals such as wireless LAN adaptors, network cards, or GPUs
+employ firmware executed on the peripheral device. This firmware is executed
+on a microcontroller on the device, and is thereby not subjected to the
+policy of the normal operating system. Such firmware may either be built-in
+by the device vendor, or is loaded by the device driver at initialization
+time of the device. In both cases, the firmware tends to be a black box
+that remains obscure except for the device vendor. Hence, hidden functions
+or vulnerabilities might be present in it. By the means of DMA transactions, such
+firmware has unlimited access on the system. For example, a back door
+implemented in the firmware of a network adaptor could look for
+special network packets to activate and control arbitrary spyware functions.
+Because malware embedded in the firmware of the device can neither be detected
+nor controlled by the operating system, both monolithic and microkernel-based
+operating systems are powerless against such attacks.
+
+
+Bus-level attack
+----------------
+
+The previous examples misused a DMA-capable device as a proxy to drive an
+attack. However, the system bus can be attacked directly with no hardware
+tinkering needed. There are ready-to-exploit interfaces that featured on most
+PC systems. For example, most laptops come with PCMCIA / ExpressCard slots,
+which allow expansion cards to access the system bus. Furthermore, serial bus
+interfaces, i.e., IEEE 1394 (Firewire) enable connected devices to indirectly
+access the system bus via the peripheral bus controller. If the bus controller
+allows the device to issue direct system bus requests by default, any connected
+device becomes able to gain control over the whole system. This vulnerability
+has been present on a wide range of commodity computers.
+
+
+DMA transactions in component-based systems
+-------------------------------------------
+
+Direct memory access (DMA) of devices looks like the Achilles
+heel of component-based operating systems. The most compelling argument in
+favour of componentization is that by encapsulating each system component
+within a dedicated user-level address space, the system as a whole becomes more
+robust and secure compared to a monolithic operating-system kernel. In the
+event that one component fails due to a bug or an attack, other components
+remain unaffected. The prime example for such buggy components are, however, device
+drivers. By empirical evidence, those remain the most prominent trouble makers
+in today's operating systems, which suggests that the DMA loophole renders
+the approach of component-based systems largely ineffective.
+However, there are three counter arguments to this observation.
+
+[tikz img/iommu]
+  An IOMMU arbitrates and virtualizes DMA accesses issued by a device to the
+  RAM. Only if a valid IOMMU mapping exists for a given DMA access, the memory
+  access is performed.
+
+First, by encapsulating each driver in a dedicated address space,
+classes of bugs that are unrelated to DMA remain confined in the
+driver component. In practice most driver-related problems stem from issues like
+memory leaks, synchronization problems, deadlocks, flawed driver logic, wrong
+state machines, or incorrect device-initialization sequences. For those classes
+of problems, the benefits of isolating the driver in a dedicated component
+still applies.
+
+Second, executing a driver largely isolated from other operating-system code
+minimizes the attack surface onto the driver. If the driver interface is
+rigidly small and well-defined, it is hard to compromise the driver by
+exploiting its interface.
+
+Third, modern PC hardware has closed the DMA loophole by incorporating
+so-called IOMMUs into the system. As depicted in Figure [img/iommu], the IOMMU
+sits between the physical and the system bus where the devices are attached to.
+So each DMA request has to pass the IOMMU, which is not only able to arbitrate
+the access of DMA requests to the RAM but also able to virtualize the address
+space per device. Similar to how a MMU confines each process running on the
+CPU within a distinct virtual address space, the IOMMU is able to confine each
+device within a dedicated virtual address space. To tell the different devices
+apart, the IOMMU uses the PCI device's bus-device-function triplet as unique
+identification.
+
+With an IOMMU in place, the operating system can effectively limit the scope
+of actions the given device can execute on the system. I.e., by restricting
+all accesses originating from a particular PCI device to the DMA buffers used
+for the communication, the operating system becomes able to detect and prevent
+any unintended bus accesses initiated by the device.
+
+When executed on the NOVA kernel, Genode subjects all DMA transactions to the
+IOMMU, if present. Section [IOMMU support] discusses the use of IOMMUs in
+more depth.
 
 
 Protocol stacks
-~~~~~~~~~~~~~~~
+===============
+
+[tikz img/protocol_stack]
+  Example of a protocol stack. The terminal provides the translation between
+  the terminal-session interface (on the right) and the driver interfaces
+  (on the left).
+
+A protocol stack _translates_ one session interface to another (or the same)
+session interface. For example, a terminal component may provide a command-line
+application with a service for obtaining textual user input and
+printing text.
+To implement this service, the terminal uses an input session and a
+framebuffer session. Figure [img/protocol_stack] depicts the relationship
+between the terminal, its client application, and the used drivers.
+For realizing the output of a stream of characters on
+screen, it implements a parser for escape sequences, maintains a state machine
+for the virtual terminal, and renders the pixel representation of characters
+onto the framebuffer. For the provisioning of textual user input, it responds
+to key presses reported by the input session, maintains the state of modifier
+keys, and applies a keyboard layout to the stream of incoming events.
+When viewed from the outside the component, the terminal translates a terminal
+session to a framebuffer session and an input session.
+
+Similar to device drivers, a protocol stack typically serves a single client.
+In contrast to device drivers, however, protocol stacks are not bound to
+physical devices. Therefore, a protocol stack can be instantiated any number
+of times. For example, if multiple terminals are needed, one terminal
+component could be instantiated per terminal. Because each terminal has an
+independent instance of the protocol stack, a bug in the protocol stack of one
+terminal does affect any other terminal. However complex the implementation of
+the protocol stack may be, it is not prone to leaking information to another
+terminal because it is connected to a single client only. The leakage of
+information is constrained to interfaces used by the individual instance.
+Hence, protocol stacks appear often as the most suitable category of
+components to host highly complex untrusted code if needed.
+
+Note that the example above cannot be generalized. There are protocol stacks
+that are critical for the confidentiality of information. For example, an
+in-band encryption component may translate plain-text network traffic to
+encrypted network traffic designated to be transported over a public network.
+Even though the component is a protocol stack, it may still be prone to
+leaking unencrypted information to the public network.
+
+Whereas protocol stacks are not necessarily critical for integrity and
+confidentiality, they are almost universally critical for availability.
+
 
 Resource multiplexers
-~~~~~~~~~~~~~~~~~~~~~
+=====================
 
 ;  * Server-side heap partitioning
 ;    (illustration of anonymous memory allocations)
 
 
 Runtime environments
-~~~~~~~~~~~~~~~~~~~~
+====================
 
 Applications
-~~~~~~~~~~~~
+============
+
+; multi-process applications
 
 
 Common session interfaces

@@ -1,0 +1,101 @@
+\begin{tikzpicture}
+
+	\definecolor{drivercolor}{rgb}{0.9,0.9,0.5}
+	\definecolor{appcolor}   {rgb}{0.6,0.9,0.5}
+	\definecolor{kernelcolor}{rgb}{0.9,0.5,0.4}
+
+	\tikzstyle{mempage} = [minimum width=4ex, minimum height=0.5ex, inner sep=0]
+	\tikzstyle{driverpage} = [mempage, draw=drivercolor!50!black!70, fill=drivercolor]
+	\tikzstyle{apppage}    = [mempage, draw=appcolor!50!black!70,    fill=appcolor]
+	\tikzstyle{kernelpage} = [mempage, draw=kernelcolor!50!black!70, fill=kernelcolor]
+
+	\node[hardware, minimum height=10ex] (cpu) {CPU};
+	\node[hardware, minimum height=10ex, right=0 of cpu] (mmu) {MMU};
+
+	\node[component, left=4ex  of cpu, bottom color=appcolor, yshift=3ex] (app)    {Application};
+	\node[component, above=4ex of app, bottom color=drivercolor]          (driver) {Driver};
+	\node[component, below=4ex of app, bottom color=kernelcolor]          (kernel) {Kernel};
+
+	\draw[thick]         (mmu.east)   -- +(15ex,0) coordinate (sysbusram)  {};
+	\draw[thick]         (sysbusram)  -- +(20ex,0) coordinate (sysbusdisk) {};
+	\draw[thick, dotted] (sysbusdisk) -- +(5ex,0) node (sysbusend) {};
+	\draw[thick]         (sysbusdisk) -- +(0,4ex) node [hardware, above] (diskcontroller) {Disk\\controller};
+	\draw[thick]         (sysbusram)  -- +(0,4ex) node [hardware, above] (memcontroller)  {Memory\\controller};
+
+	\path (sysbusram) -- node[below] {system bus} (sysbusdisk);
+
+	\node[above=1ex of memcontroller, draw, fill, white, dropshadow,
+	      minimum width=5ex, minimum height=10ex] (ram) {};
+
+	\path (ram.north)+(0,0.5ex)
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[driverpage] (driverpage) {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[kernelpage] {}
+	      -- ++(0,-0.5ex) node[kernelpage] {}
+	      -- ++(0,-0.5ex) node[kernelpage] {}
+	      -- ++(0,-0.5ex) node[kernelpage] {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[apppage]    (apppage) {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[kernelpage] (kernelpage) {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[apppage]    {}
+	      -- ++(0,-0.5ex) node[apppage]    {};
+
+	\path (cpu.west)+(0,4ex)  coordinate (cpuabove) {};
+	\path (cpu.west)+(0,3ex)  coordinate (cpumid)   {};
+	\path (cpu.west)+(0,2ex)  coordinate (cpubelow) {};
+
+	\path (mmu.east)+(0,4ex)  coordinate (mmuabove) {};
+	\path (mmu.east)+(0,3ex)  coordinate (mmumid)   {};
+	\path (mmu.east)+(0,2ex)  coordinate (mmubelow) {};
+
+	\tikzstyle{memaccess} = [opacity=0.7,
+	                         decoration={markings,
+	                         mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                         postaction={decorate}]
+
+	\path[memaccess, drivercolor!70!black]
+		(driver)   .. controls +(4ex,-2ex) and +(-4ex,0ex) ..
+		(cpuabove) .. controls +(1ex,0)    and +(-1ex,0)   ..
+		(mmuabove) .. controls +(8ex,0)    and +(-8ex,0)   ..
+		(driverpage);
+
+	\path[memaccess, appcolor!60!black]
+		(app.east) .. controls +(2ex,0ex) and +(-2ex,0ex) ..
+		(cpumid)   .. controls +(1ex,0)   and +(-1ex,0)   ..
+		(mmumid)   .. controls +(8ex,0)   and +(-8ex,0)   ..
+		(apppage);
+
+	\path[memaccess, kernelcolor!80!black]
+		(kernel)   .. controls +(4ex,2ex) and +(-4ex,0ex) ..
+		(cpubelow) .. controls +(1ex,0)   and +(-1ex,0)   ..
+		(mmubelow) .. controls +(8ex,0)   and +(-8ex,0)   ..
+		(kernelpage);
+
+	\path (diskcontroller.south west)+(-5ex,-2ex) coordinate (dmamid) {};
+
+	\path[memaccess, black]
+		(diskcontroller.south west) .. controls +(-1ex,-2ex) and +(4ex,0ex) ..
+		(dmamid)                    .. controls +(-4ex,0) and +(8ex,0) ..
+		(kernelpage);
+
+	\path[memaccess, black]
+		(diskcontroller.south west) .. controls +(-1ex,-2ex) and +(4ex,0ex) ..
+		(dmamid)                    .. controls +(-4ex,0) and +(8ex,0) ..
+		(apppage);
+
+	\path[memaccess, black]
+		(diskcontroller.south west) .. controls +(-1ex,-2ex) and +(4ex,0ex) ..
+		(dmamid)                    .. controls +(-4ex,0) and +(8ex,0) ..
+		(driverpage);
+
+	\path (dmamid) node[above, xshift=1ex] {\emph{DMA}};
+
+\end{tikzpicture}

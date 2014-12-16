@@ -20,8 +20,70 @@ Design of the base-hw kernel
 IOMMU support
 =============
 
-| TODO
-; on NOVA
+As discussed in Section [Direct memory access (DMA) transactions], misbehaving
+device driver may exploit DMA transactions to circumvent their component
+boundary. When executing Genode on the NOVA microhypervisor, however,
+bus-master DMA is subjected to the IOMMU.
+
+NOVAs interface to the IOMMU is quite elegant. The kernel simply
+applies a subset of the (MMU) address space of a process (aka protection domain
+in NOVA speak) to the (IOMMU) address space of a device. So the device's
+address space can be managed in the same way as we normally manage the address
+space of a process. The only missing link is the assignment of device address
+spaces to process address spaces. This link is provided by the dedicated system
+call "assign_pci" that takes a process identifier and a device identifier as
+arguments. Of course, both arguments must be subjected to a security policy.
+Otherwise, any process could assign any device to any other process. To enforce
+security, the process identifier is a capability to the respective protection
+domain and the device identifier is a virtual address where the extended PCI
+configuration space of the device is mapped in the specified protection domain.
+Only if a user-level device driver got access to the extended PCI configuration
+space of the device, it is able to get the assignment in place.
+
+To make NOVA's IOMMU support available to Genode components,
+the ACPI driver has the ability to hand out the extended PCI configuration
+space of a device, and a NOVA-specific extension ('assign_pci') to the PD session
+interface can be used to associate a PCI device with a protection domain.
+
+; [image img/iommu_aware 63%]
+;   NOVAs management of the IOMMU address spaces facilities the use of
+;   driver-local virtual addresses as DMA addresses.
+
+Even though these mechanisms combined principally
+suffice to let drivers operate with the IOMMU enabled, in practice, the
+situation is a bit more complicated. Because NOVA uses the same
+virtual-to-physical mappings for the device as it uses for the process, the DMA
+addresses the driver needs to supply to the device must be virtual addresses
+rather than physical addresses. Consequently, to be able to make a device
+driver usable on systems without IOMMU as well as on systems with IOMMU, the
+driver needs to be IOMMU-aware and distinguish both cases. This is an
+unfortunate consequence of the otherwise elegant mechanism provided by NOVA. To
+relieve the device drivers from caring about both cases, Genode decouples
+the virtual address space of the device from the virtual address space of the
+driver. The former address space is represented by a Genode process called
+_device PD_. Its sole purpose
+is to hold mappings of DMA buffers that are accessible by the associated
+device. By using one-to-one physical-to-virtual mappings for those buffers
+within the device PD, each device PD contains a subset of the physical address
+space. The ACPI driver performs the assignment of device PDs to PCI
+devices. If a device driver intends to use DMA, it allocates a new DMA buffer
+for a specific PCI device at the ACPI driver.
+The ACPI driver responds to such a request by allocating a RAM dataspace at core,
+attaching it to the device PD using the dataspace's physical address as virtual
+address, and handing out the dataspace capability to the client. If the driver
+requests the physical address of the dataspace, the returned address will be a
+valid virtual address in the associated device PD.
+From this design follows that a device driver must allocate DMA buffers at the
+ACPI server (specifying the PCI device the buffer is intended for) instead of
+using core's RAM service to allocate buffers anonymously. Note that the
+current implementation of the ACPI server assigns all PCI devices to only one
+device PD.
+
+; [image img/iommu_agnostic 80%]
+;   By modelling a device address space as a dedicated process (device PD),
+;   the traditional way of programming DMA transactions can be maintained,
+;   even with the IOMMU enabled.
+
 
 Capability-based security in depth
 ==================================
