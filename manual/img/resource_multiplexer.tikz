@@ -1,0 +1,46 @@
+\begin{tikzpicture}
+
+	\labeledcompoundnode{fbdrv}{component}{Framebuffer driver}{
+
+		\rpcobjectrnode{fbsession}{align=center}{}{Framebuffer \\ session}
+	}
+
+	\labeledcompoundnode{inputdrv}{component, below=5ex of fbdrv}{Input driver}{
+
+		\rpcobjectrnode{inputsession}{align=center}{}{Input \\ session}
+	}
+
+	\node[fit=(fbdrv) (inputdrv)] (drivers) {};
+
+	\labeledcompoundnode{gui}{component, right=5ex of drivers}{GUI server}{
+
+		\rpcobjectrnode{guisession1}{align=center}{}{GUI session}
+		\rpcobjectrnode{guisession2}{align=center, below=1ex of guisession1}{}{GUI session}
+		\rpcobjectrnode{guisession3}{align=center, below=1ex of guisession2}{}{GUI session}
+		\node[capability, xshift=-5ex, yshift=-2ex] (guiinputsessioncap) {};
+		\node[capability, xshift=-5ex, yshift=2ex] (guifbsessioncap) {};
+	}
+
+	\labeledcompoundnode{app1}{component, right=8ex of gui, yshift=10ex,
+	                          minimum width=14ex}{Application}{
+		\node[capability] (app1guisessioncap) {};
+	}
+
+	\labeledcompoundnode{app2}{component, below=2ex of app1,
+	                          minimum width=14ex}{Application}{
+		\node[capability] (app2guisessioncap) {};
+	}
+
+	\labeledcompoundnode{app3}{component, below=2ex of app2,
+	                          minimum width=14ex}{Application}{
+		\node[capability] (app3guisessioncap) {};
+	}
+
+	% capability associations
+	\path [draw, dashed] (fbsessioncap) -- (guifbsessioncap);
+	\path [draw, dashed] (inputsessioncap)   -- (guiinputsessioncap);
+	\path [draw, dashed] (guisession1cap)    -- (app1guisessioncap);
+	\path [draw, dashed] (guisession2cap)    -- (app2guisessioncap);
+	\path [draw, dashed] (guisession3cap)    -- (app3guisessioncap);
+
+\end{tikzpicture}

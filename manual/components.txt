@@ -396,8 +396,86 @@ confidentiality, they are almost universally critical for availability.
 Resource multiplexers
 =====================
 
-;  * Server-side heap partitioning
-;    (illustration of anonymous memory allocations)
+[tikz img/resource_multiplexer]
+  A GUI server multiplexes the physical framebuffer and input devices among
+  multiple applications.
+
+A resource multiplexer transforms one resource into a number of virtual
+resources. A resource is typically a session to a device driver. For
+example, a NIC-switch component may use one NIC session to a NIC driver
+as uplink and, in turn, provide a NIC service where each session represents
+a virtual NIC. Another example is a GUI server as depicted in Figure
+[img/resource_multiplexer], which enables multiple applications to share
+the same physical framebuffer and input devices by presenting each
+client in a window or a virtual console.
+
+In contrast to a typical device driver or protocol stack that serves only a
+single client, a resource multiplexer is shared by potentially many clients.
+In the presence of untrusted clients besides security-critical clients,
+a resource multiplexer ultimately becomes a so-called _multi-level_ component.
+This term denotes that the component is cross-cutting the security levels
+of all its clients. This has the following ramifications.
+
+:Covert channels:
+  Because the component is a shared resource that is accessed by clients
+  of different security levels, it must maintain the strict isolation
+  between its clients unless explicitly configured otherwise. Hence, the
+  component's client interface as well as the internal structure must be
+  designed to prevent the leakage of information across clients. I.e.,
+  two clients must never share the same namespace of server-side objects
+  if such a namespace can be modified by the clients. For example, a window
+  server that hands out global window IDs to its clients is prone to
+  unintended information leakage because one client could observe the
+  allocation of window IDs by another client. The ID allocation could be
+  misused as a covert channel that circumvents security policies.
+  In the same line, a resource multiplexer is prone to timing channels if
+  the operations provided via its client interface depends on the behavior
+  of other clients. For this reason, blocking RPC calls should be avoided
+  because the duration of a blocking operations may reveal information about
+  the internal state such as the presence of other clients of the resource
+  multiplexer.
+
+:Complexity is dangerous:
+  As a resource multiplexer is shared by clients of different security
+  levels, the same considerations apply as for the OS kernel: High complexity
+  poses a high risk for bugs. Such bugs may, in turn, result in the
+  unintended flow of information between clients or spoil the quality of
+  service for all clients. Hence, resource multiplexers must be as low complex
+  as possible.
+
+:Denial of service:
+  The exposure of a resource multiplexer to untrusted and even malicious
+  clients makes it a potential target for denial-of-service attacks.
+  Some operations provided by the resource multiplexer may require the
+  allocation of memory. For example, a GUI server may need to memory for
+  the book keeping of each window created its clients.
+  If the resource multiplexer performed such allocations from its own
+  memory budget, a malicious client could trigger the exhaustion of
+  server-side memory by creating new windows in an infinite loop.
+  To mitigate this category of problems, a resource multiplexer should perform
+  memory allocations exclusively from client-provided resources, i.e., using
+  the session quota as provided by each client at the session-creation time.
+  Section [Resource trading] describes Genode's resource-trading mechanism
+  in detail.
+
+:Avoiding built-in policies:
+  A resource multiplexer can be understood as a microkernel for a higher-level
+  resource. Whereas a microkernel multiplexes or arbitrates the CPU and
+  memory between multiple components, a resource multiplexer does the same
+  for sessions.
+  Hence, the principles for constructing microkernels equally apply for
+  resource multiplexers.
+  In the line of those principles, a resource multiplexer should ideally
+  implement sole mechanisms but should be void of built-in policy.
+
+:Enforcement of policy:
+  Instead of providing a built-in policy, a resource multiplexer obtains
+  policy information from its configuration as supplied by its parent.
+  The resource multiplexer must enforce the given policy. Otherwise, the
+  security policy defined by the parent remains ineffective.
+
+| Server-side heap partitioning
+| (illustration of anonymous memory allocations)
 
 
 Runtime environments
