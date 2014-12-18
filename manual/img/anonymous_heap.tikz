@@ -1,0 +1,64 @@
+\begin{tikzpicture}
+
+	\labeledcompoundnode{app1}{component}{Server}{
+
+		\node[dataspace, inner sep=0, minimum height=10ex, minimum width=10ex] (ds1) {
+			Dataspace\\\\
+			\begin{memrange}
+				\alloc{2ex}{heapalloc1} \remembersouth{ar1}
+				\alloc{1ex}{heapalloc2} \remembersouth{ab1}
+				\alloc{2ex}{heapalloc1} \remembersouth{ar2}
+				\alloc{1ex}{heapempty}
+				\alloc{4ex}{heapalloc2} \remembersouth{ab2}
+			\end{memrange}
+		};
+
+		\node[dataspace, inner sep=0, minimum height=10ex, right=4ex of ds1] (ds2) {
+			Dataspace\\\\
+			\begin{memrange}
+				\alloc{5ex}{heapalloc2} \remembersouth{ab3}
+				\alloc{1ex}{heapalloc1} \remembersouth{ar3}
+				\alloc{1ex}{heapalloc1} \remembersouth{ar4}
+				\alloc{3ex}{heapempty}
+			\end{memrange}
+		};
+
+		\node[dataspace, inner sep=0, minimum height=10ex, right=4ex of ds2] (ds3) {
+			Dataspace\\\\
+			\begin{memrange}
+				\alloc{3ex}{heapempty}
+				\alloc{1ex}{heapalloc1} \remembersouth{ar5}
+				\alloc{2ex}{heapempty}
+				\alloc{1ex}{heapalloc2} \remembersouth{ab4}
+				\alloc{3ex}{heapempty}
+			\end{memrange}
+		};
+
+		\draw[arrow] (ds1.east) .. controls +(1ex,0.5ex) and +(-1ex,0.5ex) .. (ds2.west);
+		\draw[arrow] (ds2.east) .. controls +(1ex,0.5ex) and +(-1ex,0.5ex) .. (ds3.west);
+
+		\node[above=1ex of ds2, minimum height=2ex] (heaplabel) {};
+
+		\node[fit=(ds1) (ds2) (ds3) (heaplabel), fill, fill opacity=0.01, draw, draw opacity=0.2, rounded corners,
+		      inner sep=2ex] (heap) {};
+
+		\path (heap.north west) node[compoundlabel] {Heap};
+
+		% session objects
+		\rpcobjectrnode{session1}{align=center, below=5ex of heap, xshift=-10ex}{}{Session}
+		\rpcobjectrnode{session2}{align=center, below=5ex of heap, xshift=10ex}{}{Session}
+
+		% allocations from left (red) session
+		\foreach \i in {1,...,5}{
+			\draw[arrow, red!70!black] (session1obj)
+				.. controls +(0,4ex) and +(0,-8ex) .. (ar\i);
+		}
+
+		% allocations from right (blue) session
+		\foreach \i in {1,...,4}{
+			\draw[arrow, yellow!40!black] (session2obj)
+				.. controls +(0,4ex) and +(0,-8ex) .. (ab\i);
+		}
+	}
+
+\end{tikzpicture}

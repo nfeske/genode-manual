@@ -573,15 +573,28 @@ Common session interfaces
 Component compositions
 ======================
 
-| TODO
-
-; client server with common parent
-; resolving circular dependencies
-; slaves
-; monitors
-
-
-Publisher-subscriber mechanism
-==============================
+Enslaving services
+~~~~~~~~~~~~~~~~~~
 
 | TODO
+
+
+Monitors
+~~~~~~~~
+
+| TODO
+
+
+Publishing and subscribing
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+Untangling circular dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
+

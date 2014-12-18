@@ -913,6 +913,58 @@ server's best interest is to obey the parent's close request to avoid
 intervention.
 
 
+Component-local heap partitioning
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Components that perform memory allocations on behalf of untrusted parties
+must take special precautions for the component-local memory
+management.
+There are two prominent examples for such components.
+As discussed in Section [Trading memory between clients and servers], a
+server may be used by multiple clients that must not interfere with
+each other. Therefore, server-side memory allocations on behalf of a
+particular client must strictly be accounted to the client's session quota.
+Second, a parent with multiple children may need to allocate memory to
+perform the book keeping for the individual children, for example,
+maintaining the information about their open sessions and their
+session quotas. The parent should account those child-specific allocations
+to the respective children. In both cases, it is not sufficient to merely
+keep track of the amount of memory consumed on behalf of each untrusted party
+but the actual allocations must be performed on independent backing stores.
+
+[tikz img/anonymous_heap]
+  A server allocates anonymous memory on behalf of multiple clients from a
+  single heap.
+
+Figure [img/anonymous_heap] shows a scenario where a server performs
+anonymous memory allocations on behalf of two session. The memory is allocated
+from the server's heap. Whereas allocations from the heap are of byte
+granularity, the heap's backing store consists of several dataspaces. Those
+dataspaces are allocated at the server's RAM session as needed but at a much
+larger granularity. As depicted on the figure, allocations from both sessions
+end up in the same dataspaces. This becomes a problem once one session is
+closed. As described in the previous section, the server's parent expects the
+server to release all resources that were allocated from the corresponding
+session quota. However, even if the server reverts all heap allocations that
+belong to the to-be-closed session, the server could still not release the
+underlying backing store because all dataspaces are still occupied by memory
+objects of another session. Therefore, the server becomes unable to comply
+with parent's expectations.
+
+[tikz img/heap_partitions]
+  A server performs memory allocations from session-specific heap partitions.
+
+The solution of this problem is illustrated in Figure [img/heap_partitions].
+For each session, the server maintains a separate heap partition. Each
+memory allocation on behalf of a client is performed from the session-specific
+heap partition rather than from a global heap. This way, memory objects of
+different sessions populate disjoint dataspaces. When closing a session,
+the server reverts all memory allocations from the session's heap. After
+freeing the session's memory objects, the heap partition becomes empty. So it
+can be destroyed. By destroying the heap partition, the underlying dataspaces
+that were used as the backing store can be properly released.
+
+
 Dynamic resource balancing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

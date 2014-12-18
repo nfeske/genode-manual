@@ -208,7 +208,8 @@
 %
 \newcommand\compoundnode[3] {
 	\node[#2] (#1) {
-		\begin{tikzpicture}[xshift=0, yshift=0, outer sep=0, inner sep=0]
+		\begin{tikzpicture}[xshift=0, yshift=0, outer sep=0, inner sep=0,
+		                    rounded corners=0]
 			#3
 		\end{tikzpicture}
 	};
@@ -426,3 +427,38 @@
 		\finishtimeline{\name}
 	}
 }
+
+
+%%
+%% Tools for creating illustrations of memory ranges
+%%
+
+\newenvironment{memrange} {
+
+	\newcommand{\alloc}[2]{
+		\path (memrangeanchor) node[right=0ex, minimum width=##1, ##2] (currmemrangeanchor) {};
+		\path (currmemrangeanchor.east) coordinate (memrangeanchor) {};
+	}
+
+	\newcommand{\remembersouth}[1]{
+		\path (currmemrangeanchor.south) coordinate (##1) {};
+	}
+
+	\begin{tikzpicture}[outer sep=0]
+		% reset anchor used for appending allocations
+		\path (0,0) coordinate (memrangeanchor) {};
+
+} {
+		% add some spacing to the right
+		\path (memrangeanchor) node[right=0ex, minimum height=0, inner sep=0,
+		                            minimum width=1ex] {};
+	\end{tikzpicture}
+}
+
+\tikzstyle{heapalloc}  = [rectangle, minimum height=3ex, very thin, draw, draw opacity=0.5]
+\tikzstyle{heapalloc1} = [heapalloc, top color=red!10!lightgray,
+                                     bottom color=red!50!lightgray]
+\tikzstyle{heapalloc2} = [heapalloc, top color=yellow!10!lightgray,
+                                     bottom color=yellow!50!lightgray]
+\tikzstyle{heapempty}  = [heapalloc, top color=white!10!lightgray,
+                                     bottom color=white!50!lightgray]
