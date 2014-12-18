@@ -373,8 +373,8 @@ is as powerful as the kernel. Whereas the child has to trust its parent,
 a parent does not necessarily need to trust its children.
 
 
-Recursive system structure
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Tree of components
+~~~~~~~~~~~~~~~~~~
 
 The parent-child relationship is not limited to a single level. Child
 components are free to use their resources to create further children, thereby

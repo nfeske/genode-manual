@@ -1,0 +1,36 @@
+\begin{tikzpicture}
+
+	\labeledcompoundnode{runtime}{component}{Runtime environment}{
+
+		\rpcobjectrnode{runtimeparent2}{align=center}{}{Parent}
+		\rpcobjectrnode{runtimeparent1}{align=center, left=1ex of runtimeparent2}{}{Parent}
+		\rpcobjectrnode{runtimeparent3}{align=center, right=1ex of runtimeparent2}{}{Parent}
+	}
+
+	\labeledcompoundnode{child2}{component, above=4.5ex of runtime,
+	                          minimum width=10ex}{Child}{
+		\node[capability] (child2parentcap) {};
+	}
+
+	\labeledcompoundnode{child1}{component, left=4ex of child2,
+	                          minimum width=10ex}{Child}{
+		\node[capability] (child1parentcap) {};
+	}
+
+	\labeledcompoundnode{child3}{component, right=3ex of child2,
+	                          minimum width=10ex}{Child}{
+		\node[capability] (child3parentcap) {};
+	}
+
+	% ownership arrows
+	\path (child1.south) -- node[ownership, sloped, rotate=180] {} +(0,-5ex);
+	\path (child2.south) -- node[ownership, sloped, rotate=180] {} +(0,-5ex);
+	\path (child3.south) -- node[ownership, sloped, rotate=180] {} +(0,-5ex);
+
+	% capability associations
+	\path [draw, dashed] (runtimeparent1cap) -- (child1parentcap);
+	\path [draw, dashed] (runtimeparent2cap) -- (child2parentcap);
+	\path [draw, dashed] (runtimeparent3cap) -- (child3parentcap);
+
+
+\end{tikzpicture}

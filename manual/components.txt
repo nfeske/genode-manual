@@ -39,13 +39,14 @@ of componentization. This decision depends on several factors:
   functionality into multiple components for the sole sake of modularization
   is to be questioned.
 
-The Sections [Device drivers], [Protocol stacks], [Resource multiplexers],
-[Runtime environments], and [Applications] aid the navigation within the
-componentization design space by discussing the different roles a component
-can play within a Genode system. Those can be be the role of a device driver,
-protocol stack, resource multiplexer, runtime environment, and that of an
-application. By distinguishing those roles, it becomes possible to assess the
-possible security implications of each individual component.
+The Sections [Device drivers], [Protocol stacks], [Resource multiplexers], and
+[Runtime environments] aid the navigation within the componentization design
+space by discussing the different roles a component can play within a Genode
+system.
+Those can be be the role of a device driver, protocol stack, resource
+multiplexer, runtime environment, and that of an application. By
+distinguishing those roles, it becomes possible to assess the possible
+security implications of each individual component.
 
 The versatility of a component-based systems does not come from the
 existence of a many components alone. Even more important is the
@@ -478,19 +479,96 @@ of all its clients. This has the following ramifications.
 | (illustration of anonymous memory allocations)
 
 
-Runtime environments
-====================
+Runtime environments and applications
+=====================================
 
-Applications
-============
+The component types discussed in the previous sections have in common that
+they deliberately lack built-in policy but act according to a policy
+supplied by their respective parents by the means of configuration.
+This raises the question where those policies should come from.
+The answer comes in the form of runtime environments and applications.
 
-; multi-process applications
+[tikz img/runtime_environment]
+  A runtime environment manages multiple child components.
+
+A _runtime environment_ as depicted in Figure [img/runtime_environment]
+is a component that hosts child components.
+As explained in the Sections [Recursive system structure] and
+[Resource trading], it is thereby able to exercise control over its children
+but is also responsible to manage the children's resources.
+A runtime environment controls its children in three ways:
+
+:Session routing:
+  It is up to the runtime environment to decide how to route session
+  requests originating from a child.
+  The routing of sessions is discussed in Section [Services and sessions].
+
+:Configuration:
+  Each child obtains its configuration from its parent in the form of
+  a ROM session. Using this mechanism, the runtime environment is able to feed
+  policy information to its children. Of course, in order to make the policy
+  be effective, the respective child has to interpret and enforce the
+  configuration accordingly.
+
+:Lifetime:
+  The lifetime of a child ultimately depends on its parent. Hence, a
+  runtime environment can destroy and possibly restart child components
+  at any time.
+
+With regard to management of child resources, a runtime environment can employ
+a large variety of policies using two principal approaches:
+
+:Quota management:
+  Using the resource trading mechanisms introduced in Section
+  [Resource trading], the runtime environment can assign resources to
+  each child individually. Moreover, if a child supports the dynamic
+  rebalancing protocol described in Section [Dynamic resource balancing],
+  the runtime environment may even change those assignments over the lifetime
+  of its children.
+
+:Interposing services:
+  Because the runtime environment controls the session routing of each
+  child, it is principally able to interpose the child's use of any service
+  including those normally provided by core such as
+  RAM (Section [Physical memory allocation (RAM)]),
+  RM (Section [Address-space management (RM)]), and
+  CPU (Section [Processing-time allocation (CPU)]).
+  The runtime environment may provide a locally implemented version of those
+  session interfaces instead of routing session requests directly towards the
+  core component.
+  Internally, each session of such a local service may create a session to the
+  real core service, thereby effectively wrapping core's sessions.
+  This way, the runtime environment can not only observe the interaction of
+  its child with core services but also implement custom resource-management
+  strategies, for example, sharing one single budget among multiple children.
+
+Canonical examples of runtime environments are the init component that
+applies a policy according to its configuration, the noux runtime that
+presents itself as a Unix kernel to its children, a debugger that
+interposes all core services for the debugging target, or a virtual machine
+monitor.
+
+A typical _application_ is a leaf node in the component tree that merely uses
+services. In practice, however, the boundary between applications and runtime
+environments can be blurry.
+As illustrated in Section [Component compositions], Genode fosters the
+internal split of applications into several components, thereby forming
+_multi-component applications_.
+From the outside, such a multi-component application appears as leaf node of
+the component tree but internally, it employs a further level of
+componentization by executing portions of its functionality in separate child
+components.
+The primary incentive behind this approach is the sandboxing of untrusted
+application functionality. For example, a video player may execute the video
+codec within a separate child component so that a bug in the complex video
+codec will not compromise the entire video-player application.
 
 
 Common session interfaces
 =========================
 
 | TODO
+
 
 Component compositions
 ======================
