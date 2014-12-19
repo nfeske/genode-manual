@@ -1942,7 +1942,9 @@ memory mappings in all components that attached the dataspace.
 The client has to trust the server with respect to its liveliness, which
 is consistent with the discussion in Section [Client-server relationship].
 A well-behaving server should tie the lifetime of a shared-memory dataspace
-to the lifetime of the client session.
+to the lifetime of the client session. When the server frees the dataspace
+at its RAM session, core implicitly detaches the dataspace from all
+RM sessions. Thereby the dataspace will become inaccessible by the client.
 
 
 Asynchronous state propagation

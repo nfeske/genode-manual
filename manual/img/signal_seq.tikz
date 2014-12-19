@@ -6,17 +6,23 @@
 
 		% initial timelines
 
-		\node[minimum width=28ex, font=\normalsize]
+		\node[minimum width=22ex, font=\normalsize]
 			(producerlabel) {Signal producer};
 		\node[minimum width=32ex, font=\normalsize, right of=producerlabel,
-		     node distance=42ex]
+		     node distance=35ex]
 			(handlerlabel)  {Signal handler};
 
-		\path (producerlabel)+(10ex,-3ex) node (timelineanchor) {};
+		\path (producerlabel)+(8ex,-3ex) node (timelineanchor) {};
 		\newtimeline{producer}
 
 		\path (handlerlabel)+(-12ex,-3ex) node (timelineanchor) {};
 		\newtimeline{handler}
+
+		\node[minimum width=10ex, font=\normalsize, right of=handlerlabel,
+		      node distance=28ex] (corelabel) {Core};
+		\path (corelabel)+(0ex,-3ex) node (timelineanchor) {};
+		\path (corelabel.south) node[below, font=\normalsize] (coresignallabel) {SIGNAL};
+		\newtimeline{coresignal}
 
 		\activate{producer}
 		\activate{handler}
@@ -37,12 +43,17 @@
 		\path (handler)+(4,0) node[draw, fill=white, align=center, dropshadow]
 			(context) {Signal\\ context \bf c};
 		\draw[timelinemessage, dashed] (handler) -- node[above] {$create$} (context);
-		\renewcommand{\timestepvector}{0,-0.6}
+		\renewcommand{\timestepvector}{0,-0.7}
 		\timestep
 
 		% manage context
 
 		\transition{handler}{receiver}{manage \bf c}
+		\renewcommand{\timestepvector}{0,-0.3}
+		\timestep
+		\transition{receiver}{coresignal}{allocate capability}
+		\timestep
+		\transition{coresignal}{receiver}{}
 		\timestep
 		\transition{receiver}{handler}{}
 		\path (transitionlabel)+(1ex,0)
@@ -123,6 +134,7 @@
 	\begin{scope}[on background layer]
 	\node[timelinegroup, fit=(producerlabel) (transmitter) (producer)] {};
 	\node[timelinegroup, fit=(handlerlabel) (context)  (handler)] {};
+	\node[timelinegroup, fit=(corelabel) (coresignallabel) (coresignal)] {};
 	\end{scope}
 
 \end{tikzpicture}
