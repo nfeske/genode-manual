@@ -564,10 +564,635 @@ codec within a separate child component so that a bug in the complex video
 codec will not compromise the entire video-player application.
 
 
+Component configuration
+=======================
+
+| XXX policy selection
+| XXX dynamic reconfiguration
+
+
 Common session interfaces
 =========================
 
-| TODO
+The core services described in Section [Core - the root of the component tree]
+principally enable the creation of a recursively structured system. However,
+their scope is limited to the few low-level resources provided by core, namely
+processing time, memory, and low-level device resources. Device drivers
+(Section [Device drivers]) and protocol stacks (Section [Protocol stacks])
+transform those low-level resources into higher-level resources. Analogously
+how core's low-level resources are represented by the session interfaces
+of core's services, higher-level resources are represented by the session
+interfaces provided by device drivers and protocol stacks. In principle,
+each device driver could introduce a custom session interface representing
+the particular device.
+But as discussed in the introduction of Chapter [Components], a low
+number of orthogonal session interfaces is desirable to maximize the
+composability of components.
+This section introduces the common session interfaces that are used throughout
+Genode.
+
+
+Read-only memory (ROM)
+~~~~~~~~~~~~~~~~~~~~~~
+
+The ROM session interface makes a piece of data in the form of a dataspace
+available to the client.
+
+
+Session creation
+----------------
+
+At session-creation time, the client specifies the name of a ROM module as
+session argument. So one server may hand out a different ROM modules depending
+on the specified name. Once a ROM session has been created, the client can
+request the capability of the dataspace that contains the ROM module.
+Using this capability and the client's RM session, the client can attach
+the ROM module to its local address space and thereby access the information.
+The client is expected to merely read the data, hence the name of the
+interface.
+
+
+ROM module updates
+------------------
+
+In contrary to the intuitive assumption that read-only data is constant,
+ROM modules may mutate during the lifetime of the session. The server may
+update the content of the ROM module with new versions. However, the server
+does not do so without the consent of the client. The protocol between
+client and server consists of the following steps.
+
+# The client registers a signal handler at the server to indicate that it
+  is interested in receiving updates of the ROM module.
+
+# If the server has a new version of the ROM module, it does not immediately
+  change the dataspace shared with the client. It rather maintains the
+  new version separately and informs the client by submitting a signal to
+  the client's signal handler.
+
+# The client continues working with the original version of the dataspace.
+  Once it receives the signal from the server, it may decide to update the
+  dataspace by calling an _update_ function at the server.
+
+# The server responds to the update request. If the new version fits into
+  the existing dataspace, the server copies the content of the new version
+  into the existing dataspace and returns this condition in the reply of the
+  update call. Hence, the ROM session interface employs synchronous bulk
+  transfers as described in Section [Synchronous bulk transfer].
+
+# The client evaluates the result of the update call. If the new version
+  has fit in the existing dataspace, the update is complete at this point.
+  However, if the new version is larger than the existing dataspace, the
+  client requests a new dataspace from the server.
+
+# On reception of the dataspace request, the server destroys the original
+  dataspace (thereby making it invisible at the client), and returns
+  the new version of the ROM modules as a different dataspace.
+
+# The client attaches the new dataspace capability at its local address
+  space to access the new version.
+
+The protocol is designed such that neither the client nor the server need
+to support updates. A server with no support for updating ROM modules such
+as core's ROM service simply ignores the registration of a signal handler
+by a client. A client that is not able to cope with ROM module updates
+never requests the dataspace twice.
+
+However, if both client and server support the update protocol, the ROM
+session interface provides a means to propagate large state changes
+from the server to the client in a transactional way.
+In the common case where the new version of a ROM module fits into the same
+dataspace as the old version, the update does not require any memory
+mappings to be changed.
+
+
+Use cases
+---------
+
+The ROM session interface is used wherever data shall be accessed in a memory
+mapped fashion.
+
+* Boot time data comes in the form of the ROM sessions provided by core's
+  ROM service. On some kernels, core exports kernel-specific information
+  such as the kernel version in the form of special ROM modules.
+
+* If an executable binary is provided as a ROM module, the binary's text
+  segment can be attached directly to the address space of a new process.
+  So multiple instances of the same component effectively share the same
+  text segment.
+  The same holds true for shared libraries. For this reason, executable
+  binaries and shared libraries are requested in the form of ROM sessions.
+
+* Components obtain their configuration by requesting a ROM session for the
+  ROM module "config" at the parent. This way, configuration information
+  can be propagates using a simple interface with no need for a file
+  system. Furthermore, the update mechanism allows the parent to dynamically
+  change the configuration of a component during its lifetime.
+
+* As described in Section [Publishing and subscribing], multi-component
+  applications may obtain data models in the form of ROM sessions. In such
+  scenarios, the ROM session's update mechanism is used to propagate
+  model updates in a transactional way.
+
+
+Report
+~~~~~~
+
+The report session interface allows a client to report internal state to
+its parent using synchronous bulk transfers
+(Section [Synchronous bulk transfer]).
+
+Session creation
+----------------
+
+At session-creation time, the client specifies a label and a buffer size.
+The label aids the routing of the session request but may also be used
+to select a policy at the report server. The buffer size determines the
+size of the dataspace shared between the report server and client.
+
+Use cases
+---------
+
+* Components may use report sessions to export their internal state for
+  monitoring purposes or for propagating exceptional events.
+
+* Device drivers may report the information about detected devices or other
+  resources. For example, a bus driver may report a list of devices attached
+  on the bus, or a wireless driver may report the list of available networks.
+
+* In multi-component applications, components that provide data models
+  to other components may use the report-session interface to propagate
+  model updates.
+
+
+Terminal and UART
+~~~~~~~~~~~~~~~~~
+
+The terminal session interface provides a bi-directional communication
+channel between client and server using synchronous bulk transfers
+(Section [Synchronous bulk transfer]). It is primarily meant for textual
+user interfaces but may also be used to transfer other serial steams of
+data.
+
+The interface uses the two RPC functions _read_ and _write_ to arbitrate
+the access to a shared-memory communication buffer between client and server
+as described in Section [Synchronous bulk transfer]. The read function does
+never block. When called, it copies new input into the communication buffer
+and returns the number of new characters. If there is not new input, it
+returns 0. To avoid the need to poll for new input at the client side, the
+client can register a signal handler that gets notified on the arrival of
+new input. The write function takes a number of to-be-written characters
+as argument. The server responds to this function by processing the specified
+amount on characters from the communication buffer.
+
+Besides the actual read and write operations, the terminal supports the
+querying of the number of new available input (without reading it) and the
+terminal size in rows and columns.
+
+
+Session creation
+----------------
+
+At session-creation time, the terminal session may not be ready to use.
+For example, a TCP terminal session needs an established TCP connection first.
+In such a situation, the use of the terminal session by a particular client
+must be deferred until the session becomes ready.
+Delaying the session creation at the server side is not an option because this
+this would render the server's entry point unavailable for all other clients
+until the TCP connection is ready.
+Instead, the server delivers a 'connected' signal to the client. This signal
+is emitted when the session becomes ready to use. The client waits for this
+signal right after creating the session.
+
+
+Use cases
+---------
+
+* Device drivers that provide streams of characters in either direction
+* Graphical terminal
+* Transfer of steams of data over TCP (using TCP terminal)
+* Writing streams of data to a file (using file terminal)
+* User input and output of traditional command-line based software, i.e.,
+  programs executed within the noux environment
+* Multiplexing of multiple textual user interfaces (using the terminal-mux
+  component)
+* Headless operation and management of subsystems (using CLI monitor)
+
+
+UART
+----
+
+The UART session interface complements the terminal session interface with
+additional control functions, e.g., for setting the baud rate. Because UART
+sessions are compatible to terminal sessions, a UART device driver can be
+used as both UART server and terminal server.
+
+
+Input
+~~~~~
+
+The input session interface is used to communicate low-level user-input
+events from the server to the client using synchronous bulk transfers
+(Section [Synchronous bulk transfer]). Such an event can be of one of the
+following types:
+
+:press or release: of a button or key. Each physical button (such as a mouse
+  button) or key (such as a key on a keyboard) is represented by a unique
+  value. At the input-session level, key events are reported as raw hardware
+  events. They are reported without a keyboard layout applied and without any
+  interpretation of meta keys (like shift, alt, and control). This gives the
+  client the flexibility to handle arbitrary combination of keys.
+
+:relative motion: of pointer devices such as a mouse. Such events are
+  generated by device drivers.
+
+:absolute motion: of pointer devices such as a touch screen or graphics
+  tablet. Furthermore absolute motion events are generated by virtual
+  input devices such as the input session provided by a GUI server.
+
+:wheel motion: of scroll wheels in vertical and horizontal directions.
+
+:focus: of the session. Focus events are artificially generated by servers
+  to indicate a gained or lost keyboard focus of the client. The client
+  may respond to such an event by changing its graphical representation
+  accordingly.
+
+:leave: of the pointer position. Leave events are artificially generated
+  by servers to indicate a lost pointer focus to the client.
+
+
+Use cases
+---------
+
+* Drivers for user-input devices play the roles of input servers
+* Providing user input from a GUI server to its clients, i.e., the
+  interface of the nitpicker GUI server provides an input session as part
+  of the server's interface.
+* Merging multiple streams of user input into one stream (using an input
+  merger)
+* Virtual input devices can be realized as input servers that generate
+  artificial input events.
+
+
+Framebuffer
+~~~~~~~~~~~
+
+The framebuffer session interface allows a client to supply pixel data to
+a framebuffer server such as a framebuffer driver or a virtual framebuffer
+provided by a GUI server. The client obtains access to the framebuffer as
+a dataspace, which is shared between client and server. The client may
+update the pixels within the dataspace at any time. Once, a part of the
+framebuffer has been updated, the client informs the server by calling a
+_refresh_ RPC function. Thereby, the framebuffer session interface employs a
+synchronous bulk transfer mechanism (Section [Synchronous bulk transfer]).
+
+
+Session creation
+----------------
+
+In general, the screen mode is defined by the framebuffer server, not the
+client. The mode may be constrained by the physical capabilities of the
+hardware or depend on the driver configuration. Some framebuffer servers,
+however, may take a suggestion by the client into account. At session-creation
+time, the client may specify a preferred mode as session argument. Once the
+session is constructed, however, the client must request the actually used
+mode via the _mode_ RPC function.
+
+
+Screen-mode changes
+-------------------
+
+The session interface supports dynamic screen-mode changes during runtime
+using the following protocol:
+
+# The client may register a signal handler using the _mode_sigh_ RPC function.
+  This handler handler gets notified in the event of server-side mode changes.
+
+# Analogously to the transactional protocol used for updating ROM modules
+  (Section [Read-only memory (ROM)]), the dataspace shared between client and
+  server stays in tact until the client acknowledges the mode change by calling
+  the _mode_ RPC function.
+
+# The server responds to the _mode_ function by applying the new mode and
+  returning the according mode information to the client.
+
+# The client requests a new version of the frambuffer dataspace by calling
+  the _dataspace_ RPC function and attaches the dataspace to its local
+  address space.
+  Note that each subsequent call of the dataspace RPC function may result
+  in the replacement of the existing dataspace by a new dataspace. Hence,
+  calling _dataspace_ twice may invalidate the dataspace returned from the
+  first call.
+
+
+Scanline synchronization
+------------------------
+
+To enable framebuffer clients to synchronize their operations with the display
+frequency, a client can register a handler for receiving
+display-synchronization events as asynchronous notifications
+(Section [Asynchronous notifications]).
+
+
+Use cases
+---------
+
+* Framebuffer device drivers are represented as framebuffer servers.
+* A virtual framebuffer may provide both the framebuffer and input session
+  interfaces by presenting a window on screen. The resizing of the window
+  may be reflected to the client as screen-mode changes.
+* A filter component requests a framebuffer session and, in turn, provides
+  a framebuffer session to a client. This way, pixel transformations can be
+  applied to pixels produced by a client without extending the client.
+
+
+Nitpicker GUI
+~~~~~~~~~~~~~
+
+The nitpicker session interface subsumes an input session and a
+framebuffer session as a single session. Furthermore it supplements the
+framebuffer session with the notion of views, which allows the creation
+of flexible multi-window user interfaces. It is generally suited for
+resource multiplexers of the framebuffer and input sessions.
+A view is a rectangular area on screen that displays a portion of the client's
+virtual framebuffer. The position and size of each view is defined by the
+client. Views can overlap, thereby creating a view stack. The stacking
+order of the views of one client can be freely defined by the client.
+
+The size of the virtual framebuffer can be freely defined by the client
+but the required backing store must be provided in the from of session
+quota.
+Clients may request the screen mode of the physical framebuffer and are
+able to register a signal handler for mode changes of the physical
+framebuffer. This way, nitpicker clients are able to adapt themselves to
+changed screen resolutions.
+
+
+Use cases
+---------
+
+* The nitpicker GUI server allows multiple GUI applications to share a
+  pair of a physical framebuffer session and an input session in a secure way
+  between multiple GUI applications.
+* A window manager implementing the nitpicker session interface may
+  represent each view as a window with window decorations and a placement
+  policy. The resizing of a windows by the user is reflected to the client as
+  a screen-mode change of the physical framebuffer.
+* A loader (Section [Loader]) virtualizes the nitpicker session interface for
+  the loaded subsystem.
+
+
+Platform
+~~~~~~~~
+
+The platform session interface (on ARM-based devices) and the PCI session
+interface (on x86-based machines) provide the client will access to the
+devices present in the hardware platform. See Section
+(Section [Platform driver]) for more information on the role of platform
+drivers.
+
+
+Block
+~~~~~
+
+The block session interface allows a client to access a storage server at
+the block level. The interface is based on a packet stream
+(Section [Asynchronous bulk transfer - packet streams]). Each packet
+represents a block-access command, which can be either read or write.
+Thanks to the use of the packet-stream mechanism, the client can issue
+multiple commands at once and thereby hide access latencies by submitting
+batches of block requests. The server acknowledges each packet after
+completing the corresponding block-command operation.
+
+The packet-stream interface for submitting commands is complemented by
+the _info_ RPC function for querying the properties of the block device, i.e.,
+the supported operations, the block size, and the block count. Furthermore,
+a client can call the _sync_ RPC function to flush caches at the block server.
+
+
+Session creation
+----------------
+
+At session-creation time, the client can dimension the size of the
+communication buffer as session argument. The server allocates the shared
+communication buffer from the session quota.
+
+
+Use cases
+---------
+
+* Block-device drivers implement the block-session interface.
+* The part-block component requests a single block session, parses a
+  partition table and hands out each partition as a separate block session
+  to its clients. There can be one client for each partition.
+* File-system servers use block sessions as their back end.
+
+
+Regulator
+~~~~~~~~~
+
+The regulator session represents an adjustable value in the hardware
+platform. Examples are runtime-configurable frequencies and voltages.
+The interface is a plain RPC interface.
+
+
+Timer
+~~~~~
+
+The timer session interface provides a client with a session-local time
+source. A client can use it to schedule timeouts that are delivered as
+signals to a prior registered signal handler. Furthermore, the client
+can request the elapsed number of milliseconds since the creation of the
+timer session.
+
+
+NIC
+~~~
+
+A NIC session represents a network interface that operates at network-packet
+level. Each session employs two independent packet streams (Section
+[Asynchronous bulk transfer - packet streams], one for receiving network
+packets and one for transmitting network packets. Furthermore, the client
+can query the MAC address of the network interface.
+
+Session creation
+----------------
+
+At session-creation time, dimensions the communication buffers of both
+packet streams via session arguments. The communication buffers are
+allocated by the server using the session quota provided by the client.
+
+Use cases
+---------
+
+* Network drivers are represented as NIC servers.
+* A NIC switch uses one NIC session connected to a NIC driver, and provides
+  multiple virtual NIC interfaces to its clients by managing a custom
+  name space of virtual MAC addresses.
+* A TCP/IP stack uses a NIC session as back end.
+
+
+Audio output
+~~~~~~~~~~~~
+
+The audio output interface allows for the transfer of audio data from the
+client to the server.
+One session corresponds to one channel. I.e., for
+stereo output, two audio-out sessions are needed.
+
+
+Session construction
+--------------------
+
+At session-construction time, the client specifies the type of channel
+(e.g., front left) as session argument.
+
+
+Interface design
+----------------
+
+For the output of streamed audio data, a codec typically decodes a relatively
+large portion of an audio stream and submits the sample data to a mixer. The
+mixer, in turn, mixes the samples of multiple sources and forwards the result
+to the audio driver. Each of those components the codec, the mixer, and the
+audio driver live in separate processes. By using large buffer sizes between
+them, there is only very little context-switching overhead. Also, the driver
+can submit large buffers of sample data to the sound device without any
+further intervention needed.
+In contrast, sporadic sounds are used to inform the user about an immediate
+event. It is ultimately expected that such sounds are played back without much
+latency. Otherwise the interactive experience (e.g., of games) would suffer.
+Hence, using large buffers between the audio source, the mixer, and the driver
+is not an option.
+The audio-out session interface was specifically designed to
+accommodate both corner cases of audio output.
+
+Similarly to the packet-stream mechanism described in Section
+[Asynchronous bulk transfer - packet streams],
+the audio-out session interface employs a combination of shared memory and
+asynchronous notifications.
+However, in contrast to the packet-stream mechanism, it has no notion of
+ownership of packets. When using the normal packet-stream protocol,
+either the source or the sink is in charge of handling a given packet at a
+given time, not both. The audio-out session interface weakens this notion of
+ownership by letting the source update once submitted audio frames even after
+submitting them.
+If there are solely continuous streams of audio arriving at the mixer,
+the mixer can mix those large batches of audio samples at once and pass the
+result to the driver.
+
+| XXX figure img/mixer_streaming
+; [tikz img/mixer_streaming]
+;   The mixer processes incoming data from multiple streaming sources as batches.
+
+Now, if a sporadic sound comes in, the mixer checks the
+current output position reported by the audio driver, and re-mixes those
+portions that haven't been played back yet by incorporating the sporadic sound.
+So the buffer consumed by the driver gets updated with new data.
+
+| XXX figure img/mixer_sporadic
+;[tikz img/mixer_sporadic]
+;  A sporadic occuring sound prompts the mixer to remix packets that are
+;  already submitted in the output queue.
+
+Besides the way of how packets are populated with data, the second
+major difference to the packet-stream mechanism its time-triggered
+mode of operation. The
+driver produces periodic signals that indicate the completeness of a
+played-back audio packet. This signal triggers the mixer to become active,
+which in turn serves as a time base for its clients. The current playback
+position is denoted alongside the sample data as a field in the memory buffer
+shared between source and sink.
+
+Use cases
+---------
+
+* The audio-out session interface is provided by audio drivers.
+* An audio mixer combines incoming audio streams of multiple clients into
+  one audio stream transferred to an audio driver.
+
+
+File system
+~~~~~~~~~~~
+
+The file-system session interface provides the client with a storage
+facility at the file and directory-level. Compared to the block session
+interface (Section [Block]), it operates on a higher abstraction level
+that is suited for multiplexing the storage device among multiple clients.
+Similar to the block session, the file-system session employs a single
+packet stream interface
+(Section [Asynchronous bulk transfer - packet streams]_ for issuing read
+and write operations. This way, read and write requests can be processed
+in batches and even out of order.
+
+In contrast to read and write operations that carry potentially large amounts
+of payload, the directory functions provided by the file-system session
+interface are synchronous RPC functions. Those functions are used for
+opening, creating, renaming, moving, deleting, and querying files,
+directories and symbolic links.
+
+The directory functions are complemented with an interface for receiving
+notifications upon file or directory changes using asynchronous notifications.
+
+Use cases
+---------
+
+* A file-system operates on a block session to provide file-system sessions to
+  its clients.
+* A RAM file system keeps a directory structure and files in memory and
+  provides file-system sessions to multiple clients. Each session may be
+  restricted in different ways (such as the root directory as visible by
+  the respective client, or the permission to write). Thereby the clients
+  can communicate using the RAM file system as a shared storage facility
+  but are subjected to an information-flow policy.
+* A file-system component may play the role of a filter that transparently
+  encrypts the content of the files of its client and stores the
+  encrypted files at another file-system server.
+* A pseudo file system may use the file-system interface as an hierarchic
+  control interface. For example, a trace file system provides a pseudo
+  file system as a front end to interact with core's TRACE service.
+
+
+Loader
+~~~~~~
+
+The loader session interface allows clients to dynamically create Genode
+subsystems to be hosted as children of a loader service. In contrast to a
+component that is spawning a new subsystem as an immediate child, a loader
+client has very limited control over the spawned subsystem. It can merely
+define the binaries and configuration to start, define the position where the
+loaded subsystem will appear on screen, and kill the subsystem. But it is not
+able to interfere with the operation of the subsystem during its lifetime.
+
+
+Session creation
+----------------
+
+At session-creation time, the client defines the amount of memory to be
+used for the new subsystem as session quota. Once the session is established,
+the client equips the loader session with ROM modules that will be presented
+to the loaded subsystem. From the perspective of the subsystem, those ROM
+modules can be requested in the form of ROM sessions from its parent.
+
+
+Visual integration of the subsystem
+-----------------------------------
+
+The loaded subsystem may implement a graphical user interface by creating
+a nitpicker session (Section [Nitpicker GUI]). The loader responds to such a
+session request by providing a locally implemented session. The loader
+subordinates the nitpicker session of the loaded subsystem to a nitpicker
+view (called parent view) defined by the loader client.
+The loader client can use the loader session interface to position the view
+relative to the parent-view position. Thereby, the graphical user interface
+of the loaded subsystem can be seamlessly integrated with the user interface
+of the loader client.
+
+
+Use case
+--------
+
+The most illustrative use case is the execution of web-browser plugins where
+neither the browser trusts the plugin nor the plugin trusts the browser.
 
 
 Component compositions
@@ -581,6 +1206,12 @@ Enslaving services
 
 Monitors
 ~~~~~~~~
+
+| TODO
+
+
+Loader
+~~~~~~
 
 | TODO
 

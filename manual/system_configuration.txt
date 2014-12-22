@@ -23,9 +23,3 @@ CPU affinities and real-time priorities
 
 | TODO
 
-Dynamic reconfiguration of components
-=====================================
-
-| TODO
-
-
