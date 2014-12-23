@@ -1313,8 +1313,9 @@ to output video frames in the form of a framebuffer session, and a facility
 to output an audio stream in the form of an audio-out session.
 
 In order to reuse as much code as possible, the video player executes an
-existing example application called avplay that comes with the codec library as child
-component. The avplay example uses libSDL as backend for video and audio
+existing example application called avplay that comes with the codec library
+as child component.
+The avplay example uses libSDL as backend for video and audio
 output and responds to a few keyboard shortcuts for controlling the video
 playback such as pausing the video. Because there exists a Genode version
 of libSDL, avplay can be executed as a Genode component with no modifications.
@@ -1346,7 +1347,7 @@ configuration update, libSDL's audio backend picks up the changed
 configuration parameters and ajusts the audio playback accordingly.
 
 By sandboxing avplay as a child component of the video player, a bug in
-the video or audio codec can no longer compromise the application. The
+the video or audio codecs can no longer compromise the application. The
 execution environment of avplay is tailored to the needs of the codec.
 In particular, it does not allow the codec to access any files or the
 network. In the worst case, if avplay becomes corrupted, the possible
@@ -1358,13 +1359,130 @@ outside world.
 Component-level and OS-level virtualization
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+The sandboxing technique presented in the previous section tailors the
+execution environment of untrusted third-party code by applying an
+application-specific policy to all session requests originating from the
+untrusted code. However, the tailoring of the execution environment by
+the parent can go even a step further by providing the all-encompassing
+virtualization of all services used by the child, including core's services
+such as RAM, RM, and CPU.
+This way, the parent can not just tailor the execution environment of a child
+but completely define all aspects of the child's execution. This clears
+the way for introducing custom operating-system interfaces at any position
+within the component tree, or for monitoring the behavior of subsystems.
+
+
+Introducing a custom OS interface
+---------------------------------
+
+By implementing all session interfaces normally provided by core, a runtime
+environment becomes able to handle all low-level interactions of the
+child with core. This includes the allocation of memory using the RAM service,
+the spawning and controlling of threads using the CPU service, and the
+management of the child's address space using the RM service.
+
+The noux runtime is the canonical example of this approach.
+It appears as a Unix kernel to its children and thereby enables the
+use of Unix software on top of Genode.
+Normally, several aspects of Unix would contradict with Genode's architecture:
+
+* The Unix system-call interface supports files and sockets as first-level
+  citizens.
+* There is no global virtual file system in Genode.
+* Any Unix process can allocate memory as needed. There is no explicit
+  assignment of memory resources to Unix processes needed.
+* Processes are created by forking existing processes. The new process
+  inherits the roles (in the form of open file descriptors) of the
+  forking process.
+
+Noux resolves those contradictions by providing
+the interfaces of core's low-level services alongside a custom RPC interface.
+By providing a custom noux session interface to its children, noux can
+accommodate all kinds of abstractions including the notion of files and
+sockets.
+Noux maintains a virtual file system that appears to be global among all the
+children of the noux instance.
+Since noux handles all the children's interaction with the RAM service, it can
+hand out memory allocations from a pool of memory shared among all children.
+Finally, because noux observes all the interactions of each child with the
+RM service, it is able to replay the address-space layout of an existing
+process to a new process when the process forked.
+
+
+Monitoring the behavior of subsystems
+-------------------------------------
+
+Besides hosting arbitrary OS personalities as a subsystem, the interception
+if core's services allows for the all-encompassing monitoring of subsystems
+without the need for special support in the kernel. This is useful for
+failsafe monitoring or for user-level debugging.
+
+; [tikz img/no_gdb]
+;   Each Genode component is created out of basic resources provided by core.
+
+As described in Section [Component creation], any Genode component is a
+created out of low-level resources in the form of sessions provided by core.
+Those sessions include at least a RAM sesion, a CPU session, and an RM session
+as depicted in Figure [img/no_gdb]. In addition to those low-level sessions,
+the component may interact with sessions provided by other components.
+
+For debugging the component, a debugger would need a way to inspect the
+internal state of the component. As the complete internal state is usually
+known by the OS kernel only, the traditional approach to user-level debugging
+is the introduction of a debugging interface into the kernel. For example,
+Linux has the ptrace mechanism and several microkernels of the L4 family
+come with built-in kernel debuggers. Such a debugging interface, however,
+introduces security risks. Besides increasing the complexity of the kernel,
+access to the kernel's debugging mechanisms needs to be strictly subjected to a
+security policy. Otherwise any program could use those mechanisms to inspect
+or manipulate other programs.
+Most L4 kernels use to exclude debugging features in production builds
+altogether.
+
+; [tikz img/gdb_monitor]
+;   By intercepting all sessions to core's services, a debug monitor obtains
+;   insights into the internal state of its child component. The debug monitor,
+;   in turn, is controlled from a remote debugger.
+
+In a Genode system, the component's internal state is represented in the
+form of core sessions. Hence, by intercepting those sessions for a child,
+a parent can monitor all interactions of the child with core and thereby
+record the child's internal state. Figure [img/gdb_monitor] shows a
+scenario where a debug monitor executes a component (debugging target) as a
+child while intercepting all sessions to core's services. The interception
+is performed by providing custom implementations of core's session interfaces
+as locally implemented services. Under the hood, the local services realize
+their functionality using actual core sessions. But by sitting in the middle
+between the debugging target and core, the debug monitor can observe the
+target's internal state including the memory content, the virtual
+address-space layout, and the state of all threads running inside the
+component. Furthermore, since the debug monitor is in possession of all the
+session capabilities of the debugging target, it can _manipulate_ it in
+arbitrary ways. For example, it can change thread states (e.g., pausing the
+execution or enable single-stepping) and modify the memory content
+(e.g., inserting breakpoint instructions). The figure shows that those
+debugging features can be remotely controlled over a terminal connection.
+
+; [tikz img/on_target_gdb]
+;   The GNU debugger is executed within a dedicated noux instance, thereby
+;   providing an on-target debugging facility.
+
+Using this form of component-level virtualization, a problem that used to
+require special kernel additions in traditional operating systems
+can be solved via Genode's regular interfaces.
+Furthermore, Figure [img/on_target_gdb] shows that by
+combining the solution with OS-level virtualization, the connection
+to a remote debugger can actually be routed to an on-target instance of the
+debugger, thereby enabling on-target debugging.
+
+
+Interposing individual services
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 | TODO
-; Debugging
-; Noux
-
-
-Interposing services
-~~~~~~~~~~~~~~~~~~~~
+; * Address-space randomization
+; * Window management
+; * Fader
 
 
 Ceding the parenthood
