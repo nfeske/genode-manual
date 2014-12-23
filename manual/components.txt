@@ -1550,8 +1550,45 @@ instead of core.
 Ceding the parenthood
 ~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
-; loader
+When using a shell to manage subsystems, the complexity of the shell
+naturally becomes a security risk. A shell can be a text-command interpreter,
+a graphical desktop shell, a web browser that launches subsystems
+as plugins, or a web server that provides a remote administration interface.
+All those kinds of shells have in common that they contain
+an enormous amount of complexity that is attributed to convenience.
+For example, a textual shell usually depends on libreadline, ncurses, or similar
+libraries to provide a command history and deal with the peculiarities of
+virtual text terminals. A graphical desktop shell is worse because
+it usually depends on a highly complex widget toolkit, not to speak about
+using a web browser as a shell.
+Unfortunately, the functionality provided by these programs cannot be
+dismissed as it is expected by the user. But the high complexity of the
+convenience functions fundamentally contradicts with the security-critical
+role of the shell as the common parent of all spawned subsystems. If the
+shell gets compromised, all the spawned subsystems suffer.
+
+; [tikz img/arora_plugin]
+;   A web browser spawns a plugin by ceding the parenthood of the plugin to
+;   the trusted loader service.
+
+The risk of such convoluted shells can be mitigated by moving the parent role
+for the started subsystems to another component, namely a loader service.
+In contrast to the shell, which should be regarded as untrusted due it its
+complexity, the loader is a small component that is orders of magnitude less
+complex. Figure [img/arora_plugin] shows a scenario where a web browser is
+used as a shell to spawn a Genode subsystem.
+Instead of spawning the subsystem as the child of the browser, the browser
+creates a loader session. Using the loader-session interface described
+in Section [Loader], it can initially import the to-be-executed
+subsystem into the loader session and kick off the execution of the subsystem.
+However, once the subsystem is running, the browser can no longer interfere
+with the subsystem's operation. So security-sensitive information processed within
+the loaded subsystem are no longer exposed to the browser. Still, the lifetime
+of the loaded subsystem depends on the browser. If it decides to close
+the loader session, the loader will destroy the corresponding subsystem.
+
+By ceding the parenthood to a trusted component, the risks stemming from the
+complexity of various kinds of shells can be mitigated.
 
 
 Publishing and subscribing
