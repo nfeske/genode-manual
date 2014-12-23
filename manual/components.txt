@@ -1479,10 +1479,72 @@ debugger, thereby enabling on-target debugging.
 Interposing individual services
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
-; * Address-space randomization
-; * Window management
-; * Fader
+The design of Genode's fundamental services, in particular resource
+multiplexers, is guided by the principle of minimalism. Because such
+components are critical for security, complexity must be avoided.
+Functionality is added to such components only if it cannot be provided
+outside the component.
+
+However, components like the nitpicker GUI server are often confronted with
+feature requests. For example, users may want to move a window on screen by
+dragging the window's title bar. Because nitpicker has no notion of windows or
+title bars, such a functionality is not supported. Instead, nitpicker moves
+the burden to implement window decorations to its clients. However, this
+approach sacrifices functionality that is taken for granted on traditional
+graphical user interfaces. For example, the user may want to switch the
+application focus using a keyboard shortcut or perform window operations and
+the interactions with virtual desktops in a consistent way. If each
+application implemented the functionality of virtual desktops individually,
+the result would hardly be usable. For this reason, it is tempting to move
+window-management functionality into the GUI server and to accept the
+violation of the minimalism principle.
+
+The nitpicker GUI server is not the only service challenged by feature
+requests. The problem is present even at the lowest-level services provided
+by core. Core's RM service is used to manage the virtual address spaces of
+components. When a dataspace is attached to an RM session, the RM service
+picks a suitable virtual address range where the dataspace will be made
+visible in the virtual address space.
+The allocation strategy depends several factors such as alignment constraints
+and the address range that fits best. But eventually, it is deterministic.
+This contradicts with the common wisdom that address spaces shall be
+randomized. Hence core's RM service is challenged with the request for adding
+address-space randomization as a feature. Unfortunately, the addition of
+such a feature into core raises two issues.
+First, core would need to have a source of good random numbers. But core
+does not contain any device drivers where to draw entropy from.
+With weak entropy, the randomization might be not random enough. In this case,
+the pretension of a security mechanism that is actually ineffective may be
+worse than not having it in the first place.
+Second, the feature would certainly increase the complexity of core.
+This is acceptable for components that potentially benefit from the added
+feature, such as outward-facing network applications. But the complexity
+eventually becomes part of the TCP of all components including those that do
+not benefit from the feature.
+
+; [tikz img/nitpicker_wm]
+;   The nitpicker GUI accompanied with a window manager that interposes
+;   the nitpicker session interface for some application. Other
+;   applications are still able to use nitpicker directly and thereby
+;   avoid the complexity added by the window manager.
+
+The solution to those kind of problems is the enrichment of existing servers
+by interposing their sessions. Figure [img/nitpicker_wm] shows a window
+manager implemented as a separate component outside of nitpicker. Both the
+nitpicker GUI server and the window manager provide the nitpicker session
+interface. But the window manager enriches the semantics of the interface
+by adding window decorations and a window-layout policy. Under the hood,
+the window manager uses the real nitpicker GUI server to implement its
+service. From the application's point of view, the use of either service
+is transparent. Security-critical applications can still be routed directly
+to the nitpicker GUI server. So the complexity of the window manager comes
+into effect only for those applications that use it.
+
+The same approach can be applied to the address-space randomization problem.
+A component with access to good random numbers may provide a randomized
+version of core's RM service. Outward-facing components can benefit from the
+security feature by routing their RM session requests to this component
+instead of core.
 
 
 Ceding the parenthood
