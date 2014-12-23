@@ -57,9 +57,11 @@ should be largely orthogonal to each other.
 Section [Common session interfaces] reviews Genode's common session
 interfaces.
 
-Components can be used in different ways depending on their position
-within the component tree. Section [Component compositions] discusses
-the most prominent options of composing components.
+Components can be used in different ways depending on their configuration and
+their position within the component tree. Section [Component configuration]
+explains how a component obtains and processes its configuration.
+Section [Component compositions] discusses the most prominent options of
+composing components.
 
 
 Device drivers
@@ -562,13 +564,6 @@ The primary incentive behind this approach is the sandboxing of untrusted
 application functionality. For example, a video player may execute the video
 codec within a separate child component so that a bug in the complex video
 codec will not compromise the entire video-player application.
-
-
-Component configuration
-=======================
-
-| XXX policy selection
-| XXX dynamic reconfiguration
 
 
 Common session interfaces
@@ -1193,6 +1188,73 @@ Use case
 
 The most illustrative use case is the execution of web-browser plugins where
 neither the browser trusts the plugin nor the plugin trusts the browser.
+
+
+Component configuration
+=======================
+
+By convention, each component obtains its configuration in the form of a
+ROM module named "config". The ROM session for this ROM module is provided
+by the parent of the component. For example, for the init component, which is
+the immediate child of core, its "config" ROM module is provided by core's
+ROM service. Init, in turn, provides a different config ROM module to each
+of its children by providing a locally implemented ROM service per child.
+
+
+Configuration format
+~~~~~~~~~~~~~~~~~~~~
+
+In principle, being a mere ROM module, a component configuration can come in
+an arbitrary format. However, throughout Genode, there exists the convention
+to use XML as syntax and wrap the configuration within a '<config>' node.
+The definition of sub nodes of the configuration depends on the respective
+component.
+
+
+Server-side policy selection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Servers that serve multiple clients may apply different a different policy
+to each client.
+In general, the policy may be defined by the session arguments aggregated on
+the route of the session request as explained in Section
+[Services and sessions].
+However, in the usual case, the policy is dictated by the common parent
+of client and server. In this case, the parent may propagate its policy
+as the server's configuration and deliver a textual label as session argument
+for each session requested at the server. The configuration contains a
+list of policies whereas the session label is used as a key to select
+the policy from the list. For example, the following snippet configures
+a RAM file system with different policies.
+
+! <config>
+!   <!-- constrain sessions according to their labels -->
+!   <policy label="noux -> root" root="/" />
+!   <policy label="noux -> home" root="/home/user" />
+!   <policy label="noux -> tmp"  root="/tmp" writeable="yes" />
+! </config>
+
+Each time a session is created, the server matches the supplied session label
+against the configured policies. Only if a policy matches, the parameters of
+the matching policy come into effect. The way how the session label is
+matched against the policies depends on the implementation of the server.
+Usually, the server selects the policy with where the session label starts with
+the policy's label. If multiple policies match, the one with the longest (most
+specific) policy label is selected. If multiple policies have the same label,
+the selection is undefined. This is a configuration error.
+
+
+Dynamic component reconfiguration at runtime
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As described in Section [Read-only memory (ROM)], a ROM module can be updated
+during the lifetime of the ROM session. This principally enables a parent
+to dynamically reconfigure a child component without the need to restart it.
+If a component supports its dynamic reconfiguration, it installs a signal
+handler at its "config" ROM session. Each time, the configuration changes,
+the component will receive a signal. It responds to such a signal by obtaining
+the new version of the ROM module using the steps described in
+Section [Read-only memory (ROM)] and applying the new configuration.
 
 
 Component compositions
