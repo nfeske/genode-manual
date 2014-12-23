@@ -1260,22 +1260,118 @@ Section [Read-only memory (ROM)] and applying the new configuration.
 Component compositions
 ======================
 
-Enslaving services
-~~~~~~~~~~~~~~~~~~
+Genode provides a playground for combining components in many different ways.
+The best composition of components often depends on the goal of the system
+integrator. Among possible goals are the ease of use for the end user, the
+cost-efficient reuse of existing software, and good application
+performance. However, the most prominent goal is the mitigation of security
+risks. This section presents composition techniques that leverage
+Genode's architecture to dramatically reduce the trusted computing base of
+applications and to solve rather complicated problems in surprisingly easy
+ways.
+
+
+Sandboxing
+~~~~~~~~~~
+
+The functionality of existing applications and libraries is often worth
+reusing or economically downright infeasible to reimplement. Examples
+are PDF rendering engines, libraries that support commonly used video and
+audio codecs, or libraries that decode hundreds of image formats.
+
+However code of such a rich functionality is inherently complex and must be
+assumed to contain security flaws. This is empirically evidenced by the
+never ending stream of security exploits targeting the decoders of data
+formats. But even in the absence of bugs, the processing of data by
+third-party libraries may have unintended side effects. For example,
+a PDF file may contain code that accesses the file system, which the user
+of a PDF reader may not expect. By linking such a third-party library to a
+security-critical application, the application's security is seemingly traded
+against the functional value that the library provides.
+
+; [tikz img/qt_avplay]
+;   A video player executes the video and audio codec within a dedicated
+;   sandbox.
+
+Fortunately, Genode's architecture principally allows every component to
+encapsulate untrusted functionality in child components. So instead of
+directly linking a third-party library to an application, the application
+executes the library code in a dedicated sub component. By imposing a
+strict session-routing policy to the component, the untrusted code is
+restricted to its sandbox. Figure [img/qt_avplay] shows a video player as
+a practical example of this approach.
+
+A video player uses the nitpicker GUI server to present a user interface
+with the graphical controls of the player. Furthermore, it has access to
+a media file containing video and audio data.
+Instead of linking the media-codec library (libav) directly to video player
+application, it executes the codec as a child component. Thereby the
+application effectively restricts the execution environment of the codec
+to only those resources that are needed by the codec. Those resources are
+the media file that is handed out to the codec as a ROM module, a facility
+to output video frames in the form of a framebuffer session, and a facility
+to output an audio stream in the form of an audio-out session.
+
+In order to reuse as much code as possible, the video player executes an
+existing example application called avplay that comes with the codec library as child
+component. The avplay example uses libSDL as backend for video and audio
+output and responds to a few keyboard shortcuts for controlling the video
+playback such as pausing the video. Because there exists a Genode version
+of libSDL, avplay can be executed as a Genode component with no modifications.
+This version of libSDL requests a framebuffer (Section [Framebuffer]) and
+audio-out (Section [Audio-output]) session to perform the video and audio
+output.
+To handle user input, it opens an input session (Section [Input]).
+Furthermore, it opens a ROM session for obtaining a configuration. This
+configuration parametrizes the audio backend of libSDL.
+Because avplay is a child of the video player application, all those session
+requests are directed to the application. It is entirely up to the application
+how to respond to those request. For accommodating the
+request for a frambuffer session, the application creates a second nitpicker
+session, configures a virtual framebuffer, and embeds this virtual framebuffer
+into its GUI. It keeps the nitpicker session capability for itself and
+merely hands out the virtual framebuffer's session capability to avplay.
+For accommodating the request for the input session, it hands out a
+capability to a locally-implemented input session. Using this input session,
+it becomes able to supply artificial input events to avplay. For example,
+when the user clicks on the play button of the application's GUI, the
+application would submit a sequence of press and release events to the
+input sessions, which appear to avplay as the keyboard shortcut for starting
+the playback.
+To let the user adjust the audio parameters of libSDL during runtime,
+the video player application, dynamically changes the avplay configuration
+using the mechanism described in
+Section [Dynamic component reconfiguration at runtime]. As a response to a
+configuration update, libSDL's audio backend picks up the changed
+configuration parameters and ajusts the audio playback accordingly.
+
+By sandboxing avplay as a child component of the video player, a bug in
+the video or audio codec can no longer compromise the application. The
+execution environment of avplay is tailored to the needs of the codec.
+In particular, it does not allow the codec to access any files or the
+network. In the worst case, if avplay becomes corrupted, the possible
+damage is restricted to producing wrong video or audio frames but it
+can neither access any of the user's data nor can it communicate to the
+outside world.
+
+
+Component-level and OS-level virtualization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 | TODO
+; Debugging
+; Noux
 
 
-Monitors
-~~~~~~~~
+Interposing services
+~~~~~~~~~~~~~~~~~~~~
+
+
+Ceding the parenthood
+~~~~~~~~~~~~~~~~~~~~~
 
 | TODO
-
-
-Loader
-~~~~~~
-
-| TODO
+; loader
 
 
 Publishing and subscribing
@@ -1284,10 +1380,15 @@ Publishing and subscribing
 | TODO
 
 
+Enslaving services
+~~~~~~~~~~~~~~~~~~
+
+| TODO
+
+
 Untangling circular dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 | TODO
-
 
 
