@@ -1,0 +1,54 @@
+\begin{tikzpicture}
+
+	\definecolor{slicecolor}{rgb}{0.4,0.5,0.9}
+
+	\node[dataspace] (dataspace) {
+
+		Dataspace \\\\
+		\begin{tikzpicture}
+			\node[draw, rectangle, fill=white, align=center] (currpos) {current\\position};
+
+			\path (currpos) node[below=5ex, align=center] (wheel) {
+
+				\begin{wheel}{12ex}
+					\slices{30,40,...,120}{inner color=slicecolor!50!white,
+					                       outer color=slicecolor, dropshadow}
+
+					\rememberouter{120}{wheelsource}
+					\rememberouter{30}{wheelsink}
+
+					\rememberinner{30}{wheelcurr}
+				\end{wheel}
+			};
+		\end{tikzpicture}
+	};
+
+	\node[above=0.5ex of dataspace] {\emph{shared between source and sink}};
+
+	\tikzstyle{audiooutcomponent} = [component, minimum size=10ex]
+
+	\node[audiooutcomponent, left=8ex of dataspace, yshift=-5ex] (source) {Source};
+
+	\node[audiooutcomponent, right=8ex of dataspace, yshift=-5ex] (sink) {Sink};
+
+	\path (sink.160)+(-3ex,0) coordinate (leftofsink160) {};
+	\path (source.20)+(3ex,0) coordinate (rightofsource20) {};
+	\path (dataspace.south)+(0,-6ex) coordinate (southofdataspace) {};
+
+	% arrows
+
+	\draw[arrow] (sink.160) -- (leftofsink160) |- (currpos);
+	\draw[arrow] (currpos) -| (rightofsource20) -- (source.20);
+
+	\draw[arrow, thick] (source.east) .. controls +(8ex,0) and +(120:6ex) .. (wheelsource);
+	\draw[arrow, thick] (wheelsink) .. controls +(30:6ex) and +(-8ex,0) .. (sink.west);
+
+	\draw[arrow, dashed]
+		(sink.200) .. controls +(-8ex,0) and +(20ex,0) ..
+		(southofdataspace) .. controls +(-20ex,0) and +(8ex,0) ..
+		(source.340);
+	\path (southofdataspace) node[above] {progress signal};
+
+	\draw[arrow] (currpos) -- (wheelcurr);
+
+\end{tikzpicture}

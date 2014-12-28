@@ -1,0 +1,138 @@
+\begin{tikzpicture}
+
+	\definecolor{stream1color}    {rgb}{0.4,0.5,0.9}
+	\definecolor{stream2color}    {rgb}{0.9,0.5,0.4}
+	\definecolor{streammixedcolor}{rgb}{0.9,0.5,0.9}
+
+	\tikzstyle{audiosource} = [component, path fading=flow fade,
+	                           minimum width=10ex,
+	                           rounded corners=1]
+
+	%
+	% Stream 1
+	%
+
+	\node[dataspace, inner sep=0.5ex] (audioout1) {
+
+		\begin{tikzpicture}
+			\node[draw, rectangle, minimum size=1.2ex, fill=white, align=center]
+				(currpos1) {};
+
+			\path (currpos1) node[below=2ex, align=center] (wheel1) {
+
+				\begin{wheel}{5ex}
+					\slices{30,40,...,120}{inner color=stream1color!50!white,
+					                       outer color=stream1color, dropshadow}
+
+					\rememberouter{120}{wheel1source}
+					\rememberouter{30}{wheel1sink}
+
+					\rememberinner{30}{wheel1curr}
+				\end{wheel}
+			};
+		\end{tikzpicture}
+	};
+
+	\node[audiosource, bottom color=stream1color, left=4ex of audioout1]
+		(stream1) {Stream};
+
+	\draw[arrow, thick] (stream1.east)
+		.. controls +(8ex,0) and +(120:6ex) .. (wheel1source);
+
+	\draw[arrow, opacity=0.4] (currpos1) -- (wheel1curr);
+
+	%
+	% Stream 2
+	%
+
+	\node[dataspace, inner sep=0.5ex, below=2ex of audioout1] (audioout2) {
+
+		\begin{tikzpicture}
+			\node[draw, rectangle, minimum size=1.2ex, fill=white, align=center]
+				(currpos2) {};
+
+			\path (currpos2) node[below=2ex, align=center] (wheel2) {
+
+				\begin{wheel}{5ex}
+					\slices{30,40,...,280}{inner color=stream2color!50!white,
+					                       outer color=stream2color, dropshadow}
+
+					\rememberouter{280}{wheel2source}
+					\rememberouter{30}{wheel2sink}
+
+					\rememberinner{30}{wheel2curr}
+				\end{wheel}
+			};
+		\end{tikzpicture}
+	};
+
+	\node[audiosource, bottom color=stream2color, left=4ex of audioout2]
+		(stream2) {Stream};
+
+	\draw[arrow, thick] (stream2.east)
+		.. controls +(4ex,0) and +(280:7ex) .. (wheel2source);
+
+	\draw[arrow, opacity=0.4] (currpos2) -- (wheel2curr);
+
+	%
+	% Mixer
+	%
+
+	\node[fit=(audioout1) (audioout2)] (audioout1and2) {};
+
+	\node[audiosource, right=4ex of audioout1and2]
+		(mixer) {Mixer};
+
+	\tikzstyle{singlearrow} = [single arrow, minimum height=4ex,
+	                           path fading=flow fade,
+	                           single arrow head extend=1ex]
+
+
+	\path[sloped] (wheel1) -- node[singlearrow, draw=stream1color, pos=0.4,
+	                               fill=stream1color!70!black] {} (mixer.north west);
+	\path[sloped] (wheel2) -- node[singlearrow, draw=stream2color, pos=0.4,
+	                               fill=stream2color!70!black] {} (mixer.south west);
+
+	%
+	% Stream from mixer to driver
+	%
+
+	\node[dataspace, inner sep=0.5ex, right=4ex of mixer] (audiooutmixed) {
+
+		\begin{tikzpicture}
+			\node[draw, rectangle, minimum size=1.2ex, fill=white, align=center]
+				(currposmixed) {};
+
+			\path (currposmixed) node[below=2ex, align=center] (wheelmixed) {
+
+				\begin{wheel}{5ex}
+					\slices{30,40,...,120}{inner color=streammixedcolor!50!white,
+					                       outer color=streammixedcolor, dropshadow}
+
+					\rememberouter{120}{wheelmixedsource}
+					\rememberouter{30}{wheelmixedsink}
+
+					\rememberinner{30}{wheelmixedcurr}
+				\end{wheel}
+			};
+		\end{tikzpicture}
+	};
+
+	\draw[arrow, thick] (mixer.east)
+		.. controls +(4ex,0) and +(120:7ex) .. (wheelmixedsource);
+
+	\draw[arrow, opacity=0.4] (currposmixed) -- (wheelmixedcurr);
+
+	%
+	% Driver
+	%
+
+	\node[audiosource, right=4ex of audiooutmixed]
+		(driver) {Driver};
+
+	\path[sloped] (wheelmixed) -- node[singlearrow, draw=streammixedcolor,
+	                                   fill=streammixedcolor!70!black,
+	                                   pos=0.3] {}
+	                                   (driver.west);
+
+\end{tikzpicture}

@@ -1066,12 +1066,14 @@ is not an option.
 The audio-out session interface was specifically designed to
 accommodate both corner cases of audio output.
 
-| XXX figure img/audio_out_session
+[tikz img/audio_out_session]
+  The time-driven audio-out session interface uses shared memory to transfer
+  audio frames and propagate progress information.
 
 Similarly to the packet-stream mechanism described in Section
 [Asynchronous bulk transfer - packet streams],
-the audio-out session interface employs a combination of shared memory and
-asynchronous notifications.
+the audio-out session interface depicted in Figure [img/audio_out_session]
+employs a combination of shared memory and asynchronous notifications.
 However, in contrast to the packet-stream mechanism, it has no notion of
 ownership of packets. When using the normal packet-stream protocol,
 either the source or the sink is in charge of handling a given packet at a
@@ -1082,19 +1084,17 @@ If there are solely continuous streams of audio arriving at the mixer,
 the mixer can mix those large batches of audio samples at once and pass the
 result to the driver.
 
-| XXX figure img/mixer_streaming
-; [tikz img/mixer_streaming]
-;   The mixer processes incoming data from multiple streaming sources as batches.
+[tikz img/mixer_streaming]
+  The mixer processes batches of incoming audio frames from multiple sources.
 
 Now, if a sporadic sound comes in, the mixer checks the
 current output position reported by the audio driver, and re-mixes those
 portions that haven't been played back yet by incorporating the sporadic sound.
 So the buffer consumed by the driver gets updated with new data.
 
-| XXX figure img/mixer_sporadic
-;[tikz img/mixer_sporadic]
-;  A sporadic occuring sound prompts the mixer to remix packets that are
-;  already submitted in the output queue.
+[tikz img/mixer_sporadic]
+  A sporadic occurring sound prompts the mixer to remix packets that were
+  already submitted in the output queue.
 
 Besides the way of how packets are populated with data, the second
 major difference to the packet-stream mechanism its time-triggered
