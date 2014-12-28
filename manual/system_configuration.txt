@@ -1,25 +1,72 @@
 System configuration
 ####################
 
-| TODO
+There are manifold principal approaches to configure different aspects of
+an operating system and the applications running on top.
 
-The init process
-================
+; State of the art
+
+At the lowest level, there exists the opportunity to pass configuration
+information to the boot loader. This information may be evaluated
+directly by the boot loader or passed to the booted system. As an
+example for the former, some boot loaders allow for setting up a
+graphics mode depending on its configuration. Hence, the graphics mode
+to be used by the OS could be defined right at this early stage
+of booting. More prominently, however, is the mere passing of configuration
+information to the booted OS, i.e., in the form of a kernel command line or as
+command-line arguments to boot modules. The OS would interpret
+boot-loader-provided data structures (i.e., multiboot info structures) to
+obtain such information. Most kernels interpret certain configuration
+arguments passed via this mechanism.
+
+At the OS-initialization level, before any drivers are functioning,
+the OS behavior is typically steered by configuration information
+provided along with the kernel image, i.e., an initial file-system
+image (initrd). On Linux-based systems, this information comes in the
+form of configuration files and init scripts located at well-known
+locations within the initial file-system image.
+
+Higher up the software stack, configuration becomes an even more diverse
+topic. I.e., the runtime behavior of a GNU/Linux-based system is
+defined by a conglomerate of configuration files, daemons and their
+respective command-line arguments, environment variables, collections
+of symlinks, and plenty of heuristics.
+
+The diversity and complexity of configuration mechanisms, however, is
+problematic for high-assurance computing. To attain a high level of
+assurance, Genode's architecture must be complemented by a low-complexity
+yet scalable configuration concept.
+
+; Rationale
+
+
+
+
+; reliance on boot loader is bad (won't work on ARM)
+; configuration files require a file system and a name space
+; command-line arguments not expressive enough
+; genode: composition of components must be part of the configuration
+; changing configurations at runtime
+
+
+
+The init component
+~~~~~~~~~~~~~~~~~~
 
 | TODO
 
 Session routing
-===============
+~~~~~~~~~~~~~~~
 
 | TODO
 
 Configuration of nested subsystems
-==================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 | TODO
 
 CPU affinities and real-time priorities
-=======================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 | TODO
 
