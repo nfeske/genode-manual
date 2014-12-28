@@ -903,11 +903,16 @@ Use cases
 Nitpicker GUI
 ~~~~~~~~~~~~~
 
+[tikz img/nitpicker_session]
+  A nitpicker session aggregates a framebuffer session, an input session,
+  and a session-local view stack.
+
 The nitpicker session interface subsumes an input session and a
-framebuffer session as a single session. Furthermore it supplements the
-framebuffer session with the notion of views, which allows the creation
-of flexible multi-window user interfaces. It is generally suited for
-resource multiplexers of the framebuffer and input sessions.
+framebuffer session as a single session (Figure [img/nitpicker_session].
+Furthermore it supplements the framebuffer session with the notion of views,
+which allows the creation of flexible multi-window user interfaces.
+It is generally suited for resource multiplexers of the framebuffer and input
+sessions.
 A view is a rectangular area on screen that displays a portion of the client's
 virtual framebuffer. The position and size of each view is defined by the
 client. Views can overlap, thereby creating a view stack. The stacking
@@ -1060,6 +1065,8 @@ Hence, using large buffers between the audio source, the mixer, and the driver
 is not an option.
 The audio-out session interface was specifically designed to
 accommodate both corner cases of audio output.
+
+| XXX figure img/audio_out_session
 
 Similarly to the packet-stream mechanism described in Section
 [Asynchronous bulk transfer - packet streams],

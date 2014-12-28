@@ -1,0 +1,37 @@
+\begin{tikzpicture}
+	\rpcobjectrnode{nitpickersession}{align=center}{}{
+		Nitpicker session \\
+
+		\begin{tikzpicture}
+			\rpcobjectrnode{inputsession}{align=center}{}{Input session}
+		\end{tikzpicture}
+
+		\\
+
+		\begin{tikzpicture}
+			\rpcobjectrnode{fbsession}{align=center}{}{Framebuffer session}
+		\end{tikzpicture}
+
+		\\
+
+		\begin{tikzpicture}[rounded corners=false]
+			\node[draw, fill=white, minimum width=20ex, minimum height=13ex,
+			      dropshadow] {};
+
+
+			\tikzstyle{view} = [draw, dropshadow, draw opacity=0.1, fill=black!5!white]
+
+			\node[view, minimum width=10ex, minimum height=7ex,
+			      xshift=-4ex, yshift=2ex] {};
+			\node[view, minimum width=14ex, minimum height=5ex,
+			      xshift=0ex, yshift=-1ex] {};
+			\node[view, minimum width=3ex, minimum height=6ex,
+			      xshift=7ex, yshift=1ex] {};
+			\node[view, minimum width=2ex, minimum height=3ex,
+			      xshift=-3ex, yshift=-4ex] {};
+			\node[minimum width=20ex, minimum height=15ex] {Views};
+		\end{tikzpicture}
+	}
+
+
+\end{tikzpicture}
