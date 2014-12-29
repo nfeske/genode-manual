@@ -1,0 +1,81 @@
+
+\newcommand{\nestinglevel}[1]{
+	\begin{tikzpicture}[inner sep=0, outer sep=0]
+		\node[align=left, font=\scriptsize \sffamily] (content) {#1};
+		\path (content.north west)+(-2ex,0.5ex) {};
+	\end{tikzpicture}
+}
+
+\newcommand{\configlevel}[2]{
+	\begin{tikzpicture}[inner sep=0, outer sep=0]
+		\node[align=left, dropshadow, font=\scriptsize \sffamily, #1] (content) {#2};
+	\end{tikzpicture}
+}
+
+\configlevel{fill=black!17}{
+  $<$config$>$\\
+  \nestinglevel{
+  $<$parent-provides$>$ ... $<$/parent-provides$>$\\
+  $<$default-route$>$ ... $<$/default-route$>$\\
+  ...\\
+  $<$start name="nitpicker"$>$\\
+    \nestinglevel{...}\\
+  $<$/start$>$\\
+  $<$start name="launchpad"$>$\\
+    \nestinglevel{
+    ...\\
+    \configlevel{fill=black!12}{
+    $<$config$>$\\
+      \nestinglevel{
+      $<$launcher name="L4Linux"$>$\\
+        \nestinglevel{
+        $<$binary name="init"/$>$\\
+        \configlevel{fill=black!7}{
+        $<$config$>$\\
+          \nestinglevel{
+          $<$parent-provides$>$ ... $<$/parent-provides$>$\\
+          $<$default-route$>$\\
+            \nestinglevel{
+            $<$any-service$>$ $<$any-child/$>$ $<$parent/$>$ $<$/any-service$>$
+            }\\
+          $<$/default-route$>$\\
+          $<$start name="nit\_fb"$>$\\
+            \nestinglevel{
+            $<$resource name="RAM" quantum="6M"/$>$\\
+            \configlevel{fill=black!2}{
+              $<$config xpos="400" ypos="270" width="300" height="200" /$>$
+            }\\
+            $<$provides$>$\\
+            \nestinglevel{
+              $<$service name="Input"/$>$\\
+              $<$service name="Framebuffer"/$>$
+            }\\
+            $<$/provides$>$
+            }\\
+          $<$/start$>$\\
+          $<$start name="virtualbox"$>$\\
+            \nestinglevel{
+            $<$resource name="RAM" quantum="1G"/$>$\\
+            \configlevel{fill=black!2}{
+              $<$config vbox\_file="test.vbox" vm\_name="TestVM"$>$\\
+              \nestinglevel{
+                ...
+              }\\
+              $<$/config$>$
+            }
+            }\\
+          $<$/start$>$
+          }\\
+        $<$/config$>$
+        }
+        }\\
+      $<$/launcher$>$
+      }\\
+    $<$/config$>$
+    }
+    }\\
+  $<$/start$>$
+  }\\
+$<$/config$>$
+}
+

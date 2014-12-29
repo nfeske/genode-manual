@@ -1,0 +1,120 @@
+\begin{tikzpicture}
+
+	\definecolor{configcomponentcolor}{rgb}{1,1,0.6}
+
+	\tikzstyle{configcomponent} = [component,
+	                               path fading=flow fade,
+	                               rounded corners=2,
+	                               minimum width=10ex,
+	                               minimum height=7ex,
+	                               bottom color=configcomponentcolor,
+	                               font=\normalsize \sffamily]
+
+	\tikzstyle{configarrow} = [arrow, sloped=false, left, align=right]
+
+	\node[configcomponent]                        (core)     {Core};
+	\node[configcomponent, above=7ex of core]     (init)     {Init};
+	\node[configcomponent, above=7ex of init]     (launcher) {Launcher};
+	\node[configcomponent, above=7ex of launcher] (init2)    {Init};
+
+	\draw[configarrow] (init)     -- node {request\\"config"} (core);
+	\draw[configarrow] (launcher) -- node {request\\"config"} (init);
+	\draw[configarrow] (init2)    -- node {request\\"config"} (launcher);
+
+	\tikzstyle{configrom} = [dropshadow, fill=white,
+	                         chamfered rectangle,
+	                         chamfered rectangle corners=north east]
+	\tikzstyle{configrom1} = [configrom, minimum width=7ex, minimum height=9ex]
+	\tikzstyle{configrom2} = [configrom, minimum width=7ex, minimum height=7.5ex]
+	\tikzstyle{configrom3} = [configrom, minimum width=7ex, minimum height=6.5ex]
+
+	\tikzstyle{config1}  = [inner sep=0, minimum width=5ex,   minimum height=6ex,    fill=black!15]
+	\tikzstyle{config1o} = [inner sep=0, minimum width=5ex,   minimum height=6ex,    draw=black!35]
+	\tikzstyle{config2}  = [inner sep=0, minimum width=4.5ex, minimum height=4.5ex,  fill=black!10, xshift=0.25ex, yshift=-0.5ex]
+	\tikzstyle{config2o} = [inner sep=0, minimum width=4.5ex, minimum height=4.5ex,  draw=black!35, xshift=0.25ex, yshift=-0.5ex]
+	\tikzstyle{config3}  = [inner sep=0, minimum width=4ex,   minimum height=3.5ex,  fill=black!5,  xshift=0.5ex, yshift=-0.5ex]
+	\tikzstyle{config3o} = [inner sep=0, minimum width=4ex,   minimum height=3.5ex,  draw=black!35, xshift=0.5ex, yshift=-0.5ex]
+	\tikzstyle{config4}  = [inner sep=0, minimum width=3.5ex, minimum height=0.5ex,  fill=black!0,  xshift=0.75ex, yshift=0.5ex]
+	\tikzstyle{config5}  = [inner sep=0, minimum width=3.5ex, minimum height=0.75ex, fill=black!0,  xshift=0.75ex, yshift=-1.25ex]
+
+	\tikzstyle{configmap} = [opacity=0.7, dotted]
+
+	% config right of core
+
+	\node[right=7ex of core, configrom1] (coreconfigrom) {};
+	\path (coreconfigrom) node[config1] {};
+	\path (coreconfigrom) node[config2] {};
+	\path (coreconfigrom) node[config3] {};
+	\path (coreconfigrom) node[config4] {};
+	\path (coreconfigrom) node[config5] {};
+	\path (coreconfigrom) node[config1o] (coreconfigcontent) {};
+
+	\draw[configarrow, right] (coreconfigrom.north west)
+		.. controls +(120:4ex) and +(290:4ex) .. node {response} (init.south east);
+
+	% config right of init
+
+	\node[right=7ex of init, configrom1] (initconfigrom) {};
+	\path (initconfigrom) node[config1] {};
+	\path (initconfigrom) node[config2] (initconfigromwindow) {};
+	\path (initconfigrom) node[config3] {};
+	\path (initconfigrom) node[config4] {};
+	\path (initconfigrom) node[config5] {};
+	\path (initconfigrom) node[config1o] (initconfigcontent) {};
+
+	\draw[configmap] (coreconfigcontent.north west) -- (initconfigcontent.south west);
+	\draw[configmap] (coreconfigcontent.north east) -- (initconfigcontent.south east);
+
+	% launcher config snippet right of init
+
+	\node[right=7ex of initconfigrom, configrom2, yshift=2ex] (initlauncherconfigrom) {};
+	\path (initlauncherconfigrom) node[config2] {};
+	\path (initlauncherconfigrom) node[config3] {};
+	\path (initlauncherconfigrom) node[config4] {};
+	\path (initlauncherconfigrom) node[config5] {};
+	\path (initlauncherconfigrom) node[config2o] (initlauncherconfigcontent) {};
+
+	\draw[configmap] (initconfigromwindow.north west) -- (initlauncherconfigcontent.north west);
+	\draw[configmap] (initconfigromwindow.south east) -- (initlauncherconfigcontent.south east);
+
+	\draw[configarrow, below] (initlauncherconfigrom.north west)
+		.. controls +(120:4ex) and +(290:4ex) .. node {response} (launcher.south east);
+
+	% config right of launcher
+
+	\node[right=7ex of launcher, configrom2] (launcherconfigrom) {};
+	\path (launcherconfigrom) node[config2] {};
+	\path (launcherconfigrom) node[config3] (launcherconfigromwindow) {};
+	\path (launcherconfigrom) node[config4] {};
+	\path (launcherconfigrom) node[config5] {};
+	\path (launcherconfigrom) node[config2o] (launcherconfigcontent) {};
+
+	\draw[configmap] (initlauncherconfigcontent.north east) -- (launcherconfigcontent.north east);
+	\draw[configmap] (initlauncherconfigcontent.south west) -- (launcherconfigcontent.south west);
+
+	% init2 config snippet right of launcher
+
+	\node[right=7ex of launcherconfigrom, configrom3, yshift=2ex] (launcherinit2configrom) {};
+	\path (launcherinit2configrom) node[config3] {};
+	\path (launcherinit2configrom) node[config4] {};
+	\path (launcherinit2configrom) node[config5] {};
+	\path (launcherinit2configrom) node[config3o] (launcherinit2configcontent) {};
+
+	\draw[configmap] (launcherconfigromwindow.north west) -- (launcherinit2configcontent.north west);
+	\draw[configmap] (launcherconfigromwindow.south east) -- (launcherinit2configcontent.south east);
+
+	\draw[configarrow, below] (launcherinit2configrom.north west)
+		.. controls +(120:4ex) and +(290:4ex) .. node {response} (init2.south east);
+
+	% config right of init2
+
+	\node[right=7ex of init2, configrom3] (init2configrom) {};
+	\path (init2configrom) node[config3] {};
+	\path (init2configrom) node[config4] {};
+	\path (init2configrom) node[config5] {};
+	\path (init2configrom) node[config3o] (init2configcontent) {};
+
+	\draw[configmap] (launcherinit2configcontent.north east) -- (init2configcontent.north east);
+	\draw[configmap] (launcherinit2configcontent.south west) -- (init2configcontent.south west);
+
+\end{tikzpicture}
