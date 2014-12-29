@@ -24,10 +24,7 @@
 				\begin{wheel}{5ex}
 					\slices{30,40,...,120}{inner color=stream1color!50!white,
 					                       outer color=stream1color, dropshadow}
-
 					\rememberouter{120}{wheel1source}
-					\rememberouter{30}{wheel1sink}
-
 					\rememberinner{30}{wheel1curr}
 				\end{wheel}
 			};
@@ -57,10 +54,7 @@
 				\begin{wheel}{5ex}
 					\slices{30,40,...,280}{inner color=stream2color!50!white,
 					                       outer color=stream2color, dropshadow}
-
 					\rememberouter{280}{wheel2source}
-					\rememberouter{30}{wheel2sink}
-
 					\rememberinner{30}{wheel2curr}
 				\end{wheel}
 			};
@@ -90,10 +84,7 @@
 				\begin{wheel}{5ex}
 					\slices{40,50,...,70}{inner color=stream3color!50!white,
 					                       outer color=stream3color, dropshadow}
-
 					\rememberouter{70}{wheel3source}
-					\rememberouter{40}{wheel3sink}
-
 					\rememberinner{40}{wheel3curr}
 				\end{wheel}
 			};
