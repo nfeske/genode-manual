@@ -19,19 +19,17 @@
 		\path (corecap) node[above=2pt, align=center] (corecaplabel) {\normalsize Core\\CAP};
 
 		\activate{servermain}
-		\timestep
+		\activate{client}
 
-		% create entrypoint and object pool
+		% timelines for entrypoint and object pool
 
 		\path (servermain)+(2.5,0) node (timelineanchor) {};
 		\newtimeline{serverep}
 		\node[draw, fill=white, align=center, dropshadow] at (serverep) (ep) {Entrypoint};
-		\draw[timelinemessage, dashed] (servermain) -- node[above] {$create$} (ep);
 
 		\path (serverep)+(2.5,0) node (timelineanchor) {};
 		\newtimeline{serverobjpool}
 		\node[draw, fill=white, align=center, dropshadow] at (serverobjpool) (objpool) {Object\\pool};
-		\draw[timelinemessage, dashed] (ep) -- node[above] {$create$} (objpool);
 		\timestep
 
 		% create RPC object
@@ -60,8 +58,9 @@
 		\timestep
 
 		% delegate capability to client
-		\transition{servermain}{client}{}
-			\node[align=center] at (transitionlabel) {$delegate$ \\ $\bf cap_a$};
+		\draw[timelinemessage, dashed] (servermain) --
+			node[align=center] {$delegate$ \\ $\bf cap_a$}
+			(client);
 		\timestep
 
 	\end{timelinediagram}
