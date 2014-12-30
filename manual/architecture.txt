@@ -2082,25 +2082,25 @@ The life cycle of a single packet looks as follows:
 
 This protocol has four corner cases that are handled by signals:
 
-:submit queue is full: when the source is trying to submit a new packet.
+:Submit queue is full: when the source is trying to submit a new packet.
   In this case, the source blocks and waits for the sink to remove packets
   from the submit queue. If the sink observes such a condition (when it
   attempts to get a packet from a full submit queue), it delivers a
   _ready-to-submit_ signal to wake up the source.
 
-:submit queue is empty: when the sink tries to obtain a packet from an
+:Submit queue is empty: when the sink tries to obtain a packet from an
   empty submit queue, it may block. If the source places a
   packet into an empty submit queue, it delivers a _packet-avail_
   signal to wake up the sink.
 
-:acknowledgement queue is full: when the sink tries to acknowledge a packet
+:Acknowledgement queue is full: when the sink tries to acknowledge a packet
   at a saturated acknowledgement queue, the sink needs to wait until the source
   removes an acknowledged packet from the acknowledgement queue. The source
   notifies the sink about this condition by delivering an _ready-to-ack_
   signal. On reception of the signal, the sink wakes up and can proceed to
   submit packets into the acknowledgement queue.
 
-:acknowledgement queue is empty: when the source tries to obtain an
+:Acknowledgement queue is empty: when the source tries to obtain an
   acknowledged packet _(get acked packet)_ from an empty acknowledgement
   queue. In this case, the source may block until the sink places another
   acknowledged packet into the empty acknowledgement queue and delivers an

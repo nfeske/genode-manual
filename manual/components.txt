@@ -278,8 +278,8 @@ nor controlled by the operating system, both monolithic and microkernel-based
 operating systems are powerless against such attacks.
 
 
-Bus-level attack
-----------------
+Bus-level attacks
+-----------------
 
 The previous examples misused a DMA-capable device as a proxy to drive an
 attack. However, the system bus can be attacked directly with no hardware
