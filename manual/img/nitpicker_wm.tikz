@@ -1,0 +1,82 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}       {rgb}{1,1,0.7}
+	\definecolor{nitpickercolor} {rgb}{0.9,0.5,0.4}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1]
+
+	\tikzstyle{nitpickernode} = [treenode, minimum width=12ex, minimum height=6ex, bottom color=nitpickercolor]
+	\tikzstyle{appnode}       = [treenode, bottom color=appcolor]
+
+	%
+	% Components
+	%
+
+	% init
+	\node[treenode, minimum width=12ex, minimum height=5ex] (init) {Init};
+
+	% nitpicker and window manager
+	\node[nitpickernode, above=8ex of init, xshift=-7ex] (nitpicker) {Nitpicker\\GUI};
+	\node[nitpickernode, above=8ex of init, xshift=7ex]  (wm)        {Window\\Manager};
+
+	% nitpicker apps
+	\path (nitpicker.west)+(-12ex,4ex) node[appnode] (panel)    {Panel};
+	\path (panel)+(-5ex,-4ex)          node[appnode] (pointer)  {Pointer};
+	\path (pointer)+(-5ex,-4ex)        node[appnode] (backdrop) {Backdrop};
+
+	% window-manager apps
+	\path (wm.east)+(12ex,5ex)   node[appnode] (launchpad) {Launchpad};
+	\path (launchpad)+(5ex,-4ex) node[appnode] (browser)   {Browser};
+	\path (browser)+(4ex,-3ex)   node[appnode, minimum width=5ex]   (app1) {};
+	\path (app1)+(3ex,-2.2ex)    node[appnode, minimum width=3.5ex] (app2) {};
+	\path (app2)+(2ex,-2.2ex)    node[appnode, minimum width=2ex]   (app3) {};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init) -- (nitpicker.south);
+	\path[treechildarrow] (init) -- (wm.south);
+	\path[treechildarrow] (init) -- (backdrop);
+	\path[treechildarrow] (init) -- (pointer);
+	\path[treechildarrow] (init) -- (panel);
+	\path[treechildarrow] (init) -- (launchpad);
+	\path[treechildarrow] (init) -- (browser);
+	\path[treechildarrow] (init) -- (app1);
+	\path[treechildarrow] (init) -- (app2);
+	\path[treechildarrow] (init) -- (app3);
+
+	%
+	% Session relationships
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% window manager -> nitpicker
+	\path[treesessionarrow] (wm.220)
+		.. controls +(0,-3ex) and +(0,-3ex) .. (nitpicker.320);
+
+	% nitpicker apps -> nitpicker
+	\path[treesessionarrow] (panel.320)
+		.. controls +(0,-8ex) and +(-3ex,-3ex) .. (nitpicker.220);
+	\path[treesessionarrow] (pointer.320)
+		.. controls +(0,-7ex) and +(-1ex,-4ex) .. (nitpicker.230);
+	\path[treesessionarrow] (backdrop.320)
+		.. controls +(0,-6ex) and +(0ex,-5ex) .. (nitpicker.240);
+
+	% window-manager apps -> window manager
+	\path[treesessionarrow] (launchpad.230)
+		.. controls +(-2ex,-8ex) and +(3ex,-3ex) .. (wm.327);
+	\path[treesessionarrow] (browser.230)
+		.. controls +(-2ex,-8ex) and +(3ex,-4ex) .. (wm.319);
+	\path[treesessionarrow] (app1.230)
+		.. controls +(-2ex,-8ex) and +(2ex,-5ex) .. (wm.310);
+	\path[treesessionarrow] (app2.230)
+		.. controls +(-2ex,-8ex) and +(1ex,-6ex) .. (wm.300);
+	\path[treesessionarrow] (app3.230)
+		.. controls +(-2ex,-8ex) and +(0ex,-7ex) .. (wm.290);
+
+\end{tikzpicture}

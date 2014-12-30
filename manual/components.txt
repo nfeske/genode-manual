@@ -1527,11 +1527,11 @@ feature, such as outward-facing network applications. But the complexity
 eventually becomes part of the TCP of all components including those that do
 not benefit from the feature.
 
-; XXX [tikz img/nitpicker_wm]
-;   The nitpicker GUI accompanied with a window manager that interposes
-;   the nitpicker session interface for some application. Other
-;   applications are still able to use nitpicker directly and thereby
-;   avoid the complexity added by the window manager.
+[tikz img/nitpicker_wm]
+  The nitpicker GUI accompanied with a window manager that interposes
+  the nitpicker session interface for the applications on the right. The
+  applications on the left are still able to use nitpicker directly and
+  thereby avoid the complexity added by the window manager.
 
 The solution to those kind of problems is the enrichment of existing servers
 by interposing their sessions. Figure [img/nitpicker_wm] shows a window
