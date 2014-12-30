@@ -1264,10 +1264,6 @@ resolve this condition by attaching a dataspace with real backing store at the
 fault address, which prompts core to resume the execution of the faulted
 thread.
 
-| XXX Managed dataspaces could be described in more detail, in particular
-| the on-demand paging protocol. On the other hand, the on-demand paging
-| facility is not very important in practice.
-
 
 Processing-time allocation (CPU)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1384,9 +1380,6 @@ Once the interrupt occurs, core wakes up the IRQ client and masks the
 interrupt at the interrupt controller until the driver has completed the IRQ
 handing and waits for the next interrupt.
 
-| XXX A sequence diagram showing the interplay of the device, IRQ controller,
-| core, and the user-level device driver might be helpful.
-
 
 Logging (LOG)
 ~~~~~~~~~~~~~
@@ -1410,15 +1403,14 @@ on kernels that lack the semantics of Genode's signalling API. The service
 is not used directly by components at the framework's API level but is merely
 an implementation artifact.
 
-| XXX The role of the SIGNAL service could be substantiated in
-| Chapter [Under the hood].
-
 
 Event tracing (TRACE)
 ~~~~~~~~~~~~~~~~~~~~~
 
-| XXX This service is not fundamental to the architecture. To which degree
-| should we introduce it here?
+The TRACE service provides a light-weight event-tracing facility. It is not
+fundamental to the architecture. However, as the service allows for the
+inspection and manipulation of arbitrary threads of a Genode system, TRACE
+sessions must not be granted to untrusted components.
 
 
 Component creation
