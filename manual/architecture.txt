@@ -1610,6 +1610,8 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   the session arguments and also represents a client object to interact
   with the session.
 
+; XXX figure showing the inheritance graph of capability types
+
 As depicted in Figure [img/rpc_layers], capabilities are associated with
 types on all levels above the IPC library. Because the IPC library is solely
 used by the RPC stub code but not at the framework's API level,

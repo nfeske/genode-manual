@@ -163,6 +163,10 @@ instances of init. Init's policy is driven by an XML-based configuration,
 which declares a number of children, their relationships, and resource
 assignments.
 
+; XXX specifically mention that init is meant to construct the static
+;     part of the system, introduce the idea of organizing the system
+;     in stages.
+
 
 Session routing
 ~~~~~~~~~~~~~~~
@@ -492,3 +496,5 @@ For an example of using chroot, please refer to the _os/run/chroot.run_ script.
 ; 
 ; Further configuration examples can be found in the 'os/config/' directory.
 
+
+; XXX cover dynamic configuration approaches?
