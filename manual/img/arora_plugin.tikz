@@ -1,0 +1,132 @@
+\begin{tikzpicture}
+
+	\definecolor{plugincolor}    {rgb}{0.6,0.7,0.9}
+	\definecolor{nitpickercolor} {rgb}{0.9,0.5,0.4}
+	\definecolor{aroracolor}     {rgb}{0.6,0.8,0.7}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade,
+	                        minimum width=12ex, minimum height=5ex, align=center,
+	                        rounded corners=1]
+
+	\tikzstyle{pluginnode}  = [treenode, bottom color=plugincolor]
+	\tikzstyle{browsernode} = [treenode, bottom color=aroracolor]
+
+	%
+	% Components
+	%
+
+	% base system
+	\node[treenode]                         (init)      {Init};
+	\node[treenode, above=4ex of init]      (nitpicker) {Nitpicker\\GUI};
+	\node[treenode, left=4ex of nitpicker]  (loader)    {Loader};
+	\node[treenode, right=4ex of nitpicker] (launcher)  {Launcher};
+
+	% browser
+	\node[browsernode, above=12ex of launcher, xshift=3ex] (browser) {Web\\Browser\\\\};
+	\path (browser.south) node[browsernode, above=0ex, shadow blur radius=0,
+	                           minimum height=3ex] (tcpip) {TCP/IP};
+
+	% plugin
+	\node[pluginnode, above=5ex of loader]          (plugininit)      {Init};
+	\node[pluginnode, above=4ex of plugininit]      (pluginnitpicker) {Nitpicker};
+	\node[pluginnode, right=1ex of pluginnitpicker] (pluginnitfb)     {Virtual\\Framebuffer};
+	\node[pluginnode, left=1ex of pluginnitpicker]  (pluginlauncher)  {Launcher};
+	\node[pluginnode, above=4ex of pluginlauncher]  (pluginapp)       {App};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.4]
+
+	\path[treechildarrow] (init)                  -- (loader.south);
+	\path[treechildarrow] (init)                  -- (nitpicker);
+	\path[treechildarrow] (init)                  -- (launcher.south);
+	\path[treechildarrow] (launcher)              -- (browser.south);
+	\path[treechildarrow] (loader)                -- (plugininit);
+	\path[treechildarrow] (plugininit)            -- (pluginnitpicker);
+	\path[treechildarrow] (plugininit.north east) -- (pluginnitfb.south);
+	\path[treechildarrow] (plugininit.north west) -- (pluginlauncher.south);
+	\path[treechildarrow] (pluginlauncher)        -- (pluginapp);
+
+	%
+	% Session relationships
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, dashed]
+
+	% launcher -> nitpicker
+	\path[treesessionarrow] (launcher.210)
+		.. controls +(0,-3ex) and +(0,-3ex) .. (nitpicker.330);
+
+	% midway coordinate between browser and nitpicker
+	\path (browser.180)+(-3ex,-14ex) coordinate (browsertonitpicker) {};
+
+	% midway coordinate between browser and loader
+	\path (browser.180)+(-4ex,-13ex) coordinate (browsertoloader) {};
+
+	% browser -> nitpicker
+	\path[treesessionarrow] (browser.180)
+		.. controls +(180:3ex) and +(45:3ex) .. (browsertonitpicker)
+		.. controls +(225:3ex) and +(90:3ex) .. (nitpicker.30);
+
+	% browser -> loader
+	\path[treesessionarrow] (browser.160)
+		.. controls +(180:4.5ex) and +(45:3ex) .. (browsertoloader)
+		.. controls +(225:3ex) and +(90:3ex) .. (loader.45);
+
+	% plugin nitfb -> nitpicker
+	\path[treesessionarrow] (pluginnitfb.300)
+		.. controls +(0,-7ex) and +(0,7ex) .. (nitpicker);
+
+	% plugin nitpicker -> plugin nitfb
+	\path[treesessionarrow] (pluginnitpicker.330)
+		.. controls +(0,-3ex) and +(0,-3ex) .. (pluginnitfb.210);
+
+	% plugin launcher -> plugin nitpicker
+	\path[treesessionarrow] (pluginlauncher.330)
+		.. controls +(0,-3ex) and +(0,-3ex) .. (pluginnitpicker.210);
+
+	% plugin app -> plugin nitpicker
+	\path[treesessionarrow] (pluginapp.330)
+		.. controls +(0,-3ex) and +(0,3ex) .. (pluginnitpicker.150);
+
+	%
+	% Background of the plugin nodes
+	%
+
+	% helper nodes around the components
+	\node[fit=(plugininit),      inner sep=1ex] (plugininitoutline)      {};
+	\node[fit=(pluginnitfb),     inner sep=1ex] (pluginnitfboutline)     {};
+	\node[fit=(pluginnitpicker), inner sep=1ex] (pluginnitpickeroutline) {};
+	\node[fit=(pluginapp),       inner sep=1ex] (pluginappoutline)       {};
+	\node[fit=(pluginlauncher),  inner sep=1ex] (pluginlauncheroutline)  {};
+
+	\begin{scope}[on background layer]
+
+		\path[fill=plugincolor, fill opacity=0.2, draw=plugincolor, rounded corners=5]
+			(plugininitoutline.south west)     --
+			(plugininitoutline.south east)     --
+			(plugininitoutline.15)             --
+			(pluginnitfboutline.south)         --
+			(pluginnitfboutline.south east)    --
+			(pluginnitfboutline.north east)    --
+			(pluginnitpickeroutline.120)       --
+			(pluginappoutline.340)             --
+			(pluginappoutline.north east)      --
+			(pluginappoutline.north west)      --
+			(pluginlauncheroutline.south west) --
+			(pluginlauncheroutline.south)      --
+			(plugininitoutline.165)            --cycle;
+	\end{scope}
+
+	%
+	% Thick red border between browser and plugin
+	%
+
+	\path (browsertoloader)+(-1ex,1ex) coordinate (borderstart) {};
+	\path (borderstart)+(0,24ex) coordinate (borderend) {};
+	\path[ultra thick, draw=red!70!black, dashed]
+		(borderstart) -- (borderend);
+
+\end{tikzpicture}

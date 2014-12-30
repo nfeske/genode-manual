@@ -1572,9 +1572,9 @@ convenience functions fundamentally contradicts with the security-critical
 role of the shell as the common parent of all spawned subsystems. If the
 shell gets compromised, all the spawned subsystems suffer.
 
-; [tikz img/arora_plugin]
-;   A web browser spawns a plugin by ceding the parenthood of the plugin to
-;   the trusted loader service.
+[tikz img/arora_plugin]
+  A web browser spawns a plugin by ceding the parenthood of the plugin to
+  the trusted loader service.
 
 The risk of such convoluted shells can be mitigated by moving the parent role
 for the started subsystems to another component, namely a loader service.
