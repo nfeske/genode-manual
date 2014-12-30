@@ -113,7 +113,7 @@
 	% Steps
 	%
 
-	\tikzstyle{packetstreamarrow} = [->, >= stealth, dotted, thick, draw=black]
+	\tikzstyle{packetstreamarrow} = [->, >= stealth, densely dotted, thick, draw=black]
 	\tikzstyle{packetstreamindex} = [draw, fill=white, solid, circle, dropshadow, inner sep=0.5ex]
 
 	\path[packetstreamarrow] (source.340) --

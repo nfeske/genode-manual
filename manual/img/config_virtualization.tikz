@@ -37,7 +37,7 @@
 	\tikzstyle{config4}  = [inner sep=0, minimum width=3.5ex, minimum height=0.5ex,  fill=black!0,  xshift=0.75ex, yshift=0.5ex]
 	\tikzstyle{config5}  = [inner sep=0, minimum width=3.5ex, minimum height=0.75ex, fill=black!0,  xshift=0.75ex, yshift=-1.25ex]
 
-	\tikzstyle{configmap} = [opacity=0.7, dotted]
+	\tikzstyle{configmap} = [opacity=0.7, densely dotted]
 
 	% config right of core
 

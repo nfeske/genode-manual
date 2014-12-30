@@ -53,7 +53,7 @@
 	% Session relationships
 	%
 
-	\tikzstyle{treesessionarrow} = [arrow, dashed]
+	\tikzstyle{treesessionarrow} = [arrow, densely dashed]
 
 	% launcher -> nitpicker
 	\path[treesessionarrow] (launcher.210)
