@@ -69,6 +69,7 @@ proc process_chapter_latex {txtblock} {
 	handle_txtblock chapter [lrange $txtblock 2 end]
 }
 
+
 ### SECTION ###
 proc process_section_latex {txtblock} {
 	set title [linetxt [lindex $txtblock 0]]
@@ -94,3 +95,30 @@ proc process_annotation_latex {txtblock} {
 }
 
 
+### VERBATIM  ###
+proc process_verbatim_latex {txtblock} {
+	while {[lindex $txtblock end] == ""} {
+		set txtblock [lrange $txtblock 0 [expr [llength $txtblock]-2]]
+	}
+
+	#
+	# For the output of verbatim text, we use 'puts' rather than
+	# 'printline' because 'printline' would indent the text, which
+	# is not desired within a verbatim environment.
+	#
+	printline "\\begin{flushleft}"
+	printline "\\begin{tikzpicture}"
+	printline "\\node\[font=\\small] (verbatim) {"
+	printline "\\begin{lstlisting}"
+	foreach txtline $txtblock {
+		set txt [linetxt $txtline]
+		regsub     {^\!} $txt ""   txt
+		regsub -all {\t} $txt "  " txt
+		puts "$txt"
+	}
+	printline "\\end{lstlisting}"
+	printline "};"
+	printline "\\path\[very thick, draw=black!5\] (verbatim.north west) -- (verbatim.south west);"
+	printline "\\end{tikzpicture}"
+	printline "\\end{flushleft}"
+}
