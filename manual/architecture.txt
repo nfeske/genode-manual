@@ -2042,8 +2042,8 @@ shared memory block and employs an asynchronous data-flow protocol.
 It is designed for large bulk payloads such as network traffic, block-device
 data, video frames, and USB URB payloads.
 
-| XXX img/packet_stream
-;[image packet_stream]
+[tikz img/packet_stream]
+  Life cycle of a data packet transmitted over the packet stream interface
 
 As illustrated in Figure [img/packet_stream], the communication buffer
 consists of three parts, a submit queue, an acknowledgement queue, and a

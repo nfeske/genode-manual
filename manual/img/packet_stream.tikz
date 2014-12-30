@@ -1,0 +1,146 @@
+\newenvironment{ringbuffer} {
+
+	%%
+	% Draw slices
+	%
+	% argument 1: range to iterate over the angles, in steps of 15
+	% argument 2: style used for drawing the slices
+	%
+	\newcommand{\slices}[2]{
+		\foreach \i in {##1} {
+			\path (\i:5ex) node[trapezium, trapezium angle=80,
+			                    rotate=\i+90, draw, fill=white,
+			                    dropshadow, rounded corners=1,
+			                    path fading=flow fade, inner sep=0.74ex,
+			                    ##2] {};
+		}
+	}
+
+	%%
+	% Add reference node
+	%
+	% argument 1: angle
+	% argument 2: node name
+	%
+	\newcommand{\markslice}[2]{
+		\path (##1:5ex) node[circle, fill=black, inner sep=0.35ex] (##2) {};
+	}
+
+	\begin{tikzpicture}[inner sep=0, outer sep=0, minimum size=0]
+		\foreach \i in {0, 20,...,350} {
+			\path (\i:5ex) node[trapezium, trapezium angle=80,
+			                    rounded corners=1,
+			                    rotate=\i+90, draw, fill=white, opacity=0.15,
+			                    inner sep=0.74ex] {};
+		}
+} {
+
+	\end{tikzpicture}
+}
+
+\begin{tikzpicture}
+
+	\node[dataspace, minimum width=20ex, minimum height=40ex] (dataspace) {};
+
+	\node[above=0.5ex of dataspace] {\emph{shared between source and sink}};
+
+	%
+	% submit queue
+	%
+
+	\path (dataspace.south) node[minimum size=0, yshift=6ex, xshift=-0.5ex, inner sep=0, outer sep=0] (submitqueue) {
+		\begin{ringbuffer}
+			\slices{60,80,...,100}{};
+			\markslice{60}{submit1}
+			\markslice{80}{submit2}
+			\markslice{100}{submit3}
+		\end{ringbuffer}
+	};
+
+	\path (submitqueue) node[align=center, xshift=0.5ex] {submit\\queue};
+
+	%
+	% acknowledgement queue
+	%
+
+	\path (dataspace.north) node[minimum size=0, yshift=-6ex, xshift=-0.5ex, inner sep=0, outer sep=0] (ackqueue) {
+		\begin{ringbuffer}
+			\slices{280,300,...,280}{};
+			\markslice{280}{ack1}
+			\markslice{300}{ack2}
+		\end{ringbuffer}
+	};
+
+	\path (ackqueue) node[align=center, xshift=0.5ex] {ack\\queue};
+
+	%
+	% bulk buffer
+	%
+
+	\path (dataspace.center) node[rectangle, fill=black!5, draw=black!35,
+	                              minimum width=18ex, minimum height=14ex]
+	                              (bulkbuffer) {bulk buffer};
+
+	\tikzstyle{bulkblock} = [minimum size=3ex, fill=white, draw=black!80,
+	                         pattern=north east lines, pattern color=black!30];
+
+	\path (bulkbuffer.center)+(6ex,-4.5ex)  node[bulkblock] (submitblock1) {};
+	\path (bulkbuffer.center)+(0ex,-3.2ex)  node[bulkblock] (submitblock2) {};
+	\path (bulkbuffer.center)+(-6ex,-3.5ex) node[bulkblock] (submitblock3) {};
+
+	\draw[arrow] (submit1) -- (submitblock1);
+	\draw[arrow] (submit2) -- (submitblock2);
+	\draw[arrow] (submit3) -- (submitblock3);
+
+	\path (bulkbuffer.center)+(-5.4ex,3.8ex) node[bulkblock, dashed] (ackblockgone) {};
+	\path (bulkbuffer.center)+(1ex,4.2ex)    node[bulkblock] (ackblock1) {};
+	\path (bulkbuffer.center)+(5.8ex,2.5ex)  node[bulkblock] (ackblock2) {};
+
+	\draw[arrow] (ack1) -- (ackblock1);
+	\draw[arrow] (ack2) -- (ackblock2);
+
+	%
+	% source and sink
+	%
+
+	\tikzstyle{packetstreamcomponent} = [component, minimum size=10ex]
+
+	\node[packetstreamcomponent, left=10ex of dataspace] (source) {Source};
+
+	\node[packetstreamcomponent, right=10ex of dataspace] (sink) {Sink};
+
+	%
+	% Steps
+	%
+
+	\tikzstyle{packetstreamarrow} = [->, >= stealth, dotted, thick, draw=black]
+	\tikzstyle{packetstreamindex} = [draw, fill=white, solid, circle, dropshadow, inner sep=0.5ex]
+
+	\path[packetstreamarrow] (source.340) --
+		node[above, pos=0.3] {alloc}
+		node[packetstreamindex, pos=0.6] {1} (submitblock3);
+
+	\path[packetstreamarrow] (source.320)
+		.. controls +(0:4ex) and +(180:6ex) ..
+		node[left, pos=0.5] {submit}
+		node[packetstreamindex, pos=0.6] {2} (submitqueue.west);
+
+	\path[packetstreamarrow] (submitqueue.east)
+		.. controls +(0:6ex) and +(180:4ex) ..
+		node[right, pos=0.6] {get}
+		node[packetstreamindex, pos=0.45] {3} (sink.210);
+
+	\path[packetstreamarrow] (sink.150)
+		.. controls +(180:6ex) and +(0:6ex) ..
+		node[right, pos=0.4] {acknowledge}
+		node[packetstreamindex, pos=0.5] {4} (ackqueue.east);
+
+	\path[packetstreamarrow] (ackqueue.west)+(1ex,0)
+		.. controls +(180:6ex) and +(30:6ex) ..
+		node[left, pos=0.55] {get acked}
+		node[packetstreamindex, pos=0.45] {5} (source.30);
+
+	\path[packetstreamarrow] (source.10) --
+		node[above, pos=0.45] {release} (ackblockgone);
+
+\end{tikzpicture}
