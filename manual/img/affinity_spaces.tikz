@@ -1,0 +1,90 @@
+\begin{tikzpicture}
+
+	%
+	% CPU nodes
+	%
+
+	\foreach \y in {0,1,...,4} {
+		\foreach \x in {0,1,...,4} {
+			\path (\x*4ex,-\y*4ex)
+				node[ball color=black!60, circle,
+				     inner sep=0.5ex, dropshadow] (cpu\x\y) {};
+		}
+	}
+
+	%
+	% Arrows between CPU nodes
+	%
+
+	\foreach \y in {0,1,...,4} {
+		\foreach \prevx/\x in {0/1,1/2,2/3,3/4} {
+			\draw[arrow, <->, opacity=0.3] (cpu\prevx\y) -- (cpu\x\y);
+			\draw[arrow, <->, opacity=0.3] (cpu\y\prevx) -- (cpu\y\x);
+		}
+	}
+
+	%
+	% Color definitions for CPU affinity spaces
+	%
+
+	\definecolor{cpuall}    {rgb}{0.8,0.8,0.8}
+	\definecolor{cpuyellow} {rgb}{1.0,0.95,0.6}
+	\definecolor{cpured}    {rgb}{0.9,0.8,0.7}
+	\definecolor{cpublue}   {rgb}{0.85,0.85,1.0}
+
+	%
+	% Component tree
+	%
+
+	\tikzstyle{treenode} = [component, path fading=flow fade,
+	                        align=center, rounded corners=1,
+	                        minimum width=7ex, minimum height=3ex]
+
+	\path (cpu44)+(20ex,-1ex) node[treenode] (init) {Init};
+
+	\path (init.north)  node[treenode, above=3ex,   bottom color=cpuyellow, xshift=-6ex] (init1)  {Init};
+	\path (init.north)  node[treenode, above=8.5ex, bottom color=cpublue,   xshift=6ex]  (init2)  {Init};
+	\path (init2.north) node[treenode, above=3.5ex, bottom color=cpured,    xshift=-6ex] (init21) {Init};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init)  -- (init1);
+	\path[treechildarrow] (init)  -- (init2);
+	\path[treechildarrow] (init2) -- (init21);
+
+	%
+	% CPU affinity spaces
+	%
+
+	\tikzstyle{cpucompound} = [inner sep=0.9ex, rounded corners=3,
+	                           draw, draw opacity=0.7,
+	                           inner color=white]
+
+	\tikzstyle{cpuall}    = [cpucompound, draw=cpuall!70!black,    outer color=cpuall]
+	\tikzstyle{cpuyellow} = [cpucompound, draw=cpuyellow!70!black, outer color=cpuyellow]
+	\tikzstyle{cpublue}   = [cpucompound, draw=cpublue!70!black,   outer color=cpublue]
+	\tikzstyle{cpured}    = [cpucompound, draw=cpured!70!black,    outer color=cpured]
+
+	\begin{scope}[on background layer]
+		\node[fit=(cpu00) (cpu44), cpuall, inner sep=1.2ex] (cpucompoundall)    {};
+		\node[fit=(cpu03) (cpu24), cpuyellow]               (cpucompoundyellow) {};
+		\node[fit=(cpu10) (cpu42), cpublue]                 (cpucompoundblue)   {};
+		\node[fit=(cpu31) (cpu31), cpured]                  (cpucompoundred)    {};
+	\end{scope}
+
+	%
+	% Association of components with affinity spaces
+	%
+
+	\tikzstyle{treerelation} = [arrow, densely dashed]
+
+	\draw[treerelation] (init)   -- (cpucompoundall.320);
+	\draw[treerelation] (init1)  -- (cpucompoundyellow.25);
+	\draw[treerelation] (init2)  -- (cpucompoundblue.340);
+	\draw[treerelation] (init21) -- (cpucompoundred.45);
+
+\end{tikzpicture}

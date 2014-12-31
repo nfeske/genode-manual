@@ -403,10 +403,32 @@ specified via the 'configfile' node. For example:
 Assigning subsystems to CPUs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The assignment of subsystems to CPU nodes consists of two parts, the
-definition of the affinity space dimensions as used for the init process, and
-the association sub systems with affinity locations (relative to the affinity
-space). The affinity space is configured as a sub node of the config node. For
+Most multi-processor (MP)systems have topologies that can be represented on a
+two-dimensional coordinate system. CPU nodes
+close to each other are expected to have closer relationship than distant
+nodes. In a large MP system, it is natural to assign clusters of closely
+related nodes to a given workload. As described in Section
+[Recursive system structure] Genode's architecture is based on a strictly
+hierarchic organizational structure. Thereby, it lends itself to the idea to
+apply this successive virtualization of resources to the problem of clustering
+CPU nodes.
+
+[tikz img/affinity_spaces]
+  Successive virtualization of CPU affinity spaces by nested instances
+  of init
+
+Each component within the component tree has a component-local view on a
+so-called affinity space, which is a two-dimensional coordinate space. If the
+component creates a new subsystem, it can assign a portion of its own affinity
+space to the new subsystem by imposing a rectangular affinity location to the
+subsystem's CPU session. Figure [img/affinity_spaces] illustrates the idea.
+
+Following from the expression of affinities as a rectangular location within a
+component-local affinity space, the assignment of subsystems to CPU nodes
+consists of two parts, the definition of the affinity space dimensions as used
+for the init instance, and the association sub systems with affinity locations
+(relative to the affinity space).
+The affinity space is configured as a sub node of the config node. For
 example, the following declaration describes an affinity space of 4x2:
 
 ! <config>
@@ -426,6 +448,12 @@ Subsystems can be constrained to parts of the affinity space using the
 !   </start>
 !   ...
 ! </config>
+
+As illustrated by this example, the numbers used in the declarations for this
+instance of init are not directly related to physical CPUs.
+If the machine has merely two cores, init's affinity space would be mapped to
+the range 0,1 of physical CPUs. However, in a machine with 16x16 CPUs, the
+loader would obtain 8x8 CPUs with the upper-left CPU at position (4,0).
 
 
 Priority support
