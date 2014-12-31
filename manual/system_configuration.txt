@@ -328,7 +328,7 @@ binary from the parent. If multiple instances of a component with the same
 ELF binary are needed, the binary name can be explicitly specified
 using a '<binary>' sub node of the '<start>' node:
 ! <binary name="filename"/>
-This way, a unique child name can be chosen independently from the
+This way, a unique child name can be defined independently from the
 binary name.
 
 
@@ -460,7 +460,7 @@ Priority support
 ~~~~~~~~~~~~~~~~
 
 The number of CPU priorities to be distinguished by init can be specified with
-'prio_levels' attribute of the '<config>' node.  The value must be a power of
+the 'prio_levels' attribute of the '<config>' node. The value must be a power of
 two. By default, no priorities are used. To assign a priority to a child
 process, a priority value can be specified as 'priority' attribute of the
 corresponding '<start>' node. Valid priority values lie in the range of
