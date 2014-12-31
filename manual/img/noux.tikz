@@ -1,0 +1,118 @@
+
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1,
+	                        minimum width=12ex, minimum height=5ex]
+
+	\tikzstyle{nouxsubsystem} = [minimum width=7ex, minimum height=3ex,
+	                             align=center,
+	                             draw=black!80, fill=white, fill opacity=0.6]
+
+	\node[treenode] (core) {Core};
+
+	%
+	% Init and terminal
+	%
+	\node[treenode, above=4ex of core] (init) {Init};
+
+	\node[treenode, above=8ex of init, xshift=14ex] (terminal) {Terminal};
+
+	%
+	% Noux runtime
+	%
+	\node[treenode, above=8ex of init, xshift=-14ex,
+	      minimum width=25ex, minimum height=13ex] (noux) {};
+
+	\path (noux.north) node[below=1ex] {\normalsize Noux};
+
+	\path (noux.center)+(-7ex,0) node[nouxsubsystem] (vfs) {VFS};
+	\path (vfs.south) node[nouxsubsystem, below=1ex] (tarfs) {TarFS};
+
+	\path (noux.center)+(6ex,-2ex) node[nouxsubsystem] (iochannels) {I/O\\channels};
+
+	%
+	% Noux program
+	%
+	\node[above=7ex of noux] {
+		\begin{tikzpicture}[inner sep=0, outer sep=0]
+
+			%%
+			% Create rugged path
+			%
+			% argument 1:  number of saw tooths
+			% argument 2:  size of saw tooth
+			%
+			\newcommand{\ruggedpath}[2]{\foreach \i in {1,2,...,#1} {
+				-- ++(#2,#2) -- ++(2*#2,-2*#2) -- ++(#2,#2)}}
+
+			\definecolor{nouxprgcolor} {rgb}{1,1,0.7}
+
+			\tikzstyle{puzzle} = [component, path fading=flow fade, align=center,
+			                      dropshadow, rounded corners=2]
+
+			\path[puzzle, bottom color=nouxprgcolor]
+				(0,0) -- ++(29ex,0) {[sharp corners]
+				      -- ++(0,-7ex) -- ++(-29ex,0)} --cycle;
+
+			\path (14.5ex,-4ex) node {Recompiled Unix program};
+
+			% FreeBSD libc
+			\path[puzzle] (2.5ex, 2ex - 15ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0.5ex,0) -- ++(0,-6ex) -- ++(2ex,0)
+				{[sharp corners] -- ++(0,12ex) -- ++(-6*4ex - 5ex,0) }
+				-- ++(0,-12ex) -- ++(2ex,0) -- ++(0,5ex) --cycle;
+
+			\path (14.5ex,-10ex) node {FreeBSD libc};
+
+			% libc plugin
+			\path[puzzle] (2.5ex, -14ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0,-6ex) -- coordinate (libcplugin) ++(-6*4ex,0) --cycle;
+
+			\path (14.5ex,-18ex) node {libc plugin};
+
+		\end{tikzpicture}
+	};
+
+	\path (libcplugin)+(-1ex,0)     coordinate (libcpluginin) {};
+	\path (libcplugin)+(1ex,0)      coordinate (libcpluginout) {};
+	\path (libcpluginin)+(0, -8ex)  coordinate (nouxin) {};
+	\path (libcpluginout)+(0, -8ex) coordinate (nouxout) {};
+
+	\draw[arrow] (nouxin) -- node[left, sloped=false] {Noux session}
+		(libcpluginin);
+	\draw[arrow] (libcpluginout) --
+		node[right, sloped=false, align=left]
+		{\emph{open read write}\\
+		 \emph{select ioctrl}\\
+		 \emph{stat readdir}} (nouxout);
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (core) -- (init);
+	\path[treechildarrow] (init) -- (terminal.south);
+	\path[treechildarrow] (init) -- (noux.south);
+
+	%
+	% Session relationships
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% I/O channels -> terminal
+	\path[treesessionarrow] (iochannels.300)
+		.. controls +(300:14ex) and +(220:8ex) ..
+		node[align=center, sloped=false] {Terminal\\session} (terminal.220);
+
+	% ROM session from TarFS to core's ROM service
+	\path[treesessionarrow] (tarfs.300)
+		.. controls +(300:14ex) and +(90:14ex) ..
+		node[align=center, sloped=false, below, pos=0.4] {ROM\\session} (core.120);
+
+\end{tikzpicture}

@@ -1,0 +1,37 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	%
+	% Components
+	%
+
+	% parent
+	\node[treenode] (parent) {Parent};
+
+	% server
+	\node[treenode, above=6ex of parent, xshift=-7ex] (server) {Server};
+	\node[treenode, above=6ex of parent, xshift=7ex]  (client) {Client};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (parent) -- (server.south);
+	\path[treechildarrow] (parent) -- (client.south);
+
+	%
+	% Session relationship
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% client -> server
+	\path[treesessionarrow] (client.220)
+		.. controls +(-1ex,-3ex) and +(1ex,-3ex) .. (server.320);
+
+\end{tikzpicture}

@@ -1,0 +1,97 @@
+\begin{tikzpicture}
+
+	\definecolor{corecolor} {rgb}{0.7,0.8,0.9}
+	\definecolor{gdbmoncolor} {rgb}{1,0.8,0.7}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1]
+
+	\tikzstyle{subsystem} = [minimum width=6ex, minimum height=3ex, align=center,
+	                         draw=black!80, fill=white, fill opacity=0.6]
+
+	%
+	% Core
+	%
+
+	\node[treenode, bottom color=corecolor, minimum width=30ex, minimum height=6ex] (core) {};
+	\path (core.east) node[left=1ex] {Core};
+
+	\path (core.west)    node[right=1ex, subsystem] (coreram) {RAM};
+	\path (coreram.east) node[right=1ex, subsystem] (corerm)  {RM};
+	\path (corerm.east)  node[right=1ex, subsystem] (corecpu) {CPU};
+
+	%
+	% GDB monitor
+	%
+	\node[treenode, bottom color=gdbmoncolor, minimum width=30ex,
+	      minimum height=6ex, above=6ex of core] (gdbmon) {};
+	\path (gdbmon.east) node[left=1ex, align=right] {GDB\\Monitor};
+
+	\path (gdbmon.west)    node[right=1ex, subsystem] (gdbmonram) {RAM};
+	\path (gdbmonram.east) node[right=1ex, subsystem] (gdbmonrm)  {RM};
+	\path (gdbmonrm.east)  node[right=1ex, subsystem] (gdbmoncpu) {CPU};
+
+	%
+	% Component
+	%
+	\node[treenode, minimum width=30ex, minimum height=6ex, above=4ex of gdbmon] (target) {};
+	\path (target.center) node[align=center] {Component\\as Debugging Target};
+
+	\coordinate (componentram) at (coreram |- target.south);
+	\coordinate (componentrm)  at (corerm  |- target.south);
+	\coordinate (componentcpu) at (corecpu |- target.south);
+
+	\path (coreram) -- coordinate (midram) (componentram);
+	\path (corerm)  -- coordinate (midrm)  (componentrm);
+	\path (corecpu) -- coordinate (midcpu) (componentcpu);
+
+	\draw[arrow] (componentram) -- (gdbmonram);
+	\draw[arrow, densely dashed] (gdbmonram) -- (coreram);
+
+	\draw[arrow] (componentrm) -- (gdbmonrm);
+	\draw[arrow, densely dashed] (gdbmonrm) -- (corerm);
+
+	\draw[arrow] (componentcpu) -- (gdbmoncpu);
+	\draw[arrow, densely dashed] (gdbmoncpu) -- (corecpu);
+
+	%
+	% Service
+	%
+	\path (gdbmon.east) node[treenode, right=4ex, minimum width=10ex, minimum height=5ex]
+		(service) {Service};
+
+	\path (componentcpu)+(7ex,0) coordinate (componentclient) {};
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% target -> service
+	\path[treesessionarrow] (componentclient.270)
+		.. controls +(270:15ex) and +(250:4ex) .. (service.250);
+
+	%
+	% Noux
+	%
+	\path (service.east) node[treenode, right=4ex, minimum width=10ex, minimum height=5ex]
+		(noux) {Noux};
+
+	%
+	% GDB
+	%
+
+	\path (noux.north) node[treenode, above=4ex, minimum width=10ex, minimum height=5ex]
+		(gdb) {GDB};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (noux)   -- (gdb);
+	\path[treechildarrow] (gdbmon) -- (target);
+
+	% GDB monitor -> noux
+	\path[treesessionarrow] (gdbmon.342)
+		.. controls +(300:10ex) and +(270:17ex) .. (gdb.230);
+
+\end{tikzpicture}

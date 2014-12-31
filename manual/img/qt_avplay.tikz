@@ -1,0 +1,106 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor} {rgb}{1,1,0.7}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1]
+
+	\tikzstyle{subsystem} = [minimum width=6ex, minimum height=3ex, align=center,
+	                         draw=black!80, fill=white, fill opacity=0.6]
+
+	\tikzstyle{codecsubsystem} = [subsystem, minimum width=10ex]
+
+	%
+	% GUI
+	%
+
+	\node[treenode, minimum width=23ex, minimum height=7ex] (gui) {};
+	\path (gui.west) node[right=1ex] {GUI};
+
+	\path (gui.east) node[left=1ex, subsystem, align=center] (vfb)
+		{\tiny Virtual\\ \tiny Framebuffer};
+
+	\path (vfb.west) node[left=1ex, subsystem, align=center] (vrom)
+		{\tiny Virtual\\ \tiny ROM};
+
+	%
+	% Avplay
+	%
+
+	\node[treenode, minimum width=23ex, minimum height=10ex, above=16ex of gui] (avplay) {};
+	\path (avplay.north) node[below=1ex] {Codec (avplay)};
+
+	\path (avplay.south) node[above=1ex, codecsubsystem, xshift=-5.5ex] (sdlaudio)
+		{SDL audio};
+
+	\path (avplay.south) node[above=1ex, codecsubsystem, xshift=5.5ex] (sdlvideo)
+		{SDL video};
+
+	%
+	% ROM service
+	%
+	\node[treenode, minimum width=10ex, minimum height=3ex, below=6ex of gui,
+	      xshift=-5ex] (rom) {ROM\\service};
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	%
+	% ROM connection for "media"
+	%
+	\draw[treesessionarrow] (avplay.180)
+		.. controls +(180:8ex) and +(165:12ex) ..
+		node[left, align=center, sloped=false] {ROM\\"media"}
+		(gui.158)
+		.. controls +(165 + 180:4ex) and +(90:8ex) ..
+		(rom);
+
+	\coordinate (sdlvideofb) at (vfb |- sdlvideo.south);
+	\coordinate (avplayconfig) at (vrom |- avplay.south);
+
+	\draw[treesessionarrow] (sdlvideofb) --
+		node[right, align=center, sloped=false] {Frame\\buffer} (vfb);
+	\draw[treesessionarrow] (avplayconfig) --
+		node[right, align=center, pos=0.2, sloped=false] {ROM\\"config"}
+		coordinate[pos=0.55] (configrom) (vrom);
+
+	%
+	% Codec configuration
+	%
+	\path (configrom) node[left=-6ex, fill=white, dropshadow, align=left,
+                       chamfered rectangle, draw, draw opacity=0.5,
+                       chamfered rectangle corners=north east,
+                       inner sep=0]
+	{
+		\tiny
+		\begin{lstlisting}
+<config>
+   <sdl_audio_volume
+         value="85"/>
+</config>
+		\end{lstlisting}
+	};
+
+	%
+	% Nitpicker
+	%
+	\node[treenode, minimum width=24ex, minimum height=22ex, right=8ex of gui,
+	      yshift=8ex] (nitpicker) {};
+	\path (nitpicker.north) node[below=1ex] {Nitpicker GUI server};
+
+	\graphicspath{ {./img/} }
+	\path (nitpicker.south) node[above=1ex] (screenshot) {\includegraphics[width=24ex]{qt_avplay.png}};
+
+	\path (screenshot.south west)+(13ex,3ex) coordinate (nitpickerguisession) {};
+	\path (screenshot.south west)+(10ex,5ex) coordinate (nitpickeravplaysession) {};
+
+	\draw[treesessionarrow] (gui.320)
+		.. controls +(270:8ex) and +(270:14ex) ..
+		node[below, sloped=false] {Nitpicker}
+		(nitpickerguisession);
+
+	\draw[treesessionarrow] (vfb.320)
+		.. controls +(270:5ex) and +(270:13ex) ..
+		node[below, sloped=false] {Nitpicker}
+		(nitpickeravplaysession);
+
+\end{tikzpicture}

@@ -1275,6 +1275,14 @@ Genode's architecture to dramatically reduce the trusted computing base of
 applications and to solve rather complicated problems in surprisingly easy
 ways.
 
+The figures presented throughout this section use a simpler nomenclature
+than the previous sections. A component is depicted as box. Parent-child
+relationships are represented as light-gray arrows. A session between
+a client and a server is illustrated by a dashed arrow pointing to the
+server.
+
+[tikz img/simplified_nomenclature]
+
 
 Sandboxing
 ~~~~~~~~~~
@@ -1294,9 +1302,9 @@ of a PDF reader may not expect. By linking such a third-party library to a
 security-critical application, the application's security is seemingly traded
 against the functional value that the library provides.
 
-; XXX [tikz img/qt_avplay]
-;   A video player executes the video and audio codec within a dedicated
-;   sandbox.
+[tikz img/qt_avplay]
+  A video player executes the video and audio codecs inside a dedicated
+  sandbox.
 
 Fortunately, Genode's architecture principally allows every component to
 encapsulate untrusted functionality in child components. So instead of
@@ -1376,6 +1384,9 @@ but completely define all aspects of the child's execution. This clears
 the way for introducing custom operating-system interfaces at any position
 within the component tree, or for monitoring the behavior of subsystems.
 
+[tikz img/noux]
+  The Noux runtime provides a Unix-like interface to its children.
+
 
 Introducing a custom OS interface
 ---------------------------------
@@ -1386,7 +1397,8 @@ child with core. This includes the allocation of memory using the RAM service,
 the spawning and controlling of threads using the CPU service, and the
 management of the child's address space using the RM service.
 
-The noux runtime is the canonical example of this approach.
+The noux runtime illustrated in Figure [img/noux] is the canonical example of
+this approach.
 It appears as a Unix kernel to its children and thereby enables the
 use of Unix software on top of Genode.
 Normally, several aspects of Unix would contradict with Genode's architecture:
@@ -1422,8 +1434,8 @@ if core's services allows for the all-encompassing monitoring of subsystems
 without the need for special support in the kernel. This is useful for
 failsafe monitoring or for user-level debugging.
 
-; XXX [tikz img/no_gdb]
-;   Each Genode component is created out of basic resources provided by core.
+[tikz img/no_gdb]
+  Each Genode component is created out of basic resources provided by core.
 
 As described in Section [Component creation], any Genode component is a
 created out of low-level resources in the form of sessions provided by core.
@@ -1444,10 +1456,10 @@ or manipulate other programs.
 Most L4 kernels use to exclude debugging features in production builds
 altogether.
 
-; XXX [tikz img/gdb_monitor]
-;   By intercepting all sessions to core's services, a debug monitor obtains
-;   insights into the internal state of its child component. The debug monitor,
-;   in turn, is controlled from a remote debugger.
+[tikz img/gdb_monitor]
+  By intercepting all sessions to core's services, a debug monitor obtains
+  insights into the internal state of its child component. The debug monitor,
+  in turn, is controlled from a remote debugger.
 
 In a Genode system, the component's internal state is represented in the
 form of core sessions. Hence, by intercepting those sessions for a child,
@@ -1468,9 +1480,9 @@ execution or enable single-stepping) and modify the memory content
 (e.g., inserting breakpoint instructions). The figure shows that those
 debugging features can be remotely controlled over a terminal connection.
 
-; XXX [tikz img/on_target_gdb]
-;   The GNU debugger is executed within a dedicated noux instance, thereby
-;   providing an on-target debugging facility.
+[tikz img/on_target_gdb]
+  The GNU debugger is executed within a dedicated noux instance, thereby
+  providing an on-target debugging facility.
 
 Using this form of component-level virtualization, a problem that used to
 require special kernel additions in traditional operating systems
