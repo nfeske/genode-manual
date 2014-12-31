@@ -1610,19 +1610,24 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   the session arguments and also represents a client object to interact
   with the session.
 
-; XXX figure showing the inheritance graph of capability types
+[tikz img/capability_types]
+  Fundamental capability types
 
 As depicted in Figure [img/rpc_layers], capabilities are associated with
-types on all levels above the IPC library. Because the IPC library is solely
+types on all levels above the IPC library.
+Because the IPC library is solely
 used by the RPC stub code but not at the framework's API level,
 capabilities appear as being C++ type safe, even across component boundaries.
-
-[tikz img/rpc_classes]
-  Server-side structure of the RPC mechanism
+Each RPC interface implicitly defines a corresponding capability type.
+Figure [img/capability_types] shows the inheritance graph of Genode's
+most fundamental capability types.
 
 
 Server-side class structure
 ---------------------------
+
+[tikz img/rpc_classes]
+  Server-side structure of the RPC mechanism
 
 Figure [img/rpc_classes] gives on overview of the C++ classes that are
 involved in the RPC mechanism. As described in Section [Capability invocation]

@@ -1,0 +1,67 @@
+\begin{tikzpicture}
+
+	\tikzstyle{captype} = [umlclass, minimum height=5.5ex, align=center,
+	                       minimum width=9ex, top color=white,
+	                       bottom color=black!5,
+	                       draw opacity=0.4]
+
+	\node[captype] (untyped) {Capability};
+
+	\definecolor{dataspace} {rgb}{0.85,0.85,1.0}
+	\definecolor{session} {rgb}{1,0.95,0.8}
+
+	%
+	% Capability types
+	%
+	\coordinate[below=2.5ex of untyped] (belowuntyped) {};
+	\path[umlinherit] (belowuntyped) -- (untyped);
+
+	\node[captype, below=1.5ex of belowuntyped, bottom color=session] (session)   {Session};
+	\path (session)+(11ex,0) node[captype, bottom color=dataspace]      (dataspace) {Dataspace};
+	\path (dataspace)+(11ex,0) node[captype]    (thread)    {Thread};
+	\path (thread)+(11ex,0) node[captype]       (parent)    {Parent};
+	\path (parent)+(11ex,0) node[captype]       (root)      {Root};
+	\path (root)+(11ex,0) node[captype]         (sigctx)    {Signal\\context};
+
+	\foreach \i in {session, dataspace, thread, parent, root, sigctx} {
+		\draw (\i) |- (belowuntyped); }
+
+	%
+	% Dataspace types
+	%
+	\coordinate[below=2.5ex of dataspace] (belowdataspace) {};
+	\path[umlinherit] (belowdataspace) -- (dataspace);
+
+	\node[captype, bottom color=dataspace, below=1.5ex of belowdataspace] (ram)   {RAM};
+	\path (ram)+(11ex,0) node[captype, bottom color=dataspace] (rom)   {ROM};
+	\path (rom)+(11ex,0) node[captype, bottom color=dataspace] (iomem) {I/O\\mem};
+
+	\foreach \i in {ram, rom, iomem} {
+		\draw (\i) |- (belowdataspace); }
+
+	%
+	% Session types
+	%
+	\coordinate[below=12ex of session] (belowsession) {};
+	\path[umlinherit] (belowsession) -- (session);
+	\coordinate[below=4.5ex of belowsession] (currpos) {};
+
+	\foreach \i in {CAP, CPU, IRQ, PD, RAM, RM} {
+
+		\node[captype, bottom color=session] at (currpos)
+			(currnode) {\i};
+		\path (currnode)+(11ex,0) coordinate (currpos) {};
+		\draw (currnode) |- (belowsession);
+	}
+
+	\coordinate[below=12ex of belowsession] (currpos) {};
+	\coordinate[right=5.5ex of currpos] (currpos) {};
+
+	\foreach \i in {I/O\\port, I/O\\mem, TRACE, LOG, SIGNAL, ROM} {
+		\node[captype, bottom color=session] at (currpos)
+			(currnode) {\i};
+		\path (currnode)+(11ex,0) coordinate (currpos) {};
+		\draw (currnode) |- (belowsession);
+	}
+
+\end{tikzpicture}
