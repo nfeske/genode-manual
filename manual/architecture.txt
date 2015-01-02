@@ -578,14 +578,14 @@ Resource trading
 As introduced in Section [Component ownership], child components are created
 out of the resources of their respective parent components. This section
 describes the underlying mechanism. It first introduces the concept of
-RAM sessions in Section [Resource assignment]. Section [Trading of resources]
+RAM sessions in Section [Resource assignment]. Section [Resource trading]
 explains how RAM sessions are used to trade resources between components.
 The resource-trading mechanism ultimately allows servers to become resilient
 against client-driven resource-exhaustion attacks. However, such servers need
 to take special precautions that are explained in Section
-[Server-side heap partitioning]. Section [Dynamic resource balancing] presents
-a mechanism for the dynamic balancing of resources among cooperative
-components.
+[Component-local heap partitioning].
+Section [Dynamic resource balancing] presents a mechanism for the dynamic
+balancing of resources among cooperative components.
 
 
 Resource assignment
@@ -1416,7 +1416,198 @@ sessions must not be granted to untrusted components.
 Component creation
 ==================
 
-| TODO
+; XXX note that Linux plays a special role (here the Linux kernel loads
+; the binary)
+
+Each Genode component is made out of five basic ingredients:
+:RAM: session for allocating the memory for the program's BSS segment and heap
+:ROM: session with the executable binary
+:CPU: session for creating the initial thread of the component
+:RM: session for managing the component's address-space layout
+:PD: session representing the component's protection domain
+
+; Initial situation
+
+[tikz img/creation_initial]
+  Starting point for creating a new component
+
+It is the responsibility of the new component's parent to obtain those
+sessions. The initial situation of the parent is depicted in Figure
+[img/creation_initial].
+The parent's memory budget is represented by the
+parent's RAM (Section [Physical memory allocation (RAM)]) session.
+The parent's virtual address space is represented
+by the parent's RM session (Section [Address-space management (RM)]).
+Both sessions were originally created at the parent's construction time.
+Along with the parent's CPU session and PD session, those sessions form
+the parent's so-called _environment_. The parent's RM session is populated
+with the parent's code (shown as red), the so-called
+thread-context area that hosts the stacks (shown as blue), and
+presumably several RAM dataspaces for the heap, the DATA segment,
+and the BSS segment. Those are shown as yellow.
+
+; Obtaining the child's ROM and RAM sessions
+
+The first step for creating a child component is obtaining the component's
+executable binary, e.g., by creating a session to a ROM service such as the
+one provided by core (Section [Access to boot modules (ROM)]). With the
+ROM session created, the parent can make the dataspace with the executable
+binary (i.e., an ELF binary) visible within its virtual address space by
+attaching the dataspace to its RM session. After this step, the parent is
+able to inspect the ELF header to determine the memory required for the
+binary's DATA and BSS segments.
+
+Speaking of memory, the next step is the creation of the child's designated
+RAM session, which represents the memory budget the child has at its disposal.
+The freshly created RAM session has no budget though. In order to make the
+RAM session usable, the parent has to transfer a portion of its own RAM quota
+to the child's RAM session. As explained in Section [Resource assignment],
+the parent registers its own RAM session as the reference account for the
+child's RAM session in order to become able to transfer quota back and forth
+between both RAM sessions. The following figure shows the situation.
+
+[tikz img/creation_rom_ram]
+  The parent creates the RAM session of the new child and obtains the
+  child's executable
+
+With the child's RAM session equipped with memory, the parent can construct
+the address space for the new child. The address-space layout is represented
+as session to core's RM service (Section [Address-space management (RM)]).
+Hence, as illustrated in Figure [img/creation_rmsession], the parent has to
+create an RM session designated for the child.
+When creating the session, the parent is able to constrain the bounds of the
+virtual address space. By default, the first page is excluded such that
+any attempt by the child to de-reference a null pointer will cause a
+fault instead of silently corrupting memory. After its creation time, the
+child's RM session is empty. It is up to the parent to populate the virtual
+address space with meaningful information by attaching dataspaces to the RM
+session. The parent does so by inspecting the ELF executable's header as
+follows.
+
+[tikz img/creation_rmsession]
+  The parent creates and populates the virtual address space of the child
+  using a new RM session (the parent's RM and RAM sessions are not depicted
+  for brevity)
+
+:Read-only segments:
+  For each read-only segment of the ELF binary, the parent attaches the
+  corresponding portion of the ELF dataspace to the child's address space
+  by invoking the attach operation on the child's RM-session capability.
+  By attaching a portion of the existing ELF dataspace to the new child's
+  RM session, no memory must be copied. If multiple instances of the same
+  executable are created, the read-only segments of all instances refer to the
+  same physical memory pages.
+  Only if the segment contains the TEXT segment (the program code), the parent
+  specifies a so-called executable flag to the attach operation. Core passes
+  this flag to the respective kernel such that the corresponding page-table
+  entries for the new components will be configured accordingly (by setting or
+  clearing the non-executable bit).
+  Note that the propagation of this information (or the lack thereof) depends
+  on the used kernel. Also note that not all hardware platforms distinguish
+  executable from non-executable memory mappings.
+
+:Read-writable segments:
+  In contrast to read-only segments, read-writable segments cannot be shared
+  between components. Hence, each read-writable segment must be backed with
+  a distinct copy of the segment data. The parent allocates the backing store
+  for the copy from the child's RAM session and thereby accounts the memory
+  consumption on behalf of the child to the child's budget. For each
+  segment, the parent performs the following steps:
+
+  # Allocation a RAM dataspace from the child's RAM session. The size of the
+    dataspace corresponds to the segment's memory size. The memory size
+    may be higher than the size of the segment in the ELF binary (named
+    file size). In particular, if the segment contains a DATA section
+    followed by a BSS section, the file size corresponds to the size of the
+    DATA section whereby the memory size corresponds to the sum of both
+    sections. Core's RAM service ensures that each fresh allocated RAM
+    dataspace is guaranteed to contain zeros. Core's RAM service returns
+    a RAM dataspace capability as the result of the allocation operation.
+
+  # Attachment of the RAM dataspace to the parent's virtual address space
+    by invoking the attach operation on the parent's RM session with the
+    RAM dataspace capability as argument.
+
+  # Copying of the segment content from the ELF binary's dataspace to the
+    fresh allocated RAM dataspace. If the memory size of the segment is
+    larger than the file size, no special precautions are needed as the
+    remainder of the RAM dataspace is known to be initialized with zeros.
+
+  # After filling the content of the segment dataspace, the parent no longer
+    needs to access it. Hence, it can remove it from its virtual address space
+    by invoking the detach operation on its own RM session.
+
+  # Based on the virtual segment address as found in the ELF header, the
+    parent attaches the RAM dataspace to the child's virtual address space
+    by invoking the attach operation on the child's RM session with the
+    RAM dataspace as argument.
+
+This procedure is repeated for each segment. Note that although the above
+description refers to ELF executables, the underlying mechanisms used to
+load the executable binary are file-format agnostic.
+
+; Creating the initial thread
+
+[tikz img/creation_thread_pd]
+  Creation of the child's protection domain and initial thread
+
+With the virtual address space of the child configured, it is time to
+create the component's initial thread. Analogously to the child's RAM and RM
+sessions, the parent creates a CPU session
+(Section [Processing-time allocation (CPU)]) for the child.
+The parent specify use session arguments to constrain the scheduling parameters
+(i.e., priority) and the CPU affinity of the new child.
+Whichever session arguments are specified, the child's abilities will never
+exceed the parent's abilities. I.e., the child's priority is subjected to the
+parent's priority constrains.
+Once constructed, the CPU session can be used to create new threads by
+invoking the session's create-thread operation.
+The invocation of this operation results in a thread capability, which can be
+used to control the execution of the thread.
+Immediately after its creation, the thread remains inactive.
+In order to be executable, it first needs to be configured. In particular, the
+thread needs to be associated with its address space.
+Otherwise, the kernel respectively core would not know how to respond to a
+page fault triggered by the thread.
+To associate the thread with the virtual address space of the new child, the
+parent invokes the add-client operation at the child's RM session with the
+thread capability as argument.
+
+The final step is the creation of the child's protection domain and the
+assignment of the child's initial thread to new protection domain. A
+protection domain represented by a session to core's PD service.
+As described in Section [Component ownership], each protection domain has
+initially a single capability installed, which allows the child to communicate
+to its parent.
+Right after the creation of the PD for a new child, the parent can register
+a capability to a locally implemented RPC object as parent capability for the
+PD session. Furthermore, the parent binds the initial thread to the child's
+protection domain using the PD-session interface.
+Now that the initial thread has a defined virtual address space and a
+protection domain, it is the right time to kick off the execution of the
+thread using the start operation of the CPU session with the thread
+capability and the initial program counter
+as arguments. The latter argument corresponds to the program's entry-point
+address as found in the ELF header of the child's executable binary.
+Figure [img/creation_thread_pd] illustrates the relationship between the
+PD session, the CPU session, and the parent capability. Note that neither the
+ROM dataspace containing the ELF binary nor the RAM dataspaces
+allocated during the ELF loading are visible in the parent's
+virtual address space any longer. After initially loading the ELF binary,
+the parent has detached those dataspaces from its own RM session.
+
+The child starts its execution at the virtual address defined by the ELF
+entrypoint. For regular Genode components, it points to a short assembly
+routine that sets up the initial stack and calls the low-level C++ startup
+code. This code, in turn, initializes the C++ runtime (such as the exception
+handling) along with the component's local Genode environment. The environment
+is constructed by successively requesting the component's RM, RAM, CPU, and PD
+sessions from its parent. With the Genode environment in place, the startup
+code initializes the thread-context area, sets up the real stack for the main
+thread within the thread-context area, and returns to the assembly startup
+code. The assembly code, in turn, switches the stack from the initial stack to
+the real stack and calls the program-specific C++ startup code. This code
+executes global constructors before calling the program's main function.
 
 
 Inter-component communication

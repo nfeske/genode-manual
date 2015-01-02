@@ -1,0 +1,103 @@
+\begin{tikzpicture}
+
+	\tikzstyle{creationcomponent} = [component, minimum width=60ex]
+
+	\labeledcompoundnode{core}{creationcomponent, inner sep=2ex}{Core}{
+
+		\rpcobjectrnode{corermsession}{minimum width=0ex}{}{RM session}
+		\rpcobjectrnode{coreramsession}{minimum width=0ex,
+		                               below=1ex of corermsession, xshift=4ex}{}{RAM session}
+
+		\rpcobjectrnode{coreromsession}{minimum size=0ex, align=center,
+		                                right=3ex of coreramsession}{}{
+			ROM session\\\\
+			\begin{tikzpicture}[minimum width=0, minimum height=0]
+				\node[dataspace, minimum width=3ex, minimum height=7ex,
+				      rounded corners=0, align=center, inner sep=0] {
+					\scriptsize Dataspace \\
+					\begin{memrange}
+						\alloc{1ex}{memreserved} \remembersouthwest{rombase}
+						\alloc{2ex}{memtext}
+						\alloc{3ex}{memdata}     \remembersoutheast{romend}
+					\end{memrange}
+				};
+			\end{tikzpicture}
+		}
+
+		\rpcobjectrnode{corechildramsession}{minimum width=0ex,
+		                                     right=1ex of coreromsession
+		                                     }{}{RAM session}
+	}
+
+	\labeledcompoundnode{parent}{creationcomponent, above=2ex of core}{Parent}{
+
+		\node[inner sep=0, minimum size=0, outer sep=0] (parentvm) {
+
+			\begin{memrange}
+				\alloc{0.5ex}{memreserved} \remembersouth{parentvmbase}
+				\alloc{7.5ex}{memavail}
+				\alloc{3ex}{memtext}
+				\alloc{4ex}{memdata}
+				\alloc{2ex}{memdata}
+				\alloc{14ex}{memavail}
+				\alloc{1ex}{memrodata} \remembersouthwest{parentrombase}
+				\alloc{2ex}{memrodata}
+				\alloc{3ex}{memrodata} \remembersoutheast{parentromend}
+				\alloc{6ex}{memavail}
+				\alloc{7ex}{memmanaged}
+				\alloc{2ex}{memavail}
+				% sum is 52
+			\end{memrange}
+		};
+
+		\path (parentvm.north east) node[minimum size=0, above, left,
+		                                 xshift=-3ex, yshift=1ex] {\tiny virtual memory};
+
+		\downwardthreadnode{parentthread}{minimum size=0, below=2ex of parentvmbase,
+		                                  xshift=-4ex}
+
+		% vertical space
+		\node[minimum size=0, below=8ex of parentvm] {};
+	}
+
+	\path (parent.south)+(0,3ex) coordinate (parentcapanchor) {};
+
+	\path (coreramsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (envramsessioncap) {};
+	\draw[dashed] (coreramsessioncap) -- (envramsessioncap);
+
+	\path (corermsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (envrmsessioncap) {};
+	\draw[dashed] (corermsessioncap) -- (envrmsessioncap);
+
+	\path (coreromsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (elfromsessioncap) {};
+	\draw[dashed] (coreromsessioncap) -- (elfromsessioncap);
+
+	\path (corechildramsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childramsessioncap) {};
+	\draw[dashed] (corechildramsessioncap) -- (childramsessioncap);
+
+	% association of the dataspace with the parent's virtual address space
+	\draw[densely dotted] (rombase) -- (parentrombase);
+	\draw[densely dotted] (romend) -- (parentromend);
+
+	% parent environment
+	\node[fit=(envrmsessioncap) (envramsessioncap) (corermsession) (coreramsession),
+	      opacity=0.3, draw, rounded corners=5] (env) {};
+
+	\tikzstyle{quotatransfer} = [opacity=0.4,
+	                         decoration={markings,
+	                         mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                         postaction={decorate}]
+
+	\path [quotatransfer] (coreramsessionobj)
+		.. controls +(0,-10ex) and +(1ex,-8ex) ..
+		(corechildramsessionobj);
+
+	\path[arrow, sloped=false] (parentthread.south)
+		.. controls +(4ex,0) and +(0,4ex) ..
+		node[below, pos=0.4] {\scriptsize attach} (envrmsessioncap);
+
+	\path[arrow, sloped=false] (parentthread.south)
+		.. controls +(4ex,0) and +(0,4ex) ..
+		node[above, pos=0.7] {\scriptsize ref account, transfer quota} (envramsessioncap);
+
+
+\end{tikzpicture}

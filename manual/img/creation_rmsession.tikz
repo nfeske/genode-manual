@@ -1,0 +1,141 @@
+\begin{tikzpicture}
+
+	\tikzstyle{creationcomponent} = [component, minimum width=60ex]
+
+	\labeledcompoundnode{core}{creationcomponent}{Core}{
+
+		\node[minimum width=0] (anchor) {};
+
+		\rpcobjectrnode{coreromsession}{minimum size=0ex, align=center,
+		                                right=2ex of anchor}{}{
+			ROM session\\\\
+			\begin{tikzpicture}[minimum width=0, minimum height=0]
+				\node[dataspace, minimum width=3ex, minimum height=7ex,
+				      rounded corners=0, align=center, inner sep=0] {
+					\scriptsize Dataspace \\
+					\begin{memrange}
+						\alloc{1ex}{memreserved} \remembersouthwest{rombase}
+						\alloc{2ex}{memtext}     \remembersouthwest{romtextbase}
+						                         \remembersoutheast{romtextend}
+						\alloc{3ex}{memdata}     \remembersoutheast{romend}
+					\end{memrange}
+				};
+			\end{tikzpicture}
+		}
+
+		\rpcobjectrnode{corechildramsession}{minimum width=0ex,
+		                               right=1ex of coreromsession,
+		                                     align=center}{}{
+			RAM session\\\\
+			\begin{tikzpicture}[minimum width=0, minimum height=0]
+				\node[dataspace, minimum width=3ex, minimum height=7ex,
+				      rounded corners=0, align=center, inner sep=0] {
+					\scriptsize Dataspace \\
+					\begin{memrange}
+						\alloc{7ex}{memdata} \remembersouthwest{database}
+						                     \remembersoutheast{dataend}
+					\end{memrange}
+				};
+			\end{tikzpicture}
+		}
+
+
+		\rpcobjectrnode{corechildrmsession}{minimum width=0ex,
+		                                    right=1ex of corechildramsession
+		                                    }{}{RM session}
+
+		% horizontal space
+	%	\node[right=25ex of corechildrmsession, minimum size=0] {};
+	}
+
+	\labeledcompoundnode{parent}{creationcomponent, above=2ex of core}{Parent}{
+
+		\node[inner sep=0, minimum size=0, outer sep=0] (parentvm) {
+
+			\begin{memrange}
+				\alloc{0.5ex}{memreserved} \remembersouth{parentvmbase}
+				\alloc{7.5ex}{memavail}
+				\alloc{3ex}{memtext}
+				\alloc{4ex}{memdata}
+				\alloc{2ex}{memdata}
+				\alloc{14ex}{memavail}
+				\alloc{1ex}{memrodata} \remembersouthwest{parentrombase}
+				\alloc{2ex}{memrodata}
+				\alloc{3ex}{memrodata} \remembersoutheast{parentromend}
+				\alloc{6ex}{memavail}
+				\alloc{7ex}{memmanaged}
+				\alloc{2ex}{memavail}
+				% sum is 52
+			\end{memrange}
+		};
+
+		\path (parentvm.north east) node[minimum size=0, above, left,
+		                                 xshift=-3ex, yshift=1ex] {\tiny virtual memory};
+
+		\downwardthreadnode{parentthread}{minimum size=0,
+		                                  below=2ex of parentvmbase,
+		                                  xshift=16ex}
+
+		% vertical space
+		\node[minimum size=0, below=8ex of parentvm] {};
+	}
+
+	\node[inner sep=0, minimum size=0, outer sep=0, above=4ex of parent] (childvm) {
+
+		\begin{memrange}
+			\alloc{0.5ex}{memreserved}
+			\alloc{11.5ex}{memavail}
+			\alloc{2ex}{memtext} \remembersouthwest{childtextbase}
+			                     \remembersoutheast{childtextend}
+			\alloc{7ex}{memdata} \remembersouthwest{childdatabase}
+			                     \remembersoutheast{childdataend}
+			\alloc{31ex}{memavail} \remembersoutheast{childvmend}
+			% sum is 52
+		\end{memrange}
+	};
+
+	\path (parent.south)+(0,3ex) coordinate (parentcapanchor) {};
+
+	\path (coreromsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (elfromsessioncap) {};
+	\draw[dashed] (coreromsessioncap) -- (elfromsessioncap);
+
+	\path (corechildramsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childramsessioncap) {};
+	\draw[dashed] (corechildramsessioncap) -- (childramsessioncap);
+
+	\path (corechildrmsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childrmsessioncap) {};
+	\draw[dashed] (corechildrmsessioncap) -- (childrmsessioncap);
+
+	\node[capability, minimum size=2.3ex, left=7ex of elfromsessioncap] (envramsessioncap) {};
+
+	\node[capability, minimum size=2.3ex, left=2ex of envramsessioncap] (envrmsessioncap) {};
+
+	% association of the child's RM session with the child's virtual memory
+	\draw[dashed] (corechildrmsessioncap.east)
+	              .. controls +(3ex,3ex) and +(8ex,2ex) ..
+	              (childvmend.east);
+
+	% association of the dataspace with the parent's virtual address space
+	\draw[densely dotted] (rombase) -- (parentrombase);
+	\draw[densely dotted] (romend) -- (parentromend);
+
+	% association of the ELF dataspace with the child's virtual address space
+	\draw[densely dotted] (romtextbase) -- (childtextbase);
+	\draw[densely dotted] (romtextend) -- (childtextend);
+
+	% association of the RAM dataspace with the child's virtual address space
+	\draw[densely dotted] (database) -- (childdatabase);
+	\draw[densely dotted] (dataend) -- (childdataend);
+
+	% parent environment
+	\node[fit=(envrmsessioncap) (envramsessioncap),
+	      opacity=0.3, draw, rounded corners=5] (env) {};
+
+	\path[arrow, sloped=false] (parentthread.south)
+		.. controls +(4ex,0) and +(0,4ex) ..
+		node[below, pos=0.4] {\scriptsize alloc} (childramsessioncap);
+
+	\path[arrow, sloped=false] (parentthread.south)
+		.. controls +(4ex,0) and +(0,4ex) ..
+		node[above, pos=0.7] {\scriptsize attach} (childrmsessioncap);
+
+\end{tikzpicture}

@@ -441,8 +441,13 @@
 	}
 
 	\newcommand{\remembersouth}[1]{
-		\path (currmemrangeanchor.south) coordinate (##1) {};
-	}
+		\path (currmemrangeanchor.south) coordinate (##1) {}; }
+
+	\newcommand{\remembersoutheast}[1]{
+		\path (currmemrangeanchor.south east) coordinate (##1) {}; }
+
+	\newcommand{\remembersouthwest}[1]{
+		\path (currmemrangeanchor.south west) coordinate (##1) {}; }
 
 	\begin{tikzpicture}[outer sep=0]
 		% reset anchor used for appending allocations
@@ -455,6 +460,8 @@
 	\end{tikzpicture}
 }
 
+
+% styles used for illustrating heap partitioning
 \tikzstyle{heapalloc}  = [rectangle, minimum height=3ex, very thin, draw, draw opacity=0.5]
 \tikzstyle{heapalloc1} = [heapalloc, top color=red!10!lightgray,
                                      bottom color=red!50!lightgray]
@@ -463,6 +470,23 @@
 \tikzstyle{heapempty}  = [heapalloc, top color=white!10!lightgray,
                                      bottom color=white!50!lightgray]
 
+% styles used for illustrating the component creation
+\tikzstyle{memtype}     = [rectangle, minimum height=1ex, very thin, draw,
+                           draw opacity=0.5]
+\tikzstyle{memtext}     = [memtype, top color=red!10!lightgray,
+                                    bottom color=red!50!lightgray]
+\tikzstyle{memdata}     = [memtype, top color=yellow!10!lightgray,
+                                    bottom color=yellow!50!lightgray]
+\tikzstyle{memrodata}   = [memtype, top color=yellow!10!white,
+                                    bottom color=yellow!50!white]
+\tikzstyle{memavail}    = [memtype, top color=white!10!lightgray,
+                                    bottom color=white!50!lightgray]
+\tikzstyle{memmanaged}  = [memtype, top color=blue!10!lightgray,
+                                    bottom color=blue!50!lightgray]
+\tikzstyle{memreserved} = [memtype, top color=white!80!lightgray,
+                                    bottom color=white!80!lightgray,
+                                    pattern=north east lines,
+                                    pattern color=black]
 
 %%
 %% Wheel used for illustrating the audio-out session interface

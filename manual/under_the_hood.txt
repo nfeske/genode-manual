@@ -1,6 +1,8 @@
 Under the hood
 ##############
 
+; XXX Explanation of the startup code (e.g., switching the initial stack)
+
 | TODO
 
 Interaction of core with the underlying kernel

@@ -40,9 +40,9 @@ of componentization. This decision depends on several factors:
   is to be questioned.
 
 The Sections [Device drivers], [Protocol stacks], [Resource multiplexers], and
-[Runtime environments] aid the navigation within the componentization design
-space by discussing the different roles a component can play within a Genode
-system.
+[Runtime environments and applications] aid the navigation within the
+componentization design space by discussing the different roles a component
+can play within a Genode system.
 Those can be be the role of a device driver, protocol stack, resource
 multiplexer, runtime environment, and that of an application. By
 distinguishing those roles, it becomes possible to assess the possible
@@ -1333,7 +1333,7 @@ output and responds to a few keyboard shortcuts for controlling the video
 playback such as pausing the video. Because there exists a Genode version
 of libSDL, avplay can be executed as a Genode component with no modifications.
 This version of libSDL requests a framebuffer (Section [Framebuffer]) and
-audio-out (Section [Audio-output]) session to perform the video and audio
+audio-out (Section [Audio output]) session to perform the video and audio
 output.
 To handle user input, it opens an input session (Section [Input]).
 Furthermore, it opens a ROM session for obtaining a configuration. This

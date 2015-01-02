@@ -1,0 +1,127 @@
+\begin{tikzpicture}
+
+	\tikzstyle{creationcomponent} = [component, minimum width=60ex]
+
+	\labeledcompoundnode{core}{creationcomponent}{Core}{
+
+		\node[minimum width=0] (anchor) {};
+
+
+		\rpcobjectrnode{corechildpdsession}{minimum width=0ex,
+		                                    right=12ex of anchor
+		                                    }{}{PD session}
+
+		\rpcobjectrnode{corechildcpusession}{minimum width=0ex,
+		                                     below=1ex of corechildpdsession,
+		                                     xshift=4ex,
+		                                    }{}{CPU session}
+
+		\rpcobjectrnode{corechildramsession}{minimum width=0ex,
+		                               right=6ex of corechildpdsession,
+		                                     align=center}{}{RAM session}
+
+
+		\rpcobjectrnode{corechildrmsession}{minimum width=0ex,
+		                                    below=1ex of corechildramsession,
+		                                    xshift=5ex}{}{RM session}
+	}
+
+	\labeledcompoundnode{parent}{creationcomponent, above=2ex of core}{Parent}{
+
+
+		\node[inner sep=0, minimum size=0, outer sep=0] (parentvm) {
+
+			\begin{memrange}
+				\alloc{0.5ex}{memreserved} \remembersouth{parentvmbase}
+				\alloc{7.5ex}{memavail}
+				\alloc{3ex}{memtext}
+				\alloc{4ex}{memdata}
+				\alloc{2ex}{memdata}
+				\alloc{26ex}{memavail}
+				\alloc{7ex}{memmanaged}
+				\alloc{2ex}{memavail}
+				% sum is 52
+			\end{memrange}
+		};
+
+		\rpcobjectrnode{parentrpcobj}{minimum width=0ex,
+		                              below=2ex of parentvm,
+		                              xshift=-20ex}{}{Parent}
+
+		\path (parentvm.north east) node[minimum size=0, above, left,
+		                                 xshift=-3ex, yshift=1ex] {\tiny virtual memory};
+
+		\downwardthreadnode{parentthread}{minimum size=0,
+		                                  below=2ex of parentvmbase,
+		                                  xshift=13ex}
+
+		% vertical space
+		\node[minimum size=0, below=8ex of parentvm] {};
+	}
+
+	\labeledcompoundnode{child}{creationcomponent, above=2ex of parent}{Child}{
+
+		\node[inner sep=0, minimum size=0, outer sep=0] (childvm) {
+
+			\begin{memrange}
+				\alloc{0.5ex}{memreserved} \remembersouth{childvmbase}
+				\alloc{11.5ex}{memavail}
+				\alloc{2ex}{memtext} \remembersouthwest{childtextbase}
+				                     \remembersoutheast{childtextend}
+				\alloc{7ex}{memdata} \remembersouthwest{childdatabase}
+				                     \remembersoutheast{childdataend}
+				\alloc{31ex}{memavail} \remembersoutheast{childvmend}
+				% sum is 52
+			\end{memrange}
+		};
+
+		\downwardthreadnode{childthread}{minimum size=0,
+		                                 below=2ex of childvmbase, xshift=4ex}
+
+		% vertical space
+		\node[minimum size=0, below=2ex of childthread] {};
+	}
+
+	\path (parent.south)+(0,3ex) coordinate (parentcapanchor) {};
+
+	\path (child.south)+(0,3ex) coordinate (childcapanchor) {};
+
+	\path (corechildramsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childramsessioncap) {};
+	\draw[dashed] (corechildramsessioncap) -- (childramsessioncap);
+
+	\path (corechildrmsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childrmsessioncap) {};
+	\draw[dashed] (corechildrmsessioncap) -- (childrmsessioncap);
+
+	\path (corechildcpusessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childcpusessioncap) {};
+	\draw[dashed] (corechildcpusessioncap) -- (childcpusessioncap);
+
+	\path (corechildpdsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childpdsessioncap) {};
+	\draw[dashed] (corechildpdsessioncap) -- (childpdsessioncap);
+
+	\path (parentrpcobjcap |- childcapanchor) node[capability, minimum size=2.3ex] (childparentcap) {};
+	\draw[dashed] (parentrpcobjcap) -- (childparentcap);
+
+	% association of the child's CPU session with the child's initial thread
+	\draw[dashed] (corechildcpusessionobj.west)
+	              .. controls +(-20ex,0ex) and +(-12ex,-2ex) ..
+	              (childthread);
+
+	% association of the child's PD session with the child's PD
+	\draw[dashed] (corechildpdsessionobj.west)
+	              .. controls +(-8ex,0ex) and +(-11ex,-8ex) ..
+	              (childthread |- child.south);
+
+	% association of the parent RPC object with the child's PD session
+	\draw[dashed] (corechildpdsessionobj.west)
+	              .. controls +(-4ex,0ex) and +(-4ex,-4ex) ..
+	              (parentrpcobjobj);
+
+	\path[arrow, sloped=false] (parentthread.south)
+		.. controls +(4ex,0) and +(0,4ex) ..
+		node[below, pos=0.2, align=center] {\scriptsize set parent\\ \scriptsize bind thread} (childpdsessioncap);
+
+	\path[arrow, sloped=false] (parentthread.south)
+		.. controls +(4ex,0) and +(0,4ex) ..
+		node[above, pos=0.5] {\scriptsize create thread} (childcpusessioncap);
+
+\end{tikzpicture}

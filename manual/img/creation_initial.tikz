@@ -1,0 +1,55 @@
+\begin{tikzpicture}
+
+	\tikzstyle{creationcomponent} = [component, minimum width=60ex]
+
+	\labeledcompoundnode{core}{creationcomponent}{Core}{
+
+		\rpcobjectrnode{corermsession}{minimum width=0ex}{}{RM session}
+		\rpcobjectrnode{coreramsession}{minimum width=0ex,
+		                               below=1ex of corermsession, xshift=4ex}{}{RAM session}
+
+		% horizontal space
+		\node[right=25ex of corermsession, minimum size=0] {};
+	}
+
+	\labeledcompoundnode{parent}{creationcomponent, above=2ex of core}{Parent}{
+
+		\node[inner sep=0, minimum size=0, outer sep=0] (parentvm) {
+
+			\begin{memrange}
+				\alloc{0.5ex}{memreserved} \remembersouth{parentvmbase}
+				\alloc{7.5ex}{memavail}
+				\alloc{3ex}{memtext}
+				\alloc{4ex}{memdata}
+				\alloc{2ex}{memdata}
+				\alloc{26ex}{memavail}
+				\alloc{7ex}{memmanaged}
+				\alloc{2ex}{memavail}
+				% sum is 52
+			\end{memrange}
+		};
+		\path (parentvm.north east) node[minimum size=0, above, left,
+		                                 xshift=-3ex, yshift=1ex] {\tiny virtual memory};
+
+		% vertical space
+		\node[minimum size=0, below=4ex of parentvm] {};
+	}
+
+	\path (parent.south)+(0,3ex) coordinate (parentcapanchor) {};
+
+	\path (coreramsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (envramsessioncap) {};
+	\draw[dashed] (coreramsessioncap) -- (envramsessioncap);
+
+	\path (corermsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (envrmsessioncap) {};
+	\draw[dashed] (corermsessioncap) -- (envrmsessioncap);
+
+	% association of the parent's RM session with the parent's virtual memory
+	\draw[dashed] (corermsessionobj.west)
+	              .. controls +(-8ex,0) and +(-1ex,2ex) ..
+	              (parentvmbase.west);
+
+	\node[fit=(envrmsessioncap) (envramsessioncap) (corermsession) (coreramsession),
+	      opacity=0.3, draw, rounded corners=5] (env) {};
+	\path (env.north west) node[right, yshift=-1ex] {\scriptsize environment};
+
+\end{tikzpicture}
