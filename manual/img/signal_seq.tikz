@@ -34,7 +34,6 @@
 		\newtimeline{receiver}
 		\node[draw, fill=white, align=center, dropshadow] at (receiver)
 			(signalreceiver) {Signal\\ receiver};
-		\draw[timelinemessage, dashed] (handler) -- node[above] {$create$} (signalreceiver);
 		\renewcommand{\timestepvector}{0,-1}
 		\timestep
 
