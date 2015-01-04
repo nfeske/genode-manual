@@ -1,8 +1,12 @@
 Introduction
 ############
 
-| TODO motivation
-;
+
+Universal truths
+================
+
+| TODO
+
 ; Application-specific trusted computing base
 ; ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ; 
@@ -20,5 +24,106 @@ Introduction
 
 | TODO define term "trusted computing base"
 
-| TODO summary of features
+Operating-system framework
+==========================
 
+The Genode OS framework is a tool kit for building highly secure
+special-purpose operating systems. It scales from embedded systems with as
+little as 4 MB of memory to highly dynamic general-purpose workloads.
+
+Genode is based on a recursive system structure. Each program runs in a
+dedicated sandbox and gets granted only those access rights and resources that
+are needed for its specific purpose. Programs can create and manage
+sub-sandboxes out of their own resources, thereby forming hierarchies where
+policies can be applied at each level. The framework provides mechanisms to
+let programs communicate with each other and trade their resources, but only
+in strictly-defined manners. Thanks to this rigid regime, the attack surface
+of security-critical functions can be reduced by orders of magnitude compared
+to contemporary operating systems.
+
+The framework aligns the construction principles of L4 microkernels with Unix
+philosophy.
+In line with Unix philosophy, Genode is a collection of small building blocks,
+out of which sophisticated systems can be composed. But unlike Unix, those
+building blocks include not only applications but also all classical OS
+functionalities including kernels, device drivers, file systems, and protocol
+stacks.
+
+:CPU architectures:
+
+  Genode supports the x86 (32 and 64 bit) and ARM CPU architectures.
+  On x86, modern architectural features such as IOMMUs and
+  hardware virtualization can be utilized.
+  On ARM, Genode is able to use TrustZone technology.
+
+:Kernels:
+
+  Genode can be deployed on a variety of different kernels including
+  most members of the L4 family (NOVA, Fiasco.OC, OKL4 v2.1, L4ka::Pistachio,
+  Codezero, L4/Fiasco).
+  Furthermore, it can be used on top of the Linux kernel to attain
+  rapid development-test cycles during development.
+  Additionally, Genode comes with custom kernel for ARM-based platforms
+  that was specifically developed for Genode and thereby
+  further reduces the complexity of the trusted computing base
+  compared to other kernels.
+
+:Virtualization:
+
+  Genode support virtualization at different levels:
+  * On NOVA, faithful virtualization via VirtualBox allows the execution of
+    unmodified guest operating systems as Genode subsystems. Alternatively,
+    the Seoul virtual machine monitor can be used to run unmodified
+    Linux-based guest OSes..
+  * On the Fiasco.OC kernel, L4Linux represents a paravirtualized Linux
+    kernel that allows the use of regular Linux distributions as well as
+    Android.
+  * With Noux, there exists a custom runtime environment for Unix
+    software such as GNU coreutils, bash, GCC, binutils, and findutils.
+  * On ARM, Genode can be used as TrustZone monitor.
+
+:Building blocks:
+
+  There exist more than 100 ready-to-use components such as
+  * Device drivers for most common PC peripherals including networking,
+    storage, display, USB, PS/2, Intel wireless, and audio output,
+  * Device drivers for a variety of ARM-based SoCs such as Texas Instruments
+    OMAP4,
+    Samsung Exynos5, and FreeScale i.MX,
+  * A GUI stack including a low-complexity GUI server, window management,
+    and widget toolkits such as Qt5.
+
+
+Licensing and commercial support
+================================
+
+Genode is commercially supported by the German company Genode Labs GmbH, which
+offers trainings, development work under contract, developer support, and
+commercial licensing:
+
+:Genode Labs website:
+
+  [http://www.genode-labs.com]
+
+The framework is available under two flavours of licences, an open-source
+license and commercial licensing.
+The primary license used for the distribution of the Genode OS framework is
+the GNU General Public License Version 2 (GNU GPL). In short, the GNU GPL
+grants everybody the rights to
+
+* Use the Genode OS framework without paying any license fee
+* Freely distribute the software
+* Modify the source code and distribute modified versions of the software
+
+In turn, the GNU GPL requires any modifications and derived work to be
+published under the same or a GPL-compatible license.
+
+For applications that require more permissive licensing conditions than
+granted by the GNU GPL, Genode Labs offers commercial licensing options upon
+request. Please write to _info@genode-labs.com_.
+
+
+Document structure
+==================
+
+| TODO
