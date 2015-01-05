@@ -117,8 +117,8 @@ than a single device. Those problems are the enumeration of devices, the
 discovery of interrupt routing, and the initial setup of the platform.
 
 
-Device enumeration
-------------------
+Problem 1: Device enumeration
+-----------------------------
 
 Modern hardware platforms are rather complex and vary a lot. For example,
 the devices attached to the PCI bus of a PC are usually not known at the
@@ -132,12 +132,12 @@ directly to the PCI configuration interface, each driver would need to
 carry with it the functionality to interact with PCI.
 
 
-Interrupt routing
------------------
+Problem 2: of interrupt routing
+-------------------------------
 
 On PC platforms with multiple processors, the use of legacy interrupts as
 provided by the Intel 8259 programmable interrupt controller (PIC) is not
-suitable because, among several other reasons, there is no way to express the
+suitable because there is no way to express the
 assignment of interrupts to CPUs. To overcome the limitations of the PIC,
 Intel introduced the Advanced Programmable Interrupt Controller (APIC). The
 APIC, however, comes with a different name space for interrupt numbers, which
@@ -152,8 +152,8 @@ ACPI tables and how this information is applied to the individual device
 drivers.
 
 
-Initial hardware setup
-----------------------
+Problem 3: Initial hardware setup
+---------------------------------
 
 In embedded systems, the interaction of the SoC (system on chip) with its surrounding
 peripheral hardware is often not fixed in hardware but rather a
@@ -229,7 +229,7 @@ physical address to the device.
 Consequently, a malicious driver could misuse the device to read and
 manipulate all parts of the physical memory, including the kernel.
 Consequently, device drivers and devices should ideally be trustworthy.
-However, there are several situations where this is ultimately not
+However, there are several scenarios where this is ultimately not
 the case.
 
 [tikz img/no_iommu 100%]
@@ -240,8 +240,8 @@ the case.
   physical memory present in the system.
 
 
-Direct device assignment to virtual machines
---------------------------------------------
+Scenario 1: Direct device assignment to virtual machines
+--------------------------------------------------------
 
 When hosting virtual machines as Genode components, the direct assignment of
 a physical device such as a USB controller, a GPU, or a dedicated network
@@ -259,8 +259,8 @@ to the physical memory used by other components and even the kernel and
 thereby break out of its virtual machine.
 
 
-Firmware-driven attacks
------------------------
+Scenario 2: Firmware-driven attacks
+-----------------------------------
 
 Modern peripherals such as wireless LAN adaptors, network cards, or GPUs
 employ firmware executed on the peripheral device. This firmware is executed
@@ -278,8 +278,8 @@ nor controlled by the operating system, both monolithic and microkernel-based
 operating systems are powerless against such attacks.
 
 
-Bus-level attacks
------------------
+Scenario 3: Bus-level attacks
+-----------------------------
 
 The previous examples misused a DMA-capable device as a proxy to drive an
 attack. However, the system bus can be attacked directly with no hardware
@@ -382,13 +382,15 @@ terminal does affect any other terminal. However complex the implementation of
 the protocol stack may be, it is not prone to leaking information to another
 terminal because it is connected to a single client only. The leakage of
 information is constrained to interfaces used by the individual instance.
-Hence, protocol stacks appear often as the most suitable category of
-components to host highly complex untrusted code if needed.
+Hence, in cases like this, the protocol-stack component is suitable
+for hosting highly complex untrusted code if such code cannot be avoided.
 
-Note that the example above cannot be generalized. There are protocol stacks
-that are critical for the confidentiality of information. For example, an
-in-band encryption component may translate plain-text network traffic to
-encrypted network traffic designated to be transported over a public network.
+Note that the example above cannot be generalized for all protocol stacks.
+There are protocol stacks that are critical for the confidentiality of
+information.
+For example, an in-band encryption component may translate plain-text network
+traffic to encrypted network traffic designated to be transported over a
+public network.
 Even though the component is a protocol stack, it may still be prone to
 leaking unencrypted information to the public network.
 
