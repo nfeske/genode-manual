@@ -8,7 +8,135 @@ Under the hood
 Interaction of core with the underlying kernel
 ==============================================
 
+The core is the root of the process tree. It is initialized and started
+directly by the underlying kernel and has two purposes. First, it makes
+the low-level physical resources of the machine available to other components
+in the form of services. Those resources are the physical memory, processing
+time, device resources, initial boot modules, and protection mechanisms (such
+as the MMU, IOMMU, and virtualization extensions). It thereby
+hides the peculiarities of the used kernel behind an API that is uniform
+across all kernels supported by Genode. Core's second purpose is the
+creation of the init component by using its own services and following the
+steps described in Section [Component creation].
+
+Even though core is executed in usermode, its role as the root of the
+component tree makes it as critical as the kernel. It just happens to be
+executed in a different processor mode. Whereas regular components solely
+interact with the kernel when performing inter-component communication, core
+interplays with the kernel more intensely. The following subsections go
+into detail about this interplay.
+
+The description tries to be general across the various kernels supported
+by Genode. Note, however, that a particular kernel may deviate from the
+general description.
+
+
+Bootstrapping and allocator setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+At boot time, the kernel passes information about the physical resources and
+the initial system state to core. Even though the mechanism and format of this
+information varies from kernel to kernel, it generally covers the following
+aspects:
+
+* A list of free physical memory ranges
+* A list of the physical memory locations of the boot modules along with their
+  respective names
+* The number of available CPUs
+* All information needed to enable the initial thread to perform kernel
+  operations
+
+
+Core's allocators
+-----------------
+
+Core's kernel-specific platform initialization code (_core/platform.cc_)
+uses this information to initialize the allocators used for keeping track
+of physical resources. Those allocators are:
+
+:RAM allocator: contains the ranges of the available physical memory
+:I/O memory allocator: contains the physical address ranges of unused
+  memory-mapped I/O resources. In general, all ranges not initially present in
+  the RAM allocator are considered as I/O memory.
+:I/O port allocator: contains the I/O ports on x86-based platforms that are
+  currently not in use. This allocator is initialized with the entire
+  I/O port range of 0 to 0xffff.
+:IRQ allocator: contains the IRQs that are associated with IRQ sessions.
+  This allocator is initialized with the entirety of the available IRQ
+  numbers.
+:Core-region allocator: contains the virtual memory regions of core that
+  are not in use.
+
+The RAM allocator and core-region allocators are subsumed in the so-called
+core-memory allocator. In addition to aggregating both allocators, the
+core-memory allocator allows for the allocation of core-local virtual-memory
+regions that can be used for holding core-local objects. Each region
+allocated from the core-memory allocator has to satisfy three conditions:
+
+# It must be backed by a physical memory range (as allocated from the RAM
+  allocator)
+# It must have assigned a core-local virtual memory range (as allocated
+  from the core-region allocator)
+# The physical-memory range has the same size as the virtual-memory range
+# The virtual memory ranges is mapped to the physical memory range using
+  the MMU
+
+Internally, the core-memory allocator maintains a so-called mapped-memory
+allocator that contains ranges of ready-to-use core-local memory. If a new
+allocation exceeds the available capacity, the core-memory allocator expands
+its capacity by allocating a new physical memory region from the RAM
+allocator, allocating a new core-virtual memory region from the core-region
+allocator, and installing a mapping from the virtual region to the physical
+region.
+
+All memory allocators mentioned above are working at the granularity of
+physical pages, i.e., 4 KiB.
+
+The core-memory allocator is used as the backing store for core's heap.
+It is expanded on demand but never shrunk.
+This makes it unsuitable for allocating objects on the behalf of core clients
+because allocations could not be reverted when closing the session.
+It is solely used for dynamic memory allocations at the startup (e.g., the
+memory needed for keeping the information about the boot modules),
+and for keeping meta data for the allocators themselves.
+
+; Boot modules
+; ------------
+
+
+Kernel-object creation
+~~~~~~~~~~~~~~~~~~~~~~
+
+Kernel objects are objects maintained within the kernel and used by the
+kernel.
+The exact notion of what a kernel object represents depends on the actual
+kernel as the various kernels differ with respect to the abstractions they
+provide.
+Typical kernel objects are threads and protection domains.
+Some kernels have kernel objects for memory mappings whereas others provide
+page tables as kernel objects.
+Whereas some kernels represent scheduling parameters as distinct kernel
+objects, others subsume scheduling parameters to threads.
+What all kernel objects have in common, though, is that they consume kernel
+memory.
+Most kernels of the L4 family preserve a fixed pool of memory for the
+allocation of kernel objects.
+
+If an arbitrary component was able to perform a kernel operation that triggers
+the creation of a kernel object, the memory consumption of the kernel would
+depend on the good behavior of all components. A misbehaving component may
+thereby exhaust the kernel memory.
+
+To counter this problem, on Genode, only core triggers the creation of kernel
+objects and thereby guards the consumption of kernel memory. Note, however,
+that not all kernels are able to prevent the creation of kernel objects
+outside of core.
+
+
 | TODO
+; XXX zeroing out RAM dataspaces
+; XXX keeping core's virtual memory void of non-core memory objects
+
 
 Design of the base-hw kernel
 ============================
