@@ -1837,12 +1837,11 @@ RPC-object creation
 -------------------
 
 Figure [img/new_rpc_obj_seq] shows the procedure of creating a new RPC object.
+The server component has already created an entrypoint, which, in turn,
+created its corresponding object pool.
 
 [tikz img/new_rpc_obj_seq]
   Creation of a new RPC object
-
-# The server component creates a new entrypoint, which, in turn, creates
-  its corresponding object pool.
 
 # The server component creates an instance of an RPC object.
   "RPC object" denotes an object that inherits the RPC object class
