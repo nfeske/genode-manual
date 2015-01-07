@@ -390,6 +390,11 @@ outside of core.
 | TODO
 ; XXX zeroing out RAM dataspaces
 ; XXX keeping core's virtual memory void of non-core memory objects
+;    even though core has the authority of all memory, it maps memory the
+;    physical pages that it needs to access
+; XXX page-fault handling
+;    pager object
+;    deferred page fault resolution
 
 
 IOMMU support
@@ -483,12 +488,11 @@ Execution on the NOVA microhypervisor (base-nova)
 =================================================
 
 | TODO
-; * Special linker script at base-nova/src/platform/roottask.ld
+; * Special linker script at base-nova/src/platform/roottask.ld - why?
 ; * Link to NOVA spec
 ; * Relationship of NOVA kernel objects to core sessions
 ; * Capability protection
-
-
+; * Genode specific modifications of the NOVA kernel
 
 
 Dynamic linker
@@ -496,6 +500,17 @@ Dynamic linker
 
 | TODO
 
-; concept of ld.lib.so
+; XXX concept of ld.lib.so
+; * start ld.lib.so as regular binary, execute generic startup code
+; * requesting the binary
+; * lazy relocation
+; * managed dataspace for keeping shared libraries (why)
+; * lookup main function as present in the dynamic binary
+
+
+; XXX further possible topics
+; * Locking
+; * C++ runtime
+; * Booting
 
 
