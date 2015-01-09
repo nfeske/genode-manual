@@ -114,7 +114,7 @@ modules available to other components. Those boot modules comprise the
 executable binaries of the init component as well as those of the components
 created by init. Furthermore, a ROM module called "config" contains the
 configuration of the init process in an XML format. To obtain its
-configuration, init requests a ROM session for the ROM module "init" from
+configuration, init requests a ROM session for the ROM module "config" from
 its parent, which is core. Figure [img/nested_config] shows an example of
 such a config ROM module.
 
@@ -295,8 +295,7 @@ The combination of explicit routes and wildcards is designed to scale well from
 being convenient to use during development towards being highly secure at
 deployment time. If only explicit rules are present in the configuration, the
 permitted relationships between all processes are explicitly defined and can be
-easily verified. Note however that the degree those rules are enforced at the
-kernel-interface level depends on the used base platform.
+easily verified.
 
 
 Resource quota saturation
