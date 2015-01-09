@@ -259,6 +259,12 @@ For the latter reason, the atexit mechanism cannot be merely provided
 by the (optional) C runtime but must be supported by the base library.
 
 
+C++ runtime
+===========
+
+| TODO
+
+
 Interaction of core with the underlying kernel
 ==============================================
 
@@ -388,13 +394,12 @@ outside of core.
 
 
 | TODO
-; XXX zeroing out RAM dataspaces
-; XXX keeping core's virtual memory void of non-core memory objects
-;    even though core has the authority of all memory, it maps memory the
-;    physical pages that it needs to access
-; XXX page-fault handling
-;    pager object
-;    deferred page fault resolution
+|
+| XXX zeroing out RAM dataspaces, keeping core's virtual memory void of non-core memory objects
+| (even though core has the authority of all memory, it maps memory the
+| physical pages that it needs to access)
+|
+| XXX page-fault handling (pager object, deferred page fault resolution)
 
 
 IOMMU support
@@ -516,7 +521,7 @@ boot loaders on ARM platforms usually merely support the loading of a
 single system image. Hence, base-hw requires a concept for merging
 boot modules together with the core/kernel into a single image.
 
-; XXX how does the concept works?
+| XXX how does the concept works?
 
 
 Kernel entry and exit
