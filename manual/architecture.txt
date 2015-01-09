@@ -1446,7 +1446,9 @@ thread-context area that hosts the stacks (shown as blue), and
 presumably several RAM dataspaces for the heap, the DATA segment,
 and the BSS segment. Those are shown as yellow.
 
-; Obtaining the child's ROM and RAM sessions
+
+Obtaining the child's ROM and RAM sessions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The first step for creating a child component is obtaining the component's
 executable binary, e.g., by creating a session to a ROM service such as the
@@ -1457,22 +1459,28 @@ attaching the dataspace to its RM session. After this step, the parent is
 able to inspect the ELF header to determine the memory required for the
 binary's DATA and BSS segments.
 
-Speaking of memory, the next step is the creation of the child's designated
+The next step is the creation of the child's designated
 RAM session, which represents the memory budget the child has at its disposal.
 The freshly created RAM session has no budget though. In order to make the
 RAM session usable, the parent has to transfer a portion of its own RAM quota
 to the child's RAM session. As explained in Section [Resource assignment],
 the parent registers its own RAM session as the reference account for the
 child's RAM session in order to become able to transfer quota back and forth
-between both RAM sessions. The following figure shows the situation.
+between both RAM sessions. Figure [img/creation_rom_ram] shows the situation.
 
 [tikz img/creation_rom_ram]
   The parent creates the RAM session of the new child and obtains the
   child's executable
 
+
+Constructing the child's address space
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 With the child's RAM session equipped with memory, the parent can construct
-the address space for the new child. The address-space layout is represented
-as session to core's RM service (Section [Address-space management (RM)]).
+the address space for the new child and populate it with memory allocated
+from the RAM session.
+The address-space layout is represented
+as a session to core's RM service (Section [Address-space management (RM)]).
 Hence, as illustrated in Figure [img/creation_rmsession], the parent has to
 create an RM session designated for the child.
 When creating the session, the parent is able to constrain the bounds of the
@@ -1481,8 +1489,8 @@ any attempt by the child to de-reference a null pointer will cause a
 fault instead of silently corrupting memory. After its creation time, the
 child's RM session is empty. It is up to the parent to populate the virtual
 address space with meaningful information by attaching dataspaces to the RM
-session. The parent does so by inspecting the ELF executable's header as
-follows.
+session. The parent performs this procedure based on the information found
+in the ELF executable's header:
 
 [tikz img/creation_rmsession]
   The parent creates and populates the virtual address space of the child
@@ -1546,7 +1554,9 @@ This procedure is repeated for each segment. Note that although the above
 description refers to ELF executables, the underlying mechanisms used to
 load the executable binary are file-format agnostic.
 
-; Creating the initial thread
+
+Creating the initial thread and the child's protection domain
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [tikz img/creation_thread_pd]
   Creation of the child's protection domain and initial thread
