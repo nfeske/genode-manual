@@ -530,13 +530,71 @@ that not all kernels are able to prevent the creation of kernel objects
 outside of core.
 
 
+Page-fault handling
+~~~~~~~~~~~~~~~~~~~
+
+Each time a thread within the Genode system triggers a page fault, the kernel
+reflects the page fault along with the fault information as a message to the
+user-level page-fault handler residing in core.
+The fault information comprises the identity and instruction pointer of the
+faulted thread, the page-fault address, and the fault type (read, write,
+execute).
+The page-fault handler represents each thread as a so-called _pager object_.
+For handling the page fault, it first looks up the pager
+object that belongs to the faulting thread's identity,
+analogously to how an RPC entrypoint looks up the RPC object for an incoming
+RPC request.
+Given the pager object, the fault is handled by calling the 'pager' function
+with the fault information as argument. This function is implemented by
+the so-called 'Rm_client' (_repos/base/src/core/rm_session_component.cc_),
+which represents the association of the pager object
+with its virtual address space (RM session). Given the context
+information about the RM session of the thread, the 'pager' function
+looks up the region within the RM session, on which the page fault occurred.
+The lookup results in one of the following three cases:
+
+:Region is populated with a dataspace:
+  If a dataspace is attached at the fault address, the backing store of the
+  dataspace is determined.
+  Depending on the kernel, the backing store
+  may be a physical page, a core-local page, or another reference to a physical
+  memory page.
+  The pager function then installs a memory mapping from the virtual page where
+  the fault occurred to the corresponding part of the backing store.
+
+:Region is populated with a managed dataspace:
+  If the fault occurred within a region where a managed dataspace is
+  attached, the fault handling is forwarded to the RM session that
+  represents the managed dataspace.
+
+:Region is empty:
+  If no dataspace could be found at the fault address, the fault cannot
+  be resolved. In this case, core submits an RM-fault signal to the RM
+  session where the fault occurred. This way, the RM-session client has
+  the chance to detect and possibly respond to the fault. Once the signal
+  handler receives a fault signal, it is able to query the fault address
+  from the RM session.
+  As a response to the fault, the RM-session client may attach a dataspace at
+  this address.
+  This attach operation, in turn, will prompt core to wake up the thread
+  (or multiple threads) that faulted within the attached region.
+  If no signal handler for RM faults is registered for the RM session,
+  core prints a diagnostic message and blocks the faulting thread forever.
+
+To optimize the TLB footprint and the use of kernel memory, the RM service
+does not merely work at the granularity of memory pages but operates on
+address ranges those size and alignment are arbitrary power-of-two values (at
+least as large as the size of the smallest physical page).
+So the source and destinations of memory mappings may span many pages. This
+way, depending on the kernel and the architecture, multiple pages may be
+mapped at once, or large page-table mappings can be used.
+
 | TODO
 |
 | XXX zeroing out RAM dataspaces, keeping core's virtual memory void of non-core memory objects
 | (even though core has the authority of all memory, it maps memory the
 | physical pages that it needs to access)
 |
-| XXX page-fault handling (pager object, deferred page fault resolution)
 
 
 IOMMU support
