@@ -739,11 +739,11 @@ The execution model of the kernel can be roughly characterized as a
 single-stack kernel. In contrast to traditional L4 kernels that maintain one
 kernel thread per user thread, the base-hw kernel is a mere state machine
 that never blocks in the kernel. State transitions are triggered by
-user-level threads that enter the kernel via a system call or by device
-interrupts. Once entered, the kernel applies the state change depending
-on the event that caused the kernel entry, and leaves the kernel to the
-user land. The transition between user and kernel mode depends on the
-revision of the ARM architecture. For ARMv7, the corresponding code is
+user-level threads that enter the kernel via a system call, by device
+interrupts, or by a CPU exception. Once entered, the kernel applies the state
+change depending on the event that caused the kernel entry, and leaves the
+kernel to the user land. The transition between user and kernel mode depends
+on the revision of the ARM architecture. For ARMv7, the corresponding code is
 located at _src/core/spec/arm_v7/mode_transition.s_.
 
 
