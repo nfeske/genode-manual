@@ -25,6 +25,7 @@ proc produce_head_latex {} {
 	printline {\usepackage{color}}
 	printline {\usepackage[pdftex,pagebackref=true,colorlinks=true,linkcolor=darkblue,citecolor=darkblue,urlcolor=darkblue]{hyperref}}
 	printline {\input{img/tikz-preamble.tex}}
+	printline {\urlstyle{same}}
 
 	printline {\begin{document}}
 

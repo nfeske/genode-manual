@@ -592,8 +592,6 @@ mapped at once, or large page-table mappings can be used.
 | TODO
 |
 | XXX zeroing out RAM dataspaces, keeping core's virtual memory void of non-core memory objects
-| (even though core has the authority of all memory, it maps memory the
-| physical pages that it needs to access)
 |
 
 
@@ -794,7 +792,7 @@ operations for the creation, the management, and the destruction of kernel
 objects.
 
 The distinction between both parts of the kernel interface is enforced
-by the 'Thread::_call' function in _src/core/kernel/thread.cc_.
+by the function 'Thread::_call' in _src/core/kernel/thread.cc_.
 
 
 Public part of the kernel interface
@@ -935,6 +933,19 @@ able to assign portions of its CPU time and subranges of its priority band to
 its children without knowing the global means of CPU time or priority.
 
 
+Sparsely populated core address space
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Even though core has the authority over all physical memory, it has no
+immediate access to the physical pages. Whenever core requires access to a
+physical memory page, it first has to explicitly map the physical page into
+its own virtual memory space. This way, the virtual address space of core
+stays clean from any data of other components. Even in the presence of a bug
+in core (e.g., a dangling pointer), information cannot accidentally leak
+between different protection domains because the virtual memory of other
+components is not visible to core.
+
+
 Multi-processor support of base-hw
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -986,23 +997,388 @@ resumes its execution.
 
 ; Futher possible topics
 ; * TrustZone
+; * kernel bootstrap
 
 
 Execution on the NOVA microhypervisor (base-nova)
 =================================================
 
-| TODO
-; * Special linker script at base-nova/src/platform/roottask.ld - why?
-; * Link to NOVA spec
-; * Relationship of NOVA kernel objects to core sessions
-; * Capability protection
-; * Genode specific modifications of the NOVA kernel
-; * Bender
+NOVA is a so-called microhypervisor, denoting the combination of microkernel
+and a virtualization platform (hypervisor). It is a high-performance
+microkernel for the x86 architecture. In contrast to other microkernels,
+it had been designed for hardware-based virtualization via user-level
+virtual-machine monitors. In line with Genode's architecture, NOVA's kernel
+interface is based on capability-based security. Hence, the kernel fully
+supports the model of a Genode kernel as described in Section
+[Capability-based security].
+
+:NOVA website:
+
+  [http://hypervisor.org]
+
+:NOVA kernel-interface specification:
+
+  [https://github.com/udosteinberg/NOVA/raw/master/doc/specification.pdf]
+
+
+Integration of NOVA with Genode
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The NOVA kernel is available via Genode's ports mechanism described in
+Section [Ports of 3rd-party software]. The port description is located
+at _repos/base-nova/ports/nova.port_.
+
+Building the NOVA kernel
+------------------------
+
+Even though NOVA is a third-party kernel with a custom build system,
+the kernel is built directly from the Genode build system. NOVA's build
+system remains unused.
+
+From within a Genode build directory configured for one of the nova_x86_32
+or nova_x86_64 platforms, the kernel can be built via
+
+! make kernel
+
+The build description for the kernel is located at
+_repos/base-nova/src/kernel/target.mk_.
+
+System-call bindings
+--------------------
+
+NOVA is not accompanied with bindings to its kernel interface. There is
+only a description of the kernel interface in the form of the kernel
+specification available. For this reason, Genode maintains the kernel
+bindings for NOVA within the Genode source tree. The bindings are located
+at _repos/base-nova/include/_ in the subdirectories _nova/_, _32bit/nova/_,
+and _64bit/nova/_.
+
+
+Bootstrapping of a NOVA-based system
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+After finishing its initialization, the kernel starts the first boot module
+(after the kernel) as root task. The root task is Genode's core. The virtual
+address space of core contains the text and data segments of core, the UTCB
+of the initial EC, and the hypervisor info page (HIP). Details about the
+HIP are provided in Section 6 of the NOVA specification.
+
+BSS section of core
+-------------------
+
+The kernel's ELF loader does not support the concept of a BSS segment. It
+simply maps the physical pages of the core's text and data segments into
+the virtual memory of the core but does not allocate any additional physical
+pages for backing the BSS. For this reason, the NOVA version of core
+does not use the _genode.ld_ linker script as described in Section
+[Linker scripts] but the linker script located at
+_repos/base-nova/src/platform/roottask.ld_. This version hosts the BSS section
+within the data segment. Thereby, the BSS is physically present in the core
+binary in the form of zero-initialized data.
+
+Initial information provided by NOVA to core
+--------------------------------------------
+
+The kernel passes a pointer to the HIP to core as the initial value of the
+ESP register. Genode's startup code saves this value in the global variable
+'_initial_sp' (Section [Startup code]).
+
+
+Log output on modern PC hardware
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Because transmitting information over the legacy comports does not require
+complex device drivers, serial output over comports is still the predominant
+way to output low-level system logs like kernel messages or the output of
+core's LOG service.
+
+Unfortunately, most modern PCs lack dedicated comports. This leaves two
+options to obtain low-level system logs.
+
+# The use of vendor-specific platform-management features such as Intel
+  VPro / Intel Advanced Management Technology (AMT) or Intel Platform
+  Management Interface (IPMI). These platform features are able to emulate a
+  legacy comport and provide the serial output over the network.
+  Unfortunately, those solutions are not uniform across different vendors,
+  difficult to use, and tend to be unreliable.
+
+# The use of a PCI card or an Express card that provides a physical comport.
+  When using such a device, comport appears as PCI I/O resource.
+  Because the device interface is compatible to the legacy comports,
+  no special drivers are needed.
+
+The latter option allows the retrieval of low-level system logs on hardware
+that lacks special management features.
+In contrast to the legacy comports, however, it has the minor disadvantage
+that the location of the device's I/O resources is not prior known.
+The I/O port range of the comport depends on the device-enumeration
+procedure of the BIOS. To enable the kernel to output information
+over this comport, the kernel must be configured with the I/O port range
+as assigned by the BIOS on the specific machine. One version of the kernel
+cannot simply be used across different machines.
+
+The Bender chain boot loader
+----------------------------
+
+The alleviate the need to adapt the kernel configuration to the used comport
+hardware, the bender chain boot loader can be used.
+
+:Bender is part of the MORBO tools:
+
+  [https://github.com/TUD-OS/morbo]
+
+Instead of starting the NOVA hypervisor directly, the multi-boot-compliant
+boot loader (such as GRUB) starts bender as the kernel. All remaining
+boot modules including the real kernel have been already loaded into memory
+by the original boot loader. Bender scans the PCI bus for a comport device.
+If such a device is found (e.g., an Express card), it writes the information
+about the device's I/O port range to a known offset within the BIOS data
+area (BDA).
+
+After the comport-device probing is finished, bender passes control to the
+next boot module, which is the real kernel. The comport device driver of
+the kernel does not use a hard-coded I/O port range for the comport but
+looks up the comport location from the BDA.
+The use of bender is optional. When not used, the BDA always contains the I/O
+port range of the legacy comport 1.
+
+The Genode source tree contains a pre-compiled binary of bender at
+_tool/boot/bender_. This binary is automatically incorporated into boot images
+for the NOVA base platform when the run tool (Section [Run tool]) is used.
+
+
+Relation of NOVA's kernel objects to Genode's core services
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the terminology of NOVA's kernel objects, refer to the NOVA specification
+mentioned in the introduction of
+Section [Execution on the NOVA microhypervisor (base-nova)].
+A brief glossary for the terminology used in the remainder of this section is
+given in table [nova_terminology].
+
+   NOVA term  |
+  --------------------------------------------------
+   PD         | Protection domain
+   EC         | Execution context (thread)
+   SC         | Scheduling context
+   HIP        | Hupervisor information page
+   IDC        | Inter-domain call (RPC call)
+
+[table nova_terminology]
+  Glossary of NOVA's terminology
+
+
+NOVA capabilities are not Genode capabilities
+---------------------------------------------
+
+Both NOVA and Genode use the term "capability". However, the term has not
+the same meaning in both contexts. A Genode capability refers to an RPC
+object or a signal context. In the context of NOVA, a capability refers to
+a NOVA kernel object. To avoid confusing both meanings of the term,
+Genode refers to NOVA's term as "capability selector", or simply
+"selector".
+
+
+PD service
+----------
+
+A PD session corresponds to a NOVA PD.
+
+
+CPU service
+-----------
+
+NOVA distinguishes so-called global ECs from local ECs. A global EC can
+be equipped with CPU time by associating it with an SC. It can perform
+IDC calls but it cannot receive IDC calls. In contrast to a global EC,
+a local EC is able to receive IDC call but it has no CPU time. A local
+EC is executed not before it is called by another EC.
+
+A regular Genode thread is a global EC. A Genode entrypoint is a local EC.
+Core distinguishes both cases based on the instruction-pointer (IP) argument
+of the CPU session's start function. For a local EC, the IP is set to zero.
+
+
+RAM and IO_MEM services
+-----------------------
+
+Core's RAM and IO_MEM allocators are initialized based on the information found in NOVA's
+HIP.
+
+
+ROM service
+-----------
+
+Core's ROM service provides all boot modules as ROM modules. Additionally,
+NOVA's HIP is provided as a ROM module named "hypervisor_info_page".
+
+
+CAP service
+-----------
+
+A Genode capability corresponds to a NOVA portal. Each NOVA portal has a
+defined IP and an associated local EC (the Genode entrypoint). The invocation
+of a Genode capability is an IDC call to a portal. A Genode capability is
+delegated by passing its corresponding portal selector as IDC argument.
+
+
+IRQ service
+-----------
+
+NOVA represents each interrupt as a semaphore. Within core, there is one
+entrypoint per IRQ session. When 'wait_for_irq' is called, the called IRQ
+entrypoint blocks on its corresponding IRQ semphore. In the kernel, this
+semaphore-down operation implicitly unmasks the interrupt at the CPU.
+
+When the interrupt occurs, the kernel masks the interrupt at the CPU and
+performs the semphore-up operation on the IRQ's semaphore. Thereby, it wakes
+up the IRQ entrypoint, which replies to the 'wait_for_irq' RPC call.
+
+
+Page-fault handing on NOVA
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+On NOVA, each EC has a defined range of portal selectors that are traversed
+in the event of an exception. For each type of exception there is dedicated
+portal. The page-fault portal of a Genode thread is defined at the creation
+time of the thread and points to a dedicated pager EC within core.
+Hence, for each Genode thread, there exist two ECs. One in the PD where
+the thread executes and the pager EC in core.
+
+
+The operation of pager ECs
+--------------------------
+
+When an EC triggers a page fault, the faulting EC implicitly performs an
+IDC call to its pager. The IDC message contains the fault information.
+On NOVA, there is a one-to-one relationship between a pager EC and Genode's
+pager object. For resolving the page fault, core follows the procedure
+described in [Page-fault handling]. If the lookup for a dataspace within
+the faulter's RM session succeeds, core establishes
+a memory mapping into the EC's PD by sending a so-called map item as reply to
+the page fault message. In the case where the region lookup
+within the thread's corresponding RM session fails, the pager EC blocks
+on a semaphore. Because the page-fault message remains unanswered, the
+faulting thread is effectively put on halt.
+In the event that the RM fault is resolved by an RM client
+as described in the paragraph "Region is empty", the blocking on the
+semaphore gets released and the pager EC is able to reply to the original
+page-fault message. However, the reply does not immediately establish a memory
+mapping. Instead, the faulter will immediately trigger another fault at the
+same address. This time, however, the region lookup succeeds.
+
+
+Mapping database
+----------------
+
+NOVA tracks memory mappings in a data structure called _mapping database_
+and has the notion of the delegation of memory mappings (rather than the
+delegation of memory access). Memory access can be delegated only if the
+originator of the mapping has a mapping. Core is the only exception because
+it can establish mappings originating from the physical memory space.
+Because mappings can be delegated transitively between PDs, the mapping
+database is a tree where each node denotes the delegation of a mapping.
+The tree is maintained in order to enable the kernel to revoke the authority.
+When a mapping is revoked, the kernel implicitly revokes all transitive
+mappings that originated in the revoked node.
+
+Because of this design, core needs to maintain a core-local memory mapping for
+each memory mapping established outside of core.
+This mapping is solely needed to revoke the memory mapping later on, for
+example, when a dataspace is detached from an RM session.
+The kernel's revoke operation takes the core-local address as argument and
+revokes all mappings originating from this mapping node.
+
+
+Genode-specific modifications of the NOVA kernel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+NOVA is not fit to be used as Genode base platform as is. This section
+compiles the modifications that were needed to meet the functional requirements of
+the framework. All modifications are maintained at the following
+repository:
+
+:Genode's version of NOVA:
+
+  [https://github.com/alex-ab/NOVA.git]
+
+The repository contains a separate branch for each version of NOVA that had
+been used for Genode. When preparing the NOVA port using the port description
+at _repos/base-nova/ports/nova.port_, the NOVA branch that matches the used
+Genode version is checked out automatically. The port description refers to
+a specific commit ID. The commit history of each branch within the NOVA
+repository above corresponds to the history of the original NOVA kernel
+followed by a series of Genode-specific commits. Each time, NOVA is updated,
+all Genode-specifications are rebased on the history of the new NOVA version.
+This way, the differences between the original NOVA kernel and the Genode
+version remain clearly documented. The Genode-specific modifications solve the
+following problems:
+
+:Destruction of kernel objects:
+
+  NOVA does not support the destruction of kernel objects. E.e., PDs and
+  ECs can be created but not destroyed. With Genode being a dynamic system,
+  kernel-object destruction is a mandatory feature.
+
+:Inter-processor IDC:
+
+  On NOVA, only local ECs can receive IDC calls. Furthermore each local EC
+  is bound to a particular CPU (hence the name "local EC"). Consequently,
+  synchronous inter-component communication via IDC calls is possible only
+  between ECs that both resided on the same CPU but can never cross CPU
+  boundaries. Unfortunately, IDC is the only mechanism for the delegation
+  of capabilities. Consequently, authority cannot be delegated between
+  subsystems that reside on different CPUs. For Genode, this scheme is
+  too rigid.
+
+  Hence, the Genode version of NOVA introduces inter-CPU calls. When calling
+  an EC on another CPU, the kernel creates a temporary EC and SC on the
+  targeted CPU as a representative of the caller. The calling EC is blocked.
+  The temporary EC uses the same UTCB as the calling EC. Therebe, the
+  original IDC message is effectively transferred from one CPU to the other.
+  The temporary EC then perform a local IDC to the destination EC using
+  NOVA's existing IDC mechanism. Once the temporary EC receives the reply
+  (with the reply message contained in the caller's UTCB), the kernel
+  destroys the temporary EC and SC and unblocks the caller EC.
+
+:Support for priority-inheriting spinlocks:
+
+  Genode's lock mechanism relies on a yielding spinlock for protecting the
+  lock meta data. On most base platform, there exists the invariant that
+  all threads of one component share the same CPU priority. So priority
+  inversion within a component cannot occur. NOVA breaks this invariant
+  because the scheduling parameters (SC) are passed along IDC call chains.
+  Consequently, when a client calls a server, the SCs of both client
+  and server reside within the server. These SCs may have different
+  priorities. The use of a naive spinlock for synchronization will produce
+  priority inversion problems. The kernel has been extended with the
+  mechanisms needed to support the implementation of
+  priority-inheriting spinlock in the userland.
+
+:Combination of capability delegation and translation:
+
+  As described in
+  Section [Capability delegation through capability invocation],
+  there are two cases when a capability is specified as an RPC argument.
+  The callee may already have a capability referring to the specified
+  capability. In this case, the callee expects to receive the corresponding
+  local name of the object identity. In the other case, when the callee
+  does not yet have a capability for the object identity, it obtains a new
+  local name that refers to the delegated capability.
+
+  NOVA does not support this mechanism per se.
+  When specifying a capability selector as map item for an IDC call,
+  the caller can specify whether a new mapping should be created or
+  the translation of the local names should be performed by the kernel.
+  However, in the general case, this question is not decidable by the caller.
+  Hence, NOVA had to be changed to take the decision depending on the
+  existence of a valid translation for specified capability selector.
+
 
 
 ; XXX further possible topics
 ; * Locking
-; * C++ runtime
-; * Booting
+; * Introduce the threads running within core
+;   (why to use separate a separate thread for signals?)
+; * Shared interrupts
 
-; XXX introduce the threads running within core
