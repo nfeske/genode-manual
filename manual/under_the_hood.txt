@@ -1235,6 +1235,15 @@ performs the semphore-up operation on the IRQ's semaphore. Thereby, it wakes
 up the IRQ entrypoint, which replies to the 'wait_for_irq' RPC call.
 
 
+RM service
+----------
+
+The RM service is used for the page-fault handling as explained in Section
+[Page-fault handling on NOVA]. Each memory mapping installed in a component
+implicitly triggers the allocation of a node in the kernel's mapping
+database.
+
+
 Page-fault handing on NOVA
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1374,6 +1383,93 @@ following problems:
   Hence, NOVA had to be changed to take the decision depending on the
   existence of a valid translation for specified capability selector.
 
+
+Known limitations of NOVA
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This section summarizes the known limitations of NOVA and the NOVA version of
+core.
+
+:Fixed amount of kernel memory:
+
+  NOVA allocates kernel objects out of a memory pool of a fixed size. The pool
+  is dimensioned in the kernel's linker script
+  _nova/src/hypervisor.ld_ (at the symbol '_mempool_f').
+  The existence of a fixed pool implies that any component that is able to
+  trigger allocations in the kernel is able to indirectly consume kernel
+  resources. A misbehaving component in possession of its own PD capability
+  selector may even forcefully trigger the
+  exhaustion of the entire pool and thereby make the kernel unavailable. I.e.,
+  the kernel panics when running out of memory. The kernel provides no
+  mechanism to mitigate such an resource-exhaustion-based denial-of-service
+  attach.
+
+  On Genode, only core explicitly allocates kernel objects, which relieves
+  the problem but does not solve it. In order to create a kernel
+  object, a PD capability selector must be specified to the respective
+  system call. Since PD capability selectors are never delegated to the
+  outside of core, kernel objects cannot be directly created by arbitrary
+  components. The creation of kernel objects is rather a side effect of the
+  use of core's services. Thereby, core is principally in the position to
+  restrict the use of kernel memory per client. However, such an accounting
+  for kernel memory is not performed by the NOVA version of core.
+
+  In addition to the explicit creation of kernel objects, kernel memory is
+  implicitly allocated when mapping nodes are inserted into the kernel's
+  mapping database. Thereby, kernel memory is consumed as a side effect of IDC
+  calls that carry map items. Since ECs of the same PD can perform IDC calls
+  between one another, the allocation of mapping nodes can be artificially
+  stressed by delegating a large number of mappings within the same PD via
+  successive IDC calls.
+
+  Therefore, components are principally able to launch denial-of-service
+  attacks on the kernel. In the event of an exhaustion of kernel memory,
+  the kernel stops the system. Hence, even though the lack of proper
+  management of kernel memory is an availability risk, it cannot be
+  exploited as a covert storage channel.
+
+:The maximum number of threads is limited by core's thread-context area:
+
+  NOVA's page-fault handling protocol works completely synchronously. When a
+  page fault occurs, the faulting EC enters its page-fault portal and thereby
+  activates the corresponding pager EC in core. If the pager's lookup for a
+  matching dataspace within the faulter's RM session succeeds, the page fault
+  is resolved by delegating a memory mapping as the reply to the page-fault
+  IDC call. However, if a page fault occurs on a managed dataspace, the pager
+  cannot resolve it immediately. The resolution must be delayed until the RM
+  fault handler (outside of core) responds to the RM fault signal. In order to
+  be able to serve page faults of other threads in the meantime, each thread
+  has its dedicated pager EC in core.
+
+  Each pager EC consumes a thread context within core. Since core's
+  thread-context area is limited, the maximum number of ECs within core is
+  limited too. Because one core EC is needed as pager for each thread outside
+  of core, the available thread contexts within core become a limited resource
+  shared by all CPU-session clients. Because each Genode component is a client
+  of core's CPU service, this bounded resource is effectively shared among all
+  components. Consequently, the allocation of threads on NOVA's version of
+  core represents a possible covert storage channel.
+
+:Bounded number of object capabilities within core:
+
+  For each capability created via core's CAP service, core allocates the
+  corresponding NOVA portal and maintains the portal's capability selector
+  during the lifetime of the associated object identity. Each allocation of
+  a capability via core's CAP service consumes one entry in core's capability
+  space. Because the space is bounded, clients of the CAP service could misuse
+  core's capability space as covert storage channel.
+
+:Core must retain mappings to all memory used throughout the system:
+
+  As mentioned in Section [Page-fault handing on NOVA], core needs to own
+  a mapping node before delegating the mapping to another PD as a response
+  to a page fault. Otherwise, core could not revoke the mapping later on
+  because the kernel expects core's mapping node as a proof for the
+  authorization of the revocation of the mapping.
+
+  Consequently, even though core never touches memory handed out to other
+  components, it needs to have memory mappings with full access rights
+  installed within its virtual address space.
 
 
 ; XXX further possible topics
