@@ -999,6 +999,22 @@ resumes its execution.
 ; * TrustZone
 ; * kernel bootstrap
 
+Limitations of the base-hw platform
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The base-hw kernel does not (yet) support the model of kernel-protected
+capabilities as described in Section [Capability-based security].
+All kernel objects are referred to via global IDs.
+On this platform, a capability is represented as a tuple of a thread ID
+and a global object ID. Capability delegation is realized as a plain copy
+of those values. Since any thread can specify arbitrary global thread IDs
+and object IDs when performing RPC calls, capability-based security access
+control remains ineffective.
+
+_However, note that the lack of kernel-protected capabilities is not an_
+_inherent limitation of the design of base-hw but a temporary limitation_
+_due to the kernel's stage of its ongoing development._
+
 
 Execution on the NOVA microhypervisor (base-nova)
 =================================================
