@@ -23,13 +23,13 @@ Linker scripts
 Under the hood, the Genode build system uses three different linker scripts
 located at _repos/base/src/platform/_:
 
-:genode.ld: used for statically linked components, including
+:genode.ld: is used for statically linked components, including
   the core component,
 
-:genode_dyn.ld: used for dynamically linked components, i.e., components
+:genode_dyn.ld: is used for dynamically linked components, i.e., components
   that are linked against at least one shared library,
 
-:genode_rel.ld: used for shared libraries.
+:genode_rel.ld: is used for shared libraries.
 
 Additionally, there exists a special linker script for the dynamic linker
 (Section [Dynamic linker]).
@@ -42,14 +42,14 @@ which appear consecutively in the component's virtual memory.
 
   The startup code is placed in a dedicated section '.text.crt0', which
   appears right at the start of the segment. Thereby the link address of
-  the component is known to correspond with the ELF entrypoint (the first
+  the component is known to correspond to the ELF entrypoint (the first
   instruction of the assembly startup code).
   This is useful when converting the ELF image of the base-hw version of
   core into a raw binary. Such a raw binary can be loaded directly into
   the memory of the target platform without the need for an ELF loader.
 
   The mechanisms for constructing the list of constructors and destructors
-  differs between the CPU architecture and are defined by the architecture's
+  differ between the CPU architecture and are defined by the architecture's
   ABI. On x86, the lists are represented by '.ctors.*' and '.dtors.*'.
   On ARM, the information about global constructors is represented by
   '.init_array' and there is no visible information about global destructors.
@@ -95,13 +95,13 @@ base framework.
   information about the parent capability to this location (the start
   of the first read-writable ELF segment). See the corresponding code
   in the '_setup_elf' function in _base/src/base/process/process.cc_.
-  The use of the information depends on the used base platforms. E.g.,
+  The use of the information depends on the base platform. E.g.,
   on a platform where a capability is represented by a tuple of a global
-  thread ID and an object ID such as OKL4 and L4ka::Pistachio, those
-  information are taken as verbatim values. On platforms that fully
+  thread ID and an object ID such as OKL4 and L4ka::Pistachio, the
+  information is taken as verbatim values. On platforms that fully
   support capability-based security without the use of any form of
-  a global name to represent a capability, the information are unused.
-  Here, the parent capability is represented with the same known
+  a global name to represent a capability, the information remains unused.
+  Here, the parent capability is represented by the same known
   local name in all components.
 
 Even though the linker scripts are used across all base platforms, they
@@ -115,7 +115,7 @@ in the linker script for further explanations.
 Startup code
 ~~~~~~~~~~~~
 
-The execution the initial thread of a new component starts at the ELF
+The execution of the initial thread of a new component starts at the ELF
 entry point, which corresponds to the '_start' function. This is an
 assembly function defined in _repos/base/platform/<arch>/crt0.s_ where
 _<arch>_ is the CPU architecture (x86_32, x86_64, or ARM).
@@ -133,7 +133,7 @@ position-independent, too.
 The code performs the following steps:
 
 # Saving the initial state of certain CPU registers. Depending on the
-  used kernel, these registers are used to pass information from the
+  used kernel, these registers carry information from the
   kernel to the core component. More details about this information
   are provided by Section [Bootstrapping and allocator setup]. The
   initial register values are saved in global variables named
@@ -145,7 +145,7 @@ The code performs the following steps:
   point the top of a valid stack. The initial stack is located in the
   BSS section and referred to by the symbol '_stack_high'. However,
   having a stack located within the BSS section is dangerous. If it
-  overflows (e.g., by declaring large local variables, or recursive
+  overflows (e.g., by declaring large local variables, or by recursive
   function calls), the stack would silently overwrite parts of the
   BSS and DATA sections located below the lower stack boundary. For prior
   known code, the stack can be dimensioned to a reasonable size. But
@@ -160,7 +160,7 @@ The code performs the following steps:
   steps needed to set up the real stack. Because those steps are the same for
   all components, the usage of the initial stack is bounded.
 
-# Because the startup code used by statically linked components as well as
+# Because the startup code is used by statically linked components as well as
   the dynamic linker, the startup immediately calls the 'init_rtld' hook
   function.
   For regular components, the function does not do anything. The default
@@ -176,7 +176,7 @@ The code performs the following steps:
   the address of the real stack.
 
 # With the new stack pointer returned by 'init_main_thread', the assembly
-  startup code is able to switch the stack pointer from initial stack to
+  startup code is able to switch the stack pointer from the initial stack to
   the real stack. From this point on, stack overflows cannot easily corrupt
   any data.
 
@@ -217,7 +217,7 @@ entire Genode environment as a side effect of initializing the real stack of
 the program.
 
 During the construction of the Genode environment (by calling
-'Genode::env()'), the program requests its own RM, RAM, CPU, and PD session
+'Genode::env()'), the program requests its own RM, RAM, CPU, and PD sessions
 from its parent, and initializes its heap ('env()->heap()').
 
 With the environment constructed, the program is able to interact
@@ -228,18 +228,18 @@ so-called thread-context area is constructed. The thread-context area
 is a secondary RM session that is attached as a dataspace to the component's
 actual RM session (See the description of managed dataspaces in Section
 [Address-space management (RM)]).
-This way, virtual-memory allocations within the thread context area can be
-managed manually. I.e., the spaces between the stack of different threads are
+This way, virtual-memory allocations within the thread-context area can be
+managed manually. I.e., the spaces between the stacks of different threads are
 guaranteed to remain free from any attached dataspaces.
 For constructing the thread-context area, a new RM session is created
 (_repos/base/src/base/context_area.cc_).
 
 
-Component-specific startup code
--------------------------------
+Component-dependent startup code
+--------------------------------
 
 With the Genode environment constructed and the initial stack switched
-to a proper stack located in the thread-context area, the component-specific
+to a proper stack located in the thread-context area, the component-dependent
 startup code of the '_main' in _repos/base/src/platform/_main.cc_ can be
 executed. This code is responsible for calling the global constructors
 of the program before calling program's main function.
@@ -271,8 +271,8 @@ Rationale behind using exceptions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Compared to return-based error handling as prominently used in C programs, the
-C++ exception mechanism much more complex. In particular it requires the use
-of a C++ runtime library that is used as a back-end by the exception handling code
+C++ exception mechanism is much more complex. In particular, it requires the use
+of a C++ runtime library that is called as a back-end by the exception handling code
 generated by the compiler. This library contains the functionality needed to
 unwind the stack and a mechanism for obtaining runtime type
 information (RTTI). The C++ runtime libraries that come with common tool
@@ -352,7 +352,7 @@ object construction. There are two principle approaches:
   as a transaction. If it succeeds, the object is known to be completely
   constructed. If if fails, the object immediately ceases to exist.
 
-Thanks to the transactional semantic of the second variant, the state space
+Thanks to the transactional semantics of the second variant, the state space
 for potential error conditions (and thereby the test space) remains small.
 Also, the second variant facilitates the use of references as class members,
 which can be safely passed as arguments to subsequent constructors. When
@@ -366,15 +366,15 @@ that avoids exceptions.
 Bare-metal C++ runtime
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Acknowledging the rationale given in the previous sections, there is
+Acknowledging the rationale given in the previous section, there is
 still the problem of the complexity added by the exception mechanism.
 For Genode, the complexity of the trusted computing base is a fundamental
 metric. The C++ exception mechanism with its dependency to the C library
 arguably adds significant complexity. The code complexity of a C
 library exceeds the complexity of the fundamental components (such as the
 kernel, core, and init) by an order of magnitude. Making the fundamental
-components depend on such a C library would jeopardize Genode's most valuable
-asset, which is its low complexity.
+components depend on such a C library would jeopardize one of Genode's most
+valuable assets, which is its low complexity.
 
 To enable the use of C++ exceptions and runtime type information but
 avoid the incorporation of an entire C library into the trusted computing
@@ -388,10 +388,10 @@ references to (some of) the symbols present in the emulation header.
 Those symbols are provided by Genode's C++ support code
 (_repos/base/src/base/cxx_). The implementation of those functions is
 specifically tied to the usage patterns of the C++ runtime.
-Hence, most of the functions are mere dummies.
+Several of the functions are mere dummies.
 
 Unfortunately, the interface used by the C++ runtime does not reside
-in a specific namespace but it is rather a subset of the POSIX API. Hence, when
+in a specific namespace but it is rather a subset of the POSIX API. When
 linking a real C library to a Genode component, the symbols present in the
 C library would collide with the symbols present in Genode's C++ support code.
 For this reason, the C++ runtime (of the compiler) and Genode's C++
@@ -405,7 +405,7 @@ required by the compiler.
 Interaction of core with the underlying kernel
 ==============================================
 
-The core is the root of the process tree. It is initialized and started
+Core is the root of the process tree. It is initialized and started
 directly by the underlying kernel and has two purposes. First, it makes
 the low-level physical resources of the machine available to other components
 in the form of services. Those resources are the physical memory, processing
@@ -464,7 +464,7 @@ of physical resources. Those allocators are:
 :Core-region allocator: contains the virtual memory regions of core that
   are not in use.
 
-The RAM allocator and core-region allocators are subsumed in the so-called
+The RAM allocator and core-region allocator are subsumed in the so-called
 core-memory allocator. In addition to aggregating both allocators, the
 core-memory allocator allows for the allocation of core-local virtual-memory
 regions that can be used for holding core-local objects. Each region
@@ -475,7 +475,7 @@ allocated from the core-memory allocator has to satisfy three conditions:
 # It must have assigned a core-local virtual memory range (as allocated
   from the core-region allocator)
 # The physical-memory range has the same size as the virtual-memory range
-# The virtual memory ranges is mapped to the physical memory range using
+# The virtual memory range is mapped to the physical memory range using
   the MMU
 
 Internally, the core-memory allocator maintains a so-called mapped-memory
@@ -486,11 +486,10 @@ allocator, allocating a new core-virtual memory region from the core-region
 allocator, and installing a mapping from the virtual region to the physical
 region.
 
-All memory allocators mentioned above are working at the granularity of
+All memory allocators mentioned above are performed at the granularity of
 physical pages, i.e., 4 KiB.
 
-The core-memory allocator is used as the backing store for core's heap.
-It is expanded on demand but never shrunk.
+The core-memory allocator is expanded on demand but never shrunk.
 This makes it unsuitable for allocating objects on the behalf of core clients
 because allocations could not be reverted when closing the session.
 It is solely used for dynamic memory allocations at the startup (e.g., the
@@ -522,7 +521,7 @@ allocation of kernel objects.
 If an arbitrary component was able to perform a kernel operation that triggers
 the creation of a kernel object, the memory consumption of the kernel would
 depend on the good behavior of all components. A misbehaving component may
-thereby exhaust the kernel memory.
+exhaust the kernel memory.
 
 To counter this problem, on Genode, only core triggers the creation of kernel
 objects and thereby guards the consumption of kernel memory. Note, however,
@@ -582,92 +581,18 @@ The lookup results in one of the following three cases:
   core prints a diagnostic message and blocks the faulting thread forever.
 
 To optimize the TLB footprint and the use of kernel memory, the RM service
-does not merely work at the granularity of memory pages but operates on
-address ranges those size and alignment are arbitrary power-of-two values (at
+does not merely operate at the granularity of memory pages but on
+address ranges whose size and alignment are arbitrary power-of-two values (at
 least as large as the size of the smallest physical page).
-So the source and destinations of memory mappings may span many pages. This
-way, depending on the kernel and the architecture, multiple pages may be
+The source and destinations of memory mappings may span many pages.
+This way, depending on the kernel and the architecture, multiple pages may be
 mapped at once, or large page-table mappings can be used.
 
-| TODO
-|
-| XXX zeroing out RAM dataspaces, keeping core's virtual memory void of non-core memory objects
-|
 
 
-IOMMU support
-=============
-
-As discussed in Section [Direct memory access (DMA) transactions], misbehaving
-device driver may exploit DMA transactions to circumvent their component
-boundary. When executing Genode on the NOVA microhypervisor, however,
-bus-master DMA is subjected to the IOMMU.
-
-NOVAs interface to the IOMMU is quite elegant. The kernel simply
-applies a subset of the (MMU) address space of a process (aka protection domain
-in NOVA speak) to the (IOMMU) address space of a device. So the device's
-address space can be managed in the same way as we normally manage the address
-space of a process. The only missing link is the assignment of device address
-spaces to process address spaces. This link is provided by the dedicated system
-call "assign_pci" that takes a process identifier and a device identifier as
-arguments. Of course, both arguments must be subjected to a security policy.
-Otherwise, any process could assign any device to any other process. To enforce
-security, the process identifier is a capability to the respective protection
-domain and the device identifier is a virtual address where the extended PCI
-configuration space of the device is mapped in the specified protection domain.
-Only if a user-level device driver got access to the extended PCI configuration
-space of the device, it is able to get the assignment in place.
-
-To make NOVA's IOMMU support available to Genode components,
-the ACPI driver has the ability to hand out the extended PCI configuration
-space of a device, and a NOVA-specific extension ('assign_pci') to the PD session
-interface can be used to associate a PCI device with a protection domain.
-
-; XXX [image img/iommu_aware 63%]
-;   NOVAs management of the IOMMU address spaces facilities the use of
-;   driver-local virtual addresses as DMA addresses.
-
-Even though these mechanisms combined principally
-suffice to let drivers operate with the IOMMU enabled, in practice, the
-situation is a bit more complicated. Because NOVA uses the same
-virtual-to-physical mappings for the device as it uses for the process, the DMA
-addresses the driver needs to supply to the device must be virtual addresses
-rather than physical addresses. Consequently, to be able to make a device
-driver usable on systems without IOMMU as well as on systems with IOMMU, the
-driver needs to be IOMMU-aware and distinguish both cases. This is an
-unfortunate consequence of the otherwise elegant mechanism provided by NOVA. To
-relieve the device drivers from caring about both cases, Genode decouples
-the virtual address space of the device from the virtual address space of the
-driver. The former address space is represented by a Genode process called
-_device PD_. Its sole purpose
-is to hold mappings of DMA buffers that are accessible by the associated
-device. By using one-to-one physical-to-virtual mappings for those buffers
-within the device PD, each device PD contains a subset of the physical address
-space. The ACPI driver performs the assignment of device PDs to PCI
-devices. If a device driver intends to use DMA, it allocates a new DMA buffer
-for a specific PCI device at the ACPI driver.
-The ACPI driver responds to such a request by allocating a RAM dataspace at core,
-attaching it to the device PD using the dataspace's physical address as virtual
-address, and handing out the dataspace capability to the client. If the driver
-requests the physical address of the dataspace, the returned address will be a
-valid virtual address in the associated device PD.
-From this design follows that a device driver must allocate DMA buffers at the
-ACPI server (specifying the PCI device the buffer is intended for) instead of
-using core's RAM service to allocate buffers anonymously. Note that the
-current implementation of the ACPI server assigns all PCI devices to only one
-device PD.
-
-; XXX [image img/iommu_agnostic 80%]
-;   By modelling a device address space as a dedicated process (device PD),
-;   the traditional way of programming DMA transactions can be maintained,
-;   even with the IOMMU enabled.
-
-
-Capability mechanism in depth
-=============================
-
-| TODO
-
+;Capability mechanism in depth
+;=============================
+;
 ; Capability representation as C++ object
 ; Marshalling of capabilities as RPC arguments
 ; Life-time management
@@ -708,7 +633,7 @@ employ Genode's user-level resource trading concepts as described in Section
 [Resource trading]. Finally and most
 importantly, merging the kernel with roottask removes a lot of
 redundancies between both programs. Traditionally, both kernel and roottask
-performed the book keeping of physical-resource allocations and the existence
+use to perform the book keeping of physical-resource allocations and the existence
 of kernel objects such as address spaces and threads. In base-hw, those data
 structures exist only once. The complexity of the combined kernel/core is
 significantly lower than the sum of the complexities of a traditional
@@ -773,7 +698,7 @@ where _<spec>_ refers to the timer variant.
 The in-kernel handler of the timer interrupt invokes the thread scheduler
 (_src/core/include/kernel/cpu_scheduler.h_).
 The scheduler maintains a list of so-called scheduling contexts where each
-context refers to a thread. Each time, the kernel is entered, the scheduler
+context refers to a thread. Each time the kernel is entered, the scheduler
 is updated with the passed duration. When updated, it takes a scheduling
 decision by making the next to-be-executed thread the head of the list.
 At the kernel exit, the control is passed to the user-level thread that
@@ -804,7 +729,7 @@ inter-component communication as detailed in Section
 to as IPC (for inter-process communication).
 To allow threads to perform calls to other threads or to receive RPC requests,
 the kernel interface is equipped with system calls for performing IPC
-(_send_request_msg_, _await_request_msg_, _send_reply_msg_.
+(_send_request_msg_, _await_request_msg_, _send_reply_msg_).
 To keep the kernel as simple as possible, IPC is performed using so-called
 user-level thread-control blocks (UTCB).
 Each thread has a corresponding memory page that is always
@@ -894,7 +819,7 @@ in a round-robin fashion.
 Whereas being pretty fast and easy to implement, this scheme has disadvantages:
 First, there is no way to prevent
 high-prioritized threads from starving lower-prioritized ones. Second, CPU time
-could not be granted to threads and passed between them by the means of quota.
+cannot be granted to threads and passed between them by the means of quota.
 To cope with these problems without much loss of performance, base-hw employs
 a custom scheduler that deviates from the traditional approach.
 
@@ -903,7 +828,7 @@ scheduling contexts - called _fills_ - and low-latency-oriented
 scheduling contexts - called _claims_. Examples for typical fills would be
 the processing of a compiler job or the rendering computations of a sophisticated
 graphics program. They shall obtain as much CPU time as the system can spare
-but there is no demand for a high responsiveness. In contrast, a good example
+but there is no demand for a high responsiveness. In contrast, an example
 for the claim category would be a typical GUI-software stack covering the
 control flow from user-input drivers through a chain of GUI components to the
 drivers of the graphical output. Another example is a user-level device driver
@@ -922,13 +847,13 @@ CPU quota. The priority defines the absolute scheduling order within the super
 period among those claims that are active and have quota left. As long as
 there exist such claims, the scheduler stays in the claim mode and the quota
 of the scheduled claims decreases. At the end of a super period, the quota of
-all claims gets refreshed to the initial value. Every time the scheduler can't
+all claims is replenished to the initial value. Every time the scheduler can't
 find an active claim with CPU-quota left, it switches to the fill mode. Fills
 are scheduled in a simple round-robin fashion with identical time slices. The
 proceeding of the super period doesn't affect the scheduling order and
 time-slices of this mode. The concept of quota and priority that is
 implemented through the claim mode aligns nicely with Genode's way of
-hierarchical resource management: Through CPU-sessions, each process becomes
+hierarchical resource management: Through CPU sessions, each process becomes
 able to assign portions of its CPU time and subranges of its priority band to
 its children without knowing the global means of CPU time or priority.
 
@@ -970,7 +895,7 @@ Regarding synchronous and asynchronous inter-processor communication - thanks
 to the global kernel lock - the is no semantic difference to the uniprocessor
 case. The only difference is that on a multiprocessor system, one processor may
 change the schedule of another processor by unblocking one of its threads
-(e.g., when RPC call is received by a server that resides on a different CPU
+(e.g., when an RPC call is received by a server that resides on a different CPU
 as the client).
 This condition may rescind the current scheduling choice of the other processor.
 To avoid lags in this case, the kernel lets the unaware target processor trap
@@ -989,8 +914,8 @@ With respect to the synchronization of core-local hardware, there are two
 different situations to deal with. Some hardware components like most ARM
 caches and branch predictors implement their own coherence protocol and thus
 need adaption in terms of configuration only. Others, like the TLBs lack this
-feature. When for instance a page table entry gets invalid, a TLB invalidation
-of the affected entries must be done locally by each core. To signal the
+feature. When for instance a page table entry gets invalid, the TLB invalidation
+of the affected entries must be performed locally by each core. To signal the
 necessity of TLB maintenance work, an IPI is sent to all other cores. If all
 cores completed the cleaning, the thread that invoked the TLB invalidation
 resumes its execution.
@@ -1011,9 +936,9 @@ of those values. Since any thread can specify arbitrary global thread IDs
 and object IDs when performing RPC calls, capability-based security access
 control remains ineffective.
 
-_However, note that the lack of kernel-protected capabilities is not an_
-_inherent limitation of the design of base-hw but a temporary limitation_
-_due to the kernel's stage of its ongoing development._
+| Note that the lack of kernel-protected capabilities is not an
+| inherent limitation of the design of base-hw but a temporary limitation
+| due to the kernel's stage of its ongoing development.
 
 
 Execution on the NOVA microhypervisor (base-nova)
@@ -1083,8 +1008,8 @@ BSS section of core
 -------------------
 
 The kernel's ELF loader does not support the concept of a BSS segment. It
-simply maps the physical pages of the core's text and data segments into
-the virtual memory of the core but does not allocate any additional physical
+simply maps the physical pages of core's text and data segments into
+the virtual memory of core but does not allocate any additional physical
 pages for backing the BSS. For this reason, the NOVA version of core
 does not use the _genode.ld_ linker script as described in Section
 [Linker scripts] but the linker script located at
@@ -1118,8 +1043,8 @@ options to obtain low-level system logs.
   Unfortunately, those solutions are not uniform across different vendors,
   difficult to use, and tend to be unreliable.
 
-# The use of a PCI card or an Express card that provides a physical comport.
-  When using such a device, comport appears as PCI I/O resource.
+# The use of a PCI card or an Express Card that provides a physical comport.
+  When using such a device, the added comport appears as PCI I/O resource.
   Because the device interface is compatible to the legacy comports,
   no special drivers are needed.
 
@@ -1130,7 +1055,7 @@ that the location of the device's I/O resources is not prior known.
 The I/O port range of the comport depends on the device-enumeration
 procedure of the BIOS. To enable the kernel to output information
 over this comport, the kernel must be configured with the I/O port range
-as assigned by the BIOS on the specific machine. One version of the kernel
+as assigned by the BIOS on the specific machine. One kernel binary
 cannot simply be used across different machines.
 
 The Bender chain boot loader
@@ -1147,7 +1072,7 @@ Instead of starting the NOVA hypervisor directly, the multi-boot-compliant
 boot loader (such as GRUB) starts bender as the kernel. All remaining
 boot modules including the real kernel have been already loaded into memory
 by the original boot loader. Bender scans the PCI bus for a comport device.
-If such a device is found (e.g., an Express card), it writes the information
+If such a device is found (e.g., an Express Card), it writes the information
 about the device's I/O port range to a known offset within the BIOS data
 area (BDA).
 
@@ -1207,7 +1132,7 @@ CPU service
 NOVA distinguishes so-called global ECs from local ECs. A global EC can
 be equipped with CPU time by associating it with an SC. It can perform
 IDC calls but it cannot receive IDC calls. In contrast to a global EC,
-a local EC is able to receive IDC call but it has no CPU time. A local
+a local EC is able to receive IDC calls but it has no CPU time. A local
 EC is executed not before it is called by another EC.
 
 A regular Genode thread is a global EC. A Genode entrypoint is a local EC.
@@ -1260,12 +1185,13 @@ implicitly triggers the allocation of a node in the kernel's mapping
 database.
 
 
-Page-fault handing on NOVA
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Page-fault handling on NOVA
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-On NOVA, each EC has a defined range of portal selectors that are traversed
-in the event of an exception. For each type of exception there is dedicated
-portal. The page-fault portal of a Genode thread is defined at the creation
+On NOVA, each EC has a defined range of portal selectors.
+For each type of exception, the range has dedicated portal that is entered in
+the event of an exception.
+The page-fault portal of a Genode thread is defined at the creation
 time of the thread and points to a dedicated pager EC within core.
 Hence, for each Genode thread, there exist two ECs. One in the PD where
 the thread executes and the pager EC in core.
@@ -1299,13 +1225,13 @@ Mapping database
 NOVA tracks memory mappings in a data structure called _mapping database_
 and has the notion of the delegation of memory mappings (rather than the
 delegation of memory access). Memory access can be delegated only if the
-originator of the mapping has a mapping. Core is the only exception because
+originator of the delegation has a mapping. Core is the only exception because
 it can establish mappings originating from the physical memory space.
 Because mappings can be delegated transitively between PDs, the mapping
 database is a tree where each node denotes the delegation of a mapping.
 The tree is maintained in order to enable the kernel to revoke the authority.
 When a mapping is revoked, the kernel implicitly revokes all transitive
-mappings that originated in the revoked node.
+mappings that originated from the revoked node.
 
 Because of this design, core needs to maintain a core-local memory mapping for
 each memory mapping established outside of core.
@@ -1313,6 +1239,74 @@ This mapping is solely needed to revoke the memory mapping later on, for
 example, when a dataspace is detached from an RM session.
 The kernel's revoke operation takes the core-local address as argument and
 revokes all mappings originating from this mapping node.
+
+
+IOMMU support
+~~~~~~~~~~~~~
+
+As discussed in Section [Direct memory access (DMA) transactions], misbehaving
+device drivers may exploit DMA transactions to circumvent their component
+boundaries. When executing Genode on the NOVA microhypervisor, however,
+bus-master DMA is subjected to the IOMMU.
+
+The NOVA kernel
+applies a subset of the (MMU) address space of a protection domain
+to the (IOMMU) address space of a device. So the device's
+address space can be managed in the same way as one normally manages the address
+space of a PD. The only missing link is the assignment of device address
+spaces to PDs. This link is provided by the dedicated system
+call _assign_pci_ that takes a PD capability selector and a device identifier as
+arguments. The PD capability selector represents the authorization over the
+protection domain, which is going to be targeted by DMA transactions.
+The device identifier is a virtual address where the extended PCI
+configuration space of the device is mapped in the specified PD.
+Only if a user-level device driver got access to the extended PCI configuration
+space of the device, it is able to get the assignment in place.
+
+To make NOVA's IOMMU support available to Genode components,
+the ACPI driver has the ability to hand out the extended PCI configuration
+space of a device, and a NOVA-specific extension (_assign_pci_) to the PD session
+interface can be used to associate a PCI device with a protection domain.
+
+; XXX [image img/iommu_aware 63%]
+;   NOVAs management of the IOMMU address spaces facilities the use of
+;   driver-local virtual addresses as DMA addresses.
+
+Even though these mechanisms combined principally
+suffice to let drivers operate with the IOMMU enabled, in practice, the
+situation is a bit more complicated. Because NOVA uses the same
+virtual-to-physical mappings for the device as it uses for the process, the DMA
+addresses the driver needs to supply to the device must be virtual addresses
+rather than physical addresses. Consequently, to be able to make a device
+driver usable on systems without IOMMU as well as on systems with IOMMU, the
+driver needs to become IOMMU-aware and distinguish both cases. This is an
+unfortunate consequence of the otherwise elegant mechanism provided by NOVA. To
+relieve the device drivers from caring about both cases, Genode decouples
+the virtual address space of the device from the virtual address space of the
+driver. The former address space is represented by a Genode component called
+_device PD_. Its sole purpose
+is to hold mappings of DMA buffers that are accessible by the associated
+device. By using one-to-one physical-to-virtual mappings for those buffers
+within the device PD, each device PD contains a subset of the physical address
+space. The ACPI driver performs the assignment of device PDs to PCI
+devices. If a device driver intends to use DMA, it allocates a new DMA buffer
+for a specific PCI device at the ACPI driver.
+The ACPI driver responds to such a request by allocating a RAM dataspace at core,
+attaching it to the device PD using the dataspace's physical address as virtual
+address, and handing out the dataspace capability to the client. If the driver
+requests the physical address of the dataspace, the returned address will be a
+valid virtual address in the associated device PD.
+From this design follows that a device driver must allocate DMA buffers at the
+ACPI server (specifying the PCI device the buffer is intended for) instead of
+using core's RAM service to allocate buffers anonymously. Note that the
+current implementation of the ACPI server assigns all PCI devices to only one
+device PD.
+
+; XXX [image img/iommu_agnostic 80%]
+;   By modelling a device address space as a dedicated process (device PD),
+;   the traditional way of programming DMA transactions can be maintained,
+;   even with the IOMMU enabled.
+
 
 
 Genode-specific modifications of the NOVA kernel
@@ -1332,16 +1326,17 @@ been used for Genode. When preparing the NOVA port using the port description
 at _repos/base-nova/ports/nova.port_, the NOVA branch that matches the used
 Genode version is checked out automatically. The port description refers to
 a specific commit ID. The commit history of each branch within the NOVA
-repository above corresponds to the history of the original NOVA kernel
-followed by a series of Genode-specific commits. Each time, NOVA is updated,
-all Genode-specifications are rebased on the history of the new NOVA version.
+repository corresponds to the history of the original NOVA kernel
+followed by a series of Genode-specific commits. Each time NOVA is updated,
+a new branch is created and all Genode-specific commits are rebased on the
+history of the new NOVA version.
 This way, the differences between the original NOVA kernel and the Genode
 version remain clearly documented. The Genode-specific modifications solve the
 following problems:
 
 :Destruction of kernel objects:
 
-  NOVA does not support the destruction of kernel objects. E.e., PDs and
+  NOVA does not support the destruction of kernel objects. I.e., PDs and
   ECs can be created but not destroyed. With Genode being a dynamic system,
   kernel-object destruction is a mandatory feature.
 
@@ -1350,18 +1345,19 @@ following problems:
   On NOVA, only local ECs can receive IDC calls. Furthermore each local EC
   is bound to a particular CPU (hence the name "local EC"). Consequently,
   synchronous inter-component communication via IDC calls is possible only
-  between ECs that both resided on the same CPU but can never cross CPU
+  between ECs that both reside on the same CPU but can never cross CPU
   boundaries. Unfortunately, IDC is the only mechanism for the delegation
   of capabilities. Consequently, authority cannot be delegated between
   subsystems that reside on different CPUs. For Genode, this scheme is
   too rigid.
 
-  Hence, the Genode version of NOVA introduces inter-CPU calls. When calling
+  Therefore, the Genode version of NOVA introduces inter-CPU IDC calls.
+  When calling
   an EC on another CPU, the kernel creates a temporary EC and SC on the
   targeted CPU as a representative of the caller. The calling EC is blocked.
-  The temporary EC uses the same UTCB as the calling EC. Therebe, the
+  The temporary EC uses the same UTCB as the calling EC. Thereby, the
   original IDC message is effectively transferred from one CPU to the other.
-  The temporary EC then perform a local IDC to the destination EC using
+  The temporary EC then performs a local IDC to the destination EC using
   NOVA's existing IDC mechanism. Once the temporary EC receives the reply
   (with the reply message contained in the caller's UTCB), the kernel
   destroys the temporary EC and SC and unblocks the caller EC.
@@ -1378,7 +1374,7 @@ following problems:
   priorities. The use of a naive spinlock for synchronization will produce
   priority inversion problems. The kernel has been extended with the
   mechanisms needed to support the implementation of
-  priority-inheriting spinlock in the userland.
+  priority-inheriting spinlocks in the userland.
 
 :Combination of capability delegation and translation:
 
@@ -1386,7 +1382,7 @@ following problems:
   Section [Capability delegation through capability invocation],
   there are two cases when a capability is specified as an RPC argument.
   The callee may already have a capability referring to the specified
-  capability. In this case, the callee expects to receive the corresponding
+  object identity. In this case, the callee expects to receive the corresponding
   local name of the object identity. In the other case, when the callee
   does not yet have a capability for the object identity, it obtains a new
   local name that refers to the delegated capability.
@@ -1397,7 +1393,7 @@ following problems:
   the translation of the local names should be performed by the kernel.
   However, in the general case, this question is not decidable by the caller.
   Hence, NOVA had to be changed to take the decision depending on the
-  existence of a valid translation for specified capability selector.
+  existence of a valid translation for the specified capability selector.
 
 
 Known limitations of NOVA
@@ -1407,7 +1403,6 @@ This section summarizes the known limitations of NOVA and the NOVA version of
 core.
 
 :Fixed amount of kernel memory:
-
   NOVA allocates kernel objects out of a memory pool of a fixed size. The pool
   is dimensioned in the kernel's linker script
   _nova/src/hypervisor.ld_ (at the symbol '_mempool_f').
@@ -1418,7 +1413,7 @@ core.
   exhaustion of the entire pool and thereby make the kernel unavailable. I.e.,
   the kernel panics when running out of memory. The kernel provides no
   mechanism to mitigate such an resource-exhaustion-based denial-of-service
-  attach.
+  attack.
 
   On Genode, only core explicitly allocates kernel objects, which relieves
   the problem but does not solve it. In order to create a kernel
@@ -1445,7 +1440,6 @@ core.
   exploited as a covert storage channel.
 
 :The maximum number of threads is limited by core's thread-context area:
-
   NOVA's page-fault handling protocol works completely synchronously. When a
   page fault occurs, the faulting EC enters its page-fault portal and thereby
   activates the corresponding pager EC in core. If the pager's lookup for a
@@ -1454,7 +1448,7 @@ core.
   IDC call. However, if a page fault occurs on a managed dataspace, the pager
   cannot resolve it immediately. The resolution must be delayed until the RM
   fault handler (outside of core) responds to the RM fault signal. In order to
-  be able to serve page faults of other threads in the meantime, each thread
+  enable core to serve page faults of other threads in the meantime, each thread
   has its dedicated pager EC in core.
 
   Each pager EC consumes a thread context within core. Since core's
@@ -1467,7 +1461,6 @@ core.
   core represents a possible covert storage channel.
 
 :Bounded number of object capabilities within core:
-
   For each capability created via core's CAP service, core allocates the
   corresponding NOVA portal and maintains the portal's capability selector
   during the lifetime of the associated object identity. Each allocation of
@@ -1476,12 +1469,11 @@ core.
   core's capability space as covert storage channel.
 
 :Core must retain mappings to all memory used throughout the system:
-
   As mentioned in Section [Page-fault handing on NOVA], core needs to own
   a mapping node before delegating the mapping to another PD as a response
   to a page fault. Otherwise, core could not revoke the mapping later on
   because the kernel expects core's mapping node as a proof for the
-  authorization of the revocation of the mapping.
+  authorization for the revocation of the mapping.
 
   Consequently, even though core never touches memory handed out to other
   components, it needs to have memory mappings with full access rights

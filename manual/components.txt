@@ -10,7 +10,7 @@ operating-system functionalities.
 
 Components can come in a large variety of shape and form.
 Compared to a monolithic operating-system kernel, a component-based operating
-system challenges the system designed by enlarging the design space by the
+system challenges the system designed by enlarging the design space with the
 decision of the functional scope of each component and thereby the granularity
 of componentization. This decision depends on several factors:
 
@@ -48,8 +48,8 @@ multiplexer, runtime environment, and that of an application. By
 distinguishing those roles, it becomes possible to assess the possible
 security implications of each individual component.
 
-The versatility of a component-based systems does not come from the
-existence of a many components alone. Even more important is the
+The versatility of a component-based system does not come from the
+existence of many components alone. Even more important is the
 composability of components. Components can be combined only if their
 interfaces match. To maximize composability, the number of interfaces
 throughout the system should be as low as possible, and all interfaces
@@ -94,7 +94,7 @@ Instead, to keep its complexity low, it should act as a server that serves
 only a single client per physical device.
 Whereas a device driver for a simple device usually accepts only one client,
 a device driver for a complex device with multiple sub devices (such as
-an USB driver) may hand out each sub device to a different client.
+a USB driver) may hand out each sub device to a different client.
 
 ; Void of built-in policy but enforces policy
 
@@ -104,14 +104,14 @@ not much room for policy anyway. If, however, a device driver hands out
 multiple sub devices to different clients, the assignment of sub devices
 to clients must be subjected to a policy. In this case, the device driver
 should obtain this policy information from its configuration as provided by
-the driver's parent component.
+the driver's parent.
 
 
 Platform driver
 ~~~~~~~~~~~~~~~
 
-There are three problems that are fundamentally important for a running an
-operating system on modern hardware but that lie outside the scope of a
+There are three problems that are fundamentally important for running an
+operating system on modern hardware but that lie outside the scope of an
 ordinary device driver because they are affect the platform as a whole rather
 than a single device. Those problems are the enumeration of devices, the
 discovery of interrupt routing, and the initial setup of the platform.
@@ -124,10 +124,10 @@ Modern hardware platforms are rather complex and vary a lot. For example,
 the devices attached to the PCI bus of a PC are usually not known at the
 build time of the system but need to be discovered at run time. Technically,
 each individual device driver could probe its respective device at the
-PCI bus. But in the presence of multiple drivers, this approach would not
+PCI bus. But in the presence of multiple drivers, this approach would hardly
 work. First, the configuration interface of the PCI bus is a device itself.
 The concurrent access to the PCI configuration interface by multiple drivers
-would ultimately yield undefined behaviour. Second, if each driver spoke
+would ultimately yield undefined behaviour. Second, for being able to speak
 directly to the PCI configuration interface, each driver would need to
 carry with it the functionality to interact with PCI.
 
@@ -144,7 +144,7 @@ APIC, however, comes with a different name space for interrupt numbers, which
 creates an inconsistency between the numbers provided by the PCI configuration
 (interrupt lines) and interrupt numbers as understood by the APIC. The
 assignment of legacy interrupts to APIC interrupts is provided by tables
-provided by the Advanced Configuration and Power Interface (ACPI).
+of the Advanced Configuration and Power Interface (ACPI).
 Consequently, in order to support multi-processor PC platforms, the operating
 system needs to interpret those tables. Within a component-based system, we
 need to answer the question of which component is responsible to interpret the
@@ -192,7 +192,7 @@ Most device drivers need to respond to sporadic events produced by the
 device and propagated to the CPU as interrupts. In Genode, a device-driver
 component obtains device interrupts via core's IRQ service introduced in
 Section [Access to device resources (IO_MEM, IO_PORT, IRQ)]. On PC platforms,
-device driver usually do not use core's IRQ service directly but rather
+device drivers usually do not use core's IRQ service directly but rather
 use the IRQ service provided by the platform driver
 (Section [Platform driver]).
 
@@ -209,7 +209,7 @@ _direct memory access (DMA) transactions_. DMA transactions relieve the CPU
 from actively copying data between device registers and memory, optimize
 the throughput of the system bus by the effective use of burst transfers, and
 may even be used to establish direct data paths between devices.
-However, the benefits of DMA transaction come at the risk of corrupting
+However, the benefits of DMA come at the risk of corrupting
 the physical memory by misguided DMA transactions.
 Because those DMA-capable devices can issue bus requests
 targeting the physical memory directly and not involving the CPU altogether, such requests
@@ -226,7 +226,7 @@ Genode-based system, it still needs to know the physical address of the DMA
 buffer to program the device correctly.
 Unfortunately, there is nothing to prevent the driver from specifying any
 physical address to the device.
-Consequently, a malicious driver could misuse the device to read and
+A malicious driver could misuse the device to read and
 manipulate all parts of the physical memory, including the kernel.
 Consequently, device drivers and devices should ideally be trustworthy.
 However, there are several scenarios where this is ultimately not
@@ -268,7 +268,7 @@ on a microcontroller on the device, and is thereby not subjected to the
 policy of the normal operating system. Such firmware may either be built-in
 by the device vendor, or is loaded by the device driver at initialization
 time of the device. In both cases, the firmware tends to be a black box
-that remains obscure except for the device vendor. Hence, hidden functions
+that remains obscure except for the device vendor. Hidden functions
 or vulnerabilities might be present in it. By the means of DMA transactions, such
 firmware has unlimited access on the system. For example, a back door
 implemented in the firmware of a network adaptor could look for
@@ -283,12 +283,12 @@ Scenario 3: Bus-level attacks
 
 The previous examples misused a DMA-capable device as a proxy to drive an
 attack. However, the system bus can be attacked directly with no hardware
-tinkering needed. There are ready-to-exploit interfaces that featured on most
-PC systems. For example, most laptops come with PCMCIA / ExpressCard slots,
+tinkering needed. There are ready-to-exploit interfaces that are featured on most
+PC systems. For example, most laptops come with PCMCIA / Express-Card slots,
 which allow expansion cards to access the system bus. Furthermore, serial bus
 interfaces, i.e., IEEE 1394 (Firewire) enable connected devices to indirectly
 access the system bus via the peripheral bus controller. If the bus controller
-allows the device to issue direct system bus requests by default, any connected
+allows the device to issue direct system bus requests by default, a connected
 device becomes able to gain control over the whole system. This vulnerability
 has been present on a wide range of commodity computers.
 
@@ -328,10 +328,10 @@ exploiting its interface.
 
 Third, modern PC hardware has closed the DMA loophole by incorporating
 so-called IOMMUs into the system. As depicted in Figure [img/iommu], the IOMMU
-sits between the physical and the system bus where the devices are attached to.
+sits between the physical memory and the system bus where the devices are attached to.
 So each DMA request has to pass the IOMMU, which is not only able to arbitrate
-the access of DMA requests to the RAM but also able to virtualize the address
-space per device. Similar to how a MMU confines each process running on the
+the access of DMA requests to the RAM but is also able to virtualize the address
+space per device. Similar to how an MMU confines each process running on the
 CPU within a distinct virtual address space, the IOMMU is able to confine each
 device within a dedicated virtual address space. To tell the different devices
 apart, the IOMMU uses the PCI device's bus-device-function triplet as unique
@@ -359,7 +359,7 @@ Protocol stacks
 A protocol stack _translates_ one session interface to another (or the same)
 session interface. For example, a terminal component may provide a command-line
 application with a service for obtaining textual user input and
-printing text.
+for printing text.
 To implement this service, the terminal uses an input session and a
 framebuffer session. Figure [img/protocol_stack] depicts the relationship
 between the terminal, its client application, and the used drivers.
@@ -369,10 +369,10 @@ for the virtual terminal, and renders the pixel representation of characters
 onto the framebuffer. For the provisioning of textual user input, it responds
 to key presses reported by the input session, maintains the state of modifier
 keys, and applies a keyboard layout to the stream of incoming events.
-When viewed from the outside the component, the terminal translates a terminal
+When viewed from the outside of the component, the terminal translates a terminal
 session to a framebuffer session and an input session.
 
-Similar to device drivers, a protocol stack typically serves a single client.
+Similar to a device driver, a protocol stack typically serves a single client.
 In contrast to device drivers, however, protocol stacks are not bound to
 physical devices. Therefore, a protocol stack can be instantiated any number
 of times. For example, if multiple terminals are needed, one terminal
@@ -436,7 +436,7 @@ of all its clients. This has the following ramifications.
   In the same line, a resource multiplexer is prone to timing channels if
   the operations provided via its client interface depends on the behavior
   of other clients. For this reason, blocking RPC calls should be avoided
-  because the duration of a blocking operations may reveal information about
+  because the duration of a blocking operation may reveal information about
   the internal state such as the presence of other clients of the resource
   multiplexer.
 
@@ -452,7 +452,7 @@ of all its clients. This has the following ramifications.
   The exposure of a resource multiplexer to untrusted and even malicious
   clients makes it a potential target for denial-of-service attacks.
   Some operations provided by the resource multiplexer may require the
-  allocation of memory. For example, a GUI server may need to memory for
+  allocation of memory. For example, a GUI server may need memory for
   the book keeping of each window created its clients.
   If the resource multiplexer performed such allocations from its own
   memory budget, a malicious client could trigger the exhaustion of
@@ -478,7 +478,7 @@ of all its clients. This has the following ramifications.
   Instead of providing a built-in policy, a resource multiplexer obtains
   policy information from its configuration as supplied by its parent.
   The resource multiplexer must enforce the given policy. Otherwise, the
-  security policy defined by the parent remains ineffective.
+  security policy expressed in the configuration remains ineffective.
 
 
 Runtime environments and applications
@@ -507,7 +507,8 @@ A runtime environment controls its children in three ways:
 
 :Configuration:
   Each child obtains its configuration from its parent in the form of
-  a ROM session. Using this mechanism, the runtime environment is able to feed
+  a ROM session as described in Section [Component configuration].
+  Using this mechanism, the runtime environment is able to feed
   policy information to its children. Of course, in order to make the policy
   be effective, the respective child has to interpret and enforce the
   configuration accordingly.
@@ -517,11 +518,11 @@ A runtime environment controls its children in three ways:
   runtime environment can destroy and possibly restart child components
   at any time.
 
-With regard to management of child resources, a runtime environment can employ
+With regard to the management of child resources, a runtime environment can employ
 a large variety of policies using two principal approaches:
 
 :Quota management:
-  Using the resource trading mechanisms introduced in Section
+  Using the resource-trading mechanisms introduced in Section
   [Resource trading], the runtime environment can assign resources to
   each child individually. Moreover, if a child supports the dynamic
   rebalancing protocol described in Section [Dynamic resource balancing],
@@ -598,7 +599,7 @@ Session creation
 ----------------
 
 At session-creation time, the client specifies the name of a ROM module as
-session argument. So one server may hand out a different ROM modules depending
+session argument. One server may hand out different ROM modules depending
 on the specified name. Once a ROM session has been created, the client can
 request the capability of the dataspace that contains the ROM module.
 Using this capability and the client's RM session, the client can attach
@@ -626,30 +627,30 @@ client and server consists of the following steps.
 
 # The client continues working with the original version of the dataspace.
   Once it receives the signal from the server, it may decide to update the
-  dataspace by calling an _update_ function at the server.
+  dataspace by calling the _update_ function at the server.
 
 # The server responds to the update request. If the new version fits into
   the existing dataspace, the server copies the content of the new version
   into the existing dataspace and returns this condition in the reply of the
-  update call. Hence, the ROM session interface employs synchronous bulk
+  update call. Thereby, the ROM session interface employs synchronous bulk
   transfers as described in Section [Synchronous bulk transfer].
 
 # The client evaluates the result of the update call. If the new version
-  has fit in the existing dataspace, the update is complete at this point.
+  has fitted in the existing dataspace, the update is complete at this point.
   However, if the new version is larger than the existing dataspace, the
   client requests a new dataspace from the server.
 
 # On reception of the dataspace request, the server destroys the original
   dataspace (thereby making it invisible at the client), and returns
-  the new version of the ROM modules as a different dataspace.
+  the new version of the ROM module as a different dataspace.
 
-# The client attaches the new dataspace capability at its local address
+# The client attaches the new dataspace capability to its local address
   space to access the new version.
 
 The protocol is designed such that neither the client nor the server need
 to support updates. A server with no support for updating ROM modules such
 as core's ROM service simply ignores the registration of a signal handler
-by a client. A client that is not able to cope with ROM module updates
+by a client. A client that is not able to cope with ROM-module updates
 never requests the dataspace twice.
 
 However, if both client and server support the update protocol, the ROM
@@ -671,15 +672,17 @@ mapped fashion.
   such as the kernel version in the form of special ROM modules.
 
 * If an executable binary is provided as a ROM module, the binary's text
-  segment can be attached directly to the address space of a new process.
+  segment can be attached directly to the address space of a new process
+  (Section [Component creation]).
   So multiple instances of the same component effectively share the same
   text segment.
   The same holds true for shared libraries. For this reason, executable
   binaries and shared libraries are requested in the form of ROM sessions.
 
 * Components obtain their configuration by requesting a ROM session for the
-  ROM module "config" at the parent. This way, configuration information
-  can be propagates using a simple interface with no need for a file
+  ROM module "config" at the parent (Section [Component configuration]).
+  This way, configuration information
+  can be propagated using a simple interface with no need for a file
   system. Furthermore, the update mechanism allows the parent to dynamically
   change the configuration of a component during its lifetime.
 
@@ -693,7 +696,7 @@ Report
 ~~~~~~
 
 The report session interface allows a client to report internal state to
-its parent using synchronous bulk transfers
+the outside using synchronous bulk transfers
 (Section [Synchronous bulk transfer]).
 
 Session creation
@@ -732,7 +735,7 @@ The interface uses the two RPC functions _read_ and _write_ to arbitrate
 the access to a shared-memory communication buffer between client and server
 as described in Section [Synchronous bulk transfer]. The read function does
 never block. When called, it copies new input into the communication buffer
-and returns the number of new characters. If there is not new input, it
+and returns the number of new characters. If there is no new input, it
 returns 0. To avoid the need to poll for new input at the client side, the
 client can register a signal handler that gets notified on the arrival of
 new input. The write function takes a number of to-be-written characters
@@ -767,7 +770,7 @@ Use cases
 * Transfer of steams of data over TCP (using TCP terminal)
 * Writing streams of data to a file (using file terminal)
 * User input and output of traditional command-line based software, i.e.,
-  programs executed within the noux environment
+  programs executed in the noux runtime environment
 * Multiplexing of multiple textual user interfaces (using the terminal-mux
   component)
 * Headless operation and management of subsystems (using CLI monitor)
@@ -812,7 +815,7 @@ following types:
   accordingly.
 
 :leave: of the pointer position. Leave events are artificially generated
-  by servers to indicate a lost pointer focus to the client.
+  by servers to indicate a lost pointer focus.
 
 
 Use cases
@@ -856,19 +859,20 @@ mode via the _mode_ RPC function.
 Screen-mode changes
 -------------------
 
-The session interface supports dynamic screen-mode changes during runtime
-using the following protocol:
+The session interface supports dynamic screen-mode changes during the lifetime
+of the session using the following protocol:
 
 # The client may register a signal handler using the _mode_sigh_ RPC function.
-  This handler handler gets notified in the event of server-side mode changes.
+  This handler gets notified in the event of server-side mode changes.
 
-# Analogously to the transactional protocol used for updating ROM modules
+# Similarly to the transactional protocol used for updating ROM modules
   (Section [Read-only memory (ROM)]), the dataspace shared between client and
   server stays in tact until the client acknowledges the mode change by calling
   the _mode_ RPC function.
 
 # The server responds to the _mode_ function by applying the new mode and
-  returning the according mode information to the client.
+  returning the according mode information to the client. This step may
+  destroy the old framebuffer dataspace.
 
 # The client requests a new version of the frambuffer dataspace by calling
   the _dataspace_ RPC function and attaches the dataspace to its local
@@ -879,8 +883,8 @@ using the following protocol:
   first call.
 
 
-Scanline synchronization
-------------------------
+Frame-rate synchronization
+--------------------------
 
 To enable framebuffer clients to synchronize their operations with the display
 frequency, a client can register a handler for receiving
@@ -908,14 +912,14 @@ Nitpicker GUI
   and a session-local view stack.
 
 The nitpicker session interface subsumes an input session and a
-framebuffer session as a single session (Figure [img/nitpicker_session].
+framebuffer session as a single session (Figure [img/nitpicker_session]).
 Furthermore it supplements the framebuffer session with the notion of views,
 which allows the creation of flexible multi-window user interfaces.
 It is generally suited for resource multiplexers of the framebuffer and input
 sessions.
 A view is a rectangular area on screen that displays a portion of the client's
-virtual framebuffer. The position and size of each view is defined by the
-client. Views can overlap, thereby creating a view stack. The stacking
+virtual framebuffer. The position, size, and viewport of each view is defined
+by the client. Views can overlap, thereby creating a view stack. The stacking
 order of the views of one client can be freely defined by the client.
 
 The size of the virtual framebuffer can be freely defined by the client
@@ -936,7 +940,7 @@ Use cases
 * A window manager implementing the nitpicker session interface may
   represent each view as a window with window decorations and a placement
   policy. The resizing of a windows by the user is reflected to the client as
-  a screen-mode change of the physical framebuffer.
+  a screen-mode change.
 * A loader (Section [Loader]) virtualizes the nitpicker session interface for
   the loaded subsystem.
 
@@ -945,8 +949,8 @@ Platform
 ~~~~~~~~
 
 The platform session interface (on ARM-based devices) and the PCI session
-interface (on x86-based machines) provide the client will access to the
-devices present in the hardware platform. See Section
+interface (on x86-based machines) provide the client with access to the
+devices present on the hardware platform. See Section
 (Section [Platform driver]) for more information on the role of platform
 drivers.
 
@@ -982,7 +986,7 @@ Use cases
 
 * Block-device drivers implement the block-session interface.
 * The part-block component requests a single block session, parses a
-  partition table and hands out each partition as a separate block session
+  partition table, and hands out each partition as a separate block session
   to its clients. There can be one client for each partition.
 * File-system servers use block sessions as their back end.
 
@@ -1010,16 +1014,16 @@ NIC
 
 A NIC session represents a network interface that operates at network-packet
 level. Each session employs two independent packet streams (Section
-[Asynchronous bulk transfer - packet streams], one for receiving network
+[Asynchronous bulk transfer - packet streams]), one for receiving network
 packets and one for transmitting network packets. Furthermore, the client
 can query the MAC address of the network interface.
 
 Session creation
 ----------------
 
-At session-creation time, dimensions the communication buffers of both
-packet streams via session arguments. The communication buffers are
-allocated by the server using the session quota provided by the client.
+At session-creation time, the communication buffers of both packet streams are
+dimensioned via session arguments. The communication buffers are allocated by
+the server using the session quota provided by the client.
 
 Use cases
 ---------
@@ -1054,7 +1058,7 @@ For the output of streamed audio data, a codec typically decodes a relatively
 large portion of an audio stream and submits the sample data to a mixer. The
 mixer, in turn, mixes the samples of multiple sources and forwards the result
 to the audio driver. Each of those components the codec, the mixer, and the
-audio driver live in separate processes. By using large buffer sizes between
+audio driver are separate components. By using large buffer sizes between
 them, there is only very little context-switching overhead. Also, the driver
 can submit large buffers of sample data to the sound device without any
 further intervention needed.
@@ -1097,7 +1101,7 @@ So the buffer consumed by the driver gets updated with new data.
   already submitted in the output queue.
 
 Besides the way of how packets are populated with data, the second
-major difference to the packet-stream mechanism its time-triggered
+major difference to the packet-stream mechanism is its time-triggered
 mode of operation. The
 driver produces periodic signals that indicate the completeness of a
 played-back audio packet. This signal triggers the mixer to become active,
@@ -1122,7 +1126,7 @@ interface (Section [Block]), it operates on a higher abstraction level
 that is suited for multiplexing the storage device among multiple clients.
 Similar to the block session, the file-system session employs a single
 packet stream interface
-(Section [Asynchronous bulk transfer - packet streams]_ for issuing read
+(Section [Asynchronous bulk transfer - packet streams]) for issuing read
 and write operations. This way, read and write requests can be processed
 in batches and even out of order.
 
@@ -1194,7 +1198,8 @@ Use case
 --------
 
 The most illustrative use case is the execution of web-browser plugins where
-neither the browser trusts the plugin nor the plugin trusts the browser.
+neither the browser trusts the plugin nor the plugin trusts the browser
+(Section [Ceding the parenthood]).
 
 
 Component configuration
@@ -1221,7 +1226,7 @@ component.
 Server-side policy selection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Servers that serve multiple clients may apply different a different policy
+Servers that serve multiple clients may apply a different policy
 to each client.
 In general, the policy may be defined by the session arguments aggregated on
 the route of the session request as explained in Section
@@ -1245,7 +1250,7 @@ Each time a session is created, the server matches the supplied session label
 against the configured policies. Only if a policy matches, the parameters of
 the matching policy come into effect. The way how the session label is
 matched against the policies depends on the implementation of the server.
-Usually, the server selects the policy with where the session label starts with
+Usually, the server selects the policy where the session label starts with
 the policy's label. If multiple policies match, the one with the longest (most
 specific) policy label is selected. If multiple policies have the same label,
 the selection is undefined. This is a configuration error.
@@ -1294,7 +1299,7 @@ reusing or economically downright infeasible to reimplement. Examples
 are PDF rendering engines, libraries that support commonly used video and
 audio codecs, or libraries that decode hundreds of image formats.
 
-However code of such a rich functionality is inherently complex and must be
+However code of such rich functionality is inherently complex and must be
 assumed to contain security flaws. This is empirically evidenced by the
 never ending stream of security exploits targeting the decoders of data
 formats. But even in the absence of bugs, the processing of data by
@@ -1312,14 +1317,14 @@ Fortunately, Genode's architecture principally allows every component to
 encapsulate untrusted functionality in child components. So instead of
 directly linking a third-party library to an application, the application
 executes the library code in a dedicated sub component. By imposing a
-strict session-routing policy to the component, the untrusted code is
+strict session-routing policy onto the component, the untrusted code is
 restricted to its sandbox. Figure [img/qt_avplay] shows a video player as
 a practical example of this approach.
 
-A video player uses the nitpicker GUI server to present a user interface
+The video player uses the nitpicker GUI server to present a user interface
 with the graphical controls of the player. Furthermore, it has access to
 a media file containing video and audio data.
-Instead of linking the media-codec library (libav) directly to video player
+Instead of linking the media-codec library (libav) directly to the video-player
 application, it executes the codec as a child component. Thereby the
 application effectively restricts the execution environment of the codec
 to only those resources that are needed by the codec. Those resources are
@@ -1334,15 +1339,15 @@ The avplay example uses libSDL as backend for video and audio
 output and responds to a few keyboard shortcuts for controlling the video
 playback such as pausing the video. Because there exists a Genode version
 of libSDL, avplay can be executed as a Genode component with no modifications.
-This version of libSDL requests a framebuffer (Section [Framebuffer]) and
-audio-out (Section [Audio output]) session to perform the video and audio
-output.
+This version of libSDL requests a framebuffer session (Section [Framebuffer])
+and an audio-out session (Section [Audio output]) to perform the video and
+audio output.
 To handle user input, it opens an input session (Section [Input]).
 Furthermore, it opens a ROM session for obtaining a configuration. This
 configuration parametrizes the audio backend of libSDL.
-Because avplay is a child of the video player application, all those session
+Because avplay is a child of the video-player application, all those session
 requests are directed to the application. It is entirely up to the application
-how to respond to those request. For accommodating the
+how to respond to those requests. For accommodating the
 request for a frambuffer session, the application creates a second nitpicker
 session, configures a virtual framebuffer, and embeds this virtual framebuffer
 into its GUI. It keeps the nitpicker session capability for itself and
@@ -1354,8 +1359,8 @@ when the user clicks on the play button of the application's GUI, the
 application would submit a sequence of press and release events to the
 input sessions, which appear to avplay as the keyboard shortcut for starting
 the playback.
-To let the user adjust the audio parameters of libSDL during runtime,
-the video player application, dynamically changes the avplay configuration
+To let the user adjust the audio parameters of libSDL during the replay,
+the video-player application dynamically changes the avplay configuration
 using the mechanism described in
 Section [Dynamic component reconfiguration at runtime]. As a response to a
 configuration update, libSDL's audio backend picks up the changed
@@ -1366,8 +1371,8 @@ the video or audio codecs can no longer compromise the application. The
 execution environment of avplay is tailored to the needs of the codec.
 In particular, it does not allow the codec to access any files or the
 network. In the worst case, if avplay becomes corrupted, the possible
-damage is restricted to producing wrong video or audio frames but it
-can neither access any of the user's data nor can it communicate to the
+damage is restricted to producing wrong video or audio frames but corrupted
+codec can neither access any of the user's data nor can it communicate to the
 outside world.
 
 
@@ -1425,14 +1430,14 @@ Since noux handles all the children's interaction with the RAM service, it can
 hand out memory allocations from a pool of memory shared among all children.
 Finally, because noux observes all the interactions of each child with the
 RM service, it is able to replay the address-space layout of an existing
-process to a new process when the process forked.
+process to a new process when the process forks.
 
 
 Monitoring the behavior of subsystems
 -------------------------------------
 
 Besides hosting arbitrary OS personalities as a subsystem, the interception
-if core's services allows for the all-encompassing monitoring of subsystems
+of core's services allows for the all-encompassing monitoring of subsystems
 without the need for special support in the kernel. This is useful for
 failsafe monitoring or for user-level debugging.
 
@@ -1509,7 +1514,7 @@ feature requests. For example, users may want to move a window on screen by
 dragging the window's title bar. Because nitpicker has no notion of windows or
 title bars, such a functionality is not supported. Instead, nitpicker moves
 the burden to implement window decorations to its clients. However, this
-approach sacrifices functionality that is taken for granted on traditional
+approach sacrifices functionality that is taken for granted on modern
 graphical user interfaces. For example, the user may want to switch the
 application focus using a keyboard shortcut or perform window operations and
 the interactions with virtual desktops in a consistent way. If each
@@ -1524,7 +1529,7 @@ by core. Core's RM service is used to manage the virtual address spaces of
 components. When a dataspace is attached to an RM session, the RM service
 picks a suitable virtual address range where the dataspace will be made
 visible in the virtual address space.
-The allocation strategy depends several factors such as alignment constraints
+The allocation strategy depends on several factors such as alignment constraints
 and the address range that fits best. But eventually, it is deterministic.
 This contradicts with the common wisdom that address spaces shall be
 randomized. Hence core's RM service is challenged with the request for adding
@@ -1538,7 +1543,7 @@ worse than not having it in the first place.
 Second, the feature would certainly increase the complexity of core.
 This is acceptable for components that potentially benefit from the added
 feature, such as outward-facing network applications. But the complexity
-eventually becomes part of the TCP of all components including those that do
+eventually becomes part of the TCB of all components including those that do
 not benefit from the feature.
 
 [tikz img/nitpicker_wm]
@@ -1562,7 +1567,7 @@ into effect only for those applications that use it.
 The same approach can be applied to the address-space randomization problem.
 A component with access to good random numbers may provide a randomized
 version of core's RM service. Outward-facing components can benefit from the
-security feature by routing their RM session requests to this component
+security feature by having their RM session requests routed to this component
 instead of core.
 
 
@@ -1576,8 +1581,8 @@ as plugins, or a web server that provides a remote administration interface.
 All those kinds of shells have in common that they contain
 an enormous amount of complexity that is attributed to convenience.
 For example, a textual shell usually depends on libreadline, ncurses, or similar
-libraries to provide a command history and deal with the peculiarities of
-virtual text terminals. A graphical desktop shell is worse because
+libraries to provide a command history and to deal with the peculiarities of
+virtual text terminals. A graphical desktop shell is even worse because
 it usually depends on a highly complex widget toolkit, not to speak about
 using a web browser as a shell.
 Unfortunately, the functionality provided by these programs cannot be
@@ -1624,9 +1629,9 @@ Enslaving services
 | TODO
 
 
-Untangling circular dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-| TODO
+;Untangling circular dependencies
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;
+;| TODO
 
 

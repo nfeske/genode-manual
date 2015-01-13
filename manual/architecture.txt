@@ -23,9 +23,9 @@ functions from the rest of the operating system. In contrary, they are
 co-located with most other operating-system functionality in a single
 high-complexity kernel. Thereby, those functions are exposed to the other
 parts of the operating system. The likelihood for of a security breach is as
-high as the likelihood for bugs in the overly complex kernel. In other words,
-it is certain. Moreover, once an in-kernel function has been compromised, the
-defect has an unlimited reach on the system.
+high as the likelihood for bugs in the overly complex kernel. In other words:
+It is certain. Moreover, once an in-kernel function has been compromised, the
+defect has an unlimited reach throughout the system.
 
 The Genode architecture was designed to give more assuring answers to the two
 stated questions. Each piece of functionality should be exposed to only those
@@ -60,15 +60,15 @@ Section [Component creation] answers the question of how a new component comes
 to life.
 The variety of relationships between components and their respective
 interfaces call for different communication primitives. Section
-[Inter-component communication] introduces inter-component communication
+[Inter-component communication] introduces Genode's inter-component communication
 mechanisms in detail.
 
 
 Capability-based security
 =========================
 
-| TODO intro, possibly provide general background information (independent
-| from Genode)
+; XXX intro, possibly provide general background information (independent
+; from Genode)
 
 This section introduces the nomenclature and the general model of Genode's
 capability-based security concept. The Genode OS framework is not tied to one
@@ -77,8 +77,11 @@ base platforms, Genode uses different kernel mechanisms to implement the
 general model as closely as possible. Note however that not all kernels
 satisfy the requirements that are needed to implement the model securely. For
 assessing the security of a Genode-based system, the respective
-platform-specific implementation must be considered. Section
-[Capability-based security in depth] provides details for selected kernels.
+platform-specific implementation must be considered. Sections
+[Execution on bare hardware (base-hw)] and
+[Execution on the NOVA microhypervisor (base-nova)]
+provide details for selected kernels.
+
 
 
 Capability spaces, object identities, and RPC objects
@@ -138,16 +141,17 @@ can be passed to different components without losing its meaning. The transfer
 of a capability from one protection domain to another delegates the authority
 to use the capability to the receiving protection domain.
 This operation is called _delegation_ and can be performed only by the kernel.
-Note that originator of the delegation does not diminish its authority by
+Note that the originator of the delegation does not diminish its authority by
 delegating a capability. It merely shares its authority with the receiving
 protection domain.
 Figure [img/delegation] shows the
 delegation of the RPC object's capability to a second protection domain
 and a further delegation of the capability from the second to a third
 protection domain.
-When the kernel delegates a capability from one to another protection domain,
-it inserts a reference to the RPC object's identity a free slot in the
-target's capability space. Within protection domain 2, the RPC object can
+Whenever the kernel delegates a capability from one to another protection domain,
+it inserts a reference to the RPC object's identity into a free slot of the
+target's capability space. Within protection domain 2 shown in Figure
+[img/delegation], the RPC object can
 be referred to by the number 5. Within protection domain 3, the same RPC
 object is known as 2.
 Note that the capability delegation does not hand over the ownership of the
@@ -174,7 +178,7 @@ a local function. The caller puts the function arguments to a place where
 the callee will be able to pick them up and then passes control to the
 callee. When the callee takes over control, it obtains the function
 arguments, executes the function, puts the results to a place where the
-caller can pick them up, finally hands the control back to the caller.
+caller can pick them up, and finally hands back the control to the caller.
 In contrast to a program-local function call, however, client and server
 are different _threads_ in their respective protection domains. The thread
 at the server side is called _entrypoint_ denoting the fact that it
@@ -187,12 +191,12 @@ one entrypoint.
 The wiggly arrow denotes that the entrypoint is a thread. Besides being a
 thread that waits for incoming requests, the entrypoint is responsible for
 maintaining the association between RPC objects with their corresponding
-capabilities. This association was illustrated by the link between the RPC
-object and its capability in the previous figures. In order to become callable
+capabilities. The previous figures illustrated this association with the link
+between the RPC object and its capability. In order to become callable
 from the outside, an RPC object must be associated with a concrete entrypoint.
 This operation results in the creation of the object's identity and the
 corresponding capability. During the lifetime of the object identity, the
-entrypoint keeps the association between the RPC object and its capability in
+entrypoint maintains the association between the RPC object and its capability in
 a data structure called _object pool_, which allows for looking up the
 matching RPC object for a given capability. Figure [img/object_pool] shows a
 scenario where two RPC objects are associated with one entrypoint in the
@@ -214,17 +218,17 @@ protection domain, this operation has to be provided by the kernel. Figure
 [img/capability_call] illustrates the interaction of the client, the kernel,
 and the server. The kernel operation takes the client-local name of the
 invoked capability, the opcode of the called function, and the function
-arguments as parameters. When entering the kernel, the client's thread is
+arguments as parameters. Upon entering the kernel, the client's thread is
 blocked until it receives a response. The operation of the kernel is
 represented by the dotted line.
-The kernel takes the supplied local name as an
+The kernel uses the supplied local name as an
 index into the client's capability space to look up the object identity, to
-which the capability refers. Given the object identity, kernel is able to
+which the capability refers. Given the object identity, the kernel is able to
 determine the entrypoint that is associated with the object identity and wakes
 up the entrypoint's thread with the information about the incoming request.
 Among those information is the server-local name of the capability that was
 invoked. Note that the kernel has translated the client-local name
-into the corresponding server-local name. The capability name spaces of client and
+to the corresponding server-local name. The capability name spaces of client and
 server are entirely different. The entrypoint uses this number as a key into
 its object pool to find the locally implemented RPC object A that belongs to
 the invoked capability. It then performs a method call of the so-called
@@ -319,22 +323,11 @@ acquainted to servers?
 Component ownership
 ~~~~~~~~~~~~~~~~~~~
 
-In a Genode system, each component (except for the initial component called
+In a Genode system, each component (except for the very first component called
 core) has a parent, which owns the component. The _ownership_ relation between
 a parent and a child is two-fold.
 
 [tikz img/parent_child]
-
-On the one hand, ownership stands for _responsibility_. The parent is
-responsible to provide the physical resources (such as a memory budget) to
-the child at the creation time but also during the child's entire lifetime.
-Creating children is not for free but the parent has to pay for them. Besides
-being the provider of resources, the parent defines all aspects of the
-child's execution, and serves as the child's primary point of
-contact for seeking acquaintances with other components.
-
-[tikz img/parent_capability]
-  Initial relationship between a parent and a new created child.
 
 On the one hand, ownership stands for _responsibility_.
 Each component requires physical resources such as the memory used by the
@@ -349,6 +342,17 @@ the physical resources split between itself and each of its children.
 Besides being the provider of resources, the parent defines all aspects of the
 child's execution and serves as the child's primary point of contact for
 seeking acquaintances with other components.
+
+
+[tikz img/parent_capability]
+  Initial relationship between a parent and a new created child.
+
+On the other hand, ownership stands for _control_. Because the parent has
+created its children out of its own resources, it is in the position to
+exercise ultimate power over its children. This includes the decision to
+destruct a child at anytime to regain the resources that were assigned
+to the child. But it is also in control over the relationships of the child
+with other components known to the parent.
 
 Each new component is created as an empty protection domain. It is up to the
 parent to populate the protection domain with code and data, and to create a
@@ -425,11 +429,11 @@ The counterpart of the service announcement is the creation of a session by
 a client by issuing a _session_ request to its parent. Figure
 [img/session_request] shows the scenario where the application requests a
 "GUI" session. Along with the session call, the client specifies the
-name of the service and a number of session arguments. The session arguments
+type of the service and a number of session arguments. The session arguments
 enable the client to inform the server about various properties of the
 desired session. In the example, the client informs the server that it
 is interested in reading user input and that the client's window should be
-labeled with the name "browser". As a result of a session request, the
+labeled with the name "browser". As a result of the session request, the
 client expects to obtain a capability to an RPC object that implements
 the session interface of the requested service. Such a capability is called
 _session capability_.
@@ -447,7 +451,7 @@ There are the following options.
 :Parent provides the service:
   The parent could decide
   to implement the requested service by itself by handing out a session
-  capability to a locally implemented RPC object to the child.
+  capability for a locally implemented RPC object to the child.
 
 :Server is another child:
   If the parent has received an announcement of the service from another
@@ -459,15 +463,15 @@ There are the following options.
 
 
 Figure [img/session_request] illustrates the latter option where the
-launcher responds to the session request by the application by
-issuing a session request from its parent, the init component. Note that by
+launcher responds to the application's session request by
+issuing a session request to its parent, the init component. Note that by
 requesting a session in the name of its child, the launcher is able to
 modify the session arguments according to its policy. In the example,
 the launcher imposes the use of a different label to the session. When
-init receives the session request from the launcher, it is up to the init
+init receives the session request from the launcher, it is up to init
 to take a policy decision with the same principle options. In fact, each
 component that sits in between the client and the server along the branches
-of the ownership tree can impose its policy to sessions. The routing of the
+of the ownership tree can impose its policy onto sessions. The routing of the
 session request and the final session arguments as received by the server are
 the result of the successive application of all policies along the route.
 
@@ -475,7 +479,7 @@ In the example, init decides to override the "input" argument.
 Because the GUI announced its "GUI" service beforehand, init is in possession
 of the root capability, which enables it to create and destroy GUI
 sessions. It decides to respond to the launcher's session request by
-triggering the GUI session creation at the GUI component's root interface.
+triggering the GUI-session creation at the GUI component's root interface.
 The GUI component responds to this request with the creation of a new GUI
 session and attaches the received session arguments to the new session.
 The accumulated session policy is thereby tied to the session's RPC object.
@@ -490,10 +494,10 @@ with the GUI session using the session capability.
 
 The differentiation between session creation and session use aligns two
 seemingly conflicting goals with each other, namely efficiency and the
-application of the security policies of potentially many components. On the
-one hand, all components on the route between client and server are involved
-in the creation of the session and thereby can impose their policies on the
-session. On the other hand, once established, the direct communication channel
+application of the security policies by potentially many components.
+All components on the route between client and server are involved
+in the creation of the session and can thereby impose their policies on the
+session. Once established, the direct communication channel
 between client and server via the session capability allows for the efficient
 interaction between the two components. For the actual use of the session, the
 intermediate components are not on the performance-critical path.
@@ -513,12 +517,12 @@ However, it obtained the session from its parent, which the client ultimately
 trusts. Whichever session capability was handed out by the parent, the client
 is not in the position to question the parent's decision.
 
-However, even though the integrity of the session capability can be taken for
+Even though the integrity of the session capability can be taken for
 granted, the client does not need to trust the server in the same way as it
 trusts its parent. By invoking the capability, the client is in full control
 over the information it reveals to the server in the form of RPC arguments.
 The confidentiality of its internal state is protected. Furthermore, the
-invocation of a capability cannot have side effects to the client's protection
+invocation of a capability cannot have side effects on the client's protection
 domain other than the retrieval of RPC results. So the integrity of the
 client's internal state is protected. However, when invoking a capability, the
 clients hands over the flow of execution to the server. The client is blocked
@@ -542,7 +546,7 @@ from one of its clients. A malicious client could have delegated a
 capability to a non-responding RPC object, which may block the server
 forever when invoked and thereby make the server unavailable for all other
 clients. As another example, the server must always be in control
-over the physical memory resources used for a sharing-memory interface between
+over the physical memory resources used for a shared-memory interface between
 itself and its clients. Otherwise, if a client was in control over the
 used memory, it could revoke the memory from the server at any time, possibly
 triggering a fault at the server. The establishment of shared memory is
@@ -558,10 +562,11 @@ of the first request.
 Regarding the lifetime of a session, the client is not in the immediate
 position to dictate the server when to close a session because it has no power
 over the server. Instead, the procedure of closing a session follows the same
-chain of commands as involved at the session creation. The common parent of
+chain of commands as involved in the session creation. The common parent of
 both client and server plays the role of a broker, which is trusted by both
 parties. From the client's perspective, closing a session is a request to its
-parent and it is up to the policy of the parent to respond to such a request.
+parent. The client has to accept that the response to such a request is up to
+the policy of the parent.
 From the perspective of a server that is implemented by a child, the request
 to close a session originates from its parent, which, as the owner of the
 server, represents an authority that must be ultimately obeyed. Otherwise, the
@@ -578,7 +583,8 @@ Resource trading
 As introduced in Section [Component ownership], child components are created
 out of the resources of their respective parent components. This section
 describes the underlying mechanism. It first introduces the concept of
-RAM sessions in Section [Resource assignment]. Section [Resource trading]
+RAM sessions in Section [Resource assignment].
+Section [Trading memory between clients and servers]
 explains how RAM sessions are used to trade resources between components.
 The resource-trading mechanism ultimately allows servers to become resilient
 against client-driven resource-exhaustion attacks. However, such servers need
@@ -600,22 +606,22 @@ memory, the processing time of the CPUs, and devices.
 The traditional approach to resource management
 -----------------------------------------------
 
-Traditional operating systems use to provide abstractions of those resource
+Traditional operating systems use to provide abstractions of those resources
 to applications running on top of the operating system. For example, instead
-of exposing the real interface of a device to an application, the OS kernel
+of exposing the real interface of a device to an application, a Unix kernel
 provides a representation of the device as a pseudo file in the virtual file
-system. An application interacts with a device indirectly by operating on
+system. An application interacts with the device indirectly by operating on
 the respective pseudo file via an device-class-specific API (ioctl
 operations). As another example, a traditional OS kernel provides each
 application with an arbitrary amount of virtual memory, which may be much
 larger than the available physical memory. The application's virtual memory is
-backed with physical memory on not before the application actually uses the
+backed with physical memory not before the application actually uses the
 memory. The pretension of unlimited memory by the kernel relieves application
 developers from considering memory as a limited resource. On the other hand,
 this convenient abstraction creates problems that are extremely hard or even
 impossible to solve by the OS kernel.
 
-* The amount of physical memory that is at the disposal to back the
+* The amount of physical memory that is at the disposal for backing
   virtual memory is limited. Traditional OS kernels use to employ strategies
   to uphold the illusion of unlimited memory by swapping memory pages to disk.
   However, the swap space on disk is ultimately limited, too. At one point,
@@ -656,7 +662,7 @@ the in-kernel disk driver is part of its trusted computing base.
 RAM sessions and balances
 -------------------------
 
-Genode does not abstract from physical resources. Instead, it solely
+Genode does hardly abstract from physical resources. Instead, it solely
 arbitrates the access to such resources and provides means to delegate the
 authority over resources between components.
 Each low-level physical resource is represented as a dedicated service
@@ -686,7 +692,7 @@ Such a withdrawal will naturally decrease the balance on the account. If the
 account is depleted, the bank denies the purchase attempt.
 Analogously to purchasing physical goods by withdrawing balances from a bank
 account, physical memory can be allocated from a RAM session. The balance
-of RAM session is the RAM session's quota.
+of the RAM session is the RAM session's quota.
 A piece of allocated physical memory is represented by a so-called dataspace
 (see Section [Dataspaces] for more details). A RAM dataspace is a container
 of physical memory that can be used for storing data.
@@ -697,7 +703,7 @@ Subdivision of budgets
 
 Similar to a person with a bank account, each component of a Genode system
 has a session at core's RAM service.
-At boot time, the core component creates an initial RAM session with a balance
+At boot time, the core component creates an initial RAM session with the balance
 set to the amount of available physical memory. This RAM session is designated
 for the init component, which is the first and only child of core.
 On request by init, core delegates the capability for this initial RAM session
@@ -710,22 +716,22 @@ to the init component.
 
 For each child component spawned by the init component, init creates a new
 RAM session at core. Figure [img/memory_assignment] exemplifies this
-step for one child. As result from the session creation, it obtains the
+step for one child. As the result from the session creation, it obtains the
 capability for the new RAM session. Because it has the authority over both
-its own and the child's designated RAM session, it can transfer a certain amount of RAM
-quota from its own account to the child's account by invoking its own RAM
-session capability and specifying the beneficiary's RAM-session capability
-as argument. Core responds to the request by atomically
-adjusting the quotas of both RAM sessions by the specified amount.
-In the case of init, the amount depends on the
-configuration of the init component. Thereby, init explicitly splits its
+its own and the child's designated RAM session, it can transfer a certain
+amount of RAM quota from its own account to the child's account by invoking
+its own RAM-session capability and specifying the beneficiary's RAM-session
+capability as argument. Core responds to the request by atomically adjusting
+the quotas of both RAM sessions by the specified amount.
+In the case of init, the amount depends on init's
+configuration. Thereby, init explicitly splits its
 own RAM budget among its child components. Each child created by init can
 obtain the capability for its own RAM session from init via the parent
-interface and thereby gains the authority over memory budget that was assigned
-to it.
+interface and thereby gains the authority over the memory budget that was
+assigned to it.
 Note however, that no child has the authority over init's RAM session nor
 the RAM sessions of any siblings. The mechanism for distributing a given
-budgets among multiple children works recursively. The children of init
+budget among multiple children works recursively. The children of init
 can follow the same procedure to further subdivide their budgets for
 spawning grandchildren.
 
@@ -738,7 +744,7 @@ Protection against resource stealing
 
 A parent that created a child subsystem out of its own memory resources,
 expects to regain the spent resources when destructing the subsystem. For
-this reason it must not be possible for a child to transfer funds to
+this reason, it must not be possible for a child to transfer funds to
 another branch of the component tree without the consent of the parent.
 Figure [img/resource_stealing] illustrates an example scenario that
 violates this expectation.
@@ -750,7 +756,7 @@ The client-server relationship allows the client to delegate capabilities
 to the server. Therefore, it is able to delegate its own RAM session
 capability to the server.
 The server, now in possession of the client's and its own RAM session
-capabilities can transfer memory from the client's to its own RAM session.
+capabilities, can transfer memory from the client's to its own RAM session.
 After this transaction,
 the child has no way to regain its memory resources because it has no
 authority over the server's RAM session.
@@ -805,9 +811,9 @@ parent assigns a part of its own memory quota to the new child. Since the
 parent retains the RAM-session capabilities of all its children, it can issue
 further quota transfers back and forth between the children's RAM sessions
 and its own RAM session, which represents the reference account for all children.
-When a child requests a session at the parent interface, it can attach a part
-of its quota to the new session by specifying an amount of memory to be
-donated to the server as a session argument. This amount is called
+When a child requests a session at the parent interface, it can attach a
+fraction of its quota to the new session by specifying an amount of memory to
+be donated to the server as a session argument. This amount is called
 _session quota_. The session quota can be used by the server during the
 lifetime of the session. It is returned to the client when the session is
 closed.
@@ -835,7 +841,7 @@ cases depending on its session-routing decision as described in Section
   that the quota transfers can be reverted later when closing the session. Not
   before the transfer of the session quota to the server's RAM session
   succeeded, the parent issues the actual session request at the server's root
-  interface along with the information about transferred the session quota.
+  interface along with the information about the transferred session quota.
 
 :Forward to grandparent:
   The parent may decide to forward the session request to its own parent. In
@@ -845,7 +851,7 @@ cases depending on its session-routing decision as described in Section
   the parent transfers the session quota from the requesting child to its own
   RAM session before issuing the session request at the grandparent.
 
-Quota transfers may fail if there is not enough budgets on the originating
+Quota transfers may fail if there is not enough budget on the originating
 account. In this case, the parent aborts the session creation and reflects
 the lack of resources as an error to the originator of the session
 request.
@@ -866,7 +872,7 @@ During the lifetime of a session, the initial session quota may turn out to be
 too scarce. Usually, the server returns such a scarcity condition as an
 error of operations that imply server-side allocations.
 The client may handle such a condition by upgrading the session quota of an
-existing session via issuing an upgrade request to is parent along with
+existing session by issuing an upgrade request to is parent along with
 the targeted session capability and the additional session quota. The
 upgrade works analogously to the session creation. The server will
 receive the information about the upgrade via the root interface of the
@@ -877,7 +883,7 @@ Closing sessions
 ----------------
 
 If a child issues a session-close request to its parent, the parent determines
-routes the close request to the corresponding server, which, depending on the
+the corresponding server, which, depending on the
 route of the original session request, may be locally implemented, provided by
 another child, or provided by the grandparent. Once the server receives the
 session-close request, it is responsible to release all resources that were
@@ -893,7 +899,7 @@ transferred back to the client.
 
 However, an misbehaving server may fail to release those resources by malice
 or caused by a bug. For example, the server may be unable to free a dataspace
-because it mistakenly used the dataspace for other clients data.
+because it mistakenly used the dataspace for another client's data.
 Another example would be a memory leak in the server.
 Such misbehavior is detected on the attempt to withdraw the session
 quota from the server's RAM session. If the server's available RAM quota after
@@ -940,16 +946,16 @@ Figure [img/anonymous_heap] shows a scenario where a server performs
 anonymous memory allocations on behalf of two session. The memory is allocated
 from the server's heap. Whereas allocations from the heap are of byte
 granularity, the heap's backing store consists of several dataspaces. Those
-dataspaces are allocated at the server's RAM session as needed but at a much
-larger granularity. As depicted on the figure, allocations from both sessions
+dataspaces are allocated from the server's RAM session as needed but at a much
+larger granularity. As depicted in the figure, allocations from both sessions
 end up in the same dataspaces. This becomes a problem once one session is
 closed. As described in the previous section, the server's parent expects the
 server to release all resources that were allocated from the corresponding
 session quota. However, even if the server reverts all heap allocations that
 belong to the to-be-closed session, the server could still not release the
-underlying backing store because all dataspaces are still occupied by memory
+underlying backing store because all dataspaces are still occupied with memory
 objects of another session. Therefore, the server becomes unable to comply
-with parent's expectations.
+with parent's expectation.
 
 [tikz img/heap_partitions]
   A server performs memory allocations from session-specific heap partitions.
@@ -969,7 +975,7 @@ Dynamic resource balancing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As described in Section [Resource assignment], parent components explicitly
-assign physical resource budgets to its children. Once assigned, the assigned
+assign physical resource budgets to its children. Once assigned, the
 budget is at the disposal of the respective child subsystem until the
 subsystem gets destroyed by the parent.
 
@@ -1020,20 +1026,20 @@ Yield requests
 The second part of the protocol enables the parent to express its wish for
 regaining resources. The parent notifies the child about this condition by
 sending a yield signal to the child. On the reception of such a signal, the
-child picks up the so-called yield request at the parent using an remote
-procedure call. The yield request contains the amount of resources, the parent
+child picks up the so-called yield request at the parent using a remote
+procedure call. The yield request contains the amount of resources the parent
 wishes to regain. It is up to the child to comply with a yield request or not.
 Some subsystems have meaningful ways to respond to yield requests. For
 example, an in-memory block cache could write back the cached information and
 release the memory consumed by the cache. Once the child has succeeded in
-freeing up resource, it reports to parent by issuing a so-called yield
-response via an remote procedure call to the parent. The parent may respond to
+freeing up resources, it reports to parent by issuing a so-called yield
+response via a remote procedure call to the parent. The parent may respond to
 a yield response by withdrawing resources from the child's RAM session.
 
-| XXX
-|
-| Sequence diagrams might be nice to illustrate the interplay between
-| parent and child for resource requests and yield requests.
+; XXX
+;
+; Sequence diagrams might be nice to illustrate the interplay between
+; parent and child for resource requests and yield requests.
 
 
 Core - the root of the component tree
@@ -1063,7 +1069,7 @@ for managing address-space layouts, and for creating object identities.
 Core is almost free from policy. There are no configuration options.
 The only policy of core is the startup of the init process, to which core
 grants all available resources. Init, in turn, uses those resources to
-spawn further components according to a configuration.
+spawn further components according to its configuration.
 
 Section [Dataspaces] introduces dataspaces as containers of memory or
 memory-like resources. Dataspaces form the foundation for most of the core
@@ -1099,7 +1105,7 @@ regions, and ROM modules.
 Physical memory allocation (RAM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A RAM session is a quota-bounded allocator physical memory.
+A RAM session is a quota-bounded allocator of physical memory.
 At session-creation time, its quota is zero.
 To make the RAM session functional, it must first receive quota from
 another already existing RAM session, which is called the _reference account_.
@@ -1144,7 +1150,7 @@ the kernel.
 Examples for boot modules are the ELF images of the core component, the
 init component, the components created by init, and the configuration of the
 init component.
-Core makes each boot modules available as a ROM session. Because boot modules
+Core makes each boot module available as a ROM session. Because boot modules
 are read-only memory, they are generally called ROM modules.
 On session construction, the client specifies the name of the ROM module
 as session argument.
@@ -1158,9 +1164,9 @@ Protection domains (PD)
 
 A protection domain (PD) corresponds to a unit of protection within the Genode
 system. Typically, there is a one-to-one relationship between a component and
-a PD. At the hardware-level the CPU isolates different protection domains via
+a PD. At the hardware-level, the CPU isolates different protection domains via
 a memory-management unit. Each domain is represented by a different page
-directory, or an address-space ID (ASID). A PD session is a representation of the
+directory, or an address-space ID (ASID). A PD session represents the
 used hardware-based protection facility.
 
 In addition to representing the unit of memory protection, a PD comprises a
@@ -1181,7 +1187,7 @@ can be combined as basic building blocks for creating a component.
 Address-space management (RM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-An region manager (RM) session represents the layout of a virtual address
+A region-manager (RM) session represents the layout of a virtual address
 space. The size of the virtual address space can be defined via session
 arguments at the session-creation time.
 
@@ -1205,7 +1211,8 @@ It also has the option to attach a mere window of the dataspace to the RM
 session. Furthermore, the client can specify whether the content of the
 dataspace should be executable or not.
 
-The counter part of the _attach_ operation, the RM client is able to remove
+The counter part of the _attach_ operation is the _detach_ operation, which
+enables the RM client to remove
 dataspaces from its RM session by specifying a virtual address. Under the
 hood, this operations flushes the MMU mappings of the corresponding virtual
 address range so that the dataspace content becomes invisible.
@@ -1242,10 +1249,10 @@ it to other components.
 
 Managed dataspaces are used in two ways. First, they allow for the manual
 management of portions of a component's virtual address space. For example,
-the so-called thread-context area is a dedicated virtual-address ranged
+the so-called thread-context area is a dedicated virtual-address range
 preserved for stacks. Between the stacks, the virtual address space must
 remain empty so that stack overflows won't silently corrupt data. This
-is achieved by creating a RM session that represents the complete
+is achieved by creating an RM session that represents the complete
 thread-context area. This RM session is attached as a dataspace to the
 component's virtual address space. When creating a new thread with its
 corresponding stack, the thread's stack is not directly attached to the
@@ -1349,7 +1356,7 @@ Port I/O (IO_PORT)
 ------------------
 
 For platforms that rely on I/O ports for device access, core's IO_PORT service
-enables fine-grained assignment of port ranges to individual components.
+enables the fine-grained assignment of port ranges to individual components.
 Each IO_PORT session corresponds to the exclusive access right to a port range
 specified as session arguments. Core creates the new IO_PORT session only if
 the specified port range does not overlap with an already existing session.
@@ -1357,18 +1364,18 @@ This ensures that each I/O port is driven by only one IO_PORT client at a
 time.
 The IO_PORT session interface resembles the physical I/O port access
 instructions.
-Reading from an I/O port can be performed via an 8bit, 16bit, or 32bit access.
-Vice versa, there exist operations for writing to an I/O port via an 8bit,
-16bit, or 32bit access.
+Reading from an I/O port can be performed via an 8-bit, 16-bit, or 32-bit access.
+Vice versa, there exist operations for writing to an I/O port via an 8-bit,
+16-bit, or 32-bit access.
 The read and write operations take absolute port addresses as arguments.
-Core performs the I/O port operating only if the specified port address lies
+Core performs the I/O-port operation only if the specified port address lies
 within the port range of the session.
 
 
 Reception of device interrupts (IRQ)
 ------------------------------------
 
-Core's IRQ service provides enables device-drivers components to respond to
+Core's IRQ service enables device-driver components to respond to
 device interrupts. Each IRQ session corresponds to an interrupt.
 The physical interrupt number is specified as session argument.
 Each physical interrupt number can be specified to only one session.
@@ -1385,14 +1392,14 @@ Logging (LOG)
 ~~~~~~~~~~~~~
 
 The LOG service is used by the lowest-level system components such as the init
-process for printing diagnostic output.
+component for printing diagnostic output.
 Each LOG session takes a label as session argument, which is used to prefix
 the output of this session.
 This enables developers to distinguish the output of different components with
 each component having a unique label.
 The LOG client transfers the to-be-printed characters as payload of plain RPC
-messages as the simplest possible communication mechanism between the LOG
-client and core's LOG service.
+messages, which represents the simplest possible communication mechanism
+between the LOG client and core's LOG service.
 
 
 Asynchonous notifications (SIGNAL)
@@ -1460,7 +1467,7 @@ able to inspect the ELF header to determine the memory required for the
 binary's DATA and BSS segments.
 
 The next step is the creation of the child's designated
-RAM session, which represents the memory budget the child has at its disposal.
+RAM session, which represents the memory budget the child will have at its disposal.
 The freshly created RAM session has no budget though. In order to make the
 RAM session usable, the parent has to transfer a portion of its own RAM quota
 to the child's RAM session. As explained in Section [Resource assignment],
@@ -1478,7 +1485,7 @@ Constructing the child's address space
 
 With the child's RAM session equipped with memory, the parent can construct
 the address space for the new child and populate it with memory allocated
-from the RAM session.
+from the child's budget.
 The address-space layout is represented
 as a session to core's RM service (Section [Address-space management (RM)]).
 Hence, as illustrated in Figure [img/creation_rmsession], the parent has to
@@ -1505,11 +1512,11 @@ in the ELF executable's header:
   RM session, no memory must be copied. If multiple instances of the same
   executable are created, the read-only segments of all instances refer to the
   same physical memory pages.
-  Only if the segment contains the TEXT segment (the program code), the parent
+  If the segment contains the TEXT segment (the program code), the parent
   specifies a so-called executable flag to the attach operation. Core passes
   this flag to the respective kernel such that the corresponding page-table
   entries for the new components will be configured accordingly (by setting or
-  clearing the non-executable bit).
+  clearing the non-executable bit in the page-table entries).
   Note that the propagation of this information (or the lack thereof) depends
   on the used kernel. Also note that not all hardware platforms distinguish
   executable from non-executable memory mappings.
@@ -1522,7 +1529,7 @@ in the ELF executable's header:
   consumption on behalf of the child to the child's budget. For each
   segment, the parent performs the following steps:
 
-  # Allocation a RAM dataspace from the child's RAM session. The size of the
+  # Allocation of a RAM dataspace from the child's RAM session. The size of the
     dataspace corresponds to the segment's memory size. The memory size
     may be higher than the size of the segment in the ELF binary (named
     file size). In particular, if the segment contains a DATA section
@@ -1542,7 +1549,7 @@ in the ELF executable's header:
     remainder of the RAM dataspace is known to be initialized with zeros.
 
   # After filling the content of the segment dataspace, the parent no longer
-    needs to access it. Hence, it can remove it from its virtual address space
+    needs to access it. It can remove it from its virtual address space
     by invoking the detach operation on its own RM session.
 
   # Based on the virtual segment address as found in the ELF header, the
@@ -1565,8 +1572,8 @@ With the virtual address space of the child configured, it is time to
 create the component's initial thread. Analogously to the child's RAM and RM
 sessions, the parent creates a CPU session
 (Section [Processing-time allocation (CPU)]) for the child.
-The parent specify use session arguments to constrain the scheduling parameters
-(i.e., priority) and the CPU affinity of the new child.
+The parent may use session arguments to constrain the scheduling parameters
+(i.e., the priority) and the CPU affinity of the new child.
 Whichever session arguments are specified, the child's abilities will never
 exceed the parent's abilities. I.e., the child's priority is subjected to the
 parent's priority constrains.
@@ -1577,15 +1584,15 @@ used to control the execution of the thread.
 Immediately after its creation, the thread remains inactive.
 In order to be executable, it first needs to be configured. In particular, the
 thread needs to be associated with its address space.
-Otherwise, the kernel respectively core would not know how to respond to a
-page fault triggered by the thread.
+Otherwise, the kernel respectively core would not know how to respond to
+page faults triggered by the thread.
 To associate the thread with the virtual address space of the new child, the
 parent invokes the add-client operation at the child's RM session with the
 thread capability as argument.
 
 The final step is the creation of the child's protection domain and the
-assignment of the child's initial thread to new protection domain. A
-protection domain represented by a session to core's PD service.
+assignment of the child's initial thread to the new protection domain. A
+protection domain is represented by a session to core's PD service.
 As described in Section [Component ownership], each protection domain has
 initially a single capability installed, which allows the child to communicate
 to its parent.
@@ -1618,6 +1625,8 @@ thread within the thread-context area, and returns to the assembly startup
 code. The assembly code, in turn, switches the stack from the initial stack to
 the real stack and calls the program-specific C++ startup code. This code
 executes global constructors before calling the program's main function.
+Section [Component-local startup code and linker scripts] describes
+the component-local startup procedure in detail.
 
 
 Inter-component communication
@@ -1636,7 +1645,7 @@ The RPC mechanism closely resembles the semantics
 of a function call where the control is transferred from the caller to
 the callee until the function returns.
 As discussed in Section [Client-server relationship], there are situations
-where the provider of information does not wish depend on the recipient to
+where the provider of information does not wish to depend on the recipient to
 return control. Such situations are addressed by the means of an asynchronous
 notification mechanism explained in Section [Asynchronous notifications].
 
@@ -1666,7 +1675,7 @@ Synchronous remote procedure calls (RPC)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Section [Capability invocation] introduced remote procedure calls (RPC)
-Genode's fundamental mechanism to delegate authority between
+as Genode's fundamental mechanism to delegate authority between
 components.
 It introduced the terminology for RPC objects, capabilities, object
 identities, and entrypoints.
@@ -1692,7 +1701,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   At the lowest level, the kernel's IPC mechanism is used to transfer messages
   back and forth between client and server. The actual mechanism largely
   differs between the various kernels supported by Genode.
-  Section [Capability-based security in depth] gives insights into the
+  Chapter [Under the hood] gives insights into the
   functioning of the IPC mechanism as used on specific kernels.
   Genode's capability-based security model is based on the presumption
   that the kernel protects _object identities_ as kernel objects,
@@ -1705,7 +1714,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
 
 :IPC library:
   The IPC library introduces a kernel-independent programming interface
-  that is needed to implement the principle semantics of clients and servers
+  that is needed to implement the principle semantics of clients and servers.
   For each kernel supported by Genode, there exists a distinct IPC library
   that uses the respective kernel mechanism. The IPC library introduces the
   notions of untyped capabilities, message buffers,  IPC clients,
@@ -1718,7 +1727,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   untyped capability depends on the used kernel.
 
   A _message buffer_ is a statically sized buffer that carries the payload
-  of an IPC message. It distinguishes two types of payloads, namely raw data
+  of an IPC message. It distinguishes two types of payload, namely raw data
   and capabilities. Payloads of both kinds can be simultaneously present.
   A message buffer can carry up to 1 KiB of raw data and up to four
   capabilities.
@@ -1757,6 +1766,8 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   a capability for communicating with the server and thereby the authority
   to perform the request.
 
+; XXX [tikz/rpc_interface_classes]
+
 :RPC stub code:
   The RPC stub code complements the IPC library with the semantics of RPC
   interfaces and RPC functions. An RPC interface is an abstract C++ class
@@ -1764,8 +1775,8 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   Thereby each RPC interface is represented as a C++ type.
   The declarations are accompanied with annotations that allow the C++
   compiler to generate the so-called RPC stub code on both the client side and
-  server side. Traditionally, the generation of communication stub codes
-  employed code-generating tools like IDL compilers. In contrast, Genode uses
+  server side. Traditionally, the generation of communication stub codes uses
+  to employ code-generating tools like IDL compilers. In contrast, Genode uses
   C++ templates to generate the stub code, which avoids the crossing of a
   language barrier when designing RPC interfaces and alleviates the need for
   code-generating tools in addition to the compiler.
@@ -1792,7 +1803,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   a unique capability for the given RPC object.
   RPC objects are typed with their corresponding RPC interface. This C++ type
   information is propagated to the their corresponding capabilities. I.e.,
-  When associating a RPC object that implements the LOG-session interface
+  When associating an RPC object that implements the LOG-session interface
   with an entrypoint, the resulting capability is a LOG-session capability.
 
   This capability represents
@@ -1831,7 +1842,8 @@ Server-side class structure
   Server-side structure of the RPC mechanism
 
 Figure [img/rpc_classes] gives on overview of the C++ classes that are
-involved in the RPC mechanism. As described in Section [Capability invocation]
+involved at the server side of the RPC mechanism. As described in
+Section [Capability invocation],
 each entrypoint maintains a so-called object pool. The object pool contains
 references to RPC objects associated with the entrypoint. When receiving
 an RPC request along with the local name of the invoked object identity,
@@ -1937,7 +1949,7 @@ its limitations in the following situations.
 
 :Waiting for multiple conditions:
 
-  In principle, the RPC mechanism can be used by a RPC client to block
+  In principle, the RPC mechanism can be used by an RPC client to block
   for a condition at a server. For example, a timer server could provide
   a blocking sleep function that, when called by a client, blocks the client
   for a certain amount of time. However, if the client wanted to respond to
@@ -1947,7 +1959,7 @@ its limitations in the following situations.
   respective thread would resume its execution and respond to the condition.
   However, because all threads could potentially be woken up independently
   from each other -- as their execution depends only on their respective
-  condition -- they needs to synchronize access to shared state.
+  condition -- they need to synchronize access to shared state.
   Consequently, components that need to respond to multiple conditions
   would not only waste threads but also suffer from synchronization overheads.
 
@@ -1958,16 +1970,16 @@ its limitations in the following situations.
 
 :Signaling events to untrusted parties:
 
-  With merely synchronous RPC a server cannot deliver sporadic events to
+  With merely synchronous RPC, a server cannot deliver sporadic events to
   its clients. If the server wanted to inform one of its clients about such
-  an event, it would need to act as a client itself performing an RPC call to
+  an event, it would need to act as a client itself by performing an RPC call to
   its own client. However, by performing an RPC call, the caller
-  passes the control of execution to the callee. In the case for a server
+  passes the control of execution to the callee. In the case of a server
   that serves multiple clients, it would put the availability of the server
   at the discretion of all its clients, which is unacceptable.
 
   A similar situation is the interplay between a parent and a child where
-  the parent does not trust its child but still needs to propagate sporadic
+  the parent does not trust its child but still wishes to propagate sporadic
   events to the child.
 
 The solution to those problems is the use of asynchronous notifications,
@@ -1989,8 +2001,8 @@ Signal-context creation and delegation
 The upper part of the Figure [img/signal_seq] depicts the steps needed by a
 signal handler to become able to receive asynchronous notifications.
 
-# Initially, the signal handler creates a so-called _signal receiver_.
-  Similar to an entrypoint that can respond to RPC request to a number
+# Initially, the signal-handler component creates a so-called _signal receiver_.
+  Similar to an entrypoint that can respond to RPC requests for a number
   of RPC objects, a signal receiver is able to receive signals for an
   arbitrary number of sources. Within the signal-handler component,
   each source is represented as a so-called _signal context_. A component
@@ -2023,7 +2035,7 @@ signal-context capability by the signal producer.
   operation.
 
 # At the time when the signal producer submitted the first signals, the
-  signal handler is not yet ready to handle them It is still busy with other
+  signal handler is not yet ready to handle them. It is still busy with other
   things.
   However, the number of submitted signals is recorded.
   Once the signal handler finally calls the wait-for-signal function at the
@@ -2035,9 +2047,8 @@ signal-context capability by the signal producer.
   blocks its execution by calling the signal receiver's wait-for-signal
   function again. This time, no signals are immediately pending. After
   a while, however, the signal producer submits another signal, which
-  eventually wakes up the signal handler with information of the associated
-  context.
-
+  eventually wakes up the signal handler with the information about the
+  associated context.
 
 In contrast to remote procedure calls, signals carry no payload. If signals
 carried any payload, this payload would need to be buffered somewhere.
@@ -2063,16 +2074,17 @@ Shared memory
   Establishing shared memory between client and server
 
 By sharing memory between components, large amounts of information can be
-propagated across protection domains without the active help of the kernel.
+propagated across protection-domain boundaries without the active help of the
+kernel.
 
-However, sharing memory between components raises a number of questions.
+Sharing memory between components raises a number of questions.
 First, Section [Resource trading] explained that physical memory resources
 must be explicitly assigned to components either by their respective parents
 or by the means of resource trading. This raises the question of which
 component is bound to pay for the memory shared between multiple components.
 Second, unlike traditional operating systems where different programs can
 refer to globally visible files and thereby establish shared memory by
-mapping prior-agreed file into their respective virtual memory spaces, Genode
+mapping a prior-agreed file into their respective virtual memory spaces, Genode
 does not have a global name space. How do components refer to the to-be-shared
 piece of memory?
 Figure [img/shared_memory_seq] answers these questions with the sequence of
@@ -2085,7 +2097,7 @@ client and server must be clearly defined.
 
 # The server interacts with core's RAM service to allocate a new RAM dataspace.
   Because the server uses its own RAM session for that allocation, the
-  dataspace is paid by the server. At the first glance, this is seemingly a
+  dataspace is paid for by the server. At the first glance, this is seemingly a
   contradiction with the principle that clients should have to pay for using
   services as discussed in
   Section [Trading memory between clients and servers].
@@ -2104,7 +2116,7 @@ client and server must be clearly defined.
   allocation.
 
 # The server makes the content of the dataspace visible in its virtual
-  address space by attaching the dataspace in its RM session. The server
+  address space by attaching the dataspace within its RM session. The server
   refers to the dataspace via the dataspace capability as returned from the
   prior allocation.
   When attaching the dataspace to the server's RM session, core's RM service
@@ -2119,7 +2131,7 @@ client and server must be clearly defined.
   This delegation can happen in different ways, e.g., the client could
   request the dataspace capability via an RPC function at the server.
   But the delegation could also involve further components that transitively
-  delegate the dataspace capability. Therefore the delegation operation is
+  delegate the dataspace capability. Therefore, the delegation operation is
   depicted as a dashed line.
 
 # Once the client has obtained the dataspace capability, it can use its
@@ -2127,9 +2139,9 @@ client and server must be clearly defined.
   space. Note that even though both client and server use core's RM service,
   each component uses a different session.
   Analogous to the server, the client receives a client-local address
-  within its virtual address space as the result of the attach function.
+  within its virtual address space as the result of the attach operation.
 
-# After the client has attached the dataspace in its RM session,
+# After the client has attached the dataspace within its RM session,
   both client and server can access the shared memory using their respective
   virtual addresses.
 
@@ -2191,7 +2203,7 @@ transferring a large amount of data back to the client.
 # At session-creation time, the server allocates the dataspace, which
   represents the designated communication buffer.
   The steps resemble those described in Section [Shared memory].
-  The server uses session quote provided by the client for the allocation.
+  The server uses session quota provided by the client for the allocation.
   This way, the client is able to aid the dimensioning of the dataspace by
   supplying an appropriate amount of session quota to the server.
   Since the server performed the allocation, the server is in control over the
@@ -2214,7 +2226,7 @@ transferring a large amount of data back to the client.
 # On reception of the RPC, the server becomes active. It reads and processes
   the bulk data, and writes its results to the dataspace. The server must not
   assume to be the exclusive user of the dataspace. A misbehaving client
-  may change the buffer content at any time. Hence, the server must take
+  may change the buffer content at any time. Therefore, the server must take
   appropriate precautions. In particular, if the data must be validated at
   the server side, the server must copy the data from the shared dataspace to
   a private buffer before validating and using it.
@@ -2242,7 +2254,7 @@ It is designed for large bulk payloads such as network traffic, block-device
 data, video frames, and USB URB payloads.
 
 [tikz img/packet_stream]
-  Life cycle of a data packet transmitted over the packet stream interface
+  Life cycle of a data packet transmitted over the packet-stream interface
 
 As illustrated in Figure [img/packet_stream], the communication buffer
 consists of three parts, a submit queue, an acknowledgement queue, and a
@@ -2259,9 +2271,9 @@ information. Such control information may include an opcode and further
 arguments interpreted at the sink to perform an operation on the supplied
 packet data.
 Either the source or the sink is in charge of handling a given packet at a
-given time. At the points 1, 2, and 4, the packet is owned by the
-source. At the points 3 and 4, the packet is owned by the sink. By putting a
-packet descriptor in the submit queue or acknowledgement queue, there is a
+given time. At the points 1, 2, and 5, the packet is owned by the
+source. At the points 3 and 4, the packet is owned by the sink. Putting a
+packet descriptor in the submit queue or acknowledgement queue represents a
 handover of responsibility.
 The life cycle of a single packet looks as follows:
 
@@ -2271,7 +2283,7 @@ The life cycle of a single packet looks as follows:
 # The source submits the packet to the submit queue _(submit packet)_.
 # The sink requests a packet from the submit queue _(get packet)_,
   determines the local pointer to the payload _(packet content)_,
-  and processes the contained data
+  and processes the contained data.
 # After having finished the processing of the packet, the sink acknowledges
   the packet _(acknowledge packet)_, placing the packet into the
   acknowledgement queue.

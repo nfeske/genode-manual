@@ -34,10 +34,13 @@ Process execution environment
 
 ; os: config
 
-Inter-component communication
-=============================
+Remote procedure calls
+======================
 
 ; os: static_root
+
+Signals
+=======
 
 Multi-threading and synchronization
 ===================================

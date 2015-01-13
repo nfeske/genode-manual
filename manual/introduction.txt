@@ -63,10 +63,10 @@ stacks.
   Codezero, L4/Fiasco).
   Furthermore, it can be used on top of the Linux kernel to attain
   rapid development-test cycles during development.
-  Additionally, Genode comes with custom kernel for ARM-based platforms
-  that was specifically developed for Genode and thereby
-  further reduces the complexity of the trusted computing base
-  compared to other kernels.
+  Additionally, the framework is accompanied with a custom kernel for
+  ARM-based platforms that was specifically developed for Genode and thereby
+  further reduces the complexity of the trusted computing base compared to
+  other kernels.
 
 :Virtualization:
 
@@ -78,7 +78,7 @@ stacks.
   * On the Fiasco.OC kernel, L4Linux represents a paravirtualized Linux
     kernel that allows the use of regular Linux distributions as well as
     Android.
-  * With Noux, there exists a custom runtime environment for Unix
+  * With Noux, there exists a runtime environment for Unix
     software such as GNU coreutils, bash, GCC, binutils, and findutils.
   * On ARM, Genode can be used as TrustZone monitor.
 
@@ -92,6 +92,8 @@ stacks.
     Samsung Exynos5, and FreeScale i.MX,
   * A GUI stack including a low-complexity GUI server, window management,
     and widget toolkits such as Qt5.
+  * Networking components such as TCP/IP stacks and packet-level network
+    services
 
 
 Licensing and commercial support
@@ -115,12 +117,17 @@ grants everybody the rights to
 * Freely distribute the software
 * Modify the source code and distribute modified versions of the software
 
-In turn, the GNU GPL requires any modifications and derived work to be
-published under the same or a GPL-compatible license.
+In return, the GNU GPL requires any modifications and derived work to be
+published under the same or a GPL-compatible license. For the full license
+text, refer to
+
+:GNU General Public License Version 2:
+
+  [http://genode.org/about/LICENSE]
 
 For applications that require more permissive licensing conditions than
-granted by the GNU GPL, Genode Labs offers commercial licensing options upon
-request. Please write to _info@genode-labs.com_.
+granted by the GNU GPL, Genode Labs offers the option to commercially
+license the technology upon request. Please write to _licensing@genode-labs.com_.
 
 
 Document structure

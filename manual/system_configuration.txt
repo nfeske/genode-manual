@@ -61,7 +61,7 @@ The design of this concept takes the following considerations into account.
   supplying program arguments in a concise way, the expressiveness
   of the approach is limited. In particular, it is ill-suited for expressing
   structured information as often found in configurations.
-  Furthermore, being a component-based system, Genode requires a way to
+  Being a component-based system, Genode requires a way to
   express relationships between components, which lends itself to the
   use of a structural representation.
 
@@ -70,14 +70,14 @@ The design of this concept takes the following considerations into account.
   across components. Otherwise, each component would need to  come with a
   custom parser. Each of those parsers would eventually inflate the
   complexity of the trusted computing base. In contrast, a common syntax
-  that is both expressive and simple to parse, helps to avoid such
+  that is both expressive and simple to parse helps to avoid such
   redundancies by using a single parser implementation across all components.
 
 :Least privilege:
   Being the guiding motive behind Genode's architecture, the principle of
   least privilege needs to be applied to the access of configuration
   information. Each component needs to be able to access its own configuration
-  but must not observe configuration information about unrelated components.
+  but must not observe configuration information concerning unrelated components.
   A system-global registry of configurations or even a global namespace of
   keys for such a database would violate this principle.
 
@@ -100,10 +100,10 @@ Nested configuration concept
 ============================
 
 Genode's configuration concept is based on the ROM session interface described
-in Section [Read-only memory (ROM)]. In contrast to a file system interface,
+in Section [Read-only memory (ROM)]. In contrast to a file-system interface,
 the ROM session interface, is extremely simple. The client of a ROM service
-specifies the requested ROM module by its name, prior known by the client.
-There neither a way to query a list of available ROM modules, nor are ROM
+specifies the requested ROM module by its name as known by the client.
+There is neither a way to query a list of available ROM modules, nor are ROM
 modules organized in a hierarchic name space.
 
 [tikz img/nested_config]
@@ -131,7 +131,7 @@ a ROM module named "config" from its parent, which is init. Init responds to
 this request by handling out a locally-provided ROM session. Instead of
 handing out the "config" ROM module as obtained from core, it creates a new
 dataspace that solely contains the portion of init's config ROM module that
-refers to the respective child. Analogously to how init's configuration,
+refers to the respective child. Analogously to init's configuration,
 each child's configuration has the form of a single '<config>' node.
 This works recursively. From each component's perspective, including the init
 component, the mechanism for obtaining its configuration is identical -- it
@@ -217,7 +217,7 @@ node describing resource assignments, declaring services provided by the child,
 and holding a routing table for session requests originating from the child.
 The first child is called "timer" and implements the "Timer" service. To
 implement this service, the timer requires a CAP session. The routing table
-defines that CAP session request are delegated to init's parent. The
+defines that CAP session requests are delegated to init's parent. The
 second process called "test-timer" is a client of the timer service. In its
 routing table, we see that requests for "Timer" sessions are routed to
 the "timer" child whereas requests for "LOG" sessions are routed to
@@ -225,7 +225,7 @@ init's parent. Per-child service routing rules provide a flexible way to
 express arbitrary client-server relationships. For example, service requests
 may be transparently mediated through special policy components acting upon
 session-construction arguments. There might be multiple children implementing
-the same service, each targeted by different routing tables. If there is no
+the same service, each targeted by different routing tables. If there exists no
 valid route to a requested service, the service is denied. In the example
 above, the routing tables act effectively as a white list of services the child
 is allowed to use.
@@ -338,7 +338,7 @@ Nested configuration
 
 Each '<start>' node can host a '<config>' sub node.
 As described in Section [Nested configuration concept], the content of this
-sub node is provided to the child when a ROM session for the file name
+sub node is provided to the child when a ROM session for the module name
 "config" is requested.
 Thereby, arbitrary configuration parameters can be passed to the
 child. For example, the following configuration starts 'timer-test' within an
@@ -402,12 +402,12 @@ specified via the 'configfile' node. For example:
 Assigning subsystems to CPUs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Most multi-processor (MP)systems have topologies that can be represented on a
+Most multi-processor (MP) systems have topologies that can be represented on a
 two-dimensional coordinate system. CPU nodes
 close to each other are expected to have closer relationship than distant
 nodes. In a large MP system, it is natural to assign clusters of closely
 related nodes to a given workload. As described in Section
-[Recursive system structure] Genode's architecture is based on a strictly
+[Recursive system structure], Genode's architecture is based on a strictly
 hierarchic organizational structure. Thereby, it lends itself to the idea to
 apply this successive virtualization of resources to the problem of clustering
 CPU nodes.
@@ -417,7 +417,7 @@ CPU nodes.
   of init
 
 Each component within the component tree has a component-local view on a
-so-called affinity space, which is a two-dimensional coordinate space. If the
+so-called _affinity space_, which is a two-dimensional coordinate space. If the
 component creates a new subsystem, it can assign a portion of its own affinity
 space to the new subsystem by imposing a rectangular affinity location to the
 subsystem's CPU session. Figure [img/affinity_spaces] illustrates the idea.
@@ -425,9 +425,9 @@ subsystem's CPU session. Figure [img/affinity_spaces] illustrates the idea.
 Following from the expression of affinities as a rectangular location within a
 component-local affinity space, the assignment of subsystems to CPU nodes
 consists of two parts, the definition of the affinity space dimensions as used
-for the init instance, and the association sub systems with affinity locations
-(relative to the affinity space).
-The affinity space is configured as a sub node of the config node. For
+for the init instance, and the association of sub systems with affinity locations
+relative to the affinity space.
+The affinity space is configured as a sub node of the '<config>' node. For
 example, the following declaration describes an affinity space of 4x2:
 
 ! <config>
@@ -469,7 +469,7 @@ corresponding '<start>' node. Valid priority values lie in the range of
 Init verbosity
 ~~~~~~~~~~~~~~
 
-To ease the debugging, init can be instructed to print various status
+To ease debugging, init can be instructed to print various status
 information as LOG output. To enable the verbose mode, assign the value "yes"
 to the 'verbose' attribute of the '<config>' node.
 
@@ -484,8 +484,9 @@ root path of a nested init instance will be appended to the root path of
 the outer instance.
 
 When using the chroot mechanism, core will mirror the current working
-directory within the chroot environment via the bind mount operation. This
-step is needed to enable execve to obtain the ELF binary of the new process.
+directory within the chroot environment via a bind-mount operation. This
+step is needed to enable the execve system call to obtain the ELF binary of
+the new process.
 
 In order to use the chroot mechanism when starting Genode's core as a non-root
 user process, the core executable must be equipped with the CAP_SYS_ADMIN and
