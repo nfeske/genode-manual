@@ -601,14 +601,86 @@ mapped at once, or large page-table mappings can be used.
 Dynamic linker
 ==============
 
-| TODO
+The dynamic linker is a mechanism for loading ELF binaries that are
+dynamically-linked against shared libraries.
 
-; XXX concept of ld.lib.so
-; * start ld.lib.so as regular binary, execute generic startup code
-; * requesting the binary
-; * lazy relocation
-; * managed dataspace for keeping shared libraries (why)
-; * lookup main function as present in the dynamic binary
+
+Building dynamically-linked programs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The build system automatically decides whether a program is linked statically
+or dynamically depending on the use of shared libraries. If the target
+is linked against at least one shared library, the resulting ELF image
+is a dynamically-linked program. Each dynamically-linked program is
+implicitly linked against the dynamic linker. Because the dynamic linker
+contains all the base libraries and the C++ runtime, the program itself
+must be void of those symbols. Otherwise two ambiguous versions of the base
+libraries would be present when the program is started. This invariant is
+enforced by the build system by stripping all base libraries from the linking
+step of a dynamically-linked programs. The base libraries are defined in
+_repos/base/mk/base-libs.mk_.
+
+The entrypoint of a dynamically-linked program is the 'main' function.
+
+
+Startup of dynamically-linked programs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When creating a new component,
+the parent first detects whether the to-be-loaded ELF binary represents
+a statically-linked program or a dynamically-linked program by inspecting
+the ELF binary's program-header information (see _repos/base/src/base/elf/_).
+If the program is statically linked, the parent follows the procedure as
+described in Section [Component creation]. If the program is dynamically
+linked, the parent remembers the dataspace of program's ELF image but
+starts the ELF image of the dynamic linker instead.
+
+The dynamic linker is a regular Genode component that follows the startup
+procedure described in Section [Startup code]. However, because of its
+hybrid nature, it needs to take special precautions before using any
+data that contains relocations. Because the dynamic linker is a shared
+library, it contains data relocations. Even though the linker's code is
+position independent and can principally be loaded to an arbitrary address,
+global data objects may contain pointers to other global data objects or
+code. For example, vtable entries contain pointers to code. Those pointers
+must be relocated depending on the load address of the binary. This step is
+performed by the 'init_rtld' hook function, which was already mentioned in
+Section [Startup code]. Global data objects must not be used before calling
+this function. For this reason, 'init_rtld' is called at the earliest possible
+time directly from the assembly startup code.
+Apart from the call of this hook function, the startup of the dynamic linker
+is the same as for statically-linked programs.
+
+The main function of the dynamic linker obtains the binary of the actual
+dynamically-linked program by requesting a ROM session for the module
+"binary". The parent responds to this request by handing out a
+locally-provided ROM session that contains the dataspace with the actual
+program. Once the linker has obtained the dataspace containing the
+dynamically-linked program, it loads the program and all required shared
+libraries. The dynamic linker requests reach shared library as a ROM
+session from its parent.
+
+After completing the loading of all ELF objects, the dynamic linker calls
+the entrypoint of the loaded binary, which is the program's
+'main' function. Note that the symbol 'main' remains ambiguous as both
+the dynamic linker and the loaded program have a main function.
+
+
+Address-space management
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To load the binary and the associated shared libraries, the linker does not
+directly attach dataspaces to its RM session. Instead, it manages a dedicated
+part of the component's virtual address space manually by attaching a large
+managed dataspace to its RM session. This way, the linker can precisely
+control the layout within the virtual-address range covered by the managed
+dataspace. This control is needed because the loading of an ELF object does
+not correspond to an atomic attachment of a single dataspace but it involves
+consecutive attach operations for multiple dataspaces, one for each ELF
+segment. When attaching one segment, the linker must make sure that there is
+enough space beyond the segment to host the next segment. The use of a managed
+dataspace allows the linker to manually allocate big-enough portions of
+virtual memory and populate it in multiple steps.
 
 
 Execution on bare hardware (base-hw)
