@@ -652,7 +652,76 @@ boot loaders on ARM platforms usually merely support the loading of a
 single system image. Hence, base-hw requires a concept for merging
 boot modules together with the core/kernel into a single image.
 
-| XXX how does the concept works?
+System-image assembly
+---------------------
+
+In contrast to other base platforms where core is a self-sufficient program,
+on the base-hw platform, core is actually built as library. The library
+description file is specific for each platform and located at
+_lib/mk/platform_<pf>/core.mk_ where _<pf>_ corresponds to the used
+hardware platform. It includes the
+platform-agnostic _repos/base-hw/lib/mk/core.inc_ file.
+The library contains everything core needs (including the C++ runtime,
+the kernel code, and the user-level core code) except for the
+following symbols:
+
+:'_boot_modules_headers_begin' and '_boot_modules_headers_end':
+  Between those symbols, core expects an array of boot-module header
+  structures. A boot-module header contains the name, core-local
+  address, and size of a boot module. This meta data is used by
+  core's initialization code in _platform.cc_ to populate the ROM
+  service with modules.
+
+:'_boot_modules_binaries_begin' and '_boot_modules_binaries_end':
+  Between those symbols, core expects the actual module data.
+  This range is outside the core image (beyond '_prog_img_end').
+  In contrast to the boot-module headers, the modules reside in a
+  separate section that remains unmapped within core's virtual address
+  space. Only while access to a boot module is needed by core (i.e., the
+  ELF binary of init during the creation of the init component), core
+  makes the module visible within its virtual address space.
+
+  Making the boot modules invisible to core has two benefits. The
+  integrity of the boot modules does not depend on core. Even in the
+  presence of a bug in core, the boot modules cannot be accidentally
+  overwritten. Second, there are no page-table entries needed to map
+  the modules into the virtual address space of core. This is particularly
+  beneficial when using large boot modules such as a complete disk image.
+  If base-hw incorporated such a large module into the core image, page-table
+  entries for the entire disk image would need to be allocated at
+  the initialization time of core.
+
+Those symbols are defined in an assembly file called _boot_modules.s_.
+If building core stand-alone, the final linking stage combines the
+core library with the dummy _boot_modules.s_ file located at
+_src/core/boot_modules.s_.
+But when using the run tool (Section [Run tool]) to integrate a
+bootable system image, the run tool dynamically generates a version of
+_boot_modules.s_ depending on the boot modules listed in the run script
+and repeats the final linking
+stage of core by combining the core library with the generated
+_boot_modules.s_ file.
+The generated file is placed at _<build-dir>/var/run/<scenario>/_
+and incorporates the boot modules using the assembler's '.incbin' directive.
+The result of the final linking stage is an executable ELF binary that
+contains both core and the boot modules.
+
+
+Startup of the base-hw kernel
+-----------------------------
+
+Core on base-hw uses Genode's regular linker script. Like any
+regular Genode component, its execution starts at the '_start' symbol.
+But unlike a regular component, core is started by the boot loader as a kernel
+in privileged mode. Instead of directly following the startup procedure
+described in Section [Startup code], base-hw uses custom startup code
+that initializes the kernel part of core first. The startup code is located at
+_src/core/spec/arm/crt0.s_.
+It eventually calls the kernel initialization code in
+_src/core/kernel/kernel.cc_.
+Core's regular C++ startup code (the '_main' function) is executed by the first user-level
+thread created by the kernel (see the thread setup in the
+'init_kernel_mp_primary' function).
 
 
 Kernel entry and exit
@@ -1469,7 +1538,7 @@ core.
   core's capability space as covert storage channel.
 
 :Core must retain mappings to all memory used throughout the system:
-  As mentioned in Section [Page-fault handing on NOVA], core needs to own
+  As mentioned in Section [Page-fault handling on NOVA], core needs to own
   a mapping node before delegating the mapping to another PD as a response
   to a page fault. Otherwise, core could not revoke the mapping later on
   because the kernel expects core's mapping node as a proof for the
