@@ -1620,18 +1620,172 @@ complexity of various kinds of shells can be mitigated.
 Publishing and subscribing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-| TODO
+All the mechanisms for transferring data between components presented in Section
+[Inter-component communication] have in common that data is transferred in a
+peer-to-peer fashion. A client transfers data to a server or
+vice versa. However, there are situations where such a close coupling of both
+ends of communication is not desired. In multicast scenarios, the producer
+of information desires to propagate information without the need to interact
+(or even depend on a handshake) with each individual recipient. Specifically,
+a component might want to publish status information about itself that might
+by useful for other components. For example, a wireless-networking driver may
+report the list of detected wireless networks along with their respective
+SSIDs and reception qualities such that a GUI component can pick up the
+information and present it to the user. Each time, the driver detects a change
+in the ether, it likes to publish an updated version of the list. Such a
+scenario could principally be addressed by introducing a use-case-specific
+session interface, i.e., a "wlan-list" session. But this approach has two
+disadvantages.
+
+# It forces the wireless driver to play an additional server role. Instead
+  of pushing information anytime at the discretion of the driver, the driver
+  has to actively support the pulling of information from the wlan-list
+  client. This is arguably more complex.
+
+# The wlan-list session interface ultimately depends on the capabilities
+  of the driver implementation. If an alternative wireless driver is able to
+  supplement the list with further details, the wlan-list session interface of
+  the alternative driver might look different. As a consequence, the approach is
+  likely to introduce many special-purpose session interfaces. This
+  contradicts with the goal to promote the composability of components as stated
+  at the beginning of Section [Common session interfaces].
+
+As an alternative to introducing special-purpose session interfaces for
+addressing the scenarios outlined above, two existing session interfaces can
+be combined, namely ROM and report.
+
+
+Report-ROM server
+-----------------
+
+The _report-rom_ server is both a ROM service and a report service. It
+acts as an information broker between information providers (clients of the
+report service) and information consumers (clients of the ROM service).
+
+To propagate its internal state to the outside, a component creates a report
+session. Form the client's perspective, the posting of information via
+the report session's _submit_ function is a
+fire-and-forget operation, similar to the submission of a signal. But in
+contrast to a signal, which cannot carry any payload, a report is
+accompanied with arbitrary data. For the example above, the wireless driver
+would create a report session. Each time, the list of networks changes, it
+would submit an updated list as a report to the report-ROM server.
+
+The report-ROM server stores incoming reports in a database using the client's
+session label as key. So the wireless driver's report will end up in the
+database under the name of the driver component. If one component wishes to
+post reports of different kinds, it can do so by extending the session label
+by a component-provided label suffix supplied as session-construction argument
+(Section [Report]). The memory needed as the backing store for the report at
+the report-ROM server is accounted to the report client via the session-quota
+mechanism described in Section [Trading memory between clients and servers].
+
+In its role of a ROM service, the report-ROM server hands out the reports
+stored in its database as ROM modules. The association of reports with
+ROM sessions is based on the session label of the ROM client. The
+configuration of the report-ROM server contains a list of policies as
+introduced in Section [Server-side policy selection]. Each policy entry
+is accompanied with a corresponding key into the report database.
+
+When a new report comes in, all ROM clients that are associated with the
+report are informed via an ROM-update signal
+(Section [Read-only memory (ROM)]). Each client can individually respond
+to the signal by following the ROM-module update procedure and thereby
+obtain the new version of the report. From the
+client's perspective, the origin of the information is opaque. It cannot
+decide whether the ROM module is provided by the report-ROM server or
+an arbitrary other ROM service.
+
+Coming back to the wireless-driver example, the use of the report-ROM server
+effectively decouples the GUI application from the wireless driver.
+This has the following benefits:
+
+* The application can be developed and tested with an arbitrary ROM server
+  supplying an artificially created list of networks.
+
+* There is no need for the introduction of a special-purpose session
+  interface between both components.
+
+* The wireless driver can post state updates in an intuitive fire-and-forget
+  way without playing an additional server role.
+
+* The wireless driver could be restarted without affecting the application.
+
+
+Poly-instantiation of the report-ROM mechanism
+----------------------------------------------
+
+The report-ROM server is a canonical example of a protocol stack
+(Section [Protocol stacks]). It performs a translation between the
+report-session interface and the ROM-session interface. Being a protocol
+stack, it can be instantiated any number of times. It is up to the system
+integrator whether to use one instance for gathering the reports of many
+report clients, or to instantiate multiple report-ROM servers. Taken to the
+extreme, one report-ROM server could be instantiated per report client. The
+routing of ROM-session requests restricts the access of the ROM clients to
+the different instances. Even in the event that the report-ROM server is
+compromised, the policy for the information flows between the producers and
+consumers of information stays in effect.
 
 
 Enslaving services
 ~~~~~~~~~~~~~~~~~~
 
-| TODO
+In the scenarios described in the previous sections, the relationships
+between clients and servers had been one of the following:
 
+* The client is a sibling of the server within the component tree, or
+* The client is a child of a parent that provides a locally-implemented
+  service to its child.
 
-;Untangling circular dependencies
-;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;
-;| TODO
+However, the Genode architecture allows for a third option: The parent
+can be a client of its own child. Given the discussion in Section
+[Client-server relationship], this arrangement looks counter-intuitive
+at first because the discussion concluded that a client has to trust
+the server with respect to the client's liveliness. Here, a call to the server
+would be synonymous to a call to the child. Even though the parent is the
+owner of the child, it would make itself dependent on the child, which is
+generally against the interest of the parent.
 
+That said, there a plausible case where the parent's trust in a
+child is justified: If the parent uses an existing component like a
+3rd-party library. When calling code of a 3rd-party library, the caller
+implicitly agrees
+to yield control to the library and trusts the called function to return
+at some point. The call of a service that is provided by a child corresponds
+to such a library call.
+
+By providing the option to host a server as a child component, Genode's
+architecture facilitates the use of arbitrary server components in a
+library-like fashion.
+Because the server performs a useful function but is owned by its client,
+it is called _slave_.
+An application may aggregate existing protocol-stack components as slaves
+without the need to incorporate the code of the protocol stacks into the
+application.
+For example, by enslaving the report-ROM server introduced in Section
+[Publishing and subscribing], an application becomes able to use it as a local
+publisher-subscriber mechanism.
+Another example would be an application that aggregates an instance of the
+nitpicker GUI server for the sole purpose of composing an image out of several
+source images.
+When started, the nitpicker slave requests a framebuffer and an input session.
+The application responds to these requests by handing out locally-implemented sessions so that
+the output of the nitpicker slave becomes visible to the application.
+To perform the image composition, the application creates a nitpicker session
+for each source image and supplies the image data to the virtual framebuffer
+of the respective session.
+After configuring nitpicker views according to the desired layout of the
+final image, the
+application obtains the composed image from nitpicker's
+framebuffer.
+
+Note that by calling the slave, the parent does not need to trust the
+slave with respect to the integrity and confidentiality of its internal
+state (see the discussion in Section [Client-server relationship]). By
+performing the call, only the liveliness of the parent is potentially
+affected. If not trusting the slave to return control once called, the
+parent may take special precautions: A watchdog thread inside the parent
+could monitor the progress of the slave and cancel the call after the
+expiration of a timeout.
 
