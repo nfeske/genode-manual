@@ -577,6 +577,8 @@ The lookup results in one of the following three cases:
   this address.
   This attach operation, in turn, will prompt core to wake up the thread
   (or multiple threads) that faulted within the attached region.
+  Unless a dataspace is attached at the page-fault address, the faulting
+  thread remains blocked.
   If no signal handler for RM faults is registered for the RM session,
   core prints a diagnostic message and blocks the faulting thread forever.
 
@@ -657,7 +659,7 @@ dynamically-linked program by requesting a ROM session for the module
 locally-provided ROM session that contains the dataspace with the actual
 program. Once the linker has obtained the dataspace containing the
 dynamically-linked program, it loads the program and all required shared
-libraries. The dynamic linker requests reach shared library as a ROM
+libraries. The dynamic linker requests each shared library as a ROM
 session from its parent.
 
 After completing the loading of all ELF objects, the dynamic linker calls
@@ -1243,8 +1245,9 @@ given in table [nova_terminology].
    PD         | Protection domain
    EC         | Execution context (thread)
    SC         | Scheduling context
-   HIP        | Hupervisor information page
+   HIP        | Hypervisor information page
    IDC        | Inter-domain call (RPC call)
+   portal     | communication endpoint
 
 [table nova_terminology]
   Glossary of NOVA's terminology
@@ -1309,11 +1312,11 @@ IRQ service
 
 NOVA represents each interrupt as a semaphore. Within core, there is one
 entrypoint per IRQ session. When 'wait_for_irq' is called, the called IRQ
-entrypoint blocks on its corresponding IRQ semphore. In the kernel, this
+entrypoint blocks on its corresponding IRQ semaphore. In the kernel, this
 semaphore-down operation implicitly unmasks the interrupt at the CPU.
 
 When the interrupt occurs, the kernel masks the interrupt at the CPU and
-performs the semphore-up operation on the IRQ's semaphore. Thereby, it wakes
+performs the semaphore-up operation on the IRQ's semaphore. Thereby, it wakes
 up the IRQ entrypoint, which replies to the 'wait_for_irq' RPC call.
 
 
@@ -1330,7 +1333,7 @@ Page-fault handling on NOVA
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 On NOVA, each EC has a defined range of portal selectors.
-For each type of exception, the range has dedicated portal that is entered in
+For each type of exception, the range has a dedicated portal that is entered in
 the event of an exception.
 The page-fault portal of a Genode thread is defined at the creation
 time of the thread and points to a dedicated pager EC within core.
@@ -1353,7 +1356,8 @@ within the thread's corresponding RM session fails, the pager EC blocks
 on a semaphore. Because the page-fault message remains unanswered, the
 faulting thread is effectively put on halt.
 In the event that the RM fault is resolved by an RM client
-as described in the paragraph "Region is empty", the blocking on the
+as described in the paragraph "Region is empty" of Section
+[Page-fault handling], the blocking on the
 semaphore gets released and the pager EC is able to reply to the original
 page-fault message. However, the reply does not immediately establish a memory
 mapping. Instead, the faulter will immediately trigger another fault at the
@@ -1530,7 +1534,7 @@ following problems:
 
   NOVA does not support this mechanism per se.
   When specifying a capability selector as map item for an IDC call,
-  the caller can specify whether a new mapping should be created or
+  the caller has to specify whether a new mapping should be created or
   the translation of the local names should be performed by the kernel.
   However, in the general case, this question is not decidable by the caller.
   Hence, NOVA had to be changed to take the decision depending on the
@@ -1553,7 +1557,7 @@ core.
   selector may even forcefully trigger the
   exhaustion of the entire pool and thereby make the kernel unavailable. I.e.,
   the kernel panics when running out of memory. The kernel provides no
-  mechanism to mitigate such an resource-exhaustion-based denial-of-service
+  mechanism to mitigate such a resource-exhaustion-based denial-of-service
   attack.
 
   On Genode, only core explicitly allocates kernel objects, which relieves

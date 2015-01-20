@@ -1663,7 +1663,7 @@ acts as an information broker between information providers (clients of the
 report service) and information consumers (clients of the ROM service).
 
 To propagate its internal state to the outside, a component creates a report
-session. Form the client's perspective, the posting of information via
+session. From the client's perspective, the posting of information via
 the report session's _submit_ function is a
 fire-and-forget operation, similar to the submission of a signal. But in
 contrast to a signal, which cannot carry any payload, a report is
@@ -1747,7 +1747,7 @@ would be synonymous to a call to the child. Even though the parent is the
 owner of the child, it would make itself dependent on the child, which is
 generally against the interest of the parent.
 
-That said, there a plausible case where the parent's trust in a
+That said, there is a plausible case where the parent's trust in a
 child is justified: If the parent uses an existing component like a
 3rd-party library. When calling code of a 3rd-party library, the caller
 implicitly agrees
