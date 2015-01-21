@@ -1627,6 +1627,13 @@ core.
   space as described in Section [Sparsely populated core address space] for
   base-hw.
 
+:Non-executable (NX) bit on 32-bit machines:
+
+  NOVA supports the NX bit on 64-bit machines. In the x86 32-bit architecture,
+  however, there exists no NX bit unless the x86 Physical Address Extension
+  (PAE) is enabled. Because NOVA does not support PAE, the NX bit
+  remains unsupported when using NOVA on 32-bit machines.
+
 ; XXX further possible topics
 ; * Locking
 ; * Introduce the threads running within core
