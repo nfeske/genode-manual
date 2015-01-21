@@ -1623,7 +1623,9 @@ core.
   Consequently, even though core never touches memory handed out to other
   components, it needs to have memory mappings with full access rights
   installed within its virtual address space.
-
+  Therefore, core on NOVA cannot benefit from a sparsely populated address
+  space as described in Section [Sparsely populated core address space] for
+  base-hw.
 
 ; XXX further possible topics
 ; * Locking
