@@ -1,0 +1,235 @@
+\begin{tikzpicture}
+
+	\definecolor{servercolor}    {rgb}{0.6,0.7,0.9}
+	\definecolor{appcolor}    {rgb}{0.9,0.7,0.6}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\tikzstyle{servernode} = [treenode, bottom color=servercolor]
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+
+	%
+	% Components
+	%
+
+	% init
+	\node[treenode] (init) {Init};
+
+	% window manager
+	\node[servernode, above=8ex of init, minimum height=8ex, minimum width=34ex]  (wm) {};
+	\path (wm) node {Window manager};
+
+	% nitpicker
+	\node[servernode, left=4ex of wm, yshift=-1ex] (nitpicker) {Nitpicker};
+
+	% app
+	\node[servernode, right=4ex of wm, yshift=-1ex] (app) {App};
+
+	% report-ROM service
+	\node[appnode, above=15ex of wm, minimum height=6ex]  (reportrom) {};
+	\path (reportrom.north) node[below=0ex] {Report ROM};
+
+	% ROM within report rom
+	\path (reportrom.south)+(3ex,-0.3ex) node[component, opacity=0.6, above=1ex, inner sep=0.5ex, rounded corners=1]
+		(rom) {\tiny ROM};
+
+	% Report within report rom
+	\path (reportrom.south)+(-3ex,-0.3ex) node[component, opacity=0.6, above=1ex, inner sep=0.5ex, rounded corners=1]
+		(report) {\tiny Report};
+
+	% decorator
+	\node[appnode, left=4ex of reportrom, minimum height=6ex, minimum width=14ex]  (decorator) {Decorator};
+
+	% layouter
+	\node[appnode, right=4ex of reportrom, minimum height=6ex, minimum width=18ex]  (layouter) {Layouter};
+
+	% decorator nitpicker within wm
+	\path (wm.north)+(-4ex,0.3ex) node[component, opacity=0.6, below=1ex, inner sep=0.5ex, rounded corners=1]
+		(decoratornitpicker) {\tiny Nitpicker};
+
+	% nitpicker within wm
+	\path (wm.south)+(0ex,-0.3ex) node[component, opacity=0.6, above=1ex, inner sep=0.5ex, rounded corners=1]
+		(wmnitpicker) {\tiny Nitpicker};
+
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init) -- (nitpicker.south);
+	\path[treechildarrow] (init) -- (wm.south);
+	\path[treechildarrow] (init) -- (app.south);
+
+
+	%
+	% Information flows
+	%
+
+	\tikzstyle{datamodel} = [fill=white, dropshadow, align=center,
+	                         chamfered rectangle, draw, draw opacity=0.5,
+	                         chamfered rectangle corners=north east,
+	                         inner sep=0]
+
+	\tikzstyle{informationflow} = [opacity=0.4,
+	                         decoration={markings,
+	                         mark=between positions 0.07 and 1 step 1ex with {\arrow{latex}}},
+	                         postaction={decorate}]
+
+	%
+	% Window list ROM
+	%
+	\path[informationflow] (wm.north east)+(0ex,0)
+		.. controls +(9ex,0ex) and +(4ex,-6ex) ..
+		node[pos=0.6] (windowlistrom) {} (layouter.340);
+
+	\path (windowlistrom) node[datamodel, left=-4ex, xshift=6ex]
+	(windowlistromds) {
+		ROM\\
+		\tiny
+		\begin{lstlisting}
+<window-list>
+   ...
+</window-list>
+		\end{lstlisting}
+	};
+
+
+	%
+	% Hover ROM
+	%
+	\path[informationflow] (wm.north east)+(-5ex,0)
+		.. controls +(3ex,2ex) and +(4ex,-3ex) ..
+		node[pos=0.5] (hoverrom) {} (layouter.280);
+
+	\path (hoverrom) node[datamodel]
+	(hoverromds) {
+		ROM\\
+		\tiny
+		\begin{lstlisting}
+<hover>
+   ...
+</hover>
+		\end{lstlisting}
+	};
+
+
+	%
+	% Window layout report
+	%
+	\path[informationflow] (layouter.200)
+		.. controls +(-3ex,-3ex) and +(9ex,2ex) ..
+		node[pos=0.5] (winlayoutreport) {} (wm.90);
+
+	\path (winlayoutreport) node[datamodel, xshift=-2ex]
+	{
+		Report\\
+		\tiny
+		\begin{lstlisting}
+<window-layout>
+   ...
+</window-layout>
+		\end{lstlisting}
+	};
+
+
+	%
+	% Window layout ROM
+	%
+	\path[informationflow] (wm.130)
+		.. controls +(-9ex,2ex) and +(1ex,-3ex) ..
+		node[pos=0.5] (winlayoutrom) {} (decorator.330);
+
+	\path (winlayoutrom) node[datamodel, xshift=2ex]
+	(hoverromds) {
+		ROM\\
+		\tiny
+		\begin{lstlisting}
+<window-layout>
+   ...
+</window-layout>
+		\end{lstlisting}
+	};
+
+
+	%
+	% Hover report
+	%
+	\path[informationflow] (decorator.210)
+		.. controls +(-4ex,-3ex) and +(-5ex,2ex) ..
+		node[pos=0.5] (hoverreport) {} (wm.170);
+
+	\path (hoverreport) node[datamodel]
+	(hoverreportds)
+	{
+		Report\\
+		\tiny
+		\begin{lstlisting}
+<hover>
+   ...
+</hover>
+		\end{lstlisting}
+	};
+
+
+	%
+	% Stream of input events
+	%
+	\path[informationflow, opacity=0.6] (decoratornitpicker.east)
+		.. controls +(13ex,0ex) and +(0ex,-11ex) ..
+		node[sloped, above=-0.2ex, pos=0.9] {input} (layouter.220);
+
+
+	%
+	% Sessions
+	%
+
+	\tikzstyle{sessionarrow} = [arrow, densely dashed, sloped=false, left, align=right]
+
+	\draw[sessionarrow] (decorator.south)
+		.. controls +(-2ex,-7ex) and +(-11ex,0ex) .. (decoratornitpicker.180);
+
+	\draw[sessionarrow] (app.230)
+		.. controls +(-7ex,-4ex) and +(5ex,-5ex) .. (wmnitpicker.320);
+
+	\draw[sessionarrow] (wm.230)
+		.. controls +(-5ex,-5ex) and +(7ex,-4ex) .. (nitpicker.320);
+
+
+	%
+	% Background of the multi-component application
+	%
+
+	% helper nodes around the components
+	\node[fit=(wm),              inner sep=1ex] (wmoutline)    {};
+	\node[fit=(windowlistromds), inner sep=1ex] (windowlistromdsoutline)    {};
+	\node[fit=(layouter),        inner sep=1ex] (layouteroutline)    {};
+	\node[fit=(decorator),       inner sep=1ex] (decoratoroutline)    {};
+	\node[fit=(hoverreportds),   inner sep=1ex] (hoverreportdsoutline)    {};
+
+	\definecolor{multiappcolor} {rgb}{0.6,0.7,0.9}
+
+	\begin{scope}[on background layer]
+
+		\path[fill=multiappcolor, fill opacity=0.2, draw=multiappcolor, rounded corners=5]
+			(wmoutline.south west) --
+			(wmoutline.south east) --
+			(wmoutline.7) --
+			(windowlistromdsoutline.240) --
+			(windowlistromdsoutline.south east) --
+			(windowlistromdsoutline.north east) --
+			(windowlistromdsoutline.north) --
+			(layouteroutline.south east) --
+			(layouteroutline.north east) --
+			(decoratoroutline.north west) --
+			(decoratoroutline.south west) --
+			(hoverreportdsoutline.north west) --
+			(hoverreportdsoutline.south west) --
+			(hoverreportdsoutline.south) --
+			(wmoutline.175) --cycle;
+	\end{scope}
+
+\end{tikzpicture}

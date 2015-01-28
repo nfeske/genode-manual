@@ -1,0 +1,159 @@
+\begin{tikzpicture}
+
+	\definecolor{servercolor}    {rgb}{0.6,0.7,0.9}
+	\definecolor{appcolor}    {rgb}{0.9,0.7,0.6}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\tikzstyle{servernode} = [treenode, bottom color=servercolor]
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+
+	%
+	% Components
+	%
+
+	% init
+	\node[treenode] (init) {Init};
+
+	% nitpicker
+	\node[servernode, above=8ex of init, xshift=12ex]  (nitpicker) {Nitpicker};
+
+	% launcher
+	\node[servernode, above=8ex of init, xshift=-9ex, minimum height=6ex, minimum width=20ex]  (launcher) {};
+	\path (launcher) node[xshift=4ex] {Launcher};
+
+	% fader service
+	\node[appnode, above=5ex of launcher, minimum height=6ex, xshift=8ex]  (fader) {};
+	\path (fader.north) node[below=0ex] {Fader};
+
+	% report-ROM service
+	\node[appnode, above=5ex of launcher, minimum height=6ex, xshift=22ex]  (reportrom) {};
+	\path (reportrom.north) node[below=0ex] {Report ROM};
+
+	% menu view
+	\node[appnode, above=12ex of launcher, xshift=-18ex, minimum height=6ex, minimum width=14ex]  (menuview) {Menu view};
+
+	% dialog nitpicker within launcher
+	\path (launcher.north)+(-4ex,0.3ex) node[component, opacity=0.6, below=1ex, inner sep=0.5ex, rounded corners=1]
+		(dialognitpicker) {\tiny Nitpicker};
+
+	% nitpicker within fader
+	\path (fader.south)+(0ex,-0.3ex) node[component, opacity=0.6, above=1ex, inner sep=0.5ex, rounded corners=1]
+		(fadernitpicker) {\tiny Nitpicker};
+
+	% ROM within report rom
+	\path (reportrom.south)+(3ex,-0.3ex) node[component, opacity=0.6, above=1ex, inner sep=0.5ex, rounded corners=1]
+		(rom) {\tiny ROM};
+
+	% Report within report rom
+	\path (reportrom.south)+(-3ex,-0.3ex) node[component, opacity=0.6, above=1ex, inner sep=0.5ex, rounded corners=1]
+		(report) {\tiny Report};
+
+	\path (init)+(10ex,0) node {};
+
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init) -- (nitpicker.south);
+	\path[treechildarrow] (init) -- (launcher.south);
+
+	%
+	% Session relationship
+	%
+
+	\tikzstyle{informationflow} = [opacity=0.4,
+	                         decoration={markings,
+	                         mark=between positions 0.07 and 1 step 1ex with {\arrow{latex}}},
+	                         postaction={decorate}]
+
+	%
+	% Dialog ROM
+	%
+	\path[informationflow] (launcher.170)
+		.. controls +(-3ex,1ex) and +(0ex,-3ex) ..
+		node[pos=0.5] (dialogrom) {} (menuview.220);
+
+	\path (dialogrom) node[left=-4ex, fill=white, dropshadow, align=center,
+                       chamfered rectangle, draw, draw opacity=0.5,
+                       chamfered rectangle corners=north east,
+                       inner sep=0]
+	(dialogromds) {
+		ROM\\
+		\tiny
+		\begin{lstlisting}
+<dialog>
+   ...
+</dialog>
+		\end{lstlisting}
+	};
+
+	%
+	% Hover report
+	%
+	\path[informationflow] (menuview.340)
+		.. controls +(3ex,-1ex) and +(0ex,5ex) ..
+		node[pos=0.5] (hoverreport) {} (launcher.130);
+
+	\path (hoverreport) node[right=-2ex, fill=white, dropshadow, align=center,
+                       chamfered rectangle, draw, draw opacity=0.5,
+                       chamfered rectangle corners=north east,
+                       inner sep=0]
+	{
+		Report\\
+		\tiny
+		\begin{lstlisting}
+<hover>
+   ...
+</hover>
+		\end{lstlisting}
+	};
+
+	\tikzstyle{sessionarrow} = [arrow, densely dashed, sloped=false, left, align=right]
+
+	\draw[sessionarrow] (menuview) -- (dialognitpicker);
+
+	\draw[sessionarrow] (dialognitpicker) -- (fadernitpicker);
+
+	\draw[sessionarrow] (fader.270)
+		.. controls +(0ex,-18ex) and +(-5ex,-5ex) .. (nitpicker.220);
+
+	%
+	% Background of the multi-component application
+	%
+
+	% helper nodes around the components
+	\node[fit=(menuview),      inner sep=1ex] (menuviewoutline)    {};
+	\node[fit=(reportrom),     inner sep=1ex] (reportromoutline)   {};
+	\node[fit=(launcher),      inner sep=1ex] (launcheroutline)    {};
+	\node[fit=(dialogromds),   inner sep=1ex] (dialogromdsoutline) {};
+	\node[fit=(fader),         inner sep=1ex] (faderoutline)       {};
+
+	\definecolor{multiappcolor} {rgb}{0.6,0.7,0.9}
+
+	\begin{scope}[on background layer]
+
+		\path[fill=multiappcolor, fill opacity=0.2, draw=multiappcolor, rounded corners=5]
+			(launcheroutline.south west) --
+			(launcheroutline.south east) --
+			(launcheroutline.north east) --
+			(reportromoutline.south west) --
+			(reportromoutline.south east) --
+			(reportromoutline.north east) --
+			(faderoutline.north west) --
+			(menuviewoutline.east) --
+			(menuviewoutline.north east) --
+			(menuviewoutline.north west) --
+			(menuviewoutline.south west) --
+			(dialogromdsoutline.north west) --
+			(dialogromdsoutline.south west) --
+			(dialogromdsoutline.south) --
+			(launcheroutline.west) --cycle;
+	\end{scope}
+
+\end{tikzpicture}

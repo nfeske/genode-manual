@@ -1,0 +1,59 @@
+\begin{tikzpicture}
+
+	\definecolor{romcomponentcolor}{rgb}{1,1,0.6}
+
+	\tikzstyle{romcomponent} = [component,
+	                               path fading=flow fade,
+	                               rounded corners=2,
+	                               minimum width=25ex,
+	                               minimum height=10ex,
+	                               bottom color=romcomponentcolor,
+	                               font=\normalsize \sffamily]
+
+	\tikzstyle{sessionarrow} = [arrow, sloped=false, left, align=right]
+
+	\node[romcomponent]                      (server) {ROM server};
+	\node[romcomponent, above=7ex of server] (client) {ROM client};
+
+	\draw[sessionarrow] (client) -- node {session} (server);
+
+	\tikzstyle{romds} = [dropshadow, fill=white, fill opacity=0.6,
+	                         chamfered rectangle,
+	                         chamfered rectangle corners=north east,
+	                         minimum width=5ex, minimum height=6ex]
+
+	\tikzstyle{dsmap} = [opacity=0.7, densely dotted]
+
+	% dataspace within server
+	\path (server.east) node[left=1ex, inner sep=0, romds, align=center] (serverds) {\tiny ROM\\ \tiny module};
+
+	% dataspace within client
+	\path (client.east) node[left=1ex, romds] (clientds) {};
+
+	% memory mapping
+	\draw[dsmap] (serverds.north west) -- (clientds.south west);
+	\draw[dsmap] (serverds.0) -- (clientds.south east);
+
+	% update
+	\path (server.south) node[above=0ex, xshift=-5ex] (update) {$update$};
+
+	\draw[arrow, dashed] (update.east)
+		.. controls +(7ex,0) and +(0,-1ex) ..
+		node[sloped=false, pos=0.6] {signal} (client.310);
+
+	% dataspace within new version
+	\path (serverds) node[xshift=-1ex, yshift=-1ex, inner sep=0, romds, align=center]
+		(serverds) {\tiny new\\ \tiny version};
+
+	\tikzstyle{informationflow} = [opacity=0.4,
+	                         decoration={markings,
+	                         mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                         postaction={decorate}]
+
+	\path[informationflow] (server.east)
+	  .. controls +(3ex,3ex) and +(3ex,-3ex) .. (clientds.east);
+
+	\path (server.west)+(-3ex,0) node {};
+
+
+\end{tikzpicture}
