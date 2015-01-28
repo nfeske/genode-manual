@@ -1,0 +1,37 @@
+\begin{tikzpicture}
+
+	\definecolor{romcomponentcolor}{rgb}{1,1,0.6}
+
+	\tikzstyle{romcomponent} = [component,
+	                               path fading=flow fade,
+	                               rounded corners=2,
+	                               minimum width=25ex,
+	                               minimum height=10ex,
+	                               bottom color=romcomponentcolor,
+	                               font=\normalsize \sffamily]
+
+	\tikzstyle{sessionarrow} = [arrow, sloped=false, left, align=right]
+
+	\node[romcomponent]                      (server) {ROM server};
+	\node[romcomponent, above=7ex of server] (client) {ROM client};
+
+	\draw[sessionarrow] (client) -- node {session} (server);
+
+	\tikzstyle{romds} = [dropshadow, fill=white, fill opacity=0.6,
+	                         chamfered rectangle,
+	                         chamfered rectangle corners=north east,
+	                         minimum width=5ex, minimum height=6ex]
+
+	\tikzstyle{dsmap} = [opacity=0.7, densely dotted]
+
+	% dataspace within server
+	\path (server.east) node[left=1ex, inner sep=0, romds, align=center] (serverds) {\tiny ROM\\ \tiny module};
+
+	% dataspace within client
+	\path (client.east) node[left=1ex, romds] (clientds) {};
+
+	% memory mapping
+	\draw[dsmap] (serverds.north west) -- (clientds.south west);
+	\draw[dsmap] (serverds.0) -- (clientds.south east);
+
+\end{tikzpicture}

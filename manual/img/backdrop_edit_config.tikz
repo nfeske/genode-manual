@@ -1,0 +1,61 @@
+\begin{tikzpicture}
+
+	\definecolor{servercolor}    {rgb}{0.6,0.7,0.9}
+	\definecolor{appcolor}    {rgb}{0.9,0.7,0.6}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\tikzstyle{servernode} = [treenode, bottom color=servercolor]
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+
+	%
+	% Components
+	%
+
+	% init
+	\node[treenode] (init) {Init};
+
+	% server
+	\node[servernode, above=8ex of init, xshift=-21ex] (backdrop) {Backdrop};
+	\node[servernode, above=8ex of init, xshift=-7ex]  (fsrom) {FS-ROM};
+	\node[servernode, above=8ex of init, xshift=7ex]  (ramfs) {RAM FS};
+	\node[servernode, above=8ex of init, xshift=21ex]  (noux) {Noux\\Runtime};
+
+	% editor
+	\node[appnode, above=5ex of noux]  (editor) {Editor};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init) -- (backdrop.south);
+	\path[treechildarrow] (init) -- (fsrom.south);
+	\path[treechildarrow] (init) -- (ramfs.south);
+	\path[treechildarrow] (init) -- (noux.south);
+	\path[treechildarrow] (noux) -- (editor.south);
+
+	%
+	% Session relationship
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% client -> server
+	\path[treesessionarrow] (backdrop.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex) .. node[below, align=center] {config\\ROM} (fsrom.220);
+
+	% client -> server
+	\path[treesessionarrow] (fsrom.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex) .. node[below, align=center]
+		{file\\system} (ramfs.220);
+
+	% client -> server
+	\path[treesessionarrow] (editor.220)
+		.. controls +(-1ex,-17ex) and +(1ex,-3ex) .. node[below, align=center, sloped=false]
+		{file\\system} (ramfs.320);
+
+\end{tikzpicture}

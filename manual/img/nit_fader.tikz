@@ -1,0 +1,55 @@
+\begin{tikzpicture}
+
+	\definecolor{servercolor}    {rgb}{0.6,0.7,0.9}
+	\definecolor{appcolor}    {rgb}{1,0.9,0.7}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\tikzstyle{servernode} = [treenode, bottom color=servercolor]
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+
+	%
+	% Components
+	%
+
+	% init
+	\node[treenode] (init) {Init};
+
+	% server
+	\node[servernode, above=8ex of init, xshift=-21ex] (scout1) {Scout};
+	\node[servernode, above=8ex of init, xshift=-7ex]  (nitpicker) {Nitpicker};
+	\node[servernode, above=8ex of init, xshift=7ex, bottom color=appcolor]  (nitfader) {Fader};
+	\node[servernode, above=8ex of init, xshift=21ex]  (scout2) {Scout};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init) -- (scout1.south);
+	\path[treechildarrow] (init) -- (nitpicker.south);
+	\path[treechildarrow] (init) -- (nitfader.south);
+	\path[treechildarrow] (init) -- (scout2.south);
+
+	%
+	% Session relationship
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% client -> server
+	\path[treesessionarrow] (scout1.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex) .. (nitpicker.220);
+
+	% client -> server
+	\path[treesessionarrow] (nitfader.220)
+		.. controls +(-1ex,-3ex) and +(1ex,-3ex) .. (nitpicker.330);
+
+	% client -> server
+	\path[treesessionarrow] (scout2.220)
+		.. controls +(-1ex,-3ex) and +(1ex,-3ex) .. (nitfader.330);
+
+\end{tikzpicture}
