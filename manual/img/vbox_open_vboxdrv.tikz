@@ -1,0 +1,69 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\definecolor{vmproccolor}    {rgb}{0.6,0.7,0.9}
+
+	%
+	% Components
+	%
+
+	% VM processes
+	\node[treenode, yshift=4ex, bottom color=vmproccolor] (vmproc) {VM\\process};
+
+	% vboxdrv
+	\node[below=10ex of vmproc, component, rounded corners=7, draw] (vboxdrv) {\texttt{/dev/vboxdrv}};
+
+	% access of VM process to /dev/vboxdrv
+	\path[arrow] (vmproc) -- node[right, sloped=false] {open} (vboxdrv);
+
+	%
+	% Kernel-user boundary
+	%
+	\draw[dashed, very thick, color=\kernelred] (vboxdrv.east) --
+		node[below] {kernel}
+	+(10ex,0);
+	\draw[dashed, very thick, color=\kernelred] (vboxdrv.west) -- +(-10ex,0);
+
+	%
+	% Kernel module
+	%
+
+	\node[below=5ex of vboxdrv] (kernelmodule) {
+		\begin{tikzpicture}[inner sep=0, outer sep=0]
+
+			%%
+			% Create rugged path
+			%
+			% argument 1:  number of saw tooths
+			% argument 2:  size of saw tooth
+			%
+			\newcommand{\ruggedpath}[2]{\foreach \i in {1,2,...,#1} {
+				-- ++(#2,#2) -- ++(2*#2,-2*#2) -- ++(#2,#2)}}
+
+			\tikzstyle{puzzle} = [component, path fading=flow fade, align=center,
+			                      dropshadow, rounded corners=2]
+
+			% runtime
+			\path[puzzle] (2.5ex, 2ex - 15ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0.5ex,0) -- ++(0,-6ex) -- ++(2ex,0)
+				{[sharp corners] -- ++(0,12ex) -- ++(-6*4ex - 5ex,0) }
+				-- ++(0,-12ex) -- ++(2ex,0) -- ++(0,5ex) --cycle;
+
+			\path (14.5ex,-9ex) node {vboxdrv.ko};
+
+		\end{tikzpicture}
+	};
+
+	% interaction between /dev/vboxdrv and kernel module
+	\path (vboxdrv) -- node [draw, double arrow, draw=black!10,
+	                     inner sep=0.5ex, pos=0.6,
+	                     minimum height=4.5ex,
+                         bottom color=black!40, top color=black!30,
+                         shape border rotate=90,
+                         double arrow head extend=0.7ex] {} (kernelmodule);
+
+\end{tikzpicture}

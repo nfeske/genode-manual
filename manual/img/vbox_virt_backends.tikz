@@ -1,0 +1,57 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=10ex,
+	                        minimum height=5ex]
+
+	\definecolor{iemccolor}       {rgb} {0.9,0.6,0.7}
+	\definecolor{recompilercolor} {rgb} {0.7,0.9,0.6}
+	\definecolor{hwacccolor}      {rgb} {0.6,0.7,0.9}
+
+
+	%
+	% Components
+	%
+
+	\node[treenode, align=center, circle] (em) {Execution\\Manager};
+
+	\path (em)+(140:15ex) node[treenode, inner sep=4ex, regular polygon, regular polygon sides=5,
+	                         shape border rotate=90+140,
+	                         inner color=white, outer color=recompilercolor] (recompiler) {};
+	\path (recompiler) node {Recompiler};
+
+	\path (em)+(140+120:15ex) node[treenode, inner sep=4ex, regular polygon, regular polygon sides=5,
+	                         shape border rotate=90+140+120,
+	                         inner color=white, outer color=iemccolor] (iem) {};
+	\path (iem) node[align=center] {Instruction\\Emulator};
+
+	\path (em)+(140+240:15ex) node[treenode, inner sep=4ex, regular polygon, regular polygon sides=5,
+	                         shape border rotate=90+140+240,
+	                         inner color=white, outer color=hwacccolor] (hwacc) {};
+	\path (hwacc) node[align=center] {Hardware\\Acceleration};
+
+
+	%
+	% Transitions
+	%
+
+	\node[fit=(iem) (recompiler) (hwacc)] (outline) {};
+	\path (outline.south)+(0,-2ex) coordinate (belowvmproc) {};
+
+	\path[arrow] (hwacc.280) -- node[sloped=false, align=left, right] {VM\\Enter} (hwacc.280 |- belowvmproc);
+
+	\path[arrow] (hwacc.260 |- belowvmproc) -- node[sloped=false, align=right, left] {VM\\Exit} (hwacc.260);
+
+	\path[arrow, densely dashed] (hwacc.260) .. controls +(0,4ex) and +(5ex,1ex) .. (em.25);
+
+	\path[arrow, densely dashed] (em.25) .. controls +(-5ex,-1ex) and +(1ex,5ex) .. (iem.80);
+
+	\path[arrow, densely dashed] (em.25) .. controls +(-5ex,-1ex) and +(5ex,-5ex) .. (recompiler.320);
+
+	\path[arrow, densely dashed] (iem.40) .. controls +(40:5ex) and +(320:5ex) .. (em.320);
+
+	\path[arrow, densely dashed] (recompiler.280) .. controls +(40+240:5ex) and +(320+240:5ex) .. (em.320+240);
+
+	\path[arrow, densely dashed] (em.80) .. controls +(80:5ex) and +(320+200:5ex) .. (hwacc.320+200);
+
+\end{tikzpicture}

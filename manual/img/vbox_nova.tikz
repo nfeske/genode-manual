@@ -1,0 +1,91 @@
+\begin{tikzpicture}
+
+	\definecolor{servercolor}    {rgb}{0.6,0.7,0.9}
+	\definecolor{appcolor}    {rgb}{0.9,0.7,0.6}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\tikzstyle{servernode} = [treenode, bottom color=servercolor, minimum height=6ex]
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+
+	%
+	% Components
+	%
+
+	\tikzstyle{smallservice} = [component, opacity=0.6, inner sep=0.5ex,
+	                            minimum height=2ex, rounded corners=1]
+
+	\node[treenode] (kernel) {NOVA};
+
+	\node[treenode, above=3ex of kernel] (core) {Core};
+
+	\node[treenode, above=3ex of core] (init) {Init};
+
+	\node[servernode, above=8ex of init] (vbox) {VirtualBox};
+
+	\node[servernode, left=2ex of vbox, align=center] (vesa) {};
+	\path (vesa.north) node[below] {VESA driver};
+	\path (vesa.south) node[smallservice, above=1ex] (framebuffer) {\tiny Framebuffer};
+
+	\node[servernode, left=2ex of vesa, align=center] (ps2) {};
+	\path (ps2.north) node[below] {PS/2 driver};
+	\path (ps2.south) node[smallservice, above=1ex] (input) {\tiny Input};
+
+	\node[servernode, right=2ex of vbox] (rumpfs) {};
+	\path (rumpfs.north) node[below] {Rump FS};
+	\path (rumpfs.south) node[smallservice, above=1ex] (fs) {\tiny File system};
+
+	\node[servernode, right=2ex of rumpfs] (ahci) {};
+	\path (ahci.north) node[below] {AHCI driver};
+	\path (ahci.south) node[smallservice, above=1ex] (block) {\tiny Block};
+
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (core) -- (init);
+	\path[treechildarrow] (init) -- (ps2.south);
+	\path[treechildarrow] (init) -- (vesa.south);
+	\path[treechildarrow] (init) -- (vbox.south);
+	\path[treechildarrow] (init) -- (rumpfs.south);
+	\path[treechildarrow] (init) -- (ahci.south);
+
+
+	%
+	% Session relationship
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% client -> server
+	\path[treesessionarrow] (vbox.220)
+		.. controls +(-1ex,-3ex) and +(1ex,-3ex) .. (framebuffer.south);
+
+	\path[treesessionarrow] (vbox.240)
+		.. controls +(-1ex,-5ex) and +(1ex,-5ex) .. (input.south);
+
+	\path[treesessionarrow] (vbox.300)
+		.. controls +(1ex,-5ex) and +(-1ex,-5ex) .. node[sloped=false,below=-2.5ex,align=center] {VDI\\image} (fs.south);
+
+	\path[treesessionarrow] (rumpfs.300)
+		.. controls +(1ex,-5ex) and +(-1ex,-5ex) .. (block.south);
+
+
+	%
+	% Kernel-user boundary
+	%
+	\path (kernel) -- coordinate (kernelcore) (core);
+
+	\path (kernelcore)+(-35ex,0) coordinate (leftkernelbounary) {};
+	\path (kernelcore)+(35ex,0) coordinate (rightkernelbounary) {};
+
+	\draw[dashed, very thick, color=\kernelred] (leftkernelbounary) --
+		(rightkernelbounary) node[below, xshift=-4ex] {kernel};
+
+
+\end{tikzpicture}

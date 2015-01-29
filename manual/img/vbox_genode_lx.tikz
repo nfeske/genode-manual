@@ -1,0 +1,88 @@
+\begin{tikzpicture}
+
+	\definecolor{servercolor}    {rgb}{0.6,0.7,0.9}
+	\definecolor{appcolor}    {rgb}{0.9,0.7,0.6}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\tikzstyle{servernode} = [treenode, bottom color=servercolor]
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+
+	%
+	% Components
+	%
+
+	\tikzstyle{smallservice} = [component, opacity=0.6, inner sep=0.5ex,
+	                            minimum height=2ex, rounded corners=1]
+
+	\node[treenode] (kernel) {Linux};
+
+	\node[treenode, above=3ex of kernel, minimum height=6ex] (core) {};
+	\path (core) node[xshift=-2ex] {Core};
+
+	% ROM service within core
+	\path (core.north)+(3ex,0.3ex) node[smallservice, below=1ex]
+		(corerom) {\tiny ROM};
+
+
+	\node[treenode, above=3ex of core] (init) {Init};
+
+	% server
+	\node[servernode, above=8ex of init, xshift=-9ex, minimum width=16ex, minimum height=6ex]  (fbsdl) {};
+	\path (fbsdl.north) node[below=0.5ex] {FB SDL};
+
+
+	% framebuffer service within fb_sdl
+	\path (fbsdl.south)+(-2ex,-0.3ex) node[smallservice, above=1ex]
+		(fbsdlframebuffer) {\tiny Framebuffer};
+
+	% input service within fb_sdl
+	\path (fbsdl.south)+(4ex,-0.3ex) node[smallservice, above=1ex]
+		(fbsdlinput) {\tiny Input};
+
+	\node[servernode, above=8ex of init, xshift=9ex, minimum height=6ex]   (vbox)  {VirtualBox};
+
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (core) -- (init);
+	\path[treechildarrow] (init) -- (fbsdl.south);
+	\path[treechildarrow] (init) -- (vbox.south);
+
+
+	%
+	% Session relationship
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% client -> server
+	\path[treesessionarrow] (vbox.220)
+		.. controls +(-1ex,-3ex) and +(1ex,-3ex) .. (fbsdlinput.south);
+
+	\path[treesessionarrow] (vbox.240)
+		.. controls +(-1ex,-5ex) and +(1ex,-5ex) .. (fbsdlframebuffer.south);
+
+	\path[treesessionarrow] (vbox.260)
+		.. controls +(-1ex,-5ex) and +(1ex,10ex) .. node[sloped=false,right,align=center] {ISO\\image} (corerom.north);
+
+
+	%
+	% Kernel-user boundary
+	%
+	\path (kernel) -- coordinate (kernelcore) (core);
+
+	\path (kernelcore)+(-20ex,0) coordinate (leftkernelbounary) {};
+	\path (kernelcore)+(20ex,0) coordinate (rightkernelbounary) {};
+
+	\draw[dashed, very thick, color=\kernelred] (leftkernelbounary) --
+		(rightkernelbounary) node[below, xshift=-4ex] {kernel};
+
+
+\end{tikzpicture}

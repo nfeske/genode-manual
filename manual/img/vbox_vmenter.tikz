@@ -1,0 +1,118 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\definecolor{vmproccolor}    {rgb}{0.6,0.7,0.9}
+
+	%
+	% Components
+	%
+
+	% VM processes
+	\node[treenode, yshift=4ex, bottom color=vmproccolor] (vmproc) {VM\\process};
+
+	\path (vmproc.north)+(0,6ex) coordinate (vmproctop) {};
+
+	% vboxdrv
+	\node[below=10ex of vmproc, component, rounded corners=7, draw] (vboxdrv) {\texttt{/dev/vboxdrv}};
+
+	%
+	% Kernel-user boundary
+	%
+	\draw[dashed, very thick, color=\kernelred] (vboxdrv.east) --
+		node[below] {kernel} +(10ex,0) coordinate (rightkernelboundary) {};
+
+	\draw[dashed, very thick, color=\kernelred] (vboxdrv.west) --
+		+(-10ex,0) coordinate (leftkernelbounary) {};
+
+	%
+	% Kernel module
+	%
+
+	\node[below=5ex of vboxdrv, xshift=17ex, inner sep=0] (kernelmodule) {
+		\begin{tikzpicture}[inner sep=0, outer sep=0]
+
+			%%
+			% Create rugged path
+			%
+			% argument 1:  number of saw tooths
+			% argument 2:  size of saw tooth
+			%
+			\newcommand{\ruggedpath}[2]{\foreach \i in {1,2,...,#1} {
+				-- ++(#2,#2) -- ++(2*#2,-2*#2) -- ++(#2,#2)}}
+
+			\tikzstyle{puzzle} = [component, path fading=flow fade, align=center,
+			                      dropshadow, rounded corners=2]
+
+			% runtime
+			\path[puzzle] (2.5ex, 2ex - 15ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0.5ex,0) -- ++(0,-6ex) -- ++(2ex,0)
+				{[sharp corners] -- ++(0,12ex) -- ++(-6*4ex - 5ex,0) }
+				-- ++(0,-12ex) -- ++(2ex,0) -- ++(0,5ex) --cycle;
+
+			\path (14.5ex,-9ex) node {vboxdrv.ko};
+
+			\definecolor{vmmr0color} {rgb}{1,0.7,0.6}
+
+			% hypervisor
+			\path[puzzle, bottom color=vmmr0color] (2.5ex, -14ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0,-9ex) -- coordinate (hypervisornorth) ++(50ex,0)
+				-- ++(0,-6ex) -- coordinate (hypervisorsouth) ++(-82ex,0)
+				-- ++(0,6ex) -- ++(8ex,0) --cycle;
+
+		\end{tikzpicture}
+	};
+
+
+	%
+	% Entering the guest
+	%
+
+	\path (vmproc)+(0,-30ex) coordinate (worldswitchstart) {};
+
+	\draw[arrow] (vmproc) -- node[right, sloped=false] {VM RUN} (vboxdrv);
+
+	\draw[arrow] (vboxdrv) -- (worldswitchstart);
+
+	\path (rightkernelboundary)+(15ex,-3ex) coordinate (worldswitchend) {};
+
+	\tikzstyle{worldswitch} = [opacity=0.3,
+	                           decoration={markings,
+	                           mark=between positions 0.05 and 1 step 1.5ex with {\arrow{latex}}},
+	                           postaction={decorate}]
+
+	\path[worldswitch] (worldswitchstart) .. controls +(0ex,-12ex) and +(-2ex, -25ex) ..
+		node[above=0.5ex, pos=0.4, opacity=1] {world switch} (worldswitchend);
+
+	\path (rightkernelboundary |- hypervisornorth) coordinate (hostsoutheast) {};
+
+	\begin{scope}[on background layer]
+
+		\definecolor{hostcolor} {rgb}{0.6,0.7,0.9}
+		\node[inner sep=0, fill=hostcolor, fill opacity=0.2, draw=hostcolor,
+		      fit=(vmproctop) (hostsoutheast) (leftkernelbounary)] (hostworld) {};
+
+		\path (hostworld.north) node[below] {\large root mode};
+
+		\definecolor{guestcolor} {rgb}{0.2,0.3,0.5}
+
+		\path (hostworld.north east) coordinate (guestnorthwest) {};
+		\path (kernelmodule.east |- hypervisornorth) coordinate (guestsoutheast) {};
+
+		\node[inner sep=0, fill=guestcolor, fill opacity=0.2,
+		      fit=(guestnorthwest) (guestsoutheast)] (guestworld) {};
+
+		\path[draw, densely dashed, very thick] (guestworld.north west) -- (guestworld.south west) {};
+
+		\path (guestworld.north) node[below] {\large non-root mode};
+
+		\path (guestworld) node[opacity=0.5] { \huge Guest OS };
+
+	\end{scope}
+
+
+\end{tikzpicture}

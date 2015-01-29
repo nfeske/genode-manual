@@ -1,0 +1,78 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\definecolor{vmproccolor}    {rgb}{0.6,0.7,0.9}
+
+	%
+	% Components
+	%
+
+	% SVC
+	\node[treenode] (svc) {SVC};
+
+	% config database
+	\node[above=3ex of svc, treenode, cylinder, shape aspect=0.2,
+	      minimum width=0ex, shape border rotate=90, opacity=0.6] (configdb) {config,\\status};
+
+	% IPCD
+	\node[treenode, below=9ex of svc] (ipcd) {IPCD};
+
+	% VM processes
+	\node[treenode,  left=9ex of ipcd, yshift=4ex, bottom color=vmproccolor] (vmproc1) {VM\\process};
+	\node[treenode, right=9ex of ipcd, yshift=4ex, bottom color=vmproccolor] (vmproc2) {VM\\process};
+
+	% VBoxManage
+	\node[treenode, below=9ex of ipcd, xshift=-10ex] (vboxmanage) {VBoxManage};
+
+	% VirtualBox Application
+	\node[treenode, below=9ex of ipcd, xshift=10ex] (vboxapp) {VirtualBox\\Application};
+
+	% vboxdrv
+	\node[below=20ex of vmproc1] (vboxdrv1) {\texttt{/dev/vboxdrv}};
+	\node[below=20ex of vmproc2] (vboxdrv2) {\texttt{/dev/vboxdrv}};
+
+	% access of VM processes to /dev/vboxdrv
+	\path[arrow] (vmproc1) -- (vboxdrv1);
+	\path[arrow] (vmproc2) -- (vboxdrv2);
+
+	% access of SVC to config
+	\path[arrow, thick] (svc) -- (configdb);
+
+	%
+	% IPC relationship
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, <->, thick, densely dashed, opacity=0.7]
+
+	% SVC to VM proc 1
+	\path (svc.220 |- ipcd.north) coordinate (mid) {};
+	\path[treesessionarrow] (svc.220)
+		.. controls +(0ex,-3ex) and +(0ex,5ex) .. (mid)
+		.. controls +(0ex,-5ex) and +(3ex,-1ex) ..
+		node[pos=0.7] {\tiny xpcom} (vmproc1.0);
+
+	% SVC to VM proc 2
+	\path (svc.320 |- ipcd.north) coordinate (mid) {};
+	\path[treesessionarrow] (svc.320)
+		.. controls +(0ex,-3ex) and +(0ex,5ex) .. (mid)
+		.. controls +(0ex,-5ex) and +(-3ex,-1ex) ..
+		node[pos=0.7] {\tiny xpcom} (vmproc2.180);
+
+	% SVC to VBoxManage
+	\path (svc.230 |- ipcd.north) coordinate (mid) {};
+	\path[treesessionarrow] (svc.230)
+		.. controls +(0ex,-3ex) and +(0ex,5ex) .. (mid)
+		.. controls +(0ex,-5ex) and +(3ex,3ex) ..
+		node[pos=0.7] {\tiny xpcom} (vboxmanage.90);
+
+	% SVC to VBox Application
+	\path (svc.310 |- ipcd.north) coordinate (mid) {};
+	\path[treesessionarrow] (svc.310)
+		.. controls +(0ex,-3ex) and +(0ex,5ex) .. (mid)
+		.. controls +(0ex,-5ex) and +(-3ex,3ex) ..
+		node[pos=0.7] {\tiny xpcom} (vboxapp.90);
+
+\end{tikzpicture}

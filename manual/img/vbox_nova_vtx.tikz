@@ -1,0 +1,70 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=10ex,
+	                        minimum height=5ex]
+
+	\definecolor{iemccolor}       {rgb} {0.9,0.6,0.7}
+	\definecolor{recompilercolor} {rgb} {0.7,0.9,0.6}
+	\definecolor{hwacccolor}      {rgb} {0.6,0.7,0.9}
+
+
+	%
+	% Components
+	%
+
+	\node[treenode, align=center, circle] (em) {Execution\\Manager};
+
+	\path (em)+(140:15ex) node[treenode, inner sep=4ex, regular polygon, regular polygon sides=5,
+	                         shape border rotate=90+140,
+	                         inner color=white, outer color=recompilercolor] (recompiler) {};
+	\path (recompiler) node {Recompiler};
+
+	\path (em)+(140+120:15ex) node[treenode, inner sep=4ex, regular polygon, regular polygon sides=5,
+	                         shape border rotate=90+140+120,
+	                         inner color=white, outer color=iemccolor,
+	                         opacity=0.3] (iem) {};
+	\path (iem) node[align=center, opacity=0.3] {Instruction\\Emulator};
+
+	\path (em)+(140+240:15ex) node[treenode, inner sep=4ex, regular polygon, regular polygon sides=5,
+	                         shape border rotate=90+140+240,
+	                         inner color=white, outer color=hwacccolor] (hwacc) {};
+	\path (hwacc) node[align=center] {Hardware\\Acceleration};
+
+
+	%
+	% Transitions
+	%
+
+	\node[fit=(iem) (recompiler) (hwacc)] (outline) {};
+	\path (outline.south)+(0,-2ex) coordinate (belowvmproc) {};
+
+	\path[arrow] (hwacc.280) -- node[sloped=false, align=left, right] {VM\\Enter} (hwacc.280 |- belowvmproc);
+
+	\path[arrow] (hwacc.260 |- belowvmproc) -- node[sloped=false, align=right, left] {VM\\Exit} (hwacc.260);
+
+	\path[arrow, densely dashed] (hwacc.260) .. controls +(0,4ex) and +(25:5ex) .. (em.25);
+
+	\path[arrow, densely dashed] (em.25) .. controls +(25+180:5ex) and +(320:7ex) .. (recompiler.330);
+
+	\path[arrow, densely dashed] (recompiler.350) .. controls +(320:5ex) and +(60+180:3ex) .. (em.60);
+
+	\path[arrow, densely dashed] (em.60) .. controls +(60:3ex) and +(320+200:3ex) .. (hwacc.320+200);
+
+	%
+	% Inject IRQs into recompiler
+	%
+
+	\tikzstyle{flow} = [opacity=0.5,
+	                    decoration={markings,
+	                    mark=between positions 0.1 and 1 step 1ex with {\arrow{latex}}},
+	                    postaction={decorate}]
+
+	\path (em.220)+(220:7ex) node (irq) {IRQs};
+
+	\path[flow] (irq) -- (em.230);
+
+	\path[arrow, densely dashed] (em.230) .. controls +(230+180:5ex) and +(320:5ex) .. (recompiler.310);
+
+
+\end{tikzpicture}
