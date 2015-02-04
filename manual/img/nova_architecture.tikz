@@ -1,0 +1,96 @@
+
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	
+	\definecolor{usercolor} {rgb}{0.6,0.7,0.9}
+	\definecolor{kernelcolor}    {rgb}{0.9,0.7,0.6}
+	\definecolor{guestcolor} {rgb}{0.7,0.9,0.6}
+
+	% Kernel
+	\node[treenode, bottom color=kernelcolor] (kernel) {NOVA Microhypervisor};
+	\tikzstyle{info} = [rectangle callout, fill=kernelcolor!50!black, rounded corners=3, text=white]
+	\path (kernel.west)+(-5ex,5ex)
+		node [info, callout relative pointer={(5ex,-3ex)}] {9,000 SLOC};
+
+	% User land
+	\tikzstyle{usernode} = [treenode, bottom color=usercolor]
+	\node[usernode, above=6ex of kernel] (rsc) {Resource management};
+
+	\node[usernode, left=5ex of rsc, xshift=1ex,  yshift=1ex]        {};
+	\node[usernode, left=5ex of rsc, xshift=0ex,  yshift=0ex]  (app) {};
+	\node[usernode, left=5ex of rsc, xshift=-1ex, yshift=-1ex]       {Apps};
+
+	\node[usernode, right=5ex of rsc, xshift=1ex,  yshift=1ex]           {};
+	\node[usernode, right=5ex of rsc, xshift=0ex,  yshift=0ex]  (driver) {};
+	\node[usernode, right=5ex of rsc, xshift=-1ex, yshift=-1ex]          {Drivers};
+
+	% VMMs
+	\node[usernode, above=4ex of rsc]     (vmm2) {VMM};
+	\path (app    |- vmm2) node[usernode] (vmm1) {VMM};
+	\path (driver |- vmm2) node[usernode] (vmm3) {VMM};
+
+	% VMs
+	\tikzstyle{vm} = [treenode, bottom color=guestcolor, minimum height=8ex, minimum width=8ex]
+	\node[vm, above=6ex of vmm1] (vm1) {Guest OS};
+	\node[vm, above=6ex of vmm2] (vm2) {Guest OS};
+	\node[vm, above=6ex of vmm3] (vm3) {Guest OS};
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\tikzstyle{outline} = [inner sep=1ex]
+
+		% helper outline nodes
+		\node[outline, fit=(kernel)] (kerneloutline) {};
+		\node[outline, fit=(driver) (app) (vmm1) (vmm3)] (userlandoutline) {};
+		\node[outline, fit=(vm1) (vm2) (vm3)] (nonrootoutline) {};
+		\node[fit=(kerneloutline) (userlandoutline) (nonrootoutline)] (alloutline) {};
+
+		% midpoint between kernel and userland
+		\path (kernel) -- coordinate (midkerneluser) (rsc);
+
+		% midpoint between userland and non-root
+		\path (vmm2) -- coordinate (midhostguest) (vm2);
+
+		% kernel land
+		\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=5]
+		\path[land, opacity=0.4, outer color=kernelcolor]
+			(alloutline.west |- midkerneluser) {[sharp corners] --
+			(alloutline.east |- midkerneluser)} --
+			(alloutline.east |- kerneloutline.south) --
+			(alloutline.west |- kerneloutline.south) [sharp corners] --cycle;
+
+		% user land
+		\path[land, opacity=0.2, outer color=usercolor, sharp corners]
+			(alloutline.west |- midhostguest) --
+			(alloutline.east |- midhostguest) --
+			(alloutline.east |- midkerneluser) --
+			(alloutline.west |- midkerneluser) --cycle;
+
+		% non-root land
+		\path[land, opacity=0.4, outer color=guestcolor]
+			(alloutline.west |- nonrootoutline.north) --
+			(alloutline.east |- nonrootoutline.north) {[sharp corners] --
+			(alloutline.east |- midhostguest) --
+			(alloutline.west |- midhostguest)} --cycle;
+
+		% root-non-root boundary
+		\draw[dashed, very thick, color=black, opacity=0.5]
+			(alloutline.west |- midhostguest) -- (alloutline.east |- midhostguest);
+
+		\path (alloutline.east |- midhostguest) node[above, xshift=-8ex, opacity=0.5] {non-root mode};
+		\path (alloutline.east |- midhostguest) node[below, xshift=-8ex, opacity=0.5] {root mode};
+
+		% kernel-user boundary
+		\draw[dashed, very thick, color=\kernelred]
+			(alloutline.west |- midkerneluser) -- (alloutline.east |- midkerneluser);
+
+		\path (alloutline.east |- midkerneluser) node[below, xshift=-5ex, text=\kernelred] {kernel};
+
+	\end{scope}
+
+\end{tikzpicture}

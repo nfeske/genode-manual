@@ -1,0 +1,110 @@
+
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	%
+	% Components
+	%
+
+	\definecolor{usercolor} {rgb}{0.6,0.7,0.9}
+	\definecolor{kernelcolor}    {rgb}{0.9,0.7,0.6}
+	\definecolor{guestcolor} {rgb}{0.7,0.9,0.6}
+
+	\node[treenode, bottom color=usercolor, minimum size=20ex] (vmm) {};
+	\path (vmm.north) node[below, opacity=0.6] {\large User-level VMM};
+
+
+	\node[treenode, right=2ex of vmm, bottom color=guestcolor, minimum width=20ex, minimum height=16ex, yshift=2ex] (guest) {};
+	\path (guest.north) node[below, opacity=0.6] {\large Guest OS};
+
+	\node[fit=(vmm) (guest)] (nonkernel) {};
+
+	\node[treenode, below=0ex of nonkernel, bottom color=kernelcolor,
+	      minimum width=42ex, minimum height=12ex] (kernel) {};
+	\path (kernel.south west) node[above, xshift=5ex, opacity=0.6] {\large NOVA};
+
+	%
+	% UTCB
+	%
+	\tikzstyle{utcb} = [dropshadow, fill=white, fill opacity=0.6,
+	                    inner sep=0,
+	                    chamfered rectangle,
+	                    chamfered rectangle corners=north east,
+	                    minimum width=3ex, minimum height=4ex]
+
+	\path (vmm)+(4ex,0) node[utcb] (vmmutcb) {\tiny UTCB};
+
+	\path (vmmutcb |- kernel.8) node[utcb] (vmmutcbkernel) {\tiny UTCB};
+
+	\tikzstyle{utcbmap} = [opacity=0.7, densely dotted]
+
+	\draw[utcbmap] (vmmutcb.south west) -- (vmmutcbkernel.north west);
+	\draw[utcbmap] (vmmutcb.south east) -- (vmmutcbkernel.east);
+
+	% dispatcher
+	\node[left=4ex of vmmutcb] (handler) {$\uprsquigarrow$};
+
+	%
+	% Virtualization event
+	%
+
+	\path (guest)+(4ex,0) node[dropshadow,
+		top color=white, bottom color=yellow,
+		path fading=flow fade,
+		starburst,
+		starburst point height=1ex, minimum width=7ex, minimum height=5ex] (virtevent) {};
+
+	%
+	% VMCS
+	%
+
+	\path (guest) -- coordinate (midguestkernel) (kernel);
+	\path (guest.west |- midguestkernel)
+		node[treenode, right=0, minimum size=0] (vmcs) {VMCS};
+
+
+
+
+	%
+	% Control flow
+	%
+
+	\tikzstyle{controlflow} = [opacity=0.4,
+	                         decoration={markings,
+	                         mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                         postaction={decorate}]
+
+	\path (kernel)+(0,-2ex) coordinate (kernellow) {};
+	\path[controlflow, rounded corners=15] (virtevent)+(0,-3ex) --
+		(virtevent |- kernellow) -- node[below, opacity=1] {world switch}
+		(handler |- kernellow) -- (handler);
+
+
+	%
+	% Information flow
+	%
+
+	\tikzstyle{copyarrow} = [single arrow, minimum height=6ex, minimum width=3ex,
+	                         inner sep=0.5ex,
+	                         right color=white, left color=black!50,
+	                         single arrow head extend=0.5ex,
+	                         shape border rotate=180,
+	                         path fading=flow fade]
+
+	\path (vmcs) -- node[copyarrow] {} (virtevent |- vmcs);
+
+	\path[fill, opacity=0.3, path fading=flow fade]
+	(vmmutcbkernel.east) -- ++(1.5ex,1.6ex) -- ++(0,-0.6ex) --
+	++(3ex,0) .. controls +(2ex,0) and +(0,-3ex) .. ++(3ex,3ex) --
+	++(2ex,0) .. controls +(0,-4ex) and +(4ex,0) .. ++(-5ex,-5ex) --
+	++(-3ex,0) -- ++(0,-0.6ex) --cycle; 
+
+	\path (vmmutcbkernel.east) node[right=3ex] {\tiny copy};
+	
+	\path[arrow, densely dashed] (handler) -- (vmmutcb);
+
+
+\end{tikzpicture}
