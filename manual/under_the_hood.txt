@@ -1,7 +1,7 @@
 Under the hood
 ##############
 
-This chapter gives insights into the inner functioning of the Genode OS
+This chapter gives insight into the inner functioning of the Genode OS
 framework. In particular, it explains how the concepts explained in Chapter
 [Architecture] are realized on different kernels and hardware platforms.
 
@@ -116,7 +116,7 @@ Startup code
 
 The execution of the initial thread of a new component starts at the ELF
 entry point, which corresponds to the '_start' function. This is an
-assembly function defined in _repos/base/platform/<arch>/crt0.s_ where
+assembly function defined in _repos/base/src/platform/<arch>/crt0.s_ where
 _<arch>_ is the CPU architecture (x86_32, x86_64, or ARM).
 
 
@@ -141,7 +141,7 @@ The code performs the following steps:
 
 # Setting up the initial stack. Before the assembly code can call any
   higher-level C function, the stack pointer must be initialized to
-  point the top of a valid stack. The initial stack is located in the
+  point to the top of a valid stack. The initial stack is located in the
   BSS section and referred to by the symbol '_stack_high'. However,
   having a stack located within the BSS section is dangerous. If it
   overflows (e.g., by declaring large local variables, or by recursive
@@ -201,7 +201,7 @@ principle problems:
 
 In order to solve both problems, the function needs to obtain capabilities
 for its RAM session and RM session from its parent. This comes down to
-the need for performing RPC calls. First, for requesting the RM and RAM
+the need to perform RPC calls. First, for requesting the RM and RAM
 session capabilities from the parent, and second, for invoking the session
 capabilities to perform the RAM allocation and RM attach operations.
 
@@ -239,7 +239,7 @@ Component-dependent startup code
 
 With the Genode environment constructed and the initial stack switched
 to a proper stack located in the thread-context area, the component-dependent
-startup code of the '_main' in _repos/base/src/platform/_main.cc_ can be
+startup code of the '_main' function in _repos/base/src/platform/_main.cc_ can be
 executed. This code is responsible for calling the global constructors
 of the program before calling the program's main function.
 
@@ -336,7 +336,7 @@ object construction. There are two principle approaches:
   objects introduces many variants of possible failures that need
   to be considered in the code. There may be many different stages of
   incompleteness. Because of the third problem,
-  every time a construction step takes the result of previous step as
+  every time a construction step takes the result of a previous step as an
   argument, it explicitly has to consider the error case.
   This, in turn, tremendously inflates the test space of the code.
 
@@ -349,7 +349,7 @@ object construction. There are two principle approaches:
   mechanism reverts all already completed steps by calling their respective
   destructors. Consequently, the construction of an object can be considered
   as a transaction. If it succeeds, the object is known to be completely
-  constructed. If if fails, the object immediately ceases to exist.
+  constructed. If it fails, the object immediately ceases to exist.
 
 Thanks to the transactional semantics of the second variant, the state space
 for potential error conditions (and thereby the test space) remains small.
@@ -407,7 +407,7 @@ Interaction of core with the underlying kernel
 Core is the root of the component tree. It is initialized and started
 directly by the underlying kernel and has two purposes. First, it makes
 the low-level physical resources of the machine available to other components
-in the form of services. Those resources are the physical memory, processing
+in the form of services. These resources are physical memory, processing
 time, device resources, initial boot modules, and protection mechanisms (such
 as the MMU, IOMMU, and virtualization extensions). It thereby
 hides the peculiarities of the used kernel behind an API that is uniform
@@ -453,7 +453,7 @@ of physical resources. Those allocators are:
 :RAM allocator: contains the ranges of the available physical memory
 :I/O memory allocator: contains the physical address ranges of unused
   memory-mapped I/O resources. In general, all ranges not initially present in
-  the RAM allocator are considered as I/O memory.
+  the RAM allocator are considered to be I/O memory.
 :I/O port allocator: contains the I/O ports on x86-based platforms that are
   currently not in use. This allocator is initialized with the entire
   I/O port range of 0 to 0xffff.
@@ -473,8 +473,8 @@ allocated from the core-memory allocator has to satisfy three conditions:
   allocator)
 # It must have assigned a core-local virtual memory range (as allocated
   from the core-region allocator)
-# The physical-memory range has the same size as the virtual-memory range
-# The virtual memory range is mapped to the physical memory range using
+# The physical-memory range must have the same size as the virtual-memory range
+# The virtual memory range must be mapped to the physical memory range using
   the MMU
 
 Internally, the core-memory allocator maintains a so-called mapped-memory
@@ -485,11 +485,11 @@ allocator, allocating a new core-virtual memory region from the core-region
 allocator, and installing a mapping from the virtual region to the physical
 region.
 
-All memory allocators mentioned above are performed at the granularity of
+All memory allocations mentioned above are performed at the granularity of
 physical pages, i.e., 4 KiB.
 
 The core-memory allocator is expanded on demand but never shrunk.
-This makes it unsuitable for allocating objects on the behalf of core clients
+This makes it unsuitable for allocating objects on behalf of core clients
 because allocations could not be reverted when closing the session.
 It is solely used for dynamic memory allocations at startup (e.g., the
 memory needed for keeping the information about the boot modules),
@@ -508,7 +508,7 @@ The exact notion of what a kernel object represents depends on the actual
 kernel as the various kernels differ with respect to the abstractions they
 provide.
 Typical kernel objects are threads and protection domains.
-Some kernels have kernel objects for memory mappings whereas others provide
+Some kernels have kernel objects for memory mappings while others provide
 page tables as kernel objects.
 Whereas some kernels represent scheduling parameters as distinct kernel
 objects, others subsume scheduling parameters to threads.
@@ -517,7 +517,7 @@ memory.
 Most kernels of the L4 family preserve a fixed pool of memory for the
 allocation of kernel objects.
 
-If an arbitrary component was able to perform a kernel operation that triggers
+If an arbitrary component were able to perform a kernel operation that triggers
 the creation of a kernel object, the memory consumption of the kernel would
 depend on the good behavior of all components. A misbehaving component may
 exhaust the kernel memory.
@@ -629,7 +629,7 @@ reminder, the mechanism has the following features:
 
 * A signal receiver can wait or poll for potentially many signal
   contexts.
-  The number of signal contexts associated to a single signal receiver is not
+  The number of signal contexts associated with a single signal receiver is not
   limited.
 
 The gap between this feature set and the mechanisms provided by the underlying
@@ -644,7 +644,7 @@ using the _alloc_context_ and _free_context_ RPC functions. Upon the creation
 of a signal context, the SIGNAL client can specify an integer value called
 _imprint_ with a client-local meaning. Later, on the reception of signals,
 the imprint value is delivered along with the signal to enable the
-client to tell the contexts of the incoming signals apart. In return to
+client to tell the contexts of the incoming signals apart. As a result of
 the allocation of a new signal context, the client obtains a signal-context
 capability. This capability can be delegated to other components using
 the regular capability-delegation mechanism.
@@ -665,7 +665,7 @@ capability is merely used as an RPC function argument. This design accounts
 for the fact that signal-context capabilities may originate from untrusted
 peers as is the case for servers that deliver asynchronous notifications
 to their clients.
-A client of such as a server supplies a signal-context capability as argument
+A client of such a server supplies a signal-context capability as argument
 to one of the server's RPC functions.
 An example is the input session interface (Section [Input]) that allows the
 client to get notified when new user input becomes available.
@@ -674,12 +674,12 @@ SIGNAL service but that instead refers to an RPC object local to the client.
 If the submit function was an RPC function of the signal context, the
 server's call of the submit RPC function would eventually invoke the
 RPC object of the client. This would put the client in a position where
-it may block the server infinitely and thereby make the server unavailable to
+it may block the server indefinitely and thereby make the server unavailable to
 all clients. In contrast to the untrusted signal-context capability, the
 SIGNAL session of a signal producer is by definition trusted. So it is safe
 to invoke the submit RPC function with the signal-context capability as
 argument. In the case where an invalid signal-context capability is delegated
-to the signal producer, core would fail to look up a signal context for the
+to the signal producer, core will fail to look up a signal context for the
 given capability and omit the signal.
 
 
@@ -693,7 +693,7 @@ pending, the component needs a way to determine the signal context and
 signal receiver associated with the signal and wake up the thread that
 called the 'Signal_receiver::wait_for_signal' API function.
 
-Both problems are solved by a dedicated thread that is spawned at the
+Both problems are solved by a dedicated thread that is spawned during the
 startup of the component. This signal thread blocks at core's SIGNAL
 service for incoming signals. The blocking operation is not directly
 performed on the SIGNAL session but on a decoupled RPC object called
@@ -852,11 +852,10 @@ System-image assembly
 ---------------------
 
 In contrast to other base platforms where core is a self-sufficient program,
-on the base-hw platform, core is actually built as library. The library
+on the base-hw platform, core is actually built as a library. The library
 description file is specific for each platform and located at
 _lib/mk/platform_<pf>/core.mk_ where _<pf>_ corresponds to the used
-hardware platform. It includes the
-platform-agnostic _repos/base-hw/lib/mk/core.inc_ file.
+hardware platform. It includes the platform-agnostic _lib/mk/core.inc_ file.
 The library contains everything core needs (including the C++ runtime,
 the kernel code, and the user-level core code) except for the
 following symbols:
@@ -865,7 +864,7 @@ following symbols:
   Between those symbols, core expects an array of boot-module header
   structures. A boot-module header contains the name, core-local
   address, and size of a boot module. This meta data is used by
-  core's initialization code in _platform.cc_ to populate the ROM
+  core's initialization code in _src/core/platform.cc_ to populate the ROM
   service with modules.
 
 :'_boot_modules_binaries_begin' and '_boot_modules_binaries_end':
@@ -887,7 +886,7 @@ following symbols:
   entries for the entire disk image would need to be allocated at
   the initialization time of core.
 
-Those symbols are defined in an assembly file called _boot_modules.s_.
+These symbols are defined in an assembly file called _boot_modules.s_.
 If building core stand-alone, the final linking stage combines the
 core library with the dummy _boot_modules.s_ file located at
 _src/core/boot_modules.s_.
@@ -979,7 +978,8 @@ inter-component communication and thread synchronization. The definition
 of this interface is located at _include/kernel/interface.h_. The second
 part is exposed only to core. It supplements the public interface with
 operations for the creation, the management, and the destruction of kernel
-objects.
+objects. The definition of the core-private interface is located at
+_src/core/include/kernel/core_interface.h_.
 
 The distinction between both parts of the kernel interface is enforced
 by the function 'Thread::_call' in _src/core/kernel/thread.cc_.
@@ -1025,9 +1025,9 @@ _submit_signal_, and _ack_signal_) as well as the life-time management
 of signal contexts (_kill_signal_context_). In contrast to other
 base platforms, Genode's signal API is directly supported by the kernel
 so that the propagation of signals does not require any interaction with
-core's SIGNAL service (Section [Asynchonous notifications (SIGNAL)]).
+core's SIGNAL service (Section [Asynchronous notifications (SIGNAL)]).
 However, the creation of signal contexts is arbitrated by the SIGNAL service.
-This way, the kernel objects needed for the signalling mechanisms are
+This way, the kernel objects needed for the signalling mechanism are
 accounted to the corresponding clients of the SIGNAL service.
 
 
@@ -1120,7 +1120,7 @@ time-slices of this mode. The concept of quota and priority that is
 implemented through the claim mode aligns nicely with Genode's way of
 hierarchical resource management: Through CPU sessions, each process becomes
 able to assign portions of its CPU time and subranges of its priority band to
-its children without knowing the global means of CPU time or priority.
+its children without knowing the global meaning of CPU time or priority.
 
 
 Sparsely populated core address space
@@ -1165,11 +1165,11 @@ as the client).
 This condition may rescind the current scheduling choice of the other processor.
 To avoid lags in this case, the kernel lets the unaware target processor trap
 into an inter-processor interrupt (IPI).
-The targeted processor can respond to the IPI by taking the decision to
+The targeted processor can react to the IPI by taking the decision to
 schedule the receiving thread.
-As the IPI sender doesn't have to wait for an answer, the sending and
+As the IPI sender does not have to wait for an answer, the sending and
 receiving CPUs remain largely decoupled.
-There is no need for a complex IPI protocol between both.
+There is no need for a complex IPI protocol between sender and receiver.
 
 
 TLB shootdown
@@ -1181,8 +1181,8 @@ caches and branch predictors implement their own coherence protocol and thus
 need adaption in terms of configuration only. Others, like the TLBs lack this
 feature. When for instance a page table entry gets invalid, the TLB invalidation
 of the affected entries must be performed locally by each core. To signal the
-necessity of TLB maintenance work, an IPI is sent to all other cores. If all
-cores completed the cleaning, the thread that invoked the TLB invalidation
+necessity of TLB maintenance work, an IPI is sent to all other cores. Once all
+cores have completed the cleaning, the thread that invoked the TLB invalidation
 resumes its execution.
 
 ; Futher possible topics
@@ -1197,7 +1197,7 @@ The base-hw platform improves the mechanism described in Section
 signal contexts as first-class kernel objects. Core's
 SIGNAL service is merely used to arbitrate the creation and destruction of
 those kernel objects but it does not play the role of a signal-delivery proxy.
-Instead, signals are communicated by directly using the public kernel
+Instead, signals are communicated directly by using the public kernel
 operations _await_signal_, _signal_pending_, _submit_signal_, and
 _ack_signal_.
 
@@ -1207,7 +1207,7 @@ Limitations of the base-hw platform
 
 The base-hw kernel does not (yet) support the model of kernel-protected
 capabilities as described in Section [Capability-based security].
-All kernel objects are referred to via global IDs.
+All kernel objects are referred to by global IDs.
 On this platform, a capability is represented as a tuple of a thread ID
 and a global object ID. Capability delegation is realized as a plain copy
 of those values. Since any thread can specify arbitrary global thread IDs
@@ -1225,7 +1225,7 @@ Execution on the NOVA microhypervisor (base-nova)
 NOVA is a so-called microhypervisor, denoting the combination of microkernel
 and a virtualization platform (hypervisor). It is a high-performance
 microkernel for the x86 architecture. In contrast to other microkernels,
-it had been designed for hardware-based virtualization via user-level
+it has been designed for hardware-based virtualization via user-level
 virtual-machine monitors. In line with Genode's architecture, NOVA's kernel
 interface is based on capability-based security. Hence, the kernel fully
 supports the model of a Genode kernel as described in Section
@@ -1243,7 +1243,7 @@ supports the model of a Genode kernel as described in Section
 Integration of NOVA with Genode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The NOVA kernel is available via Genode's ports mechanism described in
+The NOVA kernel is available via Genode's ports mechanism detailed in
 Section [Ports of 3rd-party software]. The port description is located
 at _repos/base-nova/ports/nova.port_.
 
@@ -1276,11 +1276,14 @@ and _64bit/nova/_.
 Bootstrapping of a NOVA-based system
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-After finishing its initialization, the kernel starts the first boot module
-(after the kernel) as root task. The root task is Genode's core. The virtual
-address space of core contains the text and data segments of core, the UTCB
-of the initial EC, and the hypervisor info page (HIP). Details about the
+After finishing its initialization, the kernel starts the second boot module,
+the first being the kernel itself, as root task. The root task is Genode's core.
+The virtual address space of core contains the text and data segments of core, the
+UTCB of the initial EC, and the hypervisor info page (HIP). Details about the
 HIP are provided in Section 6 of the NOVA specification.
+
+; XXX: UTCB and EC have not yet been introduced. Maybe the NOVA term glossary
+;       could be moved up to the beginning of this section?
 
 BSS section of core
 -------------------
@@ -1306,7 +1309,7 @@ ESP register. Genode's startup code saves this value in the global variable
 Log output on modern PC hardware
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Because transmitting information over the legacy comports does not require
+Because transmitting information over legacy comports does not require
 complex device drivers, serial output over comports is still the predominant
 way to output low-level system logs like kernel messages or the output of
 core's LOG service.
@@ -1329,7 +1332,7 @@ options to obtain low-level system logs.
 The latter option allows the retrieval of low-level system logs on hardware
 that lacks special management features.
 In contrast to the legacy comports, however, it has the minor disadvantage
-that the location of the device's I/O resources is not prior known.
+that the location of the device's I/O resources is not known beforehand.
 The I/O port range of the comport depends on the device-enumeration
 procedure of the BIOS. To enable the kernel to output information
 over this comport, the kernel must be configured with the I/O port range
@@ -1339,7 +1342,7 @@ cannot simply be used across different machines.
 The Bender chain boot loader
 ----------------------------
 
-The alleviate the need to adapt the kernel configuration to the used comport
+To alleviate the need to adapt the kernel configuration to the used comport
 hardware, the bender chain boot loader can be used.
 
 :Bender is part of the MORBO tools:
@@ -1348,7 +1351,7 @@ hardware, the bender chain boot loader can be used.
 
 Instead of starting the NOVA hypervisor directly, the multi-boot-compliant
 boot loader (such as GRUB) starts bender as the kernel. All remaining
-boot modules including the real kernel have been already loaded into memory
+boot modules including the real kernel have already been loaded into memory
 by the original boot loader. Bender scans the PCI bus for a comport device.
 If such a device is found (e.g., an Express Card), it writes the information
 about the device's I/O port range to a known offset within the BIOS data
@@ -1357,7 +1360,7 @@ area (BDA).
 After the comport-device probing is finished, bender passes control to the
 next boot module, which is the real kernel. The comport device driver of
 the kernel does not use a hard-coded I/O port range for the comport but
-looks up the comport location from the BDA.
+looks up the comport location in the BDA.
 The use of bender is optional. When not used, the BDA always contains the I/O
 port range of the legacy comport 1.
 
@@ -1391,7 +1394,7 @@ given in table [nova_terminology].
 NOVA capabilities are not Genode capabilities
 ---------------------------------------------
 
-Both NOVA and Genode use the term "capability". However, the term does not has
+Both NOVA and Genode use the term "capability". However, the term does not have
 the same meaning in both contexts. A Genode capability refers to an RPC
 object or a signal context. In the context of NOVA, a capability refers to
 a NOVA kernel object. To avoid confusing both meanings of the term,
@@ -1412,7 +1415,7 @@ NOVA distinguishes so-called global ECs from local ECs. A global EC can
 be equipped with CPU time by associating it with an SC. It can perform
 IDC calls but it cannot receive IDC calls. In contrast to a global EC,
 a local EC is able to receive IDC calls but it has no CPU time. A local
-EC is executed not before it is called by another EC.
+EC is not executed before it is called by another EC.
 
 A regular Genode thread is a global EC. A Genode entrypoint is a local EC.
 Core distinguishes both cases based on the instruction-pointer (IP) argument
@@ -1509,8 +1512,8 @@ originator of the delegation has a mapping. Core is the only exception because
 it can establish mappings originating from the physical memory space.
 Because mappings can be delegated transitively between PDs, the mapping
 database is a tree where each node denotes the delegation of a mapping.
-The tree is maintained in order to enable the kernel to revoke the authority.
-When a mapping is revoked, the kernel implicitly revokes all transitive
+The tree is maintained in order to enable the kernel to rescind the authority.
+When a mapping is revoked, the kernel implicitly cancels all transitive
 mappings that originated from the revoked node.
 
 Because of this design, core needs to maintain a core-local memory mapping for
@@ -1520,6 +1523,7 @@ example, when a dataspace is detached from an RM session.
 The kernel's revoke operation takes the core-local address as argument and
 revokes all mappings originating from this mapping node.
 
+; XXX: Many repetitions of the term memory mapping in the previous paragraph...
 
 Asynchronous notifications on NOVA
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1560,8 +1564,8 @@ arguments. The PD capability selector represents the authorization over the
 protection domain, which is going to be targeted by DMA transactions.
 The device identifier is a virtual address where the extended PCI
 configuration space of the device is mapped in the specified PD.
-Only if a user-level device driver got access to the extended PCI configuration
-space of the device, it is able to get the assignment in place.
+Only if a user-level device driver is able to access to the extended PCI
+configuration space of the device, is it able to get the assignment in place.
 
 To make NOVA's IOMMU support available to Genode components,
 the ACPI driver has the ability to hand out the extended PCI configuration
@@ -1572,7 +1576,7 @@ interface can be used to associate a PCI device with a protection domain.
 ;   NOVAs management of the IOMMU address spaces facilities the use of
 ;   driver-local virtual addresses as DMA addresses.
 
-Even though these mechanisms combined principally
+Even though these mechanisms combined should in theory
 suffice to let drivers operate with the IOMMU enabled, in practice, the
 situation is a bit more complicated. Because NOVA uses the same
 virtual-to-physical mappings for the device as it uses for the process, the DMA
@@ -1602,6 +1606,8 @@ using core's RAM service to allocate buffers anonymously. Note that the
 current implementation of the ACPI server assigns all PCI devices to only one
 device PD.
 
+; XXX Maybe mention this in the limitations section?
+
 ; XXX [image img/iommu_agnostic 80%]
 ;   By modelling a device address space as a dedicated process (device PD),
 ;   the traditional way of programming DMA transactions can be maintained,
@@ -1621,15 +1627,15 @@ repository:
 
   [https://github.com/alex-ab/NOVA.git]
 
-The repository contains a separate branch for each version of NOVA that had
+The repository contains a separate branch for each version of NOVA that has
 been used for Genode. When preparing the NOVA port using the port description
 at _repos/base-nova/ports/nova.port_, the NOVA branch that matches the used
 Genode version is checked out automatically. The port description refers to
 a specific commit ID. The commit history of each branch within the NOVA
 repository corresponds to the history of the original NOVA kernel
 followed by a series of Genode-specific commits. Each time NOVA is updated,
-a new branch is created and all Genode-specific commits are rebased on the
-history of the new NOVA version.
+a new branch is created and all Genode-specific commits are rebased on top of
+the history of the new NOVA version.
 This way, the differences between the original NOVA kernel and the Genode
 version remain clearly documented. The Genode-specific modifications solve the
 following problems:
@@ -1665,7 +1671,7 @@ following problems:
 :Support for priority-inheriting spinlocks:
 
   Genode's lock mechanism relies on a yielding spinlock for protecting the
-  lock meta data. On most base platform, there exists the invariant that
+  lock meta data. On most base platforms, there exists the invariant that
   all threads of one component share the same CPU priority. So priority
   inversion within a component cannot occur. NOVA breaks this invariant
   because the scheduling parameters (SC) are passed along IDC call chains.
@@ -1674,7 +1680,7 @@ following problems:
   priorities. The use of a naive spinlock for synchronization will produce
   priority inversion problems. The kernel has been extended with the
   mechanisms needed to support the implementation of
-  priority-inheriting spinlocks in the userland.
+  priority-inheriting spinlocks in userland.
 
 :Combination of capability delegation and translation:
 
@@ -1788,8 +1794,8 @@ core.
 :Core must retain mappings to all memory used throughout the system:
   As mentioned in Section [Page-fault handling on NOVA], core needs to own
   a mapping node before delegating the mapping to another PD as a response
-  to a page fault. Otherwise, core could not revoke the mapping later on
-  because the kernel expects core's mapping node as a proof for the
+  to a page fault. Otherwise, core is not able to revoke the mapping later on
+  because the kernel expects core's mapping node as a proof of the
   authorization for the revocation of the mapping.
 
   Consequently, even though core never touches memory handed out to other
