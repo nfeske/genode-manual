@@ -10,7 +10,7 @@ example for the former, some boot loaders allow for setting up a
 graphics mode depending on its configuration. Hence, the graphics mode
 to be used by the OS could be defined right at this early stage
 of booting. More prominently, however, is the mere passing of configuration
-information to the booted OS, i.e., in the form of a kernel command line or as
+information to the booted OS, e.g., in the form of a kernel command line or as
 command-line arguments to boot modules. The OS would interpret
 boot-loader-provided data structures (i.e., multiboot info structures) to
 obtain such information. Most kernels interpret certain configuration
@@ -46,7 +46,7 @@ The design of this concept takes the following considerations into account.
 
 :Low complexity:
   The configuration mechanism is an intrinsic part of each component. Hence,
-  it affects to the trusted computing base of every Genode-based system.
+  it affects the trusted computing base of every Genode-based system.
   For this reason, the mechanism must be easy to understand and implementable
   without the need for complex underlying OS infrastructure. As a negative
   example, the provision of configuration files via a file system would
@@ -128,7 +128,7 @@ code. Init's configuration is contained within a single '<config>' node.
 
 Each component started by init obtains its configuration by requesting
 a ROM module named "config" from its parent, which is init. Init responds to
-this request by handling out a locally-provided ROM session. Instead of
+this request by handing out a locally-provided ROM session. Instead of
 handing out the "config" ROM module as obtained from core, it creates a new
 dataspace that solely contains the portion of init's config ROM module that
 refers to the respective child. Analogously to init's configuration,

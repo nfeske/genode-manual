@@ -23,8 +23,7 @@ Linker scripts
 Under the hood, the Genode build system uses three different linker scripts
 located at _repos/base/src/platform/_:
 
-:genode.ld: is used for statically linked components, including
-  the core component,
+:genode.ld: is used for statically linked components, including core,
 
 :genode_dyn.ld: is used for dynamically linked components, i.e., components
   that are linked against at least one shared library,
@@ -193,7 +192,7 @@ real stack for the program. For placing a stack in dedicated portion of the
 component's virtual address space, the function needs to overcome two
 principle problems:
 
-* It needs to obtain the backing store used for the stack, i.e., by
+* It needs to obtain the backing store used for the stack, i.e.,
   allocating a dataspace from the component's RAM session as initialized
   by the parent.
 
@@ -209,7 +208,7 @@ capabilities to perform the RAM allocation and RM attach operations.
 The RPC mechanism is based on C++. In particular, the mechanism supports
 the propagation of C++ exceptions across RPC interfaces. Hence,
 before being able to perform RPC calls, the program must initialize
-the C++ runtime including the exception support.
+the C++ runtime including the exception-handling support.
 The initialization of the C++ runtime, in turn, requires support for
 dynamically allocating memory. Hence, a heap must be available.
 This chain of dependencies ultimately results in the need to construct the
@@ -242,7 +241,7 @@ With the Genode environment constructed and the initial stack switched
 to a proper stack located in the thread-context area, the component-dependent
 startup code of the '_main' in _repos/base/src/platform/_main.cc_ can be
 executed. This code is responsible for calling the global constructors
-of the program before calling program's main function.
+of the program before calling the program's main function.
 
 In accordance to the established signature of the 'main' function, taking
 an argument list and an environment as arguments, the startup code supplies
@@ -278,7 +277,7 @@ unwind the stack and a mechanism for obtaining runtime type
 information (RTTI). The C++ runtime libraries that come with common tool
 chains, in turn, rely on a C library for performing dynamic memory
 allocations, string operations, and I/O operations. Consequently, C++ programs
-that rely on exceptions and RTTI use to depend on a C library. For this
+that rely on exceptions and RTTI implicitly depend on a C library. For this
 reason, the use of those C++ features is universally disregarded for low-level
 operating-systems code that usually does not run in an environment where a
 complete C library is available.
@@ -405,7 +404,7 @@ required by the compiler.
 Interaction of core with the underlying kernel
 ==============================================
 
-Core is the root of the process tree. It is initialized and started
+Core is the root of the component tree. It is initialized and started
 directly by the underlying kernel and has two purposes. First, it makes
 the low-level physical resources of the machine available to other components
 in the form of services. Those resources are the physical memory, processing
@@ -492,7 +491,7 @@ physical pages, i.e., 4 KiB.
 The core-memory allocator is expanded on demand but never shrunk.
 This makes it unsuitable for allocating objects on the behalf of core clients
 because allocations could not be reverted when closing the session.
-It is solely used for dynamic memory allocations at the startup (e.g., the
+It is solely used for dynamic memory allocations at startup (e.g., the
 memory needed for keeping the information about the boot modules),
 and for keeping meta data for the allocators themselves.
 
@@ -538,8 +537,10 @@ user-level page-fault handler residing in core.
 The fault information comprises the identity and instruction pointer of the
 faulted thread, the page-fault address, and the fault type (read, write,
 execute).
-The page-fault handler represents each thread as a so-called _pager object_.
-For handling the page fault, it first looks up the pager
+The page-fault handler represents each thread as a so-called _pager object_,
+which encapsulates the subset of the thread's interface that is needed to
+handle page faults.
+For handling the page fault, the page-fault handler first looks up the pager
 object that belongs to the faulting thread's identity,
 analogously to how an RPC entrypoint looks up the RPC object for an incoming
 RPC request.
@@ -634,7 +635,7 @@ a statically-linked program or a dynamically-linked program by inspecting
 the ELF binary's program-header information (see _repos/base/src/base/elf/_).
 If the program is statically linked, the parent follows the procedure as
 described in Section [Component creation]. If the program is dynamically
-linked, the parent remembers the dataspace of program's ELF image but
+linked, the parent remembers the dataspace of the program's ELF image but
 starts the ELF image of the dynamic linker instead.
 
 The dynamic linker is a regular Genode component that follows the startup
@@ -694,8 +695,8 @@ stated otherwise, all paths are relative to this directory.
 
 In contrast to classical L4 microkernels where Genode's core process runs as
 user-level roottask on top of the kernel, base-hw executes Genode's core
-directly on the hardware with no distinct kernel underneath. Core and kernel
-are melted into one hybrid kernel/userland program. Only a few
+directly on the hardware with no distinct kernel underneath. Core and the
+kernel are melted into one hybrid kernel/userland program. Only a few
 code paths are executed in privileged mode but most code runs in user mode.
 This design has several benefits. First, the kernel part becomes much simpler.
 For example, there are no allocators needed in the kernel part because
@@ -707,7 +708,7 @@ employ Genode's user-level resource trading concepts as described in Section
 [Resource trading]. Finally and most
 importantly, merging the kernel with roottask removes a lot of
 redundancies between both programs. Traditionally, both kernel and roottask
-use to perform the book keeping of physical-resource allocations and the existence
+perform the book keeping of physical-resource allocations and the existence
 of kernel objects such as address spaces and threads. In base-hw, those data
 structures exist only once. The complexity of the combined kernel/core is
 significantly lower than the sum of the complexities of a traditional
@@ -919,7 +920,7 @@ user mode), both parts share a single address space and ultimately trust
 each other. The kernel is regarded a mere support library of core that
 executes those functions that can only be executed in the privileged
 CPU mode. In particular, the kernel does not perform any allocation.
-Instead, the allocation of a kernel objects is performed as an interplay
+Instead, the allocation of kernel objects is performed as an interplay
 of core and the kernel.
 
 # Core allocates physical memory from its physical-memory allocator.
@@ -1010,7 +1011,7 @@ physical memory page, it first has to explicitly map the physical page into
 its own virtual memory space. This way, the virtual address space of core
 stays clean from any data of other components. Even in the presence of a bug
 in core (e.g., a dangling pointer), information cannot accidentally leak
-between different protection domains because the virtual memory of other
+between different protection domains because the virtual memory of the other
 components is not visible to core.
 
 
@@ -1035,7 +1036,7 @@ Cross-CPU inter-component communication
 ---------------------------------------
 
 Regarding synchronous and asynchronous inter-processor communication - thanks
-to the global kernel lock - the is no semantic difference to the uniprocessor
+to the global kernel lock - there is no semantic difference to the uniprocessor
 case. The only difference is that on a multiprocessor system, one processor may
 change the schedule of another processor by unblocking one of its threads
 (e.g., when an RPC call is received by a server that resides on a different CPU
@@ -1256,7 +1257,7 @@ given in table [nova_terminology].
 NOVA capabilities are not Genode capabilities
 ---------------------------------------------
 
-Both NOVA and Genode use the term "capability". However, the term has not
+Both NOVA and Genode use the term "capability". However, the term does not has
 the same meaning in both contexts. A Genode capability refers to an RPC
 object or a signal context. In the context of NOVA, a capability refers to
 a NOVA kernel object. To avoid confusing both meanings of the term,

@@ -32,18 +32,18 @@ of componentization. This decision depends on several factors:
 :Reusability:
   Componentization can be pursued for improved reusability while sometimes
   disregarding performance considerations. However, reusability can also be achieved by
-  moving functionality into libraries that can be easily reused by linking
+  moving functionality into libraries that can easily be reused by linking
   them directly against library-using components. By using a dynamic linker,
   the linking can even happen at run time, which yields the same flexibility
   as the use of multiple distinct components. Therefore, the split of
   functionality into multiple components for the sole sake of modularization
   is to be questioned.
 
-The Sections [Device drivers], [Protocol stacks], [Resource multiplexers], and
+Sections [Device drivers], [Protocol stacks], [Resource multiplexers], and
 [Runtime environments and applications] aid the navigation within the
 componentization design space by discussing the different roles a component
 can play within a Genode system.
-Those can be be the role of a device driver, protocol stack, resource
+Those can be the role of a device driver, protocol stack, resource
 multiplexer, runtime environment, and that of an application. By
 distinguishing those roles, it becomes possible to assess the possible
 security implications of each individual component.
@@ -112,7 +112,7 @@ Platform driver
 
 There are three problems that are fundamentally important for running an
 operating system on modern hardware but that lie outside the scope of an
-ordinary device driver because they are affect the platform as a whole rather
+ordinary device driver because they affect the platform as a whole rather
 than a single device. Those problems are the enumeration of devices, the
 discovery of interrupt routing, and the initial setup of the platform.
 
@@ -268,11 +268,11 @@ on a microcontroller on the device, and is thereby not subjected to the
 policy of the normal operating system. Such firmware may either be built-in
 by the device vendor, or is loaded by the device driver at initialization
 time of the device. In both cases, the firmware tends to be a black box
-that remains obscure except for the device vendor. Hidden functions
+that remains obscure except for the device vendor. Hidden functionality
 or vulnerabilities might be present in it. By the means of DMA transactions, such
 firmware has unlimited access on the system. For example, a back door
 implemented in the firmware of a network adaptor could look for
-special network packets to activate and control arbitrary spyware functions.
+special network packets to activate and control arbitrary spyware.
 Because malware embedded in the firmware of the device can neither be detected
 nor controlled by the operating system, both monolithic and microkernel-based
 operating systems are powerless against such attacks.
@@ -286,11 +286,10 @@ attack. However, the system bus can be attacked directly with no hardware
 tinkering needed. There are ready-to-exploit interfaces that are featured on most
 PC systems. For example, most laptops come with PCMCIA / Express-Card slots,
 which allow expansion cards to access the system bus. Furthermore, serial bus
-interfaces, i.e., IEEE 1394 (Firewire) enable connected devices to indirectly
+interfaces, e.g., IEEE 1394 (Firewire), enable connected devices to indirectly
 access the system bus via the peripheral bus controller. If the bus controller
 allows the device to issue direct system bus requests by default, a connected
-device becomes able to gain control over the whole system. This vulnerability
-has been present on a wide range of commodity computers.
+device becomes able to gain control over the whole system.
 
 
 DMA transactions in component-based systems
@@ -378,8 +377,8 @@ physical devices. Therefore, a protocol stack can be instantiated any number
 of times. For example, if multiple terminals are needed, one terminal
 component could be instantiated per terminal. Because each terminal has an
 independent instance of the protocol stack, a bug in the protocol stack of one
-terminal does affect any other terminal. However complex the implementation of
-the protocol stack may be, it is not prone to leaking information to another
+terminal does not affect any other terminal. However complex the implementation
+of the protocol stack may be, it is not prone to leaking information to another
 terminal because it is connected to a single client only. The leakage of
 information is constrained to interfaces used by the individual instance.
 Hence, in cases like this, the protocol-stack component is suitable
@@ -576,7 +575,7 @@ their scope is limited to the few low-level resources provided by core, namely
 processing time, memory, and low-level device resources. Device drivers
 (Section [Device drivers]) and protocol stacks (Section [Protocol stacks])
 transform those low-level resources into higher-level resources. Analogously
-how core's low-level resources are represented by the session interfaces
+to how core's low-level resources are represented by the session interfaces
 of core's services, higher-level resources are represented by the session
 interfaces provided by device drivers and protocol stacks. In principle,
 each device driver could introduce a custom session interface representing
@@ -738,9 +737,9 @@ never block. When called, it copies new input into the communication buffer
 and returns the number of new characters. If there is no new input, it
 returns 0. To avoid the need to poll for new input at the client side, the
 client can register a signal handler that gets notified on the arrival of
-new input. The write function takes a number of to-be-written characters
+new input. The write function takes the number of to-be-written characters
 as argument. The server responds to this function by processing the specified
-amount on characters from the communication buffer.
+amount of characters from the communication buffer.
 
 Besides the actual read and write operations, the terminal supports the
 querying of the number of new available input (without reading it) and the
@@ -765,15 +764,15 @@ signal right after creating the session.
 Use cases
 ---------
 
-* Device drivers that provide streams of characters in either direction
-* Graphical terminal
-* Transfer of steams of data over TCP (using TCP terminal)
-* Writing streams of data to a file (using file terminal)
+* Device drivers that provide streams of characters in either direction.
+* Graphical terminal.
+* Transfer of steams of data over TCP (using TCP terminal).
+* Writing streams of data to a file (using file terminal).
 * User input and output of traditional command-line based software, i.e.,
-  programs executed in the noux runtime environment
+  programs executed in the noux runtime environment.
 * Multiplexing of multiple textual user interfaces (using the terminal-mux
-  component)
-* Headless operation and management of subsystems (using CLI monitor)
+  component).
+* Headless operation and management of subsystems (using CLI monitor).
 
 
 UART
@@ -821,12 +820,12 @@ following types:
 Use cases
 ---------
 
-* Drivers for user-input devices play the roles of input servers
-* Providing user input from a GUI server to its clients, i.e., the
+* Drivers for user-input devices play the roles of input servers.
+* Providing user input from a GUI server to its clients, e.g., the
   interface of the nitpicker GUI server provides an input session as part
   of the server's interface.
 * Merging multiple streams of user input into one stream (using an input
-  merger)
+  merger).
 * Virtual input devices can be realized as input servers that generate
   artificial input events.
 
@@ -838,7 +837,7 @@ The framebuffer session interface allows a client to supply pixel data to
 a framebuffer server such as a framebuffer driver or a virtual framebuffer
 provided by a GUI server. The client obtains access to the framebuffer as
 a dataspace, which is shared between client and server. The client may
-update the pixels within the dataspace at any time. Once, a part of the
+update the pixels within the dataspace at any time. Once a part of the
 framebuffer has been updated, the client informs the server by calling a
 _refresh_ RPC function. Thereby, the framebuffer session interface employs a
 synchronous bulk transfer mechanism (Section [Synchronous bulk transfer]).
@@ -867,7 +866,7 @@ of the session using the following protocol:
 
 # Similarly to the transactional protocol used for updating ROM modules
   (Section [Read-only memory (ROM)]), the dataspace shared between client and
-  server stays in tact until the client acknowledges the mode change by calling
+  server stays intact until the client acknowledges the mode change by calling
   the _mode_ RPC function.
 
 # The server responds to the _mode_ function by applying the new mode and
@@ -939,7 +938,7 @@ Use cases
   between multiple GUI applications.
 * A window manager implementing the nitpicker session interface may
   represent each view as a window with window decorations and a placement
-  policy. The resizing of a windows by the user is reflected to the client as
+  policy. The resizing of a window by the user is reflected to the client as
   a screen-mode change.
 * A loader (Section [Loader]) virtualizes the nitpicker session interface for
   the loaded subsystem.
@@ -950,9 +949,8 @@ Platform
 
 The platform session interface (on ARM-based devices) and the PCI session
 interface (on x86-based machines) provide the client with access to the
-devices present on the hardware platform. See Section
-(Section [Platform driver]) for more information on the role of platform
-drivers.
+devices present on the hardware platform. See Section [Platform driver]
+for more information on the role of platform drivers.
 
 
 Block
@@ -1057,14 +1055,15 @@ Interface design
 For the output of streamed audio data, a codec typically decodes a relatively
 large portion of an audio stream and submits the sample data to a mixer. The
 mixer, in turn, mixes the samples of multiple sources and forwards the result
-to the audio driver. Each of those components the codec, the mixer, and the
+to the audio driver. The codec, the mixer, and the
 audio driver are separate components. By using large buffer sizes between
 them, there is only very little context-switching overhead. Also, the driver
 can submit large buffers of sample data to the sound device without any
 further intervention needed.
 In contrast, sporadic sounds are used to inform the user about an immediate
-event. It is ultimately expected that such sounds are played back without much
-latency. Otherwise the interactive experience (e.g., of games) would suffer.
+event. An example is the acoustic feedback to certain user input in games.
+The user ultimately expects that such sounds are played back without much
+latency. Otherwise the interactive experience would suffer.
 Hence, using large buffers between the audio source, the mixer, and the driver
 is not an option.
 The audio-out session interface was specifically designed to
@@ -1144,7 +1143,7 @@ Use cases
 
 * A file-system operates on a block session to provide file-system sessions to
   its clients.
-* A RAM file system keeps a directory structure and files in memory and
+* A RAM file system keeps the directory structure and files in memory and
   provides file-system sessions to multiple clients. Each session may be
   restricted in different ways (such as the root directory as visible by
   the respective client, or the permission to write). Thereby the clients
@@ -1299,7 +1298,7 @@ reusing or economically downright infeasible to reimplement. Examples
 are PDF rendering engines, libraries that support commonly used video and
 audio codecs, or libraries that decode hundreds of image formats.
 
-However code of such rich functionality is inherently complex and must be
+However, code of such rich functionality is inherently complex and must be
 assumed to contain security flaws. This is empirically evidenced by the
 never ending stream of security exploits targeting the decoders of data
 formats. But even in the absence of bugs, the processing of data by
@@ -1512,7 +1511,7 @@ outside the component.
 However, components like the nitpicker GUI server are often confronted with
 feature requests. For example, users may want to move a window on screen by
 dragging the window's title bar. Because nitpicker has no notion of windows or
-title bars, such a functionality is not supported. Instead, nitpicker moves
+title bars, such functionality is not supported. Instead, nitpicker moves
 the burden to implement window decorations to its clients. However, this
 approach sacrifices functionality that is taken for granted on modern
 graphical user interfaces. For example, the user may want to switch the

@@ -22,7 +22,7 @@ Today's widely deployed operating systems do not isolate security-critical
 functions from the rest of the operating system. In contrary, they are
 co-located with most other operating-system functionality in a single
 high-complexity kernel. Thereby, those functions are exposed to the other
-parts of the operating system. The likelihood for of a security breach is as
+parts of the operating system. The likelihood of a security breach is as
 high as the likelihood for bugs in the overly complex kernel. In other words:
 It is certain. Moreover, once an in-kernel function has been compromised, the
 defect has an unlimited reach throughout the system.
@@ -33,8 +33,8 @@ parts of the system, on which it ultimately depends. But it remains hidden
 from all unrelated parts. This minimizes the attack surface on individual
 security functions and thereby reduces the likelihood for a security breach.
 In the event that one part of the system gets compromised, the reach of the
-defect is limited to the particular part and its dependent parts. But
-unrelated functionalities remain unaffected. To realize this idea, Genode
+defect is limited to the particular part and its dependent parts.
+Unrelated functionalities remain unaffected. To realize this idea, Genode
 composes the system out of many components that interact with each other. Each
 component serves a specific role and uses well-defined interfaces to interact
 with its peers. For example, a network driver accesses a physical network card
@@ -224,9 +224,10 @@ represented by the dotted line.
 The kernel uses the supplied local name as an
 index into the client's capability space to look up the object identity, to
 which the capability refers. Given the object identity, the kernel is able to
-determine the entrypoint that is associated with the object identity and wakes
+determine the protection domain and the corresponding entrypoint that is
+associated with the object identity and wakes
 up the entrypoint's thread with the information about the incoming request.
-Among those information is the server-local name of the capability that was
+Among this information is the server-local name of the capability that was
 invoked. Note that the kernel has translated the client-local name
 to the corresponding server-local name. The capability name spaces of client and
 server are entirely different. The entrypoint uses this number as a key into
@@ -278,9 +279,9 @@ performs the steps illustrated in Figure [img/capability_argument].
 # The kernel looks up the object identity in the capability space of the
   client. This lookup may fail if the client specified a number of an empty
   slot of its capability space. Only if the lookup succeeds, the kernel is
-  able obtain the object identity referred to by the argument. Note that under
-  no circumstances, the client can refer to object identities, for which it
-  has no authority because it can merely specify the object identities
+  able to obtain the object identity referred to by the argument. Note that
+  under no circumstances, the client can refer to object identities for which
+  it has no authority because it can merely specify the object identities
   reachable through its capability space. For all non-empty slots of its
   capability space, the protection domain was authorized to use their
   referenced object identities by the means of prior delegations.
@@ -291,7 +292,7 @@ performs the steps illustrated in Figure [img/capability_argument].
   The efficiency of the operation largely depends on the kernel implementation.
 
 # If the server already possesses a capability to the object identity, the
-  kernel translates the argument to the corresponding local name when passing
+  kernel translates the argument to the server-local name when passing
   it as part of the request to the server. If the server does not yet possess
   a capability to the argument, the kernel installs a new entry into the
   server's capability space. The new entry refers to the object identity of
@@ -314,7 +315,7 @@ Recursive system structure
 ==========================
 
 The previous section introduced capability delegation as the fundamental
-mechanism to pass authority over RPC objects between protection domains. But
+mechanism to share authority over RPC objects between protection domains. But
 in the given examples, the client was already in possession to a capability to
 the server's RPC object. This raises the question of how do clients get
 acquainted to servers?
@@ -333,7 +334,7 @@ On the one hand, ownership stands for _responsibility_.
 Each component requires physical resources such as the memory used by the
 component or in-kernel data structures that represent the component in the
 kernel.
-The parent is responsible to provide a budget of those physical resources to
+The parent is responsible for providing a budget of those physical resources to
 the child at the child's creation time but also during the child's entire
 lifetime.
 As the parent has to assign a fraction of its own physical resources to its
@@ -361,7 +362,7 @@ the parent installs a single capability called _parent capability_ into the
 new protection domain. The parent capability enables the child to perform RPC
 calls to the parent. The child is unaware of anything else that exists in the
 Genode system. It does not even know its own identity nor the identity of its
-parent. All it can do is issuing calls to its parent using the parent
+parent. All it can do is issue calls to its parent using the parent
 capability. Figure [img/parent_capability] depicts the situation right after
 the creation of a child component. A thread in the parent component created a
 new protection domain and a thread residing in the protection domain. It also
@@ -521,11 +522,12 @@ Even though the integrity of the session capability can be taken for
 granted, the client does not need to trust the server in the same way as it
 trusts its parent. By invoking the capability, the client is in full control
 over the information it reveals to the server in the form of RPC arguments.
-The confidentiality of its internal state is protected. Furthermore, the
+The confidentiality and integrity of its internal state is protected.
+Furthermore, the
 invocation of a capability cannot have side effects on the client's protection
 domain other than the retrieval of RPC results. So the integrity of the
 client's internal state is protected. However, when invoking a capability, the
-clients hands over the flow of execution to the server. The client is blocked
+client hands over the flow of execution to the server. The client is blocked
 until the server responds to the request. A misbehaving server may never
 respond and thereby block the client infinitely. Therefore, with respect to
 the liveliness of the client, the client has to trust the server. To empathize
@@ -539,12 +541,12 @@ the integrity and confidentiality of the client's internal state at risk.
 If being in the _role of a server_, a component should generally not trust
 its clients. In contrary, from the server's perspective, clients should be
 expected to misbehave. This has two practical implications. First, a server is
-responsible to validate the arguments of incoming RPC requests. Second, a
+responsible for validating the arguments of incoming RPC requests. Second, a
 server should never make itself dependent on the good will of its clients.
 For example, a server should generally not invoke a capability obtained
 from one of its clients. A malicious client could have delegated a
 capability to a non-responding RPC object, which may block the server
-forever when invoked and thereby make the server unavailable for all other
+forever when invoked and thereby make the server unavailable for all
 clients. As another example, the server must always be in control
 over the physical memory resources used for a shared-memory interface between
 itself and its clients. Otherwise, if a client was in control over the
@@ -606,7 +608,7 @@ memory, the processing time of the CPUs, and devices.
 The traditional approach to resource management
 -----------------------------------------------
 
-Traditional operating systems use to provide abstractions of those resources
+Traditional operating systems provide abstractions of those resources
 to applications running on top of the operating system. For example, instead
 of exposing the real interface of a device to an application, a Unix kernel
 provides a representation of the device as a pseudo file in the virtual file
@@ -622,7 +624,7 @@ this convenient abstraction creates problems that are extremely hard or even
 impossible to solve by the OS kernel.
 
 * The amount of physical memory that is at the disposal for backing
-  virtual memory is limited. Traditional OS kernels use to employ strategies
+  virtual memory is limited. Traditional OS kernels employ strategies
   to uphold the illusion of unlimited memory by swapping memory pages to disk.
   However, the swap space on disk is ultimately limited, too. At one point,
   when the physical resources are exhausted, the pretension of unlimited
@@ -649,7 +651,7 @@ exhaust physical memory directly. Hence, further heuristics are needed to
 limit the amount of pinned memory an application may use. Those counter
 measures and heuristics, while making the OS kernel more complex, are mere
 attempts to fight symptoms but unable to solve the actual problems caused by
-the lack of accounting. The behaviour of the such systems remains largely
+the lack of accounting. The behaviour of such systems remains largely
 indeterministic.
 
 As a further consequence of the abstraction from physical resources, the
@@ -673,7 +675,10 @@ The following description focuses on memory as the most prominent low-level
 resource managed by the operating system. Conceptually, the approach could
 be applied to other physical resources such as processing time, network
 bandwidth, disk space, or even power. However, at the time of writing,
-Genode employs the mechanism for memory only.
+Genode employs the mechanism for memory only. Processing time is subject
+to the kernel's scheduling policy whereas the management of the higher-level
+resources such as disk space is left to the respective servers that provide
+those resources.
 
 Physical memory is represented by the RAM service of core. The best way to
 describe the idea behind the RAM service is to draw the analogy to a bank.
@@ -684,7 +689,7 @@ existing account to the new account.
 Naturally, such a transaction will decrease the balance of the
 originating account. Internally at the bank, the transfer does not involve any
 physical bank notes. The transaction is merely a change of balances of both
-involved bank accounts.
+bank accounts involved.
 A bank customer with the authority over a given
 bank account can use the value stored on the bank account to purchase physical
 goods while withdrawing the costs from the account.
@@ -832,8 +837,8 @@ cases depending on its session-routing decision as described in Section
 :Server is another child:
   If the parent decides to route the session request to another child, it
   transfers the session quota from the client's RAM session to the server's
-  RAM session. Because each of RAM sessions are not related to each other as
-  both have the parent's RAM session as reference account, this the transfer
+  RAM session. Because the RAM sessions are not related to each other as
+  both have the parent's RAM session as reference account, this transfer
   from the client to the server consists of two steps. First, the parent
   transfers the session quota to its own RAM session. If this step succeeded,
   it transfers the session quota from its own RAM session to the server's RAM
@@ -845,7 +850,7 @@ cases depending on its session-routing decision as described in Section
 
 :Forward to grandparent:
   The parent may decide to forward the session request to its own parent. In
-  this case, the parent will request a session on behalf of its child. The
+  this case, the parent requests a session on behalf of its child. The
   grandparent neither knows nor cares about the actual origin of the request
   and will simply decrease the memory quota of the parent. For this reason,
   the parent transfers the session quota from the requesting child to its own
@@ -886,7 +891,7 @@ If a child issues a session-close request to its parent, the parent determines
 the corresponding server, which, depending on the
 route of the original session request, may be locally implemented, provided by
 another child, or provided by the grandparent. Once the server receives the
-session-close request, it is responsible to release all resources that were
+session-close request, it is responsible for releasing all resources that were
 allocated from the session quota. The release of resources should revert
 all allocations the server has performed on behalf its client. Stressing the
 analogy with the bank account, the server has to sell the physical goods
@@ -894,11 +899,11 @@ analogy with the bank account, the server has to sell the physical goods
 the balance on its RAM session.
 After the server has reverted all session-specific allocations, the server's
 RAM session is expected to have at least as much available budget as the
-session quota of the to-be-closed session. So the session quota can be
-transferred back to the client.
+session quota of the to-be-closed session. As a result, the session quota can
+be transferred back to the client.
 
-However, an misbehaving server may fail to release those resources by malice
-or caused by a bug. For example, the server may be unable to free a dataspace
+However, a misbehaving server may fail to release those resources by malice
+or because of a bug. For example, the server may be unable to free a dataspace
 because it mistakenly used the dataspace for another client's data.
 Another example would be a memory leak in the server.
 Such misbehavior is detected on the attempt to withdraw the session
@@ -1083,9 +1088,9 @@ obtained a session to core's RAM service is a RAM client.
 Dataspaces
 ~~~~~~~~~~
 
-A dataspace is an RPC object that represents a contiguous physical
-address-space region with an arbitrary size. Its base address and size are
-subjected to the granularity of physical pages as dictated by the
+A dataspace is an RPC object that resides in core and represents a contiguous
+physical address-space region with an arbitrary size. Its base address and
+size are subjected to the granularity of physical pages as dictated by the
 memory-management unit (MMU) hardware. Typically the granularity is 4 KiB.
 
 Dataspaces are created and managed via core's services.
@@ -1114,7 +1119,7 @@ forth between the reference account and the new RAM session.
 
 Provided that the RAM session is equipped with sufficient quota, the RAM
 client can allocate RAM dataspaces from the RAM session. The size of
-each RAM dataspace is defined by the client at the allocation time.
+each RAM dataspace is defined by the client at the time of allocation.
 The location of the dataspace in physical memory is defined by core.
 
 Each RAM dataspace is physically
@@ -1147,7 +1152,7 @@ During the initial bootstrap phase of the machine, a boot loader loads the
 kernel's binary and additional chunks of data called _boot modules_ into the
 physical memory. After those preparations, the boot loader passes control to
 the kernel.
-Examples for boot modules are the ELF images of the core component, the
+Examples of boot modules are the ELF images of the core component, the
 init component, the components created by init, and the configuration of the
 init component.
 Core makes each boot module available as a ROM session. Because boot modules
@@ -1178,7 +1183,7 @@ parent capability of the component within the PD. The assignment of the
 parent capability is done at the creation time of the component by its
 parent.
 
-A PD on its own is not useful unless is becomes associated with an
+A PD on its own is not useful unless it becomes associated with an
 address-space layout (RM session) and at least one thread of execution
 (CPU session). Section [Component creation] explains how those sessions
 can be combined as basic building blocks for creating a component.
@@ -1214,7 +1219,7 @@ dataspace should be executable or not.
 The counter part of the _attach_ operation is the _detach_ operation, which
 enables the RM client to remove
 dataspaces from its RM session by specifying a virtual address. Under the
-hood, this operations flushes the MMU mappings of the corresponding virtual
+hood, this operation flushes the MMU mappings of the corresponding virtual
 address range so that the dataspace content becomes invisible.
 
 Note that a single dataspace may be attached to any number of RM sessions.
@@ -1731,7 +1736,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   and capabilities. Payloads of both kinds can be simultaneously present.
   A message buffer can carry up to 1 KiB of raw data and up to four
   capabilities.
-  Prior issuing the kernel IPC operation, the IPC library translates the
+  Prior to issuing the kernel IPC operation, the IPC library translates the
   message-buffer content to the format understood by the kernel's IPC
   operation.
 
@@ -1775,14 +1780,13 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   Thereby each RPC interface is represented as a C++ type.
   The declarations are accompanied with annotations that allow the C++
   compiler to generate the so-called RPC stub code on both the client side and
-  server side. Traditionally, the generation of communication stub codes uses
-  to employ code-generating tools like IDL compilers. In contrast, Genode uses
+  server side. Genode uses
   C++ templates to generate the stub code, which avoids the crossing of a
   language barrier when designing RPC interfaces and alleviates the need for
   code-generating tools in addition to the compiler.
 
   The client-side stub code translates C++ method calls to a sequence of
-  operations on an IPC client object. I.e., each RPC function of an
+  operations on an IPC client object. Each RPC function of an
   RPC interface has an associated opcode (according to the order of RPC
   functions). This opcode along with the method arguments are inserted
   into the IPC client's send buffer. Vice versa, the stub code translates
@@ -1802,8 +1806,8 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   When an RPC object is associated with an entrypoint, the entrypoint creates
   a unique capability for the given RPC object.
   RPC objects are typed with their corresponding RPC interface. This C++ type
-  information is propagated to the their corresponding capabilities. I.e.,
-  When associating an RPC object that implements the LOG-session interface
+  information is propagated to the corresponding capabilities. For example,
+  when associating an RPC object that implements the LOG-session interface
   with an entrypoint, the resulting capability is a LOG-session capability.
 
   This capability represents
@@ -1998,7 +2002,7 @@ producer triggers a condition. Note that both can be arbitrary components.
 Signal-context creation and delegation
 --------------------------------------
 
-The upper part of the Figure [img/signal_seq] depicts the steps needed by a
+The upper part of Figure [img/signal_seq] depicts the steps needed by a
 signal handler to become able to receive asynchronous notifications.
 
 # Initially, the signal-handler component creates a so-called _signal receiver_.
@@ -2071,7 +2075,9 @@ Shared memory
 ~~~~~~~~~~~~~
 
 [tikz img/shared_memory_seq]
-  Establishing shared memory between client and server
+  Establishing shared memory between client and server.
+  The server interacts with core's RAM service. Both client and server
+  interact with core's RM service.
 
 By sharing memory between components, large amounts of information can be
 propagated across protection-domain boundaries without the active help of the
@@ -2147,7 +2153,7 @@ client and server must be clearly defined.
 
 In contrast to the server, the client is not in control over the lifetime of
 the dataspace.
-In principle, the server as the owner of the dataspace could free the
+In principle, the server, as the owner of the dataspace, could free the
 dataspace at its RAM session at any time and thereby revoke the corresponding
 memory mappings in all components that attached the dataspace.
 The client has to trust the server with respect to its liveliness, which
@@ -2182,9 +2188,10 @@ Section [Synchronous remote procedure calls (RPC)] enables components
 to exchange information via a kernel operation. In contrast to shared
 memory, the kernel plays an active role by copying information (and
 delegating capabilities) between the communication partners.
-Most kernels impose a restriction onto the maximum
-message size, i.e. the RPC message buffer limits messages to a maximum
-of 1 KiB. In principle, larger payloads could be transferred as a sequence
+Most kernels impose a restriction onto the maximum message size.
+To comply with all kernels supported by Genode, RPC messages must not exceed
+a size of 1 KiB.
+In principle, larger payloads could be transferred as a sequence
 of RPCs. But since each RPC implies the costs of two context switches, this
 approach is not suitable for transferring large bulks of data. But by combining
 synchronous RPC with shared memory, these costs can be mitigated.
