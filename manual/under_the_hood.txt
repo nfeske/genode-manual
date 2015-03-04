@@ -1695,6 +1695,44 @@ following problems:
   Hence, NOVA had to be changed to take the decision depending on the
   existence of a valid translation for the specified capability selector.
 
+:Support for deferred page-fault resolution:
+
+  With the original version of NOVA, the maximum number of threads is limited
+  by core's thread-context area:
+  NOVA's page-fault handling protocol works completely synchronously. When a
+  page fault occurs, the faulting EC enters its page-fault portal and thereby
+  activates the corresponding pager EC in core. If the pager's lookup for a
+  matching dataspace within the faulter's RM session succeeds, the page fault
+  is resolved by delegating a memory mapping as the reply to the page-fault
+  IDC call. However, if a page fault occurs on a managed dataspace, the pager
+  cannot resolve it immediately. The resolution must be delayed until the RM
+  fault handler (outside of core) responds to the RM fault signal. In order to
+  enable core to serve page faults of other threads in the meantime, each thread
+  has its dedicated pager EC in core.
+
+  Each pager EC, in turn, consumes a thread context within core. Since core's
+  thread-context area is limited, the maximum number of ECs within core is
+  limited too. Because one core EC is needed as pager for each thread outside
+  of core, the available thread contexts within core become a limited resource
+  shared by all CPU-session clients. Because each Genode component is a client
+  of core's CPU service, this bounded resource is effectively shared among all
+  components. Consequently, the allocation of threads on NOVA's version of
+  core represents a possible covert storage channel.
+
+  To avoid the downsides described above, we extended the NOVA IPC reply system
+  call to specify an optional semaphore capability selector. The NOVA kernel
+  validates the capability selector and blocks the faulting thread in the
+  semaphore. The faulted thread remains blocked even after the pager has
+  replied to the fault message. But the pager immediately becomes available for
+  other page-fault requests. With this change, it suffices to maintain only
+  one pager thread per CPU for all client threads.
+
+  The benefits are manifold. First, the base-nova implementation converges
+  more closely to other Genode base platforms. Second, core can not run out of
+  threads anymore as the number of threads in core is fixed for a given setup.
+  And the third benefit is that the helping mechanism of NOVA can be leveraged
+  for concurrently faulting threads.
+
 
 Known limitations of NOVA
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1738,27 +1776,6 @@ core.
   the kernel stops the system. Hence, even though the lack of proper
   management of kernel memory is an availability risk, it cannot be
   exploited as a covert storage channel.
-
-:The maximum number of threads is limited by core's thread-context area:
-  NOVA's page-fault handling protocol works completely synchronously. When a
-  page fault occurs, the faulting EC enters its page-fault portal and thereby
-  activates the corresponding pager EC in core. If the pager's lookup for a
-  matching dataspace within the faulter's RM session succeeds, the page fault
-  is resolved by delegating a memory mapping as the reply to the page-fault
-  IDC call. However, if a page fault occurs on a managed dataspace, the pager
-  cannot resolve it immediately. The resolution must be delayed until the RM
-  fault handler (outside of core) responds to the RM fault signal. In order to
-  enable core to serve page faults of other threads in the meantime, each thread
-  has its dedicated pager EC in core.
-
-  Each pager EC consumes a thread context within core. Since core's
-  thread-context area is limited, the maximum number of ECs within core is
-  limited too. Because one core EC is needed as pager for each thread outside
-  of core, the available thread contexts within core become a limited resource
-  shared by all CPU-session clients. Because each Genode component is a client
-  of core's CPU service, this bounded resource is effectively shared among all
-  components. Consequently, the allocation of threads on NOVA's version of
-  core represents a possible covert storage channel.
 
 :Bounded number of object capabilities within core:
   For each capability created via core's CAP service, core allocates the
