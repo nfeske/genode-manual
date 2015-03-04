@@ -601,6 +601,127 @@ mapped at once, or large page-table mappings can be used.
 ; Life-time management
 
 
+Asynchronous notification mechanism
+===================================
+
+Section [Asynchronous notifications] introduces asynchronous notifications
+(signals) as one of the fundamental inter-component communication mechanisms.
+The description covers the semantics of the mechanism but the question of how
+the mechanism relates to core and the underlying kernel remains unanswered.
+This section complements Section [Asynchronous notifications] with those
+implementation details.
+
+Most kernels do not directly support the semantics of asynchronous
+notifications as presented in Section [Asynchronous notifications]. As a
+reminder, the mechanism has the following features:
+
+* The authority for triggering a signal is represented by a signal-context
+  capability, which can be delegated via the common capability-delegation
+  mechanism described in
+  Section [Capability delegation through capability invocation].
+
+* The submission of a signal is a fire-and-forget operation. The signal
+  producer is never blocked.
+
+* On the reception of a signal, the signal handler can obtain the context
+  to which the signal refers. This way, it is able to distinguish
+  different sources of events.
+
+* A signal receiver can wait or poll for potentially many signal
+  contexts.
+  The number of signal contexts associated to a single signal receiver is not
+  limited.
+
+The gap between this feature set and the mechanisms provided by the underlying
+kernel is bridged by core in the form of the SIGNAL service. This service
+plays the role of a proxy between the producers and receivers of signals.
+Each component that interacts with signals has a session to this service.
+
+Within core, a signal context is represented as an RPC object. The RPC object
+maintains a counter of signals pending for this context. Signal
+contexts can be created and destroyed by the clients of the SIGNAL service
+using the _alloc_context_ and _free_context_ RPC functions. Upon the creation
+of a signal context, the SIGNAL client can specify an integer value called
+_imprint_ with a client-local meaning. Later, on the reception of signals,
+the imprint value is delivered along with the signal to enable the
+client to tell the contexts of the incoming signals apart. In return to
+the allocation of a new signal context, the client obtains a signal-context
+capability. This capability can be delegated to other components using
+the regular capability-delegation mechanism.
+
+
+Signal submission
+-----------------
+
+A component in possession of a signal-context capability is able to trigger
+signals using the _submit_ function
+of its SIGNAL session. The submit function takes the signal context capability
+of the targeted context and a counter value as arguments. The capability as
+supplied to the submit function does not need to originate from the called
+session. It may have been created and delegated by another component.
+Note that even though a signal context is an RPC object, the submission of a
+signal is not realized as an invocation of this object. The signal-context
+capability is merely used as an RPC function argument. This design accounts
+for the fact that signal-context capabilities may originate from untrusted
+peers as is the case for servers that deliver asynchronous notifications
+to their clients.
+A client of such as a server supplies a signal-context capability as argument
+to one of the server's RPC functions.
+An example is the input session interface (Section [Input]) that allows the
+client to get notified when new user input becomes available.
+A malicious client may specify a capability that was not created via core's
+SIGNAL service but that instead refers to an RPC object local to the client.
+If the submit function was an RPC function of the signal context, the
+server's call of the submit RPC function would eventually invoke the
+RPC object of the client. This would put the client in a position where
+it may block the server infinitely and thereby make the server unavailable to
+all clients. In contrast to the untrusted signal-context capability, the
+SIGNAL session of a signal producer is by definition trusted. So it is safe
+to invoke the submit RPC function with the signal-context capability as
+argument. In the case where an invalid signal-context capability is delegated
+to the signal producer, core would fail to look up a signal context for the
+given capability and omit the signal.
+
+
+Signal reception
+----------------
+
+For receiving signals, a component needs a way to obtain information about
+pending signals from core. This involves two steps: First, the component
+needs a way to block until signals are available. Second, if a signal is
+pending, the component needs a way to determine the signal context and
+signal receiver associated with the signal and wake up the thread that
+called the 'Signal_receiver::wait_for_signal' API function.
+
+Both problems are solved by a dedicated thread that is spawned at the
+startup of the component. This signal thread blocks at core's SIGNAL
+service for incoming signals. The blocking operation is not directly
+performed on the SIGNAL session but on a decoupled RPC object called
+_signal source_.
+In contrast to the SIGNAL session interface that is kernel agnostic, the
+underlying kernel mechanism used for blocking
+the signal thread at the signal source depends on the used base
+platform.
+
+The signal-source RPC object implements an RPC interface, on which the SIGNAL
+client issues a blocking _wait_for_signal_ RPC function.
+This function blocks as long as no signal that refers to the session's signal
+contexts is pending. If the function returns, the return value contains the
+imprint that was assigned to the signal context at its creation and
+the number of signals pending for this context.
+On most base platforms, the implementation of the blocking RPC interface is
+realized by processing RPC requests and responses out of order to enable one
+entrypoint in core to serve all signal sources. Core uses a dedicated
+entrypoint for the signal-source handling to decouple the delivery of signals
+from potentially long-taking operations of the other core services.
+
+Given the imprint value returned by the signal source, the signal thread
+determines the signal context and signal receiver that belongs to the pending
+signal (using a data structure called 'Signal_context_registry') and locally
+submits the signal to the signal-receiver object. This, in turn, unblocks the
+'Signal_receiver::wait_for_signal' function at the API level.
+
+
 Dynamic linker
 ==============
 
@@ -1068,6 +1189,19 @@ resumes its execution.
 ; * TrustZone
 ; * kernel bootstrap
 
+Asynchronous notifications on base-hw
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The base-hw platform improves the mechanism described in Section
+[Asynchronous notification mechanism] by introducing signal receivers and
+signal contexts as first-class kernel objects. Core's
+SIGNAL service is merely used to arbitrate the creation and destruction of
+those kernel objects but it does not play the role of a signal-delivery proxy.
+Instead, signals are communicated by directly using the public kernel
+operations _await_signal_, _signal_pending_, _submit_signal_, and
+_ack_signal_.
+
+
 Limitations of the base-hw platform
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1385,6 +1519,26 @@ This mapping is solely needed to revoke the memory mapping later on, for
 example, when a dataspace is detached from an RM session.
 The kernel's revoke operation takes the core-local address as argument and
 revokes all mappings originating from this mapping node.
+
+
+Asynchronous notifications on NOVA
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The NOVA base platform generally follows the mechanism described in Section
+[Asynchronous notification mechanism].
+However, in contrast to traditional L4 kernels, NOVA's kernel interface does
+not support the out-of-order processing of RPC requests.
+On this base platform, the blocking of the signal thread at the signal
+source is realized by using a kernel semaphore shared by the SIGNAL session
+and the SIGNAL client. When first issuing a _wait-for-signal_ operation
+at the signal source,
+the client requests a capability selector for the shared semaphore
+_(repos/base-nova/include/signal_session/source_client.h)_. It performs
+a _down_ operation on this semaphore to block. Core issues an _up_ operation
+on the semaphore each time a signal of the SIGNAL session becomes pending.
+When unblocked from the semaphore's down operation, the client requests the
+signal's imprint and counter using a non-blocking _wait-for-signal_ RPC call
+from the signal source.
 
 
 IOMMU support
