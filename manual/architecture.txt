@@ -174,10 +174,10 @@ provided by different protection domains. A component that uses
 an RPC object plays the role of a _client_ whereas a component that
 owns the RPC object acts in the role of a _server_. The interplay between
 client and server is very similar to a situation where a program calls
-a local function. The caller puts the function arguments to a place where
+a local function. The caller deposits the function arguments at a place where
 the callee will be able to pick them up and then passes control to the
 callee. When the callee takes over control, it obtains the function
-arguments, executes the function, puts the results to a place where the
+arguments, executes the function, copies the results to a place where the
 caller can pick them up, and finally hands back the control to the caller.
 In contrast to a program-local function call, however, client and server
 are different _threads_ in their respective protection domains. The thread
