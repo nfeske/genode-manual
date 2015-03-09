@@ -16,7 +16,7 @@ boot-loader-provided data structures (i.e., multiboot info structures) to
 obtain such information. Most kernels interpret certain configuration
 arguments passed via this mechanism.
 At the OS-initialization level, before any drivers are functioning,
-the OS behavior is typically steered by configuration information
+the OS behavior is typically governed by configuration information
 provided along with the kernel image, i.e., an initial file-system
 image (initrd). On Linux-based systems, this information comes in the
 form of configuration files and init scripts located at well-known
@@ -88,7 +88,7 @@ The design of this concept takes the following considerations into account.
   For example, the assignment of resources to the clients of a resource
   multiplexer might change over the lifetime of the resource multiplexer.
   Hence, the configuration concept should provide a means to update
-  the configuration information of a component after its construction time.
+  the configuration information of a component after it has been constructed.
 
 ; XXX best practices
 ; free from side effects and magic, configuration should be all-encompassing
@@ -113,7 +113,7 @@ The ROM session interface is implemented by core's ROM service to make boot
 modules available to other components. Those boot modules comprise the
 executable binaries of the init component as well as those of the components
 created by init. Furthermore, a ROM module called "config" contains the
-configuration of the init process in an XML format. To obtain its
+configuration of the init process in XML format. To obtain its
 configuration, init requests a ROM session for the ROM module "config" from
 its parent, which is core. Figure [img/nested_config] shows an example of
 such a config ROM module.
@@ -123,11 +123,11 @@ such a config ROM module.
 
 The config ROM module uses XML as syntax, which supports the expression of
 arbitrary structural data while being simple to parse. I.e., Genode's XML
-parser comes in the form of single header file with less than 400 lines of
+parser comes in the form of a single header file with less than 400 lines of
 code. Init's configuration is contained within a single '<config>' node.
 
 Each component started by init obtains its configuration by requesting
-a ROM module named "config" from its parent, which is init. Init responds to
+a ROM module named "config" from its parent. Init responds to
 this request by handing out a locally-provided ROM session. Instead of
 handing out the "config" ROM module as obtained from core, it creates a new
 dataspace that solely contains the portion of init's config ROM module that
@@ -158,7 +158,7 @@ The init component
 
 The init component plays a special role within Genode's component tree. It
 gets started directly by core, gets assigned all physical resources, and
-controls the execution of all further component nodes, which can be further
+controls the execution of all subsequent component nodes, which can be further
 instances of init. Init's policy is driven by an XML-based configuration,
 which declares a number of children, their relationships, and resource
 assignments.
@@ -172,8 +172,8 @@ Session routing
 ~~~~~~~~~~~~~~~
 
 At the parent-child interface, there are two operations that are subject to
-policy decisions of the parent, the child announcing a service and the
-child requesting a service. If a child announces a service, the parent is up
+policy decisions of the parent: the child announcing a service and the
+child requesting a service. If a child announces a service, it is up to the parent
 to decide if and how to make this service accessible to its other children.
 When a child requests a service, the parent may deny the session request,
 delegate the request to its own parent, implement the requested service
@@ -183,7 +183,7 @@ by the child. Apart from assigning resources to children, the central
 element of the policy implemented in the parent is a set of rules to
 route session requests. Therefore, init's configuration concept is laid out
 around child components and the routing of session requests originating from
-those components. The concept is best illustrated by an example:
+those components. The mechanism is best illustrated by an example:
 
 ! <config>
 !   <parent-provides>
@@ -248,7 +248,7 @@ of specifying
 !   <service name="CPU">    <parent/> </service>
 !   <service name="SIGNAL"> <parent/> </service>
 ! </route>
-the following shortcut can be used:
+the following shortform can be used:
 ! <route>
 !   <any-service> <parent/> </any-service>
 ! </route>
@@ -301,8 +301,8 @@ easily verified.
 Resource quota saturation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If a specified resource (i.e., RAM quota) exceeds the available resources.
-The available resources are assigned completely to the child. This makes
+If a specified resource (i.e., RAM quota) exceeds the available resources,
+all available resources are assigned completely to the child. This makes
 it possible to assign all remaining resources to the last child by
 simply specifying an overly large quantum.
 
@@ -311,8 +311,8 @@ Handing out slack resources
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Resources may remain unused after the creation of all children if the
-quantum of available resources is higher than sum of the quotas assigned to
-the children.
+quantum of available resources is higher than the sum of the quotas assigned to
+each child.
 Init makes such slack memory available to its children via the
 resource-request protocol described in Section [Dynamic resource balancing].
 Slack memory is handed out on a first-come first-served basis.
@@ -391,7 +391,7 @@ enables the construction of arbitrarily complex component trees via a single
 configuration.
 
 Alternatively to specifying all nested configurations in a single
-configuration, sub configurations can be placed in a separate ROM modules
+configuration, sub configurations can be placed in separate ROM modules
 specified via the 'configfile' node. For example:
 ! <start name="nitpicker">
 !   <resource name="RAM" quantum="1M"/>
@@ -408,8 +408,8 @@ close to each other are expected to have closer relationship than distant
 nodes. In a large MP system, it is natural to assign clusters of closely
 related nodes to a given workload. As described in Section
 [Recursive system structure], Genode's architecture is based on a strictly
-hierarchic organizational structure. Thereby, it lends itself to the idea to
-apply this successive virtualization of resources to the problem of clustering
+hierarchic organizational structure. Thereby, it lends itself to the idea of
+applying this successive virtualization of resources to the problem of clustering
 CPU nodes.
 
 [tikz img/affinity_spaces]
@@ -424,8 +424,8 @@ subsystem's CPU session. Figure [img/affinity_spaces] illustrates the idea.
 
 Following from the expression of affinities as a rectangular location within a
 component-local affinity space, the assignment of subsystems to CPU nodes
-consists of two parts, the definition of the affinity space dimensions as used
-for the init instance, and the association of sub systems with affinity locations
+consists of two parts: the definition of the affinity space dimensions as used
+for the init instance, and the association of subsystems with affinity locations
 relative to the affinity space.
 The affinity space is configured as a sub node of the '<config>' node. For
 example, the following declaration describes an affinity space of 4x2:
@@ -469,7 +469,7 @@ corresponding '<start>' node. Valid priority values lie in the range of
 Init verbosity
 ~~~~~~~~~~~~~~
 
-To ease debugging, init can be instructed to print various status
+To ease debugging, init can be instructed to print diverse status
 information as LOG output. To enable the verbose mode, assign the value "yes"
 to the 'verbose' attribute of the '<config>' node.
 
