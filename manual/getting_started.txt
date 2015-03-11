@@ -214,11 +214,6 @@ repositories.
   repositories, in particular shared libraries provided by _libports/_.
 
 
-Downloading 3-rd party source code
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-
 Using the build system
 ======================
 
@@ -319,16 +314,17 @@ be executed from within the build directory via:
 
 The command will lookup a run script called _demo.run_ in all repositories
 listed in _etc/build.con_. It will eventually find the run script within
-the _os/_ repository. After completing the build of all components needed
-for the demo scenario, the command will automatically start the scenario.
-Since we have created a build directory for the _linux_x86_ platform, it
+the _os/_ repository. After completing the build of all components needed,
+the command will automatically start the scenario.
+Because the build directory was created for the _linux_x86_ platform, the
+scenario
 will be executed directly on the host system where each Genode component
 resides in a distinct Linux process. To explore the scenario, follow the
 instructions given by the graphical tutorial browser.
 
-The terminal where the 'make run/demo' command was issued displays log
-output of the Genode system. To cancel the execution of the demo scenario,
-hit 'control-c' in the terminal.
+The terminal where the 'make run/demo' command was issued displays the log
+output of the Genode system. To cancel the execution,
+hit _control-c_ in the terminal.
 
 
 Targeting a microkernel
@@ -346,7 +342,8 @@ microhypervisor, the following preparatory steps are needed:
   ! <genode-dir>/tool/ports/prepare_port nova
 
   The _prepare_port_ tool downloads the source code of NOVA to a
-  subdirectory at _<genode-dir>/contrib/nova-<hash>/_.
+  subdirectory at _<genode-dir>/contrib/nova-<hash>/_ where _<hash_
+  uniquely refers to the prepared version of NOVA.
 
 # On real hardware, the scenario needs a framebuffer driver. The VESA
   driver relies on a 3rd-party x86-emulation library in order to execute
@@ -359,7 +356,7 @@ microhypervisor, the following preparatory steps are needed:
 # Create a build directory for the _nova_x86_32_ platform:
   ! <genode-dir>/tool/create_builddir nova_x86_32
 
-  This step creates a new build directory at <genode-dir>/build/nova_x86_32_.
+  This step creates a new build directory at _<genode-dir>/build/nova_x86_32_.
 
 # Adjust the build configuration by editing the file _etc/build.conf_
   within the just-created build directory.
@@ -378,21 +375,179 @@ script from within the build directory:
 This time, an instance of Qemu will be started to execute the demo scenario.
 The Qemu command-line arguments appear in the log output. As suggested
 by the arguments, the scenario is supplied to Qemu as an ISO image residing
-at _var/run/demo.iso_. This ISO image can be used not merely with Qemu but
+at _var/run/demo.iso_. This ISO image can not only be used with Qemu but
 also with a real machine. For example, creating a bootable USB stick with
-the system scenario is as simple as writing the ISO image onto a USB stick:
-
+the system scenario is as simple as writing the ISO image onto an USB stick:
 ! sudo dd if=var/run/demo.iso of=/dev/<usb-device> bs=8M conv=fsync
 
 Note that _<usb-device>_ refers to the device node of USB stick. It can be
-determined using the 'dmesg' command after plugging in the USB stick.
-For booting from the USB stick, you may need to adjust the test machine's BIOS
-settings accordingly.
+determined using the 'dmesg' command after plugging-in the USB stick.
+For booting from the USB stick, you may need to adjust the BIOS
+settings of the test machine accordingly.
 
 
 Hello world
 ===========
 
-;* Tutorial for building a hello-world program
+This section introduces the steps needed to create and execute a simple
+custom component that prints a hello-world message.
 
+
+Using a custom source-code repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In principle, it would be possible to add a new component to one of the
+existing source-code repositories found at _<genode-dir>/repos/_. However,
+unless the component is meant to be incorporated into upstream development
+of the Genode project, it is generally recommended to keep custom code
+separate from Genode's code base. This eases future updates to new versions
+of Genode and allows you to pick a revision-control system of your choice.
+
+The new repository must appear within the _<genode-dir>/repos/_ directory.
+This can be achieved by either hosting it as a subdirectory or by creating
+a symbolic link that points to an arbitrary location of your choice. For
+now, let us host a new source-code repository called "lab" directly within
+the _repos/_ directory.
+
+! cd <genode-dir>
+! mkdir repos/lab
+
+The lab repository will contain the source code and build rules for a
+single component as well as a run script for executing the component within
+Genode. Component source code reside in a _src/_ subdirectory. By convention,
+the _src/_ directory contains further subdirectories for hosting different
+types of components, in particular _server_ (services and protocol stacks),
+_driver_ (hardware-device drivers), and _app_ (applications). For the
+hello-world component, an appropriate location would be _src/app/hello/_:
+
+! mkdir -p repos/lab/src/app/hello
+
+
+Source code and build description
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The _hello/_ directory contains both the source code and build description
+of the component. The main part of each component typically resides in a
+file called _main.cc_. Hence, for a hello-world program, we have to create
+the _repos/lab/src/app/hello/main.cc_ file with the following content:
+
+! #include <base/printf.h>
+!
+! int main()
+! {
+!   Genode::printf("Hello world\n");
+!   return 0;
+! }
+
+For C and C++ programmers, the program is self-explanatory. Still, the
+'printf' function deserves an explanation. This function is not provided by
+a C library. In fact, the simple hello-world component will be built
+with no C library at all. It will solely incorporate the low-complexity
+base libraries of the Genode framework. The 'Genode::printf' function is
+a small and very rigid output facility, which covers not more than the
+limited use cases present in low-level Genode components. Of course,
+for higher-level applications where low complexity is not a concern, the
+optional C and C++ standard libraries are available.
+
+Please note that there exists a recommended coding style for genuine Genode
+components. If you consider submitting your work to the upstream development
+of the project, please pay attention to the common guidelines.
+
+:Coding-style guidelines:
+
+  http://genode.org/documentation/developer-resources/coding_style
+
+The source file _main.cc_ is accompanied with a build-description file called
+_target.mk_. It contains the declarations for the source files, the libraries
+used by the component, and the name of the component. Create the file
+_repos/lab/src/app/hello/target.mk_ will the following content:
+
+! TARGET = hello
+! SRC_CC = main.cc
+! LIBS  += base
+
+
+Building the component
+~~~~~~~~~~~~~~~~~~~~~~
+
+With the build-description file in place, it is time to build the new
+component, for example from within the _linux_x86_ build directory as
+created in Section [A simple system scenario]. Before the build system
+will be able to build the component, we have to extend the build
+configuration _<build-dir>/etc/build.conf_ by appending the following line:
+
+! REPOSITORIES += $(GENODE_DIR)/repos/lab
+
+By adding this line, the build system will consider the custom source-code
+repository. To build the component, issue the command:
+
+! make app/hello
+
+This step builds the base libraries of the framework, compiles the _main.cc_
+file and links the executable ELF binary called "hello". The result can be
+found in the _<build-dir>/app/hello/_ subdirectory.
+
+
+Defining a system scenario
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For testing the component, we need to define a system scenario that
+incorporates the component. As mentioned in
+Section [A simple system scenario], such a description has the form of
+a run script. To equip the _lab_ repository with a run script, we first
+need to create a _lab/run/_ subdirectory:
+
+! mkdir <genode-dir>/repos/lab/run
+
+Within this directory, we create the file
+_<genode-dir>/repos/lab/run/hello.run_ with the following content:
+
+!build "core init app/hello"
+!create_boot_directory
+!install_config {
+! <config>
+!   <parent-provides>
+!     <service name="LOG"/>
+!     <service name="RM"/>
+!   </parent-provides>
+!   <default-route>
+!     <any-service> <parent/> </any-service>
+!   </default-route>
+!   <start name="hello">
+!     <resource name="RAM" quantum="10M"/>
+!   </start>
+! </config>
+!}
+!build_boot_image "core init hello"
+!append qemu_args "-nographic -m 64"
+!run_genode_until {child "hello" exited with exit value 0} 10
+
+This run script performs the following steps:
+
+# It builds the components core, init, and app/hello.
+; XXX references to the Sections about core and init
+
+# It creates a fresh boot directory at _<build-dir>/var/run/hello_.
+  This directory contains all files that will end up in the final
+  boot image.
+
+# It creates a configuration for the init component. The configuration
+  starts the hello component as the only child of init. Session
+  requests originating from the hello component will always be directed
+  towards the parent of init, which is core.
+
+# It assembles a boot image with the executable ELF binaries core,
+  init, and hello. The binaries are picked up from the _<build-dir>/bin/_
+  subdirectory.
+
+# It instructs Qemu (if used) to disable the graphical output.
+
+# It starts the execution of the system scenario and watches the log
+  output for the given regular expression. The execution ends when
+  the log output appears or after a timeout of 10 seconds.
+
+The run script can be executed from within the build directory via the
+command:
+
+! make run/hello
 
