@@ -8,8 +8,9 @@ proc produce_head_latex {} {
 	printline {\usepackage[T1]{fontenc}}
 	printline {\linespread{1.05} % avoid foot-note markers to mess up the line spacing}
 	printline {\usepackage[norule,perpage]{footmisc}}
-	printline {\usepackage{textcomp}}
-	printline {\usepackage[latin1]{inputenc}}
+	printline {\usepackage{lmodern}}
+	printline {\usepackage{ucs}}
+	printline {\usepackage[utf8x]{inputenc}}
 	printline {\usepackage[english]{babel}}
 	printline {\usepackage[small,bf,hang]{caption}}
 	printline {\usepackage{epsfig}}
