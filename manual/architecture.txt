@@ -582,7 +582,7 @@ The client is not in the immediate
 position to dictate the server when to close a session because it has no power
 over the server. Instead, the procedure of closing a session follows the same
 chain of commands as involved in the session creation. The common parent of
-both client and server plays the role of a broker, which is trusted by both
+client and server plays the role of a broker, which is trusted by both
 parties. From the client's perspective, closing a session is a request to its
 parent. The client has to accept that the response to such a request is up to
 the policy of the parent.
@@ -693,7 +693,7 @@ exhaust physical memory directly. Hence, further heuristics are needed to
 limit the amount of pinned memory an application may use. Those counter
 measures and heuristics, while making the OS kernel more complex, are mere
 attempts to fight symptoms but unable to solve the actual problems caused by
-the lack of accounting. The behaviour of such systems remains largely
+the lack of accounting. The behavior of such systems remains largely
 indeterministic.
 
 As a further consequence of the abstraction from physical resources, the
@@ -808,7 +808,7 @@ After this transaction,
 the child has no way to regain its memory resources because it has no
 authority over the server's RAM session.
 
-To prevent such such resource-stealing scenarios, Genode restricts the
+To prevent such resource-stealing scenarios, Genode restricts the
 transfer between arbitrary RAM sessions. Each RAM session must have a
 reference RAM session, which can be defined only once. Transfers are
 permitted only between a RAM session and its reference RAM session.
@@ -1022,7 +1022,7 @@ Dynamic resource balancing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As described in Section [Resource assignment], parent components explicitly
-assign physical resource budgets to its children. Once assigned, the
+assign physical resource budgets to their children. Once assigned, the
 budget is at the disposal of the respective child subsystem until the
 subsystem gets destroyed by the parent.
 
@@ -1038,10 +1038,10 @@ use to the resource constraints of its parent. The parent interface supports
 this alternative with a protocol for the dynamic balancing of resources.
 
 The resource-balancing protocol uses a combination of synchronous
-remote procedure calls and asynchronous notifications. Both mechanism
+remote procedure calls and asynchronous notifications. Both mechanisms
 are described in Section [Inter-component communication]. The child
 uses remote procedure calls to talk to its parent whereas the parent
-uses asynchronous notification to signal state changes to the child.
+uses asynchronous notifications to signal state changes to the child.
 The protocol consists of two parts, which are complementary.
 
 
@@ -1123,7 +1123,7 @@ memory-like resources. Dataspaces form the foundation for most of the core
 services described in the subsequent sections.
 The section is followed by the introduction of each individual service
 provided by core. In the following, a component that has established a
-session to such a service is called _client_. E.g., a component that
+session to such a service is called _client_. For example, a component that
 obtained a session to core's RAM service is a RAM client.
 
 

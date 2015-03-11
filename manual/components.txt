@@ -298,7 +298,7 @@ DMA transactions in component-based systems
 
 Direct memory access (DMA) of devices looks like the Achilles
 heel of component-based operating systems. The most compelling argument in
-favour of componentization is that by encapsulating each system component
+favor of componentization is that by encapsulating each system component
 within a dedicated user-level address space, the system as a whole becomes more
 robust and secure compared to a monolithic operating-system kernel. In the
 event that one component fails due to a bug or an attack, other components

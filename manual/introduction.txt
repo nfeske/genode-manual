@@ -8,8 +8,11 @@ CPU for the different functions.
 In our age when even mundane household items get connected to the internet,
 it becomes increasingly hard to find devices where this is not the case.
 
+; maybe we could replace CPU by "platform", "hardware", or "device"?
+; that would include any hardware resource esp. RAM beside the CPU too.
+
 Our lives and our society depend on an increasing number of such devices.
-We have to trust them to fulfil their advertised functionality and
+We have to trust them to fulfill their advertised functionality and
 to not perform actions that are against our interests. But are those devices
 trustworthy? In most cases, nobody knows that for sure. Even the device
 vendors are unable to guarantee the absence of vulnerabilities or hidden
@@ -27,13 +30,13 @@ Why is that?
 Universal truths
 ----------------
 
-The past decades have have provided us with enough empirical evidence about
+The past decades have provided us with enough empirical evidence about
 the need to be pragmatic about operating-system software.
 For example,
 high-assurance systems are known to be expensive and struggle to scale.
 Consequently, under cost pressure, we can live without high assurance.
 Security is considered as important. But at the point where the user gets
-bothered by it, we have to be compromising. Most users would agree that
+bothered by it, we have to be willing to compromise. Most users would agree that
 guaranteed quality of service is desirable. But to attain good utilization
 of cheap hardware, we have to sacrifice such guarantees.
 Those universal truths have formed our expectations of commodity
@@ -44,7 +47,7 @@ operating system software.
 In markets where vendors are held liable for the correctness of their
 products, physical separation provides the highest assurance for the
 independence and protection of different functions from each other.
-For example, cars contains dozens of electronic control units (ECU) that
+For example, cars contain dozens of electronic control units (ECU) that
 can be individually evaluated and certified. However, cost considerations
 call for the consolidation of multiple functions on a single ECU.
 At this point, separation kernels are considered to partition the
@@ -53,7 +56,7 @@ only as strong as the correctness of the isolation kernel, such kernels
 must undergo a thorough evaluation. In the face of being liable,
 an oversight during the evaluation may have disastrous consequences for the
 vendor. Each line of code to be evaluated is an expense. Hence, separation
-kernels are minimized to the lowest possible complexity - up to a only a
+kernels are minimized to the lowest possible complexity - up to only a
 few thousand lines of code.
 
 The low complexity of separation kernels comes at the cost of being
@@ -83,7 +86,7 @@ privileges, and the actual application software.
 In contrast to separation kernels, any attempt to assess the correct functioning
 of the involved code is shallow at best. The trustworthiness of such a
 system remains uncertain to vendors and users alike.
-The uncertainly that comes with the staggering TCB complexity becomes a
+The uncertainty that comes with the staggering TCB complexity becomes a
 problem when such systems get connected to the internet:
 Is my internet router under control of a bot net? Is my mobile phone remotely
 manipulated to wiretap me? Is my TV spying on me when switched off? Can I
@@ -105,7 +108,7 @@ password for each different purpose. Hence, users tend to become lax about
 choosing and updating passwords. Another example is PGP. Because setting up
 PGP for secure email communication is perceived as complicated,
 business-sensitive information is routinely exchanged unencrypted. Yet another
-example is the lack of adoption of the security frameworks such as seLinux.
+example is the lack of adoption of the security frameworks such as SELinux.
 Even though they are readily available on commodity OS distributions,
 comprehending and defining security policies is considered as a black art,
 which is better left to experts.
@@ -284,6 +287,8 @@ stacks.
   further reduces the complexity of the trusted computing base compared to
   other kernels.
 
+; base-hw was developed for ARM but now reaches out to x86 too...
+
 :Virtualization:
 
   Genode supports virtualization at different levels:
@@ -366,7 +371,7 @@ introduces Genode's high-level architecture by presenting the concept of
 capability-based security, the resource-trading mechanism, the root of the
 component tree, and the ways how components can collaborate without mutually
 trusting each other. Chapter [Components] narrows the view on different types
-of components, namely device drivers, protocol stack, resource multiplexers,
+of components, namely device drivers, protocol stacks, resource multiplexers,
 runtime environments, and applications. The remaining part of the chapter
 focuses on the composition of components.
 
