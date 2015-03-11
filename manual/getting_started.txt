@@ -295,11 +295,99 @@ command builds both the init component and the timer driver:
 A simple system scenario
 ========================
 
-;To give Genode a try, build and execute a simple demo scenario via:
+The build directory offers much more than an environment for building
+components. It supports the automation of system-integration work flows,
+which typically include the following steps:
 
-;* Executing a simple system scenario
-;  * Linux
-;  * Microkernel
+# Building a set of components,
+# Configuring the static part of a system scenario,
+# Assembling a boot directory with all ingredients needed by the scenario,
+# Creating a boot image that can be loaded onto the target platform,
+# Booting the target platform with the boot image,
+# Validating the behaviour of the scenario.
+
+The receipt for such a sequence of steps can be expressed in the form of
+a so-called run script. Each run script represents a system scenario and
+entails all information needed to reproduce the scenario. Run scripts can
+reside within the _run/_ subdirectory of any source-code repository.
+
+Genode comes with a ready-to-use run script for a simple graphical demo
+scenario. It is located at _<genode-dir>/repos/os/run/demo.run_ and can
+be executed from within the build directory via:
+
+! make run/demo
+
+The command will lookup a run script called _demo.run_ in all repositories
+listed in _etc/build.con_. It will eventually find the run script within
+the _os/_ repository. After completing the build of all components needed
+for the demo scenario, the command will automatically start the scenario.
+Since we have created a build directory for the _linux_x86_ platform, it
+will be executed directly on the host system where each Genode component
+resides in a distinct Linux process. To explore the scenario, follow the
+instructions given by the graphical tutorial browser.
+
+The terminal where the 'make run/demo' command was issued displays log
+output of the Genode system. To cancel the execution of the demo scenario,
+hit 'control-c' in the terminal.
+
+
+Targeting a microkernel
+-----------------------
+
+Whereas the ability to run system scenarios on top of Linux allows for the
+convenient and rapid development of components and protocols, Genode is
+primarily designed for the use of microkernels. The choice of the microkernel
+to use is up to the user of the framework and may depend on various factors
+like the feature set, the supported hardware architectures, the license, or
+the development community. To execute the demo scenario directly on the NOVA
+microhypervisor, the following preparatory steps are needed:
+
+# Download the 3rd-party source code of the NOVA microhypervisor
+  ! <genode-dir>/tool/ports/prepare_port nova
+
+  The _prepare_port_ tool downloads the source code of NOVA to a
+  subdirectory at _<genode-dir>/contrib/nova-<hash>/_.
+
+# On real hardware, the scenario needs a framebuffer driver. The VESA
+  driver relies on a 3rd-party x86-emulation library in order to execute
+  the VESA BIOS code. Download the 3rd-party source code of the _x86emu_
+  library:
+  ! <genode-dir>/tool/ports/prepare_port x86emu
+
+  The source code will be downloaded to _<genode-dir>/contrib/x86emu-<hash>/_.
+
+# Create a build directory for the _nova_x86_32_ platform:
+  ! <genode-dir>/tool/create_builddir nova_x86_32
+
+  This step creates a new build directory at <genode-dir>/build/nova_x86_32_.
+
+# Adjust the build configuration by editing the file _etc/build.conf_
+  within the just-created build directory.
+  Apart from enabling the parallelization of the build process as
+  mentioned in Section [Using the build system], we need to incorporate
+  the _libports_ source-code repository into the build process by uncommenting
+  the corresponding line in the configuration. Otherwise the build system
+  would fail to build the VESA driver, which resides within _libports/_.
+
+With those preparations in place, issue the execution of the demo run
+script from within the build directory:
+
+! cd <genode-dir>/build/nova_x86_32
+! make run/demo
+
+This time, an instance of Qemu will be started to execute the demo scenario.
+The Qemu command-line arguments appear in the log output. As suggested
+by the arguments, the scenario is supplied to Qemu as an ISO image residing
+at _var/run/demo.iso_. This ISO image can be used not merely with Qemu but
+also with a real machine. For example, creating a bootable USB stick with
+the system scenario is as simple as writing the ISO image onto a USB stick:
+
+! sudo dd if=var/run/demo.iso of=/dev/<usb-device> bs=8M conv=fsync
+
+Note that _<usb-device>_ refers to the device node of USB stick. It can be
+determined using the 'dmesg' command after plugging in the USB stick.
+For booting from the USB stick, you may need to adjust the test machine's BIOS
+settings accordingly.
 
 
 Hello world
