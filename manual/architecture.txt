@@ -1885,9 +1885,12 @@ created its corresponding object pool.
   (Section [Object-identity allocation (CAP)]).
   For allocating the new object identity, the entrypoint specifies the
   untyped capability of its IPC server as argument.
-  Core's CAP service returns the new object identity in the form of a new
-  capability that is derived from the specified capability. When invoked, the
-  derived capability refers to the same IPC server as the original capability.
+  Core's CAP service responds to the request by instructing the kernel to
+  create a new object identity associated with the untyped capability.
+  Thereby, the kernel creates a new capability that is derived from the
+  untyped capability.
+  When invoked, the derived capability refers to the same IPC server as the
+  original untyped capability.
   But it represents a distinct object identity. The IPC server retrieves
   the local name of this object identity when called via the derived
   capability.
