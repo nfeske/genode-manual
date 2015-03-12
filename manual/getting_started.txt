@@ -70,8 +70,7 @@ as _<genode-dir>_.
 
 
 Source-tree structure
-~~~~~~~~~~~~~~~~~~~~~
-
+=====================
 
 Top-level directory
 -------------------

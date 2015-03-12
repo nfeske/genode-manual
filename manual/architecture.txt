@@ -285,6 +285,8 @@ performs the steps illustrated in Figure [img/capability_argument].
   reachable through its capability space. For all non-empty slots of its
   capability space, the protection domain was authorized to use their
   referenced object identities by the means of prior delegations.
+  If the lookup fails, the translation results in an invalid capability
+  passed to the server.
 
 # Given the object identity of the argument, the kernel searches the server's
   capability space for a slot that refers to the object identity. Note that
