@@ -19,9 +19,6 @@
 
 	\path[arrow] (lookupobj) -- (lookupobjdecision);
 
-	\path (lookupobjdecision)+(30ex,0) node (objlookupfailed) {call failed};
-	\path[arrow] (lookupobjdecision) -- node {no} (objlookupfailed);
-
 	\node[flowbox, below of=lookupobjdecision, align=left] (search) {
 		find cap for object identity};
 
@@ -73,5 +70,15 @@
 	
 	\path[arrow] (translate) -- (server);
 	\path[arrow] (returnnew) |- +(0,-4ex) -| (server.north);
+
+	\node[flowbox, right of=translate, align=left, node distance=25ex] (returninvalid) {
+		$cap_{translated}$ = $invalid$};
+
+	\path [arrow] (lookupobjdecision) -- node[pos=0.1] {no}
+	     (returninvalid.north |- lookupobjdecision.east) --
+	     node[right, align=left, sloped=false] {lookup\\failed} (returninvalid.north);
+
+	\path[arrow] (returninvalid) |- +(0,-4ex) -| (server.north);
+
 
 \end{tikzpicture}
