@@ -4,7 +4,7 @@ Getting started
 Genode can be approached from two different angles: as an operating-system
 architecture and as a practical tool kit. This chapter assists you with
 exploring Genode as the latter. After introducing the recommended
-development environment in Section [Recommended development environment],
+development environment,
 it guides you through the steps needed to obtain the source code
 (Section [Obtaining the source code]), to use the tool chain
 (Section [Using the build system]), to test-drive system scenarios

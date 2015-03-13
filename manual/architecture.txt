@@ -1409,8 +1409,8 @@ messages, which represents the simplest possible communication mechanism
 between the LOG client and core's LOG service.
 
 
-Asynchonous notifications (SIGNAL)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Asynchronous notifications (SIGNAL)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Core's SIGNAL service plays the role of a broker of asynchronous notifications
 on kernels that lack the semantics of Genode's signalling API. The service

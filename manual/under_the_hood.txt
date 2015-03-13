@@ -1244,7 +1244,7 @@ Integration of NOVA with Genode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The NOVA kernel is available via Genode's ports mechanism detailed in
-Section [Ports of 3rd-party software]. The port description is located
+Section [Integration of 3rd-party software]. The port description is located
 at _repos/base-nova/ports/nova.port_.
 
 Building the NOVA kernel
