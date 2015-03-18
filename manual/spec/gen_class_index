@@ -1,0 +1,40 @@
+#!/usr/bin/tclsh
+
+source util.tcl
+
+import_tokens [token_file]
+
+
+proc output_class_info { class_token } {
+
+	set name_token [sub_token $class_token identifier]
+	set name [unfold_token $name_token]
+
+	regsub -all {::} "[string tolower $name]" {/} class_path
+	regsub -all {.} $class_path " " pad
+
+	puts ""
+	puts "CLASSES$pad        += $class_path"
+	puts "CLASS_HEADER($class_path) := [header_file]"
+	puts "CLASS_NAME($class_path)   := $name"
+}
+
+
+foreach_sub_token [tok_text content0] plain { } token {
+
+	if {[tok_type $token] == "struct" || [tok_type $token] == "class"} {
+		output_class_info $token
+	}
+
+	if {[tok_type $token] == "tplclass"} {
+		set class_token [sub_token $token class]
+		if {[llength $class_token]} {
+			output_class_info $class_token }
+	}
+
+	if {[tok_type $token] == "tplstruct"} {
+		set struct_token [sub_token $token struct]
+		if {[llength $struct_token]} {
+			output_class_info $struct_token }
+	}
+}

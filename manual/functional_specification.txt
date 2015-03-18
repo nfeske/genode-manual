@@ -62,10 +62,24 @@ Session interfaces
 RAM session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
+'Genode::Ram_session'
+---------------------
+
+: \hypertarget{Genode::Ram_session}{}
+
+[tikz spec/classes/genode/ram_session/diagram]
+; Genode::Ram_session
+
+'Genode::Ram_connection'
+------------------------
+
+: \hypertarget{Genode::Ram_connection}{}
+
+[tikz spec/classes/genode/ram_connection/diagram]
+
 ; Genode::Ram_session_client
 ; Genode::Ram_connection
 ; Genode::Ram_dataspace
-; Genode::Ram_session
 ; Genode::Attached_ram_dataspace
 
 

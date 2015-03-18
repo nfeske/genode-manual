@@ -9,15 +9,15 @@ SHELL = bash
 # Lines can be commented-out by prefixing them with '#'.
 #
 define CHAPTERS
-title
-introduction
-getting_started
-architecture
-components
-development
-system_configuration
+#title
+#introduction
+#getting_started
+#architecture
+#components
+#development
+#system_configuration
 functional_specification
-under_the_hood
+#under_the_hood
 endef
 
 default: manual.pdf

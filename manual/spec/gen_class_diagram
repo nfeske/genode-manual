@@ -1,0 +1,103 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Generate class diagram
+# \author Norman Feske
+# \date   2015-03-17
+#
+# Usage ./gen_class_diagram --class <name> <tokens-file> > output.tikz
+#
+
+source util.tcl
+source latex.tcl
+
+#
+# User interface interface
+#
+import_tokens [token_file]
+
+set class_name [get_cmd_arg --class ""]
+
+
+##
+# Convert identifier to a sanitized string that can be used as tikz node name
+#
+proc tikz_node { identifier } {
+	regsub -all {_} $identifier "" identifier
+	regsub -all {::} $identifier "" identifier
+	return $identifier
+}
+
+
+proc out_class_name { class_name } {
+
+	regexp {^[^<]+} $class_name class_name_identifier
+
+	# XXX separate template arguments
+
+	regsub {^Genode::} $class_name_identifier {} short_class_name
+
+	return "\\hyperlink{$class_name}{[out_latex $short_class_name]}"
+}
+
+
+proc generate_diagram {class_name} {
+
+	set class_token [find_class_by_name content0 $class_name]
+
+	puts {\begin{tikzpicture}}
+
+	# base classes
+	set base_classes [public_base_classes $class_token]
+	set right_of_node ""
+	foreach base_class $base_classes {
+
+		puts "  \\node\[umlclass, draw opacity=0.4, text opacity=0.7, $right_of_node, node distance=10ex, inner sep=1ex\]"
+		puts "    ([tikz_node $base_class]) {\\bf \\tiny \\sffamily [out_class_name $base_class]};"
+
+		set right_of_node "right=3ex of [tikz_node $base_class]"
+	}
+
+	# positioning of the class node (depends on the presence of base classes)
+	set class_below_of ""
+
+	# compound node covering all base classes
+	if {[llength $base_classes]} {
+		puts -nonewline "  \\node\[fit="
+		foreach base_class $base_classes {
+			puts -nonewline "([tikz_node $base_class])" }
+		puts "\] (baseclasses) {};"
+		set class_below_of " below of=baseclasses,"
+	}
+
+	# actual class below the base classes
+	puts "  \\node\[umlclass3,$class_below_of node distance=10ex\] (class) {"
+
+	puts "    \\bf \\sffamily [out_class_name [class_name $class_token]]"
+	puts "    \\nodepart{two}"
+
+	# no public attributes
+
+	puts "    \\nodepart{three}"
+
+	# no public members
+
+	puts "  };"
+
+	# inheritance relationships
+	if {[llength $base_classes]} {
+		set index 0
+		foreach base_class $base_classes {
+			set angle [expr 90 - $index*10]
+			puts "  \\path (class.$angle) -- coordinate (mid) ([tikz_node $base_class]);"
+			puts "  \\path\[umlinherit\] (class.$angle) |- (mid) -| ([tikz_node $base_class]);"
+			incr index
+		}
+	}
+
+	puts {\end{tikzpicture}}
+}
+
+
+generate_diagram $class_name
+
