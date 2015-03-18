@@ -3,77 +3,727 @@ Functional specification
 
 | TODO
 
-Parent-child interaction
-========================
-
-* Parent interface
-; The parent interface consists of the following functions. The detailed
-; interface is covered in Section [Process execution environment].
+; XXX API design principles
+; * Scope
+;   * Low complexity
+;   * Self-sufficient
+;   * Cover everything needed to host Genode
+;   * Convenience functions accepted only if the Genode base system benefits
+;     from them
+;   * No application-level API (for example, string functions must not be
+;     misunderstood as string API)
+; * No hidden allocations (why? Refer to Section [Component-local heap partitioning])
 ;
-; :announce: Announce a service 
-;
-; :session: Request a new session of the specified service.
-;   The optional session arguments allow the child to specify the desired
-;   behavior of the session. The function returns a session capability.
-* Root interface
+; Check for headers that contain no classes
 
-Fundamental data structures
-===========================
 
-* Basic types, structured types, allocators
-* Rationale behind using intrusive data structures
-
-XML processing
+API primitives
 ==============
 
-* Parsing
-* Generation
+Capability types
+~~~~~~~~~~~~~~~~
 
-Process execution environment
-=============================
+;; Genode::Native_capability_tpl<>
+; Genode::Capability<>
 
-; os: config
+; XXX typed capabilities
+; XXX lifetime of capabilities: mention ref counter
 
-Remote procedure calls
-======================
 
-; os: static_root
+Sessions and connections
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-Signals
-=======
+; Genode::Session
+; Genode::Connection<>
+
+
+Dataspace interface
+~~~~~~~~~~~~~~~~~~~
+
+; Genode::Dataspace_client
+; Genode::Dataspace
+; Genode::Attached_dataspace
+
+
+Component execution environment
+===============================
+
+; base: printf
+; Genode::Env
+; Genode::Console
+; Genode::Parent_client
+; Genode::Parent
+; Genode::Config
+
+
+Session interfaces
+==================
+
+RAM session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Ram_session_client
+; Genode::Ram_connection
+; Genode::Ram_dataspace
+; Genode::Ram_session
+; Genode::Attached_ram_dataspace
+
+
+ROM session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Rom_session_client
+; Genode::Rom_connection
+; Genode::Rom_dataspace
+; Genode::Rom_session
+; Genode::Attached_rom_dataspace
+
+
+PD session interface
+~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Pd_session_client
+; Genode::Pd_session
+; Genode::Pd_connection
+
+
+RM session interface
+~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Rm_session_client
+; Genode::Rm_connection
+; Genode::Rm_session
+
+
+CPU session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Thread_state
+; Genode::Thread_state_base
+; Genode::Affinity
+; Genode::Cpu_session_client
+; Genode::Cpu_session
+; Genode::Cpu_connection
+
+
+CAP session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Cap_session_client
+; Genode::Cap_connection
+; Genode::Cap_session
+
+
+IO_MEM session interface
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Io_mem_session_client
+; Genode::Io_mem_dataspace
+; Genode::Io_mem_session
+; Genode::Io_mem_connection
+; Genode::Attached_io_mem_dataspace
+
+
+IO_PORT session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Io_port_session_client
+; Genode::Io_port_session
+; Genode::Io_port_connection
+
+
+IRQ session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Irq_session_client
+; Genode::Irq_session
+; Genode::Irq_connection
+; Genode::Irq_handler
+; Genode::Irq_activation
+
+
+LOG session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Log_session_client
+; Genode::Log_connection
+; Genode::Log_session
+
+
+SIGNAL session interface
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Signal_session_client
+; Genode::Signal_source
+; Genode::Signal_source_client
+; Genode::Signal_session
+; Genode::Signal_source_rpc_object
+; Genode::Signal_connection
+
+
+;TRACE session interface
+;~~~~~~~~~~~~~~~~~~~~~~~
+;
+;; Genode::Trace::Policy_module
+;; Genode::Trace::Buffer
+;; Genode::Trace::Policy_id
+;; Genode::Trace::Subject_id
+;; Genode::Trace::Subject_info
+;; Genode::Trace::Logger
+;; Genode::Trace::Rpc_call
+;; Genode::Trace::Rpc_returned
+;; Genode::Trace::Rpc_dispatch
+;; Genode::Trace::Rpc_reply
+;; Genode::Trace::Signal_submit
+;; Genode::Trace::Signal_received
+;; Genode::Trace::Session_client
+;; Genode::Trace::Session
+;; Genode::Trace::Connection
+
+
+Report session interface
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Reporter
+; Report::Session_client
+; Report::Connection
+; Report::Session
+
+
+Terminal session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Terminal::Session_client
+; Terminal::Connection
+; Terminal::Session
+
+
+UART session interface
+~~~~~~~~~~~~~~~~~~~~~~
+
+; Uart::Session_client
+; Uart::Session
+; Uart::Connection
+
+
+Input session interface
+~~~~~~~~~~~~~~~~~~~~~~~
+
+; Input::Session
+; Input::Session_client
+; Input::Connection
+
+
+Framebuffer session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Framebuffer::Session_client
+; Framebuffer::Connection
+; Framebuffer::Mode
+; Framebuffer::Session
+
+
+Nitpicker session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Nitpicker::Session
+; Nitpicker::Session_client
+; Nitpicker::Connection
+
+
+PCI session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+; Pci::Device_client
+; Pci::Device
+; Pci::Session_client
+; Pci::Session
+; Pci::Connection
+
+
+Block session interface
+~~~~~~~~~~~~~~~~~~~~~~~
+
+; Block::Session_client
+; Block::Packet_descriptor
+; Block::Session
+; Block::Session_rpc_object
+; Block::Connection
+
+
+Regulator session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Regulator::Session_client
+; Regulator::Session_rpc_object
+; Regulator::Session
+; Regulator::Connection
+
+
+Timer session interface
+~~~~~~~~~~~~~~~~~~~~~~~
+
+; Timer::Session_client
+; Timer::Session
+; Timer::Connection
+
+
+NIC session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+; Nic::Session_client
+; Nic::Mac_address
+; Nic::Session
+; Nic::Session_rpc_object
+; Nic::Connection
+
+
+Audio-out session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Audio_out::Signal
+; Audio_out::Session_client
+; Audio_out::Packet
+; Audio_out::Stream
+; Audio_out::Session
+; Audio_out::Session_rpc_object
+; Audio_out::Connection
+
+
+File-system session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; File_system::Session_client
+; File_system::Node_handle
+; File_system::File_handle
+; File_system::Dir_handle
+; File_system::Symlink_handle
+; File_system::Packet_descriptor
+; File_system::Status
+; File_system::Control
+; File_system::Directory_entry
+; File_system::Session
+; File_system::Session_rpc_object
+; File_system::Connection
+
+
+Loader session interface
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Loader::Session_client
+; Loader::Connection
+; Loader::Session
+
+
+;GPIO session interface
+;~~~~~~~~~~~~~~~~~~~~~~
+;
+;; Gpio::Session_client
+;; Gpio::Connection
+;; Gpio::Session
+
+
+;USB session interface
+;~~~~~~~~~~~~~~~~~~~~~
+;
+;; Usb::Session_client
+;; Usb::Packet_descriptor
+;; Usb::Completion
+;; Usb::Session
+;; Usb::Session_rpc_object
+;; Usb::Connection
+
+
+;RTC session interface
+;~~~~~~~~~~~~~~~~~~~~~
+;
+;; Rtc::Session_client
+;; Rtc::Connection
+;; Rtc::Timestamp
+;; Rtc::Session
+
+
+Fundamental types
+=================
+
+;XXX stdint, fixed stdint
+
+; Genode::Blocking_canceled
+; Genode::Exception
+; Genode::Noncopyable
+
+
+Data structures
+===============
+
+;XXX Rationale behind using intrusive data structures
+
+
+List
+~~~~
+
+; Genode::List<>
+; Genode::List_element<>
+
+
+Fifo queue
+~~~~~~~~~~
+
+; Genode::Fifo<>
+; Genode::Fifo_element<>
+
+
+AVL tree
+~~~~~~~~
+
+; Genode::Avl_node<>
+; Genode::Avl_tree<>
+; Genode::Avl_string_base
+; Genode::Avl_node_base
+; Genode::Avl_string<>
+
+
+Bit array
+~~~~~~~~~
+
+; Genode::Bit_array_base
+; Genode::Bit_array<>
+
+
+Ring buffer
+~~~~~~~~~~~
+
+; Genode::Ring_buffer_unsynchronized
+; Genode::Ring_buffer_synchronized
+; Genode::Ring_buffer<>
+
+
+Handle registry
+~~~~~~~~~~~~~~~
+
+; Genode::Handle<>
+; Genode::Handle_registry<>
+
+
+Geometry
+~~~~~~~~
+
+; Genode::Point<>
+; Genode::Area<>
+; Genode::Rect<>
+; Genode::Dirty_rect<>
+
+;; Genode::Flexpage
+;; Genode::Flexpage_iterator
+
+
+Object lifetime management
+==========================
+
+; Genode::Weak_object_base
+; Genode::Weak_object<>
+; Genode::Weak_ptr_base
+; Genode::Weak_ptr<>
+; Genode::Locked_ptr_base
+; Genode::Locked_ptr<>
+; Genode::Volatile_object<>
+; Genode::Lazy_volatile_object<>
+; construct_at
+
+
+Allocators
+==========
+
+; Genode::Deallocator
+; Genode::Allocator
+; Genode::Range_allocator
+; Genode::Allocator_guard
+
+
+Slab allocator
+~~~~~~~~~~~~~~
+
+; Genode::Slab_block
+; Genode::Slab_entry
+; Genode::Slab
+; Genode::Tslab<>
+
+
+AVL-tree-based best-fit allocator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Allocator_avl_base
+; Genode::Allocator_avl_tpl<>
+
+
+Heap and sliced heap
+~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Heap
+; Genode::Sliced_heap
+
+
+Bit allocator
+~~~~~~~~~~~~~
+
+; Genode::Bit_allocator<>
+
+
+;; Genode::Synchronized_allocator<>
+;; Genode::Synchronized_range_allocator<>
+
+
+String processing
+=================
+
+; no application-level string API!
+
+
+Basic string operations
+~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Number_of_bytes
+; Genode::String<>
+
+
+Tokenizing
+~~~~~~~~~~
+
+; Genode::Token<>
+; Genode::Scanner_policy_identifier_with_underline
+
+
+Format strings
+~~~~~~~~~~~~~~
+
+; Genode::String_console
+
+
+String-argument parsing
+~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Arg
+; Genode::Arg_string
+
+
+Alarm scheduling
+================
+
+; Genode::Alarm
+; Genode::Alarm_scheduler
+
 
 Multi-threading and synchronization
 ===================================
 
 ; thread-context management
 
-; os: timed_semaphore
-; os: alarm
-; os: synced interface
 
-Process management
-==================
+Threads
+~~~~~~~
 
-; os: slave
+; Genode::Thread_base
+; Genode::Thread<>
 
-Common utilities
-================
 
-; os: volatile object
-; os: attached dataspaces
+Locks and semaphores
+~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Lock
+; Genode::Lock_guard<>
+; Genode::Cancelable_lock
+
+; Genode::Semaphore
+
+
+Synchronized interface access
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Synced_interface<>
+
+
+; Page-fault handling should become private
+;; Genode::Pager_object
+;; Genode::Pager_activation_base
+;; Genode::Pager_entrypoint
+;; Genode::Pager_activation<>
+
+
+; Timed semaphore should not be promoted
+;
+; Genode::Timeout_thread
+; Genode::Timeout_exception
+; Genode::Nonblocking_exception
+; Genode::Timed_semaphore
+
+
+Signalling
+==========
+
+; Genode::Signal
+; Genode::Signal_transmitter
+; Genode::Signal_receiver
+; Genode::Signal_context
+; Genode::Signal_dispatcher_base
+; Genode::Signal_rpc_dispatcher_base
+; Genode::Signal_dispatcher<>
+; Genode::Signal_rpc_functor<>
+; Genode::Signal_rpc_member<>
+
+
+Remote procedure calls
+======================
+
+RPC mechanism
+~~~~~~~~~~~~~
+
+; Genode::Rpc_object_base
+; Genode::Rpc_object<>
+; Genode::Rpc_entrypoint
+; Genode::Rpc_in_buffer_base
+; Genode::Rpc_dispatcher<>
+; Genode::Rpc_in_buffer<>
+
+
+Root interface
+~~~~~~~~~~~~~~
+
+; Genode::Root_client
+; Genode::Single_client
+; Genode::Multiple_clients
+; Genode::Root
+; Genode::Root_component<>
+; Genode::Static_root<>
+; Genode::Typed_root<>
+
+
+Server-side policy handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Session_label
+; Genode::Session_policy
+
+
+; Should be preserved for internal use
+;; Genode::Object_pool<>
+;; Genode::Ipc_error
+;; Genode::Ipc_marshaller
+;; Genode::Ipc_unmarshaller
+;; Genode::Ipc_ostream
+;; Genode::Ipc_istream
+;; Genode::Ipc_client
+;; Genode::Ipc_server
+
+
+Packet stream
+~~~~~~~~~~~~~
+
+; Genode::Packet_allocator
+; Genode::Packet_descriptor
+; Genode::Packet_stream_base
+; Genode::Packet_descriptor_queue<>
+; Genode::Packet_descriptor_transmitter<>
+; Genode::Packet_descriptor_receiver<>
+; Genode::Packet_stream_source<>
+; Genode::Packet_stream_sink<>
+; Genode::Packet_stream_policy<>
+; Packet_stream_rx::Client<>
+; Packet_stream_rx::Rpc_object<>
+; Packet_stream_tx::Client<>
+; Packet_stream_tx::Rpc_object<>
+; Packet_stream_rx::Channel<>
+; Packet_stream_tx::Channel<>
+
+
+XML processing
+==============
+
+; Genode::Xml_node
+; Genode::Xml_generator
+
+
+Component management
+====================
+
+
+Low-level component creation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; Genode::Elf_binary
+; Genode::Elf_segment
+; Genode::Process
+
+
+Shared objects
+~~~~~~~~~~~~~~
+
+; Genode::Shared_object
+; Genode::Address_info
+
+
+Child management
+~~~~~~~~~~~~~~~~
+
+; Genode::Child_policy
+; Genode::Child
+
+; Genode::Slave_policy
+; Genode::Slave
+
+
+Session routing
+~~~~~~~~~~~~~~~
+
+; Genode::Client
+; Genode::Server
+; Genode::Service
+; Genode::Local_service
+; Genode::Parent_service
+; Genode::Child_service
+; Genode::Service_registry
+
+
+Session policing
+~~~~~~~~~~~~~~~~
+
+; Genode::Child_policy_dynamic_rom_file
+; Init::Child_policy_ram_phys
+; Init::Child_policy_enforce_labeling
+; Init::Child_policy_pd_args
+; Init::Child_policy_handle_cpu_priorities
+; Init::Child_policy_provide_rom_file
+; Init::Child_policy_redirect_rom_file
+; Init::Child_config
+
+;; init-specific child implementation is not part of the Genode API
+; Init::Child
+; Init::Routed_service
+; Init::Name_registry
+
 
 Server API
 ==========
+
+; Server::Entrypoint
+
 
 Support for user-level device drivers
 =====================================
 
 ; MMIO framework
+; Genode::Register<>
+; Genode::Bitset_2<>
+; Genode::Bitset_3<>
+; Genode::Mmio
+; Genode::Attached_mmio
 
-Tracing
-=======
 
-C runtime
-=========
-
-; C runtime and component-local VFS
+;;;; Out of scope
+; Genode::Texture_base
+; Genode::Path_base
+; Genode::Surface_base
+; Genode::Texture<>
+; Genode::Path<>
+; Genode::Pixel_rgba<>
+; Genode::Surface<>
+; Component-local VFS
