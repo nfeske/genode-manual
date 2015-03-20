@@ -531,3 +531,254 @@
 } {
 	\end{tikzpicture}
 }
+
+
+%%
+%% API specification
+%%
+
+%
+% Common color definitions for the API spec
+%
+\definecolor{apinamespace} {rgb}{1.0,0.95,0.78}
+\definecolor{apifunction}  {rgb}{0.8,0.9,0.7}
+\definecolor{apiclass}     {rgb}{0.8,0.85,0.9}
+
+%
+% Tikz style definitions used in the API spec
+%
+\tikzstyle{apioutline}    = [draw=black!15]
+\tikzstyle{apititlelabel} = [shape=signal, draw,
+                             minimum height=3ex, top color=white,
+                             draw opacity=0.3,
+                             signal to=east]
+
+\tikzstyle{apinamespacelabel} = [apititlelabel, bottom color=apinamespace]
+\tikzstyle{apiclasslabel}     = [apititlelabel, bottom color=apiclass]
+\tikzstyle{apifunctionlabel}  = [apititlelabel, bottom color=apifunction]
+
+\tikzstyle{apisectionlabel} = [at=(leftanchor), inner xsep=1ex, inner ysep=0.8ex,
+                               text=apibg!20!black, font=\bfseries \small]
+
+
+%%
+% API description box
+%
+% argument 1: initial background color in r,g,b
+%
+\newenvironment{apibox}[1] {
+
+	\path (0,0.5ex) node {}; % enforce a bit of spacing above the box
+
+	\path (0,0)        coordinate (leftanchor);
+	\path (leftanchor) coordinate (origleftanchor);
+
+	\path (\textwidth,0) coordinate (righttop);
+
+	\definecolor{apibg} {rgb}{#1}
+
+	\tikzstyle{apibg} = [fill=apibg!50!white]
+
+	\newcommand{\apiboxtitle}[2]{
+
+		% execute argument
+		##1
+
+		%
+		% Define orig anchor (the background starts here), and anchor
+		% (the position of the background to be processed)
+		%
+		\path (leftanchor |- namespacelabel.east)  coordinate (origleftanchor);
+		\path (leftanchor |- namespacelabel.south) coordinate (leftanchor);
+
+		%
+		% Annotation at the right-top corner
+		%
+		\node[at=(righttop |- origleftanchor), anchor=north east,
+		      text opacity=0.8, minimum size=2ex, inner sep=2ex] (annotation) {##2};
+
+		% process first part of the background, including right counded corner
+		\begin{scope}[on background layer]
+			\path[apibg]               (origleftanchor)
+			   {[rounded corners=5] -- (righttop |- origleftanchor)}
+			                        -- (righttop |- leftanchor)
+			                        -- (leftanchor) --cycle;
+			\path[apioutline]          (origleftanchor)
+			   {[rounded corners=5] -- (righttop |- origleftanchor)}
+			                        -- (righttop |- leftanchor);
+		\end{scope}
+
+		% advance origleftanchor to be used as start pos for next bg step
+		\path (leftanchor) coordinate (origleftanchor);
+	}
+
+	%%
+	% Create API box title for a class description
+	%
+	% argument 1: namespace
+	% argument 2: class
+	% argument 3: annotation (at the top-right corner)
+	%
+	\newcommand{\apiclassboxtitle}[3]{
+
+		\apiboxtitle{
+
+			%
+			% Segmented title label
+			%
+			\node[apinamespacelabel, at=(leftanchor), anchor=north west, text opacity=0.5]
+				(namespacelabel) {##1};
+			\node[apiclasslabel, at=(namespacelabel.east), anchor=west, signal from=west]
+				(classlabel) {##2};
+
+		}{##3}
+	}
+
+	%%
+	% Create API box title for a class method
+	%
+	% argument 1: namespace
+	% argument 2: class
+	% argument 3: function
+	% argument 4: annotation (at the top-right corner)
+	%
+	\newcommand{\apimethodboxtitle}[4]{
+
+		\apiboxtitle{
+
+			%
+			% Segmented title label
+			%
+			\node[apinamespacelabel, at=(leftanchor), anchor=north west, text opacity=0.5]
+				(namespacelabel) {##1};
+			\node[apiclasslabel, at=(namespacelabel.east), anchor=west, text opacity=0.5, signal from=west]
+				(classlabel) {##2};
+			\node[apifunctionlabel, at=(classlabel.east), anchor=west, signal from=west]
+				(functionlabel) {##3};
+		}{##4}
+	}
+
+	%%
+	% Append left-aligned content to API box
+	%
+	% argument: content
+	%
+	\newcommand{\apiboxcontent}[1]{
+
+		\node[at=(leftanchor), anchor=north west, minimum size=1ex,
+		      inner sep=1ex] (content) {##1};
+
+		\path (leftanchor |- content.south) coordinate (leftanchor);
+	}
+
+	%%
+	% Add vertical space to API box
+	%
+	% argument: space
+	%
+	\newcommand{\apiboxvspace}[1]{
+
+		\path (leftanchor)+(0,-##1) coordinate (leftanchor);
+	}
+
+	%%
+	% Append centered content to API box
+	%
+	% argument: content
+	%
+	\newcommand{\apiboxcenteredcontent}[1]{
+
+		\path (leftanchor) -- coordinate (mid) (righttop |- leftanchor);
+		\node[at=(mid), anchor=north, minimum size=1ex,
+		      inner sep=1.5ex] (content) {##1};
+
+		\path (leftanchor |- content.south) coordinate (leftanchor);
+	}
+
+	%%
+	% Append section to API box
+	%
+	% argument 1: section label text
+	% argument 2: section background color as r,g,b
+	%
+	\newcommand{\apisection}[2]{
+
+		% create section label with transparent text to obtain its bounding box
+		\node[apisectionlabel, at=(leftanchor), text opacity=0, anchor=north west]
+			(sectionlabel) {##1};
+
+		% advance anchor to extend the old background to the south of the tab
+		\path (sectionlabel.south west) coordinate (leftanchor);
+
+		%
+		% Complete the background of the previous part of the API box
+		%
+		\begin{scope}[on background layer]
+			\path[apibg] (origleftanchor)
+			          -- (righttop |- origleftanchor)
+			          -- (righttop |- leftanchor)
+			          -- (leftanchor)
+			          --cycle;
+
+		\end{scope}
+
+		% switch to using the new color
+		\definecolor{apibg} {rgb}{##2}
+
+		% helper coordinates for drawing the tab
+		\path (sectionlabel.south east)+(4ex,1ex) coordinate (mid);
+		\path (sectionlabel.south west)+(0,-2ex)  coordinate (below);
+
+		%
+		% Draw tab hosting the section label
+		%
+		\path [top color=apibg!90!black, bottom color=apibg!50!white]
+		      (sectionlabel.north west)
+		         {[rounded corners=7] -- (sectionlabel.north east)
+		                              -- (mid)}
+		                              -- (righttop |- mid)
+		                              -- (righttop |- below)
+		                              -- (sectionlabel.south west |- below)
+		                              --cycle;
+
+		\path[apioutline] (origleftanchor)
+		               -- (leftanchor);
+		\path[apioutline] (righttop |- origleftanchor)
+		               -- (righttop |- leftanchor);
+
+		\path [draw=apibg!80!black]
+		      (sectionlabel.north west)
+		         {[rounded corners=7] -- (sectionlabel.north east)
+		                              -- (mid)
+		                              -- (righttop |- mid)};
+
+		%
+		% Another instance of the section label with visible text
+		%
+		\node[apisectionlabel, at=(sectionlabel.north west), anchor=north west] {##1};
+
+		\path (leftanchor)                       coordinate (origleftanchor);
+		\path (leftanchor |- sectionlabel.south) coordinate (leftanchor);
+	}
+} {
+	% make sure the box is large enough to fit the annotation
+	\node[fit=(leftanchor) (annotation.south)] (maxhelper) {};
+	\path (leftanchor |- maxhelper.south) coordinate (leftanchor);
+
+	%
+	% Finalize background up to the current leftanchor
+	%
+	\begin{scope}[on background layer]
+		\path[apibg]               (origleftanchor)
+		                        -- (righttop |- origleftanchor)
+		  {[rounded corners=5]  -- (righttop |- leftanchor)
+		                        -- (leftanchor)} --cycle;
+	\end{scope}
+
+	\path[apioutline]          (righttop |- origleftanchor)
+	  {[rounded corners=5]  -- (righttop |- leftanchor)
+	                        -- (leftanchor)
+	                        -- (origleftanchor)};
+
+	\path (leftanchor)+(0,-0.5ex) node {}; % enforce a bit of spacing below the box
+}

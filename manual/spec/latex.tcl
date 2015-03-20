@@ -25,9 +25,9 @@ proc out_latex {string} {
 	}
 
 	# bold style
-	while {[regexp {([ \"\(])\*(.+?)\*([ \)\.\",:!?])} $string dummy head_char bf_text tail_char]} {
+	while {[regexp {([ \"\(])\*([^*]+?[^ ])\*([ \)\.\",:!?])} $string dummy head_char bf_text tail_char]} {
 		regsub -all {\*} $bf_text " " bf_text
-		regsub {([ \"\(])\*(.+?)\*([ \)\.\",:!?])} $string [seal_repl "$head_char\\textbf{$bf_text}$tail_char"] string
+		regsub {([ \"\(])\*([^*]+?[^ ])\*([ \)\.\",:!?])} $string [seal_repl "$head_char\\textbf{$bf_text}$tail_char"] string
 	}
 	
 	# monospace style
