@@ -70,6 +70,10 @@ SRC_H := $(shell cd $(GENODE_DIR); \
              for i in $(API_DIRS); do \
                  find $$i -name "*.h"; done)
 
+# XXX
+SRC_H += repos/base/include/base/child.h
+SRC_H += repos/base/include/base/allocator.h
+
 # list of token files to generate
 TOKEN_FILES := $(SRC_H:.h=.h.tokens)
 
@@ -92,16 +96,21 @@ class_index.mk: $(TOKEN_FILES) Makefile gen_class_index util.tcl
 		echo "generate class index of $$i"; \
 		./gen_class_index $$i >> $@ ;done
 
-CLASS_DIAGRAMS := $(addprefix classes/,$(addsuffix /diagram.tikz,$(CLASSES)))
+CLASS_DESCRIPTIONS := $(addprefix classes/,$(addsuffix /description.tex,$(CLASSES)))
 
-$(CLASS_DIAGRAMS) : Makefile gen_class_diagram util.tcl
+$(CLASS_DESCRIPTIONS) : Makefile gen_class_description util.tcl latex.tcl
 
-class_diagrams: $(CLASS_DIAGRAMS)
+class_descriptions: $(CLASS_DESCRIPTIONS)
 
 classes/%/diagram.tikz:
 	$(VERBOSE)mkdir -p $(dir $@)
 	@echo "generate class diagram for ${CLASS_NAME($*)}"
 	$(VERBOSE)./gen_class_diagram --class "${CLASS_NAME($*)}" ${CLASS_HEADER($*)}.tokens > $@
+
+classes/%/description.tex:
+	$(VERBOSE)mkdir -p $(dir $@)
+	@echo "generate class description for ${CLASS_NAME($*)}"
+	$(VERBOSE)./gen_class_description --class "${CLASS_NAME($*)}" ${CLASS_HEADER($*)}.tokens > $@
 
 $(SRC_H):
 	$(VERBOSE)mkdir -p $(dir $@)

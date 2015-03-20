@@ -1,0 +1,402 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Generate class diagram
+# \author Norman Feske
+# \date   2015-03-17
+#
+# Usage ./gen_class_diagram --class <name> <tokens-file> > output.tikz
+#
+
+source util.tcl
+source latex.tcl
+
+#
+# User interface interface
+#
+import_tokens [token_file]
+
+set class_name [get_cmd_arg --class ""]
+
+
+##
+# Convert identifier to a sanitized string that can be used as tikz node name
+#
+proc tikz_node { identifier } {
+	regsub -all {_} $identifier "" identifier
+	regsub -all {::} $identifier "" identifier
+	return $identifier
+}
+
+
+proc out_class_name { class_name } {
+
+	regexp {^[^<]+} $class_name class_name_identifier
+
+	set template_args ""
+	regexp {<.*>} $class_name template_args
+
+	regsub {^Genode::} $class_name_identifier {} short_class_name
+
+	return "[out_latex $short_class_name][out_latex $template_args]"
+}
+
+
+proc out_linked_class_name { class_name } {
+
+	regexp {^[^<]+} $class_name class_name_identifier
+
+	set template_args ""
+	regexp {<.*>} $class_name template_args
+
+	regsub {^Genode::} $class_name_identifier {} short_class_name
+
+	return "\\hyperlink{$class_name}{[out_latex $short_class_name]}\
+	        [out_latex $template_args]"
+}
+
+
+proc generate_diagram { class_token } {
+
+	puts {\begin{tikzpicture}}
+
+	# base classes
+	set base_classes [public_base_classes $class_token]
+	set right_of_node ""
+
+	foreach base_class $base_classes {
+
+		puts "  \\node\[umlclass, draw opacity=0.4, text opacity=0.7, $right_of_node, node distance=10ex, inner sep=0.7ex\]"
+		puts "    ([tikz_node $base_class]) {\\texttt{\\bf [out_linked_class_name $base_class]}};"
+
+		set right_of_node "right=3ex of [tikz_node $base_class]"
+	}
+
+	# positioning of the class node (depends on the presence of base classes)
+	set class_below_of ""
+
+	# compound node covering all base classes
+	if {[llength $base_classes]} {
+		puts -nonewline "  \\node\[fit="
+		foreach base_class $base_classes {
+			puts -nonewline "([tikz_node $base_class])" }
+		puts "\] (baseclasses) {};"
+		set class_below_of " below=3ex of baseclasses,"
+	}
+
+	# actual class below the base classes
+	set has_members [class_has_members $class_token]
+
+	set nodestyle "umlclass, inner sep=0.7ex,"
+	if {$has_members} { set nodestyle "umlclass3" }
+
+	puts "  \\node\[$nodestyle,$class_below_of\] (class) {"
+
+	set class_name [class_name $class_token]
+	puts "    \\texttt{\\bf [out_class_name $class_name]}"
+
+	if {$has_members} {
+		puts "    \\nodepart{two}"
+
+		# XXX no public attributes
+
+		puts "    \\nodepart{three}"
+
+		set members_sequence [public_class_members $class_token]
+		set first 1
+		puts {    \begin{tabular}{ll}}
+		foreach_sub_token $members_sequence plain { } token {
+			if {[is_function $token]} {
+				if {!$first} { puts "\\\\" }
+
+				set return_type [function_return_type $token]
+				if {$return_type == "void"} { set return_type "" }
+				if {$return_type != ""} {
+					set return_type " : $return_type"
+				}
+
+				set params ""
+				if {[llength [function_arguments $token]] > 0} {
+					set params {$\ldots$} }
+
+				set method_name [function_name $token]
+				set method_link "$class_name\::$method_name"
+				set method_name_out [out_latex $method_name]
+				if {[function_is_static $token]} {
+					set method_name_out "\\underline{$method_name_out}" }
+				set method_name_out "$method_name_out\($params)"
+				if {[function_is_virtual $token]} {
+					set method_name_out "\\textit{$method_name_out}" }
+				set method_name_out "\\texttt{$method_name_out}"
+
+				if {[function_is_interesting $token]} {
+					puts "      \\hyperlink{$method_link}{$method_name_out}"
+				} else {
+					puts "       $method_name_out"
+				}
+				puts "     \\texttt{[out_latex $return_type]}"
+
+				set first 0
+			}
+		}
+		puts {    \end{tabular}}
+	}
+	puts "  };"
+
+	# inheritance relationships
+	if {[llength $base_classes]} {
+		set index 0
+		foreach base_class $base_classes {
+			set angle [expr 90 - $index*10]
+			puts "  \\path (class.$angle) -- coordinate (mid) ([tikz_node $base_class]);"
+			puts "  \\path\[umlinherit\] (class.$angle) |- (mid) -| ([tikz_node $base_class]);"
+			incr index
+		}
+	}
+
+	# class infos
+	set info_items {}
+	if {[class_is_rpc_interface $class_token]} {
+		lappend info_items "RPC interface"
+	}
+
+	if {[llength $info_items]} {
+		set info [join $info_items "\\\\"]
+		puts "  \\node\[umlinfo,right=5ex of class\] (info) {[out_latex $info]};"
+		puts "  \\node\[left=5ex of class\] {}; % balance horizontal whitespace"
+		puts "  \\path\[umlinfoline\] (class) -- (info);"
+	}
+
+	puts {\end{tikzpicture}}
+}
+
+
+proc method_prefix { method_token } {
+
+	set method_types {{funcdecl  method}
+	                  {funcimpl  method}
+	                  {constdecl constructor}
+	                  {constimpl constructor}
+	                  {destdecl  destructor}
+	                  {destimpl  destructor}}
+
+	foreach method_type $method_types {
+		if {[tok_type $method_token] == [lindex $method_type 0]} {
+			set prefix [lindex $method_type 1]
+
+			if {[function_is_const $method_token]} {
+				set prefix "const $prefix"
+			}
+
+			if {[function_is_static $method_token]} {
+				set prefix "class function"
+			}
+
+			if {[function_is_virtual $method_token]} {
+				set prefix "virtual $prefix"
+			}
+
+			if {[function_is_pure_virtual $method_token]} {
+				set prefix "pure $prefix"
+			}
+		}
+	}
+
+	return $prefix
+}
+
+
+proc generate_method_description { namespace_name class_name method_token } {
+
+	set method_name [function_name $method_token]
+	set class_link  "$namespace_name\::$class_name"
+	set method_link "$class_link\::$method_name"
+
+	puts "\\hypertarget{$method_link}{}"
+	puts {\begin{tikzpicture}}
+	puts { \tikzstyle{every node} = [font=\small] }
+	puts { \begin{apibox}{0.8,0.9,0.7}}
+
+	# title
+	set method_name_out [out_latex $method_name]
+	if {[function_is_virtual $method_token]} {
+		set method_name_out "\\textit{$method_name_out}" }
+	if {[function_is_static $method_token]} {
+		set method_name_out "\\underline{$method_name_out}" }
+	puts "\\apimethodboxtitle{\\texttt{\\small \\strut [out_latex $namespace_name]}}"
+	puts "  {\\texttt{\\small \\strut \\hyperlink{$class_link}{[out_latex $class_name]}}}"
+	puts "  {\\texttt{\\textbf{\\small \\strut  $method_name_out}}}"
+	puts "  {\\normalsize [out_latex [method_prefix $method_token]]}"
+
+	# brief description
+	set brief_description [function_brief_description $method_token]
+	if {$brief_description != ""} {
+		puts "\\apiboxcontent{"
+		puts "  \\begin{minipage}{10cm}"
+		puts "    [out_latex $brief_description]"
+		puts "  \\end{minipage}"
+		puts "}"
+	} else {
+		puts "\\apiboxvspace{0.9ex}"
+	}
+
+	# arguments description
+	set arguments [function_arguments $method_token]
+	if {[llength $arguments] != 0} {
+		set arguments_label "Argument"
+		if {[llength $arguments] > 1} { append arguments_label s }
+		puts "\\apisection{$arguments_label}{0.95,0.95,0.95}"
+
+		puts "\\apiboxcontent{"
+		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
+		set first 1
+		foreach argument $arguments {
+			set arg_name    [lindex $argument 0]
+			set arg_type    [lindex $argument 1]
+			set arg_default [lindex $argument 2]
+			set arg_desc    [lindex $argument 3]
+			if {!$first} { puts {\noalign{\medskip}} }
+			set first 0
+			puts "    \\texttt{[out_latex $arg_name]} & \\texttt{\\textbf{[out_latex "$arg_type"]}}"
+			puts "    \\\\"
+			if {$arg_desc != ""} {
+				puts "    & [out_latex $arg_desc]\\\\"
+			}
+			if {$arg_default != ""} {
+				puts "    & \\textit{Default is \\texttt{[out_latex $arg_default]}}\\\\"
+			}
+		}
+		puts "  \\end{tabularx}"
+		puts "} % apiboxcontent"
+	}
+
+	# exceptions
+	set exceptions [function_exceptions $method_token]
+	if {[llength $exceptions] != 0} {
+		set exceptions_label "Exception"
+		if {[llength $exceptions] > 1} { append exceptions_label s }
+		puts "\\apisection{$exceptions_label}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
+		foreach exception $exceptions {
+			set exc_type [lindex $exception 0]
+			set exc_desc [lindex $exception 1]
+			puts "    \\texttt{\\textbf{[out_latex $exc_type]}} & [out_latex "$exc_desc"]\\\\"
+		}
+		puts "  \\end{tabularx}"
+		puts "}"
+	}
+
+	# return value
+	set return_type [function_return_type $method_token]
+	if {$return_type != "void" && $return_type != ""} {
+		puts "\\apisection{Return value}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
+		set return_desc [function_return_description $method_token]
+		puts "   \\texttt{\\textbf{[out_latex $return_type]}} & [out_latex "$return_desc"]\\\\"
+		puts "  \\end{tabularx}"
+		puts "}"
+	}
+
+	# detailed description
+	set detailed_description [function_detailed_description $method_token]
+	if {[llength $detailed_description] > 0} {
+		puts "\\apisection{Details}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		puts "  \\begin{minipage}{0.96\\textwidth}"
+		puts "    [out_latex [join $detailed_description {\\}]]"
+		puts "  \\end{minipage}"
+		puts "}"
+	}
+
+	puts { \end{apibox}}
+	puts {\end{tikzpicture}}
+}
+
+
+proc generate_methods { class_token } {
+
+	set namespace_name ""
+	set class_name     ""
+	regexp {(.*)::([^:]+)} [class_name $class_token] dummy namespace_name class_name
+
+	set members_sequence [public_class_members $class_token]
+	foreach_sub_token $members_sequence plain { } token {
+
+		if {[is_function $token] && [function_is_interesting $token]} {
+			generate_method_description $namespace_name $class_name $token
+		}
+	}
+}
+
+
+set class_token [find_class_by_name content0 $class_name]
+
+proc code_url { } { return "https://github.com/genodelabs/genode/blob/master/" }
+
+#puts {\noindent\rule{\textwidth}{0.1pt}}
+
+
+puts "\\hypertarget{$class_name}{}"
+puts "\\begin{flushleft}"
+puts {\begin{tikzpicture}}
+puts { \tikzstyle{every node} = [font=\small] }
+puts { \begin{apibox}{0.8,0.85,0.9}}
+
+# title
+# XXX distinguish template from regular classes (class_type)
+set namespace_name ""
+set only_class_name     ""
+regexp {(.*)::([^:]+)} $class_name dummy namespace_name only_class_name
+set class_type "class"
+puts "\\apiclassboxtitle{\\texttt{\\normalsize \\strut [out_latex $namespace_name]}}"
+puts "  {\\texttt{\\textbf{\\normalsize \\strut [out_latex $only_class_name]}}}"
+puts "  {\\normalsize [out_latex $class_type]}"
+
+# brief description and diagram
+set brief_description [brief_class_description $class_token]
+if {$brief_description != ""} {
+	puts "\\apiboxcontent{[out_latex [brief_class_description $class_token]]}" }
+puts "\\apiboxcenteredcontent{"
+puts { \tikzstyle{every node}+=[minimum size=0, inner sep=0.5ex, font=\footnotesize \sffamily]}
+puts { \tikzstyle{dropshadow}+=[fill opacity=0.9, left color=white, right color=black!5]}
+generate_diagram $class_token
+puts "}"
+
+puts "\\apisection{Header}{0.95,0.95,0.95}"
+puts "\\apiboxcontent{"
+puts " \\href{[code_url][header_file]}{\\textit{[out_latex [header_file]]}}"
+puts "}"
+
+set accessor_tokens [accessor_functions $class_token]
+if {[llength $accessor_tokens] > 0} {
+	set accessors_label "Accessor"
+	if {[llength $accessor_tokens] > 1} { append accessors_label s }
+	puts "\\apisection{$accessors_label}{0.95,0.95,0.95}"
+	puts "\\apiboxcontent{"
+	puts "  \\begin{minipage}{0.97\\textwidth}"
+	puts "    \\begin{tabular}{ll}"
+	set first 1
+	foreach func_token $accessor_tokens {
+		set acc_name    [function_name              $func_token]
+		set acc_type    [function_return_type       $func_token]
+		set acc_desc    [function_brief_description $func_token]
+		if {!$first} { puts {\noalign{\smallskip}} }
+		set first 0
+		puts "      \\texttt{[out_latex $acc_name]} & \\texttt{\\textbf{[out_latex "$acc_type"]}}"
+		puts "      \\\\"
+		if {$acc_desc != ""} {
+			puts "      & \\begin{minipage}{0.8\\textwidth}[out_latex $acc_desc]\\end{minipage}\\\\"
+		}
+	}
+	puts "    \\end{tabular}"
+	puts "  \\end{minipage}"
+	puts "}"
+}
+
+puts { \end{apibox}}
+puts {\end{tikzpicture}}
+
+generate_methods $class_token
+puts "\\end{flushleft}"

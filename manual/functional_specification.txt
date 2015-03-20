@@ -16,6 +16,12 @@ Functional specification
 ;
 ; Check for headers that contain no classes
 
+; Naming convention
+; * colors (blue: class; yellow: namespace; green: method)
+; * global function, class function, object methods
+; * accessor
+; * typedef vs. sub type
+
 
 API primitives
 ==============
@@ -62,24 +68,17 @@ Session interfaces
 RAM session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-'Genode::Ram_session'
----------------------
-
-: \hypertarget{Genode::Ram_session}{}
-
-[tikz spec/classes/genode/ram_session/diagram]
-; Genode::Ram_session
-
-'Genode::Ram_connection'
-------------------------
-
-: \hypertarget{Genode::Ram_connection}{}
-
-[tikz spec/classes/genode/ram_connection/diagram]
-
-; Genode::Ram_session_client
-; Genode::Ram_connection
 ; Genode::Ram_dataspace
+;[raw spec/classes/genode/ram_dataspace/description]
+
+; Genode::Ram_session
+; Genode::Ram_session_client
+[raw spec/classes/genode/ram_session/description]
+
+; Genode::Ram_connection
+[raw spec/classes/genode/ram_connection/description]
+
+
 ; Genode::Attached_ram_dataspace
 
 
@@ -450,6 +449,8 @@ Allocators
 
 ; Genode::Deallocator
 ; Genode::Allocator
+[raw spec/classes/genode/deallocator/description]
+[raw spec/classes/genode/allocator/description]
 ; Genode::Range_allocator
 ; Genode::Allocator_guard
 
@@ -548,11 +549,6 @@ Locks and semaphores
 ; Genode::Cancelable_lock
 
 ; Genode::Semaphore
-
-
-Synchronized interface access
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 ; Genode::Synced_interface<>
 
 
@@ -652,6 +648,7 @@ Packet stream
 XML processing
 ==============
 
+; Genode::Xml_attribute
 ; Genode::Xml_node
 ; Genode::Xml_generator
 
@@ -680,6 +677,7 @@ Child management
 
 ; Genode::Child_policy
 ; Genode::Child
+[raw spec/classes/genode/child/description]
 
 ; Genode::Slave_policy
 ; Genode::Slave
