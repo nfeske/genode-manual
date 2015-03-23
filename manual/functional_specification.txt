@@ -3,8 +3,7 @@ Functional specification
 
 | TODO
 
-; XXX API design principles
-; * Scope
+; * Scope and design principles
 ;   * Low complexity
 ;   * Self-sufficient
 ;   * Cover everything needed to host Genode
@@ -13,14 +12,13 @@ Functional specification
 ;   * No application-level API (for example, string functions must not be
 ;     misunderstood as string API)
 ; * No hidden allocations (why? Refer to Section [Component-local heap partitioning])
-;
-; Check for headers that contain no classes
-
-; Naming convention
-; * colors (blue: class; yellow: namespace; green: method)
-; * global function, class function, object methods
-; * accessor
-; * typedef vs. sub type
+; * Mention roles of base and os repositories
+; * Check for headers that contain no classes
+; * Naming convention
+;   * colors (blue: class; yellow: namespace; green: method)
+;   * global function, class function, object methods
+;   * accessor
+;   * typedef vs. sub type
 
 
 API primitives
@@ -29,8 +27,20 @@ API primitives
 Capability types
 ~~~~~~~~~~~~~~~~
 
+As described in Section [Capability-based security], inter-component
+communication is based on capabilities.
+A capability refers to a system-wide unique object identity and can
+be delegated among components.
+At API level, each capability is associated with the type of the RPC
+interface the capability refers to - similar to how a C++ reference refers to
+the type of a specific C++ object.
+
+;; internal
 ;; Genode::Native_capability_tpl<>
-; Genode::Capability<>
+
+; XXX Genode::Capability<>
+
+[raw spec/classes/genode/capability/description]
 
 ; XXX typed capabilities
 ; XXX lifetime of capabilities: mention ref counter
@@ -39,27 +49,97 @@ Capability types
 Sessions and connections
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Session
-; Genode::Connection<>
+Servers provide their services over session-based communication channels.
+Each session provides an interface inherited from the 'Session' base class.
+
+; XXX explain the service_name class function
+; XXX Genode::Session
+[raw spec/classes/genode/session/description]
+
+The interaction of a client with a server involves the definition of
+session-construction arguments, the request of the session creation
+via its parent, the initialization of the matching RPC-client stub
+code with the received session capability, the actual use of the
+session interface, and the closure of the session.
+The 'Connection' template class provides a way to greatly simplify the
+handling of session arguments, session creation, and destruction
+on the client side. By implementing a service-specific connection
+class inherited from 'Connection', session arguments become plain
+constructor arguments, session functions can be called directly
+on the 'Connection' object, and the session gets properly closed
+when destructing the 'Connection'.
+
+; XXX Genode::Connection<>
+[raw spec/classes/genode/connection/description]
 
 
 Dataspace interface
 ~~~~~~~~~~~~~~~~~~~
 
-; Genode::Dataspace_client
+The dataspace abstraction described in Section [Dataspace] is the
+fundamental API primitive for representing a container of memory as
+provided by core's RAM, IO_MEM, or ROM services. Each dataspace is referenced
+by a capability that can be passed among components.
+Each component with the capability to a dataspace can access the
+dataspace's content by attaching the dataspace to its RM session.
+In addition to be used as arguments for RM-session calls,
+dataspaces provide the following interface.
+
+; XXX Genode::Dataspace_client
+
 ; Genode::Dataspace
-; Genode::Attached_dataspace
+[raw spec/classes/genode/dataspace/description]
+
+; XXX Genode::Attached_dataspace
 
 
 Component execution environment
 ===============================
 
-; base: printf
-; Genode::Env
-; Genode::Console
-; Genode::Parent_client
+Parent interface
+~~~~~~~~~~~~~~~~
+
+At its creation time, the only communication partner of a component
+is its immediate parent, which provides the following interface.
+
+; XXX Genode::Parent_client
+
 ; Genode::Parent
-; Genode::Config
+[raw spec/classes/genode/parent/description]
+
+
+Interface to the component's environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As described in Section [Component creation],
+each component is a composition of a protection domain (PD session), a
+memory budget (RAM session), an address-space layout (RM session),
+and a CPU session, from which the main thread is created. These
+sessions form the _environment_ of the process, which is represented
+by the 'Env' class.
+In addition to the component's initial sessions, the environment
+contains the heap of the component. The heap can be used for
+anonymous memory allocation and is the front end for allocating
+RAM dataspaces from the component's RAM session and attaching
+these dataspaces to the component's RM session.
+
+; Genode::Env
+[raw spec/classes/genode/env/description]
+
+By default, the component environment holds one initial LOG session
+used as the standard text-output facility. For debugging purposes,
+there exists a 'printf' front end for writing text to the initial
+LOG session.
+
+; XXX base: printf
+; Genode::Console
+[raw spec/classes/genode/console/description]
+
+
+Component-configuration interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; XXX Genode::Config
 
 
 Session interfaces
@@ -68,110 +148,217 @@ Session interfaces
 RAM session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Ram_dataspace
-;[raw spec/classes/genode/ram_dataspace/description]
+The RAM service (Section [Physical memory allocation (RAM)]) provides
+access to physical memory. Each RAM
+session corresponds to a memory budget with a bounded quota. From this
+budget, the RAM-session client can allocate memory blocks in the form
+of dataspaces.
+
+; XXX Genode::Ram_dataspace
+
+; XXX Genode::Ram_session_client
 
 ; Genode::Ram_session
-; Genode::Ram_session_client
 [raw spec/classes/genode/ram_session/description]
 
 ; Genode::Ram_connection
 [raw spec/classes/genode/ram_connection/description]
 
-
-; Genode::Attached_ram_dataspace
+; XXX Genode::Attached_ram_dataspace
 
 
 ROM session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Rom_session_client
-; Genode::Rom_connection
-; Genode::Rom_dataspace
+The ROM service (Section [Read-only memory (ROM)]) provides access to
+ROM modules, e.g., binary data loaded by the boot loader
+(core's ROM service described in Section [Access to boot modules (ROM)]).
+Each session refers to one ROM module. The module's data is provided to
+the client in the form of a dataspace (Section [Dataspaces]).
+
 ; Genode::Rom_session
-; Genode::Attached_rom_dataspace
+[raw spec/classes/genode/rom_session/description]
+
+; XXX Genode::Rom_session_client
+
+; Genode::Rom_connection
+[raw spec/classes/genode/rom_connection/description]
+
+; XXX Genode::Rom_dataspace
+
+; XXX Genode::Attached_rom_dataspace
 
 
 PD session interface
 ~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Pd_session_client
+The protection-domain (PD) service (Section [Protection domains (PD)]) enables
+the creation of address spaces that are isolated from each other. Each PD
+session corresponds to a protection domain. The PD service is rarely
+needed by applications directly but it is internally used by the
+child-management facilities described in Section [Child management].
+
+; XXX Genode::Pd_session_client
+
 ; Genode::Pd_session
+[raw spec/classes/genode/pd_session/description]
+
 ; Genode::Pd_connection
+[raw spec/classes/genode/pd_connection/description]
 
 
 RM session interface
 ~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Rm_session_client
-; Genode::Rm_connection
+The region-manager (RM) service (Section [Address-space management (RM)])
+manages address-space layouts. An RM session corresponds to an address-space
+layout, to which dataspaces can be attached.
+
+; XXX Genode::Rm_session_client
+
 ; Genode::Rm_session
+[raw spec/classes/genode/rm_session/description]
+
+; Genode::Rm_connection
+[raw spec/classes/genode/rm_connection/description]
 
 
 CPU session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Thread_state
-; Genode::Thread_state_base
-; Genode::Affinity
-; Genode::Cpu_session_client
+The CPU service (Section [Processing-time allocation (CPU)]) provides a
+facility for creating and managing threads. A CPU session corresponds to a
+CPU-time allocator, from which multiple threads can be allocated.
+
+; XXX Genode::Thread_state
+; XXX Genode::Thread_state_base
+
+; XXX Genode::Cpu_session_client
+
 ; Genode::Cpu_session
+[raw spec/classes/genode/cpu_session/description]
+
 ; Genode::Cpu_connection
+[raw spec/classes/genode/cpu_connection/description]
+
+; Genode::Affinity
+[raw spec/classes/genode/affinity/description]
 
 
 CAP session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Cap_session_client
-; Genode::Cap_connection
+The capability (CAP) service (Section [Object-identity allocation (CAP)])
+enables the creation of globally unique object identities (capabilities).
+Once allocated from a CAP session, a capability can be associated with a local
+object. A capability can be passed to another protection domain via an RPC
+call whereby the receiving protection domain obtains the right to send
+messages to the associated object.
+
+; XXX Genode::Cap_session_client
+
 ; Genode::Cap_session
+[raw spec/classes/genode/cap_session/description]
+
+; Genode::Cap_connection
+[raw spec/classes/genode/cap_connection/description]
 
 
 IO_MEM session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Io_mem_session_client
-; Genode::Io_mem_dataspace
+The IO_MEM service
+(Section [Access to device resources (IO_MEM, IO_PORT, IRQ)])
+enables user-level device drivers to
+obtain memory-mapped device resources in the form of dataspaces. Each
+IO_MEM session corresponds to the reservation of a physical
+address range, for which a dataspace is provided to the client.
+The user-level device driver can make the device resource
+visible in its address space by attaching the dataspace to
+its own RM session.
+
+; XXX Genode::Io_mem_session_client
+
+; XXX Genode::Io_mem_dataspace
+
 ; Genode::Io_mem_session
+[raw spec/classes/genode/io_mem_session/description]
+
 ; Genode::Io_mem_connection
-; Genode::Attached_io_mem_dataspace
+[raw spec/classes/genode/io_mem_connection/description]
+
+; XXX Genode::Attached_io_mem_dataspace
 
 
 IO_PORT session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Io_port_session_client
+On the x86 architecture, the IO_PORT service
+(Section [Access to device resources (IO_MEM, IO_PORT, IRQ)])
+provides access to device I/O ports via an RPC interface. Each IO_PORT session
+corresponds to the access right to a port range.
+
+; XXX Genode::Io_port_session_client
+
 ; Genode::Io_port_session
+[raw spec/classes/genode/io_port_session/description]
+
 ; Genode::Io_port_connection
+[raw spec/classes/genode/io_port_connection/description]
 
 
 IRQ session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Irq_session_client
-; Genode::Irq_session
+The IRQ service
+(Section [Access to device resources (IO_MEM, IO_PORT, IRQ)])
+enables user-level device drivers to serve device interrupts. Each IRQ session
+corresponds to an associated interrupt line.
+
+; XXX Genode::Irq_session_client
+; XXX Genode::Irq_handler
+; XXX Genode::Irq_activation
+
+; XXX Genode::Irq_session
+;[raw spec/classes/genode/irq_session/description]
+
 ; Genode::Irq_connection
-; Genode::Irq_handler
-; Genode::Irq_activation
+[raw spec/classes/genode/irq_connection/description]
+
 
 
 LOG session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Log_session_client
-; Genode::Log_connection
+For low-level debugging, core provides a simple LOG service
+(Section [Logging (LOG)]), which
+enables clients to print textual messages. In the LOG output,
+each message is tagged with the label of the corresponding client.
+
+; XXX Genode::Log_session_client
+
 ; Genode::Log_session
+[raw spec/classes/genode/log_session/description]
+
+; Genode::Log_connection
+[raw spec/classes/genode/log_connection/description]
 
 
 SIGNAL session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Signal_session_client
-; Genode::Signal_source
-; Genode::Signal_source_client
-; Genode::Signal_session
-; Genode::Signal_source_rpc_object
-; Genode::Signal_connection
+The SIGNAL service (Section [Asynchronous notifications (SIGNAL)])
+is used for the allocation of signal contexts and the delivery of signals.
+It is not used directly by
+components at the API level but used indirectly via the signalling API
+described in Section [Signalling].
+
+; XXX Genode::Signal_session_client
+; XXX Genode::Signal_source
+; XXX Genode::Signal_source_client
+; XXX Genode::Signal_session
+; XXX Genode::Signal_source_rpc_object
+; XXX Genode::Signal_connection
 
 
 ;TRACE session interface
@@ -197,135 +384,135 @@ SIGNAL session interface
 Report session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Reporter
-; Report::Session_client
-; Report::Connection
-; Report::Session
+; XXX Genode::Reporter
+; XXX Report::Session_client
+; XXX Report::Connection
+; XXX Report::Session
 
 
 Terminal session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Terminal::Session_client
-; Terminal::Connection
-; Terminal::Session
+; XXX Terminal::Session_client
+; XXX Terminal::Connection
+; XXX Terminal::Session
 
 
 UART session interface
 ~~~~~~~~~~~~~~~~~~~~~~
 
-; Uart::Session_client
-; Uart::Session
-; Uart::Connection
+; XXX Uart::Session_client
+; XXX Uart::Session
+; XXX Uart::Connection
 
 
 Input session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-; Input::Session
-; Input::Session_client
-; Input::Connection
+; XXX Input::Session
+; XXX Input::Session_client
+; XXX Input::Connection
 
 
 Framebuffer session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Framebuffer::Session_client
-; Framebuffer::Connection
-; Framebuffer::Mode
-; Framebuffer::Session
+; XXX Framebuffer::Session_client
+; XXX Framebuffer::Connection
+; XXX Framebuffer::Mode
+; XXX Framebuffer::Session
 
 
 Nitpicker session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Nitpicker::Session
-; Nitpicker::Session_client
-; Nitpicker::Connection
+; XXX Nitpicker::Session
+; XXX Nitpicker::Session_client
+; XXX Nitpicker::Connection
 
 
 PCI session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; Pci::Device_client
-; Pci::Device
-; Pci::Session_client
-; Pci::Session
-; Pci::Connection
+; XXX Pci::Device_client
+; XXX Pci::Device
+; XXX Pci::Session_client
+; XXX Pci::Session
+; XXX Pci::Connection
 
 
 Block session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-; Block::Session_client
-; Block::Packet_descriptor
-; Block::Session
-; Block::Session_rpc_object
-; Block::Connection
+; XXX Block::Session_client
+; XXX Block::Packet_descriptor
+; XXX Block::Session
+; XXX Block::Session_rpc_object
+; XXX Block::Connection
 
 
 Regulator session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Regulator::Session_client
-; Regulator::Session_rpc_object
-; Regulator::Session
-; Regulator::Connection
+; XXX Regulator::Session_client
+; XXX Regulator::Session_rpc_object
+; XXX Regulator::Session
+; XXX Regulator::Connection
 
 
 Timer session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-; Timer::Session_client
-; Timer::Session
-; Timer::Connection
+; XXX Timer::Session_client
+; XXX Timer::Session
+; XXX Timer::Connection
 
 
 NIC session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; Nic::Session_client
-; Nic::Mac_address
-; Nic::Session
-; Nic::Session_rpc_object
-; Nic::Connection
+; XXX Nic::Session_client
+; XXX Nic::Mac_address
+; XXX Nic::Session
+; XXX Nic::Session_rpc_object
+; XXX Nic::Connection
 
 
 Audio-out session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Audio_out::Signal
-; Audio_out::Session_client
-; Audio_out::Packet
-; Audio_out::Stream
-; Audio_out::Session
-; Audio_out::Session_rpc_object
-; Audio_out::Connection
+; XXX Audio_out::Signal
+; XXX Audio_out::Session_client
+; XXX Audio_out::Packet
+; XXX Audio_out::Stream
+; XXX Audio_out::Session
+; XXX Audio_out::Session_rpc_object
+; XXX Audio_out::Connection
 
 
 File-system session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; File_system::Session_client
-; File_system::Node_handle
-; File_system::File_handle
-; File_system::Dir_handle
-; File_system::Symlink_handle
-; File_system::Packet_descriptor
-; File_system::Status
-; File_system::Control
-; File_system::Directory_entry
-; File_system::Session
-; File_system::Session_rpc_object
-; File_system::Connection
+; XXX File_system::Session_client
+; XXX File_system::Node_handle
+; XXX File_system::File_handle
+; XXX File_system::Dir_handle
+; XXX File_system::Symlink_handle
+; XXX File_system::Packet_descriptor
+; XXX File_system::Status
+; XXX File_system::Control
+; XXX File_system::Directory_entry
+; XXX File_system::Session
+; XXX File_system::Session_rpc_object
+; XXX File_system::Connection
 
 
 Loader session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Loader::Session_client
-; Loader::Connection
-; Loader::Session
+; XXX Loader::Session_client
+; XXX Loader::Connection
+; XXX Loader::Session
 
 
 ;GPIO session interface
@@ -359,11 +546,36 @@ Loader session interface
 Fundamental types
 =================
 
+Integer types
+~~~~~~~~~~~~~
+
+Genode provides common integer types in its namespace.
+Integer types that can be derived from built-in compiler
+types are defined in _base/stdint.h_ and _base/fixed_stdint.h_.
+Whereas the former is independent from the machine type, the latter
+differs between 32-bit and 64-bit architectures.
+
 ;XXX stdint, fixed stdint
 
-; Genode::Blocking_canceled
-; Genode::Exception
+
+Exception types
+~~~~~~~~~~~~~~~
+
+Genode facilitates the use of exceptions to signal errors but it
+uses exception types only as textual expression of error code and
+for grouping errors. Normally, exceptions do not carry payload.
+For code consistency, exception types should inherit from the
+'Exception' base class. By convention, exceptions carry no payload.
+
+; XXX Genode::Exception
+; XXX Genode::Blocking_canceled
+
+
+C++ supplements
+~~~~~~~~~~~~~~~
+
 ; Genode::Noncopyable
+[raw spec/classes/genode/noncopyable/description]
 
 
 Data structures
@@ -375,115 +587,216 @@ Data structures
 List
 ~~~~
 
+Most book-keeping tasks in Genode rely on single-connected lists,
+which use the 'List' template.
+
 ; Genode::List<>
+[raw spec/classes/genode/list/description]
+
 ; Genode::List_element<>
+[raw spec/classes/genode/list_element/description]
 
 
 Fifo queue
 ~~~~~~~~~~
 
+Because the 'List' inserts new list elements at the
+list head, it cannot be used for implementing wait queues requiring
+first-in-first-out semantics. For such use cases, there exists a
+dedicated 'Fifo' template.
+
 ; Genode::Fifo<>
+[raw spec/classes/genode/fifo/description]
+
 ; Genode::Fifo_element<>
+[raw spec/classes/genode/fifo_element/description]
 
 
 AVL tree
 ~~~~~~~~
 
-; Genode::Avl_node<>
-; Genode::Avl_tree<>
-; Genode::Avl_string_base
+For use cases where associative arrays are needed such as allocators, the
+following class template for AVL trees is provided.
+
+;XXX is this really interesting for the API?
+;To accommodate the common use case for using strings as keys into an
+;dictionary, there exists a specialized version of the AVL tree for managing
+;pools of strings.
+
 ; Genode::Avl_node_base
-; Genode::Avl_string<>
+[raw spec/classes/genode/avl_node_base/description]
+
+; Genode::Avl_node<>
+[raw spec/classes/genode/avl_node/description]
+
+; Genode::Avl_tree<>
+[raw spec/classes/genode/avl_tree/description]
+
+
+;; Genode::Avl_string_base
+;[raw spec/classes/genode/avl_string_base/description]
+;
+;; Genode::Avl_string<>
+;[raw spec/classes/genode/avl_string/description]
 
 
 Bit array
 ~~~~~~~~~
 
 ; Genode::Bit_array_base
+[raw spec/classes/genode/bit_array_base/description]
+
 ; Genode::Bit_array<>
+[raw spec/classes/genode/bit_array/description]
 
 
-Ring buffer
-~~~~~~~~~~~
-
-; Genode::Ring_buffer_unsynchronized
-; Genode::Ring_buffer_synchronized
-; Genode::Ring_buffer<>
-
-
-Handle registry
-~~~~~~~~~~~~~~~
-
-; Genode::Handle<>
-; Genode::Handle_registry<>
+;Ring buffer
+;~~~~~~~~~~~
+;
+;; Genode::Ring_buffer_unsynchronized
+;; Genode::Ring_buffer_synchronized
+;; Genode::Ring_buffer<>
 
 
-Geometry
-~~~~~~~~
+;Handle registry
+;~~~~~~~~~~~~~~~
+;
+;; Genode::Handle<>
+;; Genode::Handle_registry<>
 
-; Genode::Point<>
-; Genode::Area<>
-; Genode::Rect<>
-; Genode::Dirty_rect<>
 
-;; Genode::Flexpage
-;; Genode::Flexpage_iterator
+;Geometry
+;~~~~~~~~
+;
+;; Genode::Point<>
+;; Genode::Area<>
+;; Genode::Rect<>
+;; Genode::Dirty_rect<>
+;
+;;; Genode::Flexpage
+;;; Genode::Flexpage_iterator
 
 
 Object lifetime management
 ==========================
 
+Thread-safe weak pointers
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
 ; Genode::Weak_object_base
+[raw spec/classes/genode/weak_object_base/description]
+
 ; Genode::Weak_object<>
+[raw spec/classes/genode/weak_object/description]
+
 ; Genode::Weak_ptr_base
+[raw spec/classes/genode/weak_ptr_base/description]
+
 ; Genode::Weak_ptr<>
+[raw spec/classes/genode/weak_ptr/description]
+
 ; Genode::Locked_ptr_base
+[raw spec/classes/genode/locked_ptr_base/description]
+
 ; Genode::Locked_ptr<>
-; Genode::Volatile_object<>
-; Genode::Lazy_volatile_object<>
-; construct_at
+[raw spec/classes/genode/locked_ptr/description]
+
+
+Volatile objects
+~~~~~~~~~~~~~~~~
+
+; XXX description
+
+; XXX Genode::Volatile_object<>
+;[raw spec/classes/genode/volatile_object/description]
+
+; XXX Genode::Lazy_volatile_object<>
+;[raw spec/classes/genode/lazy_volatile_object/description]
+
+; XXX construct_at
 
 
 Allocators
 ==========
 
+All allocators implement the generic 'Deallocator' and 'Allocator' interfaces.
+Allocators that operate on address ranges supplement the plain 'Allocator'
+by implementing the more specific 'Range_allocator' interface.
+
 ; Genode::Deallocator
-; Genode::Allocator
 [raw spec/classes/genode/deallocator/description]
+
+; Genode::Allocator
 [raw spec/classes/genode/allocator/description]
+
 ; Genode::Range_allocator
+[raw spec/classes/genode/range_allocator/description]
+
+
+Allocator guard
+~~~~~~~~~~~~~~~
+
+To protect the quantum of allocated memory from exceeding a predefined limit,
+an allocator guard can be used. It is typically used by server implementations
+that subdivide their heap into client-specific partitions dimensioned
+according to the session quota provided by the respective client.
+
 ; Genode::Allocator_guard
+[raw spec/classes/genode/allocator_guard/description]
 
 
 Slab allocator
 ~~~~~~~~~~~~~~
 
+The 'Slab' allocator is tailored for allocating small fixed-size
+memory blocks from a big chunk of memory.
+For the common use case of using a slab allocator for a certain
+type rather than for a known byte size, there exists a typed
+slab allocator as a front end of 'Slab'.
+
+; XXX should be hidden
 ; Genode::Slab_block
 ; Genode::Slab_entry
+
 ; Genode::Slab
+[raw spec/classes/genode/slab/description]
+
 ; Genode::Tslab<>
+[raw spec/classes/genode/tslab/description]
 
 
 AVL-tree-based best-fit allocator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+In contrast to the rather limited slab allocators, 'Allocator_avl'
+allows for arbitrary allocations from a list of address regions.
+It implements a best-fit allocation strategy, supports arbitrary
+alignments, and allocations at specified addresses.
+
 ; Genode::Allocator_avl_base
+[raw spec/classes/genode/allocator_avl_base/description]
+
 ; Genode::Allocator_avl_tpl<>
+[raw spec/classes/genode/allocator_avl_tpl/description]
 
 
 Heap and sliced heap
 ~~~~~~~~~~~~~~~~~~~~
 
 ; Genode::Heap
+[raw spec/classes/genode/heap/description]
+
 ; Genode::Sliced_heap
+[raw spec/classes/genode/sliced_heap/description]
 
 
 Bit allocator
 ~~~~~~~~~~~~~
 
 ; Genode::Bit_allocator<>
+[raw spec/classes/genode/bit_allocator/description]
 
-
+; XXX should be removed
 ;; Genode::Synchronized_allocator<>
 ;; Genode::Synchronized_range_allocator<>
 
@@ -491,73 +804,138 @@ Bit allocator
 String processing
 =================
 
-; no application-level string API!
+; explain that this is no application-level string API
 
 
 Basic string operations
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 ; Genode::Number_of_bytes
+[raw spec/classes/genode/number_of_bytes/description]
+
 ; Genode::String<>
+[raw spec/classes/genode/string/description]
 
 
 Tokenizing
 ~~~~~~~~~~
 
+For parsing structured text such as argument strings or XML,
+simple tokenizing support is provided via the 'Token' class.
+
 ; Genode::Token<>
-; Genode::Scanner_policy_identifier_with_underline
+[raw spec/classes/genode/token/description]
+
+; XXX Genode::Scanner_policy_identifier_with_underline
 
 
 Format strings
 ~~~~~~~~~~~~~~
 
 ; Genode::String_console
+[raw spec/classes/genode/string_console/description]
+
+; XXX snprintf
 
 
 String-argument parsing
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+The 'Arg_string' utility is able to extract individual values from
+strings of comma-separated 'tag=value' sequences.
+
 ; Genode::Arg
+[raw spec/classes/genode/arg/description]
+
 ; Genode::Arg_string
+[raw spec/classes/genode/arg_string/description]
 
 
-Alarm scheduling
-================
-
-; Genode::Alarm
-; Genode::Alarm_scheduler
+;; not important
+;
+;Alarm scheduling
+;================
+;
+;; Genode::Alarm
+;; Genode::Alarm_scheduler
 
 
 Multi-threading and synchronization
 ===================================
 
-; thread-context management
+; XXX information about thread-context management (as given in base/thread.h)
 
 
 Threads
 ~~~~~~~
 
+A thread is created by constructing an object of a class
+inherited from 'Thread_base'. The new thread starts its execution at the
+'entry' member function.
+Thereby, each thread runs in the context of its object and
+can access context-specific information by accessing its member
+variables. This largely alleviates the need to a thread-local storage (TLS)
+mechanism.
+Threads use a statically allocated stack, which is dimensioned according
+to the corresponding constructor argument.
+The special case of infinite blocking a thread is covered by
+the following base API function.
+{base/include/base/sleep.h}
+Genode allows all blocking operations of threads to be canceled via
+a 'cancel_blocking' mechanism provided by core's CPU service. The
+cancellation of a blocking operation is reflected at the API level
+by a raised exception of the type 'Blocking_canceled'.
+
 ; Genode::Thread_base
+[raw spec/classes/genode/thread_base/description]
+
 ; Genode::Thread<>
+[raw spec/classes/genode/thread/description]
 
 
 Locks and semaphores
 ~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Lock
-; Genode::Lock_guard<>
+For mutual exclusive execution of critical sections, there exists
+a simple lock interface providing lock and unlock semantics.
+The lock comes in two flavours. Cancelable locks can be
+unblocked by force via core's cancel-blocking mechanism. In contrast,
+a non-cancelable lock ('Lock') does not reflect the cancellation of
+its blocking operation at the API level but transparently re-enters
+its blocking state after a cancellation.
+
 ; Genode::Cancelable_lock
+[raw spec/classes/genode/cancelable_lock/description]
+
+; Genode::Lock
+[raw spec/classes/genode/lock/description]
+
+For the use case of using locks for protecting critical sections,
+the 'Lock_guard' provides a convenient mechanism for the automated
+unlocking of a lock when leaving a variable scope.
+
+; Genode::Lock_guard<>
+[raw spec/classes/genode/lock_guard/description]
+
+Alongside lock-based mutual exclusion of entering critical sections,
+organizing threads in a producer-consumer relationship is a common
+design pattern for thread synchronization. The 'Semaphore' interface
+enables the implementation of this synchronization scheme.
 
 ; Genode::Semaphore
-; Genode::Synced_interface<>
+[raw spec/classes/genode/semaphore/description]
 
+To synchronize method calls of an object, the 'Synced_interface' can be
+used to equip the class of the called object with thread safety.
+
+; XXX Genode::Synced_interface<>
+;[raw spec/classes/genode/synced_interface/description]
 
 ; Page-fault handling should become private
 ;; Genode::Pager_object
 ;; Genode::Pager_activation_base
 ;; Genode::Pager_entrypoint
 ;; Genode::Pager_activation<>
-
 
 ; Timed semaphore should not be promoted
 ;
@@ -570,49 +948,128 @@ Locks and semaphores
 Signalling
 ==========
 
+Section [Asynchronous notifications (SIGNAL)] provides the high-level
+description of the mechanism for the delivery of asynchronous notifications
+(signals).
+The API defines interfaces for signal transmitters and signal
+receivers. A signal receiver can receive signals from multiple sources
+each source represented by a signal context.
+Signal contexts make incoming signals are distinguishable. One or
+multiple threads can either poll or block for incoming signals.
+Each signal receiver is addressable via its associated signal
+context capabilities.
+The signal transmitter provides fire-and-forget semantics for submitting
+signals to one signal receiver.
+Signals serve as raw notifications and cannot carry any payload.
+
 ; Genode::Signal
-; Genode::Signal_transmitter
-; Genode::Signal_receiver
+[raw spec/classes/genode/signal/description]
+
 ; Genode::Signal_context
-; Genode::Signal_dispatcher_base
-; Genode::Signal_rpc_dispatcher_base
-; Genode::Signal_dispatcher<>
-; Genode::Signal_rpc_functor<>
-; Genode::Signal_rpc_member<>
+[raw spec/classes/genode/signal_context/description]
+
+; Genode::Signal_receiver
+[raw spec/classes/genode/signal_receiver/description]
+
+; Genode::Signal_transmitter
+[raw spec/classes/genode/signal_transmitter/description]
+
+; XXX Genode::Signal_dispatcher_base
+; XXX Genode::Signal_rpc_dispatcher_base
+; XXX Genode::Signal_dispatcher<>
+; XXX Genode::Signal_rpc_functor<>
+; XXX Genode::Signal_rpc_member<>
 
 
 Remote procedure calls
 ======================
 
+Section [Synchronous remote procedure calls (RPC)] provides the high-level
+description of synchronous remote procedure calls.
+
+
 RPC mechanism
 ~~~~~~~~~~~~~
 
-; Genode::Rpc_object_base
-; Genode::Rpc_object<>
+An RPC interface is declared by annotating its abstract C++ class using the
+macros 'GENODE_RPC_FUNCTION' and 'GENODE_RPC_INTERFACE'.
+
+; XXX explain the macros
+
+The RPC API supports the use of basic types and compound types both as
+values and references. For carrying more sophistic payload as RPC function
+arguments or return values, the following RPC-specific types become handy:
+
+; XXX rpc args
+
+The client-side API for performing synchronous RPC communication is
+represented by the 'Rpc_client' class template accompanied with the
+'Capability' class template defined in 'base/capability.h'.
+
+; XXX Rpc_client
+
+On the server side, the RPC API consists of the 'Rpc_object' class template
+and 'Rpc_entrypoint' class. An RPC entry point is a thread that manages a
+number of RPC object and dispatches incoming RPC requests.
+An RPC object is a C++ object that becomes remotely accessible once it is
+associated with an RPC entrypoint (using the 'manage' function). At
+association time, a capability for the RPC object is created, which can be
+passed to other components. The RPC object can then be invoked by everyone who
+is in possession of this capability.
+
+; XXX Genode::Rpc_object_base
+;[raw spec/classes/genode/rpc_object_base/description]
+
+;; XXX Genode::Rpc_object<>
+;[raw spec/classes/genode/rpc_object/description]
+
 ; Genode::Rpc_entrypoint
-; Genode::Rpc_in_buffer_base
-; Genode::Rpc_dispatcher<>
-; Genode::Rpc_in_buffer<>
+[raw spec/classes/genode/rpc_entrypoint/description]
+
+; XXX Genode::Rpc_in_buffer_base
+; XXX Genode::Rpc_dispatcher<>
+; XXX Genode::Rpc_in_buffer<>
 
 
 Root interface
 ~~~~~~~~~~~~~~
 
-; Genode::Root_client
-; Genode::Single_client
-; Genode::Multiple_clients
+Each service type is represented as an RPC object implementing
+the root interface. The server announces its service type by
+providing the service name and the capability of the service's root
+interface ('announce' function of the parent interface).
+Given the capability to the root interface, the parent is then able
+to create and destroy sessions.
+
 ; Genode::Root
+[raw spec/classes/genode/root/description]
+
+; XXX Genode::Typed_root<>
+; XXX Genode::Root_client
+
+Because defining root interfaces for services follows a recurring pattern,
+there exists default template classes that implement the standard behaviour of
+the root interface for services with multiple clients ('Root_component') and
+services with a single client ('Static_root').
+
 ; Genode::Root_component<>
-; Genode::Static_root<>
-; Genode::Typed_root<>
+[raw spec/classes/genode/root_component/description]
+
+; XXX Genode::Single_client
+; XXX Genode::Multiple_clients
+
+; XXX Genode::Static_root<>
+;[raw spec/classes/genode/static_root/description]
 
 
 Server-side policy handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Session_label
-; Genode::Session_policy
+; XXX Genode::Session_label
+;[raw spec/classes/genode/session_label/description]
 
+; XXX Genode::Session_policy
+;[raw spec/classes/genode/session_policy/description]
 
 ; Should be preserved for internal use
 ;; Genode::Object_pool<>
@@ -628,89 +1085,122 @@ Server-side policy handling
 Packet stream
 ~~~~~~~~~~~~~
 
-; Genode::Packet_allocator
-; Genode::Packet_descriptor
-; Genode::Packet_stream_base
-; Genode::Packet_descriptor_queue<>
-; Genode::Packet_descriptor_transmitter<>
-; Genode::Packet_descriptor_receiver<>
-; Genode::Packet_stream_source<>
-; Genode::Packet_stream_sink<>
-; Genode::Packet_stream_policy<>
-; Packet_stream_rx::Client<>
-; Packet_stream_rx::Rpc_object<>
-; Packet_stream_tx::Client<>
-; Packet_stream_tx::Rpc_object<>
-; Packet_stream_rx::Channel<>
-; Packet_stream_tx::Channel<>
+; XXX Genode::Packet_allocator
+; XXX Genode::Packet_descriptor
+; XXX Genode::Packet_stream_base
+; XXX Genode::Packet_descriptor_queue<>
+; XXX Genode::Packet_descriptor_transmitter<>
+; XXX Genode::Packet_descriptor_receiver<>
+; XXX Genode::Packet_stream_source<>
+; XXX Genode::Packet_stream_sink<>
+; XXX Genode::Packet_stream_policy<>
+; XXX Packet_stream_rx::Client<>
+; XXX Packet_stream_rx::Rpc_object<>
+; XXX Packet_stream_tx::Client<>
+; XXX Packet_stream_tx::Rpc_object<>
+; XXX Packet_stream_rx::Channel<>
+; XXX Packet_stream_tx::Channel<>
 
 
 XML processing
 ==============
 
-; Genode::Xml_attribute
-; Genode::Xml_node
-; Genode::Xml_generator
+XML parsing
+~~~~~~~~~~~
+
+; XXX Genode::Xml_attribute
+;[raw spec/classes/genode/xml_attribute/description]
+
+; XXX Genode::Xml_node
+;[raw spec/classes/genode/xml_node/description]
+
+
+XML generation
+~~~~~~~~~~~~~~
+
+; XXX Genode::Xml_generator
+;[raw spec/classes/genode/xml_generator/description]
 
 
 Component management
 ====================
 
-
-Low-level component creation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-; Genode::Elf_binary
-; Genode::Elf_segment
-; Genode::Process
+; Should be preserved for internal use
+;Low-level component creation
+;~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+;
+;The 'Process' class provides a convenient front end for the procedure
+;described in Section [Component creation].
+;
+;; Genode::Elf_binary
+;; Genode::Elf_segment
+;; Genode::Process
 
 
 Shared objects
 ~~~~~~~~~~~~~~
 
 ; Genode::Shared_object
+[raw spec/classes/genode/shared_object/description]
+
 ; Genode::Address_info
+[raw spec/classes/genode/address_info/description]
 
 
 Child management
 ~~~~~~~~~~~~~~~~
 
+For components that manage a number of child components, each child
+is represented by an instance of the 'Child' class.
+This instance contains the policy to be applied to the child (for
+example how session requests are routed to services)
+and contains the child's execution environment including the
+RAM session holding the child's memory quota.
+
 ; Genode::Child_policy
+[raw spec/classes/genode/child_policy/description]
+
 ; Genode::Child
 [raw spec/classes/genode/child/description]
 
-; Genode::Slave_policy
-; Genode::Slave
+; XXX Genode::Slave_policy
+; XXX Genode::Slave
 
 
 Session routing
 ~~~~~~~~~~~~~~~
 
-; Genode::Client
-; Genode::Server
-; Genode::Service
-; Genode::Local_service
-; Genode::Parent_service
-; Genode::Child_service
-; Genode::Service_registry
+The service classes support the management of services
+announced by children or provided locally, and the synchronization
+of service requests with service announcements.
+
+; XXX we may go into more detail - or leave this stuff out?
+
+; XXX Genode::Client
+; XXX Genode::Server
+; XXX Genode::Service
+; XXX Genode::Local_service
+; XXX Genode::Parent_service
+; XXX Genode::Child_service
+; XXX Genode::Service_registry
 
 
 Session policing
 ~~~~~~~~~~~~~~~~
 
 ; Genode::Child_policy_dynamic_rom_file
-; Init::Child_policy_ram_phys
-; Init::Child_policy_enforce_labeling
-; Init::Child_policy_pd_args
-; Init::Child_policy_handle_cpu_priorities
-; Init::Child_policy_provide_rom_file
-; Init::Child_policy_redirect_rom_file
-; Init::Child_config
+; XXX Init::Child_policy_ram_phys
+; XXX Init::Child_policy_enforce_labeling
+; XXX Init::Child_policy_pd_args
+; XXX Init::Child_policy_handle_cpu_priorities
+; XXX Init::Child_policy_provide_rom_file
+; XXX Init::Child_policy_redirect_rom_file
+; XXX Init::Child_config
 
 ;; init-specific child implementation is not part of the Genode API
-; Init::Child
-; Init::Routed_service
-; Init::Name_registry
+; XXX Init::Child
+; XXX Init::Routed_service
+; XXX Init::Name_registry
 
 
 Server API
@@ -719,15 +1209,23 @@ Server API
 ; Server::Entrypoint
 
 
-Support for user-level device drivers
-=====================================
+Utilities for user-level device drivers
+=======================================
 
-; MMIO framework
-; Genode::Register<>
-; Genode::Bitset_2<>
-; Genode::Bitset_3<>
-; Genode::Mmio
-; Genode::Attached_mmio
+; XXX describe w/o the generated class descriptions
+;; Genode::Register<>
+;[raw spec/classes/genode/register/description]
+;
+;; Genode::Bitset_2<>
+;[raw spec/classes/genode/bitset_2/description]
+;
+;; Genode::Bitset_3<>
+;[raw spec/classes/genode/bitset_3/description]
+;
+;; Genode::Mmio
+;[raw spec/classes/genode/mmio/description]
+
+; XXX Genode::Attached_mmio
 
 
 ;;;; Out of scope
