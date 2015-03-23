@@ -1164,6 +1164,8 @@ as session argument.
 Once created, the ROM session allows its client to obtain a ROM dataspace
 capability. Using this capability, the client can make the ROM module
 visible within its local address space.
+The ROM session interface is described in more detail in
+Section [Read-only memory (ROM)].
 
 
 Protection domains (PD)
