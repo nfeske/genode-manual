@@ -395,6 +395,17 @@ if {[llength $accessor_tokens] > 0} {
 	puts "}"
 }
 
+# detailed description
+set detailed_description [class_detailed_description $class_token]
+if {[llength $detailed_description] > 0} {
+	puts "\\apisection{Details}{0.95,0.95,0.95}"
+	puts "\\apiboxcontent{"
+	puts "  \\begin{minipage}{0.96\\textwidth}"
+	puts "    [out_latex [join $detailed_description {\\}]]"
+	puts "  \\end{minipage}"
+	puts "}"
+}
+
 puts { \end{apibox}}
 puts "\\end{tikzpicture} } \\linebreak"
 
