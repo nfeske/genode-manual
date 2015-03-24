@@ -507,7 +507,11 @@ proc function_detailed_description { function_token } {
 proc is_function { token } {
 
 	foreach token_type { funcdecl funcimpl constdecl constimpl destdecl destimpl } {
-		if {[tok_type $token] == "$token_type"} { return 1 } }
+		if {[tok_type $token] == "$token_type"} {
+			if {![function_is_blacklisted $token]} {
+				return 1 }
+		}
+	}
 
 	return 0
 }
@@ -525,6 +529,18 @@ proc function_has_modifier { func_token modifier } {
 	}
 
 	return 0
+}
+
+
+##
+# Return true if is tagged with "\noapi" in its comment
+#
+proc function_is_blacklisted { func_token } {
+
+	foreach part [mlcomment_parts $func_token] {
+		if {[regexp {\\noapi} $part]} { return 1 }
+	}
+	return 0;
 }
 
 

@@ -46,6 +46,8 @@ the type of a specific C++ object.
 ; XXX lifetime of capabilities: mention ref counter
 
 
+[raw spec/clearpage]
+
 Sessions and connections
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -72,6 +74,8 @@ when destructing the 'Connection'.
 ; XXX Genode::Connection<>
 [raw spec/classes/genode/connection/description]
 
+
+[raw spec/clearpage]
 
 Dataspace interface
 ~~~~~~~~~~~~~~~~~~~
@@ -108,6 +112,8 @@ is its immediate parent, which provides the following interface.
 [raw spec/classes/genode/parent/description]
 
 
+[raw spec/clearpage]
+
 Interface to the component's environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -135,6 +141,8 @@ LOG session.
 ; Genode::Console
 [raw spec/classes/genode/console/description]
 
+
+[raw spec/clearpage]
 
 Component-configuration interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -167,6 +175,8 @@ of dataspaces.
 ; XXX Genode::Attached_ram_dataspace
 
 
+[raw spec/clearpage]
+
 ROM session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -189,6 +199,8 @@ the client in the form of a dataspace (Section [Dataspaces]).
 ; XXX Genode::Attached_rom_dataspace
 
 
+[raw spec/clearpage]
+
 PD session interface
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -207,6 +219,8 @@ child-management facilities described in Section [Child management].
 [raw spec/classes/genode/pd_connection/description]
 
 
+[raw spec/clearpage]
+
 RM session interface
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -223,16 +237,18 @@ layout, to which dataspaces can be attached.
 [raw spec/classes/genode/rm_connection/description]
 
 
+[raw spec/clearpage]
+
 CPU session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
 The CPU service (Section [Processing-time allocation (CPU)]) provides a
 facility for creating and managing threads. A CPU session corresponds to a
 CPU-time allocator, from which multiple threads can be allocated.
-
+;
 ; XXX Genode::Thread_state
 ; XXX Genode::Thread_state_base
-
+;
 ; XXX Genode::Cpu_session_client
 
 ; Genode::Cpu_session
@@ -244,6 +260,8 @@ CPU-time allocator, from which multiple threads can be allocated.
 ; Genode::Affinity
 [raw spec/classes/genode/affinity/description]
 
+
+[raw spec/clearpage]
 
 CAP session interface
 ~~~~~~~~~~~~~~~~~~~~~
@@ -263,6 +281,8 @@ messages to the associated object.
 ; Genode::Cap_connection
 [raw spec/classes/genode/cap_connection/description]
 
+
+[raw spec/clearpage]
 
 IO_MEM session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -290,6 +310,8 @@ its own RM session.
 ; XXX Genode::Attached_io_mem_dataspace
 
 
+[raw spec/clearpage]
+
 IO_PORT session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -306,6 +328,8 @@ corresponds to the access right to a port range.
 ; Genode::Io_port_connection
 [raw spec/classes/genode/io_port_connection/description]
 
+
+[raw spec/clearpage]
 
 IRQ session interface
 ~~~~~~~~~~~~~~~~~~~~~
@@ -327,6 +351,8 @@ corresponds to an associated interrupt line.
 
 
 
+[raw spec/clearpage]
+
 LOG session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -343,6 +369,8 @@ each message is tagged with the label of the corresponding client.
 ; Genode::Log_connection
 [raw spec/classes/genode/log_connection/description]
 
+
+[raw spec/clearpage]
 
 SIGNAL session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -587,6 +615,8 @@ Data structures
 ;XXX Rationale behind using intrusive data structures
 
 
+[raw spec/clearpage]
+
 List
 ~~~~
 
@@ -599,6 +629,8 @@ which use the 'List' template.
 ; Genode::List_element<>
 [raw spec/classes/genode/list_element/description]
 
+
+[raw spec/clearpage]
 
 Fifo queue
 ~~~~~~~~~~
@@ -614,6 +646,8 @@ dedicated 'Fifo' template.
 ; Genode::Fifo_element<>
 [raw spec/classes/genode/fifo_element/description]
 
+
+[raw spec/clearpage]
 
 AVL tree
 ~~~~~~~~
@@ -643,6 +677,8 @@ following class template for AVL trees is provided.
 ;[raw spec/classes/genode/avl_string/description]
 
 
+[raw spec/clearpage]
+
 Bit array
 ~~~~~~~~~
 
@@ -653,12 +689,14 @@ Bit array
 [raw spec/classes/genode/bit_array/description]
 
 
-;Ring buffer
-;~~~~~~~~~~~
-;
-;; Genode::Ring_buffer_unsynchronized
-;; Genode::Ring_buffer_synchronized
-;; Genode::Ring_buffer<>
+[raw spec/clearpage]
+
+Ring buffer
+~~~~~~~~~~~
+
+; Genode::Ring_buffer_unsynchronized
+; Genode::Ring_buffer_synchronized
+; Genode::Ring_buffer<>
 
 
 ;Handle registry
@@ -705,6 +743,8 @@ Thread-safe weak pointers
 [raw spec/classes/genode/locked_ptr/description]
 
 
+[raw spec/clearpage]
+
 Volatile objects
 ~~~~~~~~~~~~~~~~
 
@@ -736,6 +776,8 @@ by implementing the more specific 'Range_allocator' interface.
 [raw spec/classes/genode/range_allocator/description]
 
 
+[raw spec/clearpage]
+
 Allocator guard
 ~~~~~~~~~~~~~~~
 
@@ -747,6 +789,8 @@ according to the session quota provided by the respective client.
 ; Genode::Allocator_guard
 [raw spec/classes/genode/allocator_guard/description]
 
+
+[raw spec/clearpage]
 
 Slab allocator
 ~~~~~~~~~~~~~~
@@ -768,6 +812,8 @@ slab allocator as a front end of 'Slab'.
 [raw spec/classes/genode/tslab/description]
 
 
+[raw spec/clearpage]
+
 AVL-tree-based best-fit allocator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -783,6 +829,8 @@ alignments, and allocations at specified addresses.
 [raw spec/classes/genode/allocator_avl_tpl/description]
 
 
+[raw spec/clearpage]
+
 Heap and sliced heap
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -792,6 +840,8 @@ Heap and sliced heap
 ; Genode::Sliced_heap
 [raw spec/classes/genode/sliced_heap/description]
 
+
+[raw spec/clearpage]
 
 Bit allocator
 ~~~~~~~~~~~~~
@@ -820,6 +870,8 @@ Basic string operations
 [raw spec/classes/genode/string/description]
 
 
+[raw spec/clearpage]
+
 Tokenizing
 ~~~~~~~~~~
 
@@ -832,6 +884,8 @@ simple tokenizing support is provided via the 'Token' class.
 ; XXX Genode::Scanner_policy_identifier_with_underline
 
 
+[raw spec/clearpage]
+
 Format strings
 ~~~~~~~~~~~~~~
 
@@ -840,6 +894,8 @@ Format strings
 
 ; XXX snprintf
 
+
+[raw spec/clearpage]
 
 String-argument parsing
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -895,6 +951,8 @@ by a raised exception of the type 'Blocking_canceled'.
 ; Genode::Thread<>
 [raw spec/classes/genode/thread/description]
 
+
+[raw spec/clearpage]
 
 Locks and semaphores
 ~~~~~~~~~~~~~~~~~~~~
@@ -1034,6 +1092,8 @@ is in possession of this capability.
 ; XXX Genode::Rpc_in_buffer<>
 
 
+[raw spec/clearpage]
+
 Root interface
 ~~~~~~~~~~~~~~
 
@@ -1064,6 +1124,8 @@ services with a single client ('Static_root').
 ; XXX Genode::Static_root<>
 ;[raw spec/classes/genode/static_root/description]
 
+
+[raw spec/clearpage]
 
 Server-side policy handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1150,6 +1212,8 @@ Shared objects
 [raw spec/classes/genode/address_info/description]
 
 
+[raw spec/clearpage]
+
 Child management
 ~~~~~~~~~~~~~~~~
 
@@ -1169,6 +1233,8 @@ RAM session holding the child's memory quota.
 ; XXX Genode::Slave_policy
 ; XXX Genode::Slave
 
+
+[raw spec/clearpage]
 
 Session routing
 ~~~~~~~~~~~~~~~

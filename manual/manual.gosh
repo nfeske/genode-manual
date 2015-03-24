@@ -13,7 +13,7 @@ proc produce_head_latex {} {
 	printline {\usepackage{epsfig}}
 	printline {\emergencystretch = 10pt}
 	printline {\clubpenalty = 10000}
-	printline {\widowpenalty = 10000}
+	printline {\widowpenalty = 300}
 	printline {\displaywidowpenalty = 10000}
 	printline {\usepackage{fancyhdr}}
 	printline {\usepackage{palatino}}
