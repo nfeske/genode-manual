@@ -142,8 +142,8 @@ Component-configuration interface
 ; XXX Genode::Config
 
 
-Session interfaces
-==================
+Session interfaces of the base API
+==================================
 
 RAM session interface
 ~~~~~~~~~~~~~~~~~~~~~
@@ -380,6 +380,9 @@ described in Section [Signalling].
 ;; Genode::Trace::Session
 ;; Genode::Trace::Connection
 
+
+OS-level session interfaces
+===========================
 
 Report session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
