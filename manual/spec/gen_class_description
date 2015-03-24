@@ -212,7 +212,7 @@ proc generate_method_description { namespace_name class_name method_token } {
 	set class_link  "$namespace_name\::$class_name"
 	set method_link "$class_link\::$method_name"
 
-	puts "\\hypertarget{$method_link}{}"
+	puts -nonewline "\\hypertarget{$method_link}{\\hspace{0cm}}"
 	puts {\begin{tikzpicture}}
 	puts { \tikzstyle{every node} = [font=\small] }
 	puts { \begin{apibox}{0.8,0.9,0.7}}
@@ -311,7 +311,7 @@ proc generate_method_description { namespace_name class_name method_token } {
 	}
 
 	puts { \end{apibox}}
-	puts {\end{tikzpicture}}
+	puts "\\end{tikzpicture} \\linebreak"
 }
 
 
@@ -338,8 +338,8 @@ proc code_url { } { return "https://github.com/genodelabs/genode/blob/master/" }
 #puts {\noindent\rule{\textwidth}{0.1pt}}
 
 
-puts "\\hypertarget{$class_name}{}"
-puts "\\begin{flushleft}"
+puts "{ \\noindent \\raggedleft"
+puts "\\hypertarget{$class_name}{"
 puts {\begin{tikzpicture}}
 puts { \tikzstyle{every node} = [font=\small] }
 puts { \begin{apibox}{0.8,0.85,0.9}}
@@ -396,7 +396,9 @@ if {[llength $accessor_tokens] > 0} {
 }
 
 puts { \end{apibox}}
-puts {\end{tikzpicture}}
+puts "\\end{tikzpicture} } \\linebreak"
 
 generate_methods $class_token
-puts "\\end{flushleft}"
+
+puts "}"
+puts ""
