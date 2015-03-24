@@ -806,3 +806,12 @@ proc class_has_members { class_token } {
 	return $has_members
 }
 
+
+##
+# Return list of paragraphs of the detailed description of a class
+#
+proc class_detailed_description { class_token } {
+
+	# the implementation happens to be identical for classes and functions
+	return [function_detailed_description $class_token]
+}
