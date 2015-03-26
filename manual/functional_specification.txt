@@ -724,6 +724,41 @@ Object lifetime management
 Thread-safe weak pointers
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Dangling pointers represent one of the most common cause for instabilities
+of software written in C or C++. Such a
+situation happens when an object disappears while pointers to the object
+are still in use. One way to solve this problem is to explicitly notify the
+holders of those pointers about the disappearance of the object. But this
+would require the object to keep references to those pointer holders, which,
+in turn, might disappear as well. Consequently, this approach tends to
+become a complex solution, which is prone to deadlocks or race conditions
+when multiple threads are involved.
+
+The utilities provided by _base/weak_ptr.h_ implement a more elegant pattern
+called "weak pointers" to deal with such situations. An object that might
+disappear at any time is represented by the 'Weak_object' class
+template. It keeps track of a list of so-called weak pointers pointing
+to the object. A weak pointer, in turn, holds privately the pointer to the
+object alongside a validity flag. It cannot be used to dereference the
+object. For accessing the actual object, a locked pointer must be created
+from a weak pointer. If this creation succeeds, the object is guaranteed to
+be locked (not destructed) until the locked pointer gets destroyed. If the
+object no longer exists, the locked pointer will become invalid. This condition
+can (and should) be detected via the 'Locked_ptr::is_valid()' function prior
+dereferencing the pointer.
+
+In the event a weak object gets destructed, all weak pointers that point
+to the object are automatically invalidated. So a subsequent conversion into
+a locked pointer will yield an invalid pointer, which can be detected (in
+contrast to a dangling pointer).
+
+To use this mechanism, the destruction of a weak object must be
+deferred until no locked pointer points to the object anymore. This is
+done by calling the function 'Weak_object::lock_for_destruction()'
+at the beginning of the destructor of the to-be-destructed object.
+When this function returns, all weak pointers to the object will have been
+invalidated. So it is save to destruct and free the object.
+
 ; Genode::Weak_object_base
 [raw spec/classes/genode/weak_object_base/description]
 
@@ -939,7 +974,6 @@ Threads use a statically allocated stack, which is dimensioned according
 to the corresponding constructor argument.
 The special case of infinite blocking a thread is covered by
 the following base API function.
-{base/include/base/sleep.h}
 Genode allows all blocking operations of threads to be canceled via
 a 'cancel_blocking' mechanism provided by core's CPU service. The
 cancellation of a blocking operation is reflected at the API level
