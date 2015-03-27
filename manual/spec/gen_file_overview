@@ -83,7 +83,7 @@ proc generate_type_definitions { typedefs } {
 
 			if {$typedef_type == "subtype"} {
 				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
-				puts " & is subtype of \\texttt{[out_latex "$typedef_def"]}\\\\"
+				puts " & is a subtype of \\texttt{[out_latex "$typedef_def"]}\\\\"
 			}
 
 			if {$typedef_type == "typedef"} {

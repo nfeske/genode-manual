@@ -127,10 +127,13 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/base/cache.h \
                          repos/base/include/base/printf.h \
                          repos/base/include/base/env.h \
+                         repos/base/include/base/snprintf.h \
                          repos/base/include/base/stdint.h \
                          repos/base/include/64bit/base/fixed_stdint.h \
                          repos/base/include/32bit/base/fixed_stdint.h \
-                         repos/base/include/ram_session/ram_session.h
+                         repos/base/include/ram_session/ram_session.h \
+                         repos/base/include/rom_session/rom_session.h \
+                         repos/base/include/io_mem_session/io_mem_session.h
 
 FILE_OVERVIEWS := $(addsuffix .overview.tex,$(FILE_OVERVIEW_HEADERS))
 

@@ -672,7 +672,7 @@ proc function_arguments { func_token } {
 			#
 			set arg_name ""
 			if {[tok_type $token] == "argdecl"} {
-				set arg_name [unfold_token [sub_token $token argname]]
+				set arg_name [concat [unfold_token [sub_token $token argname]]]
 
 				# try to infer the argument name from commented-out name
 				if {$arg_name == ""} {
