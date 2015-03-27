@@ -197,6 +197,18 @@ proc class_name { token } {
 
 
 ##
+# Return true if token is a class template
+#
+proc is_class_template { token } {
+
+	if {[tok_type $token] == "tplstruct" || [tok_type $token] == "tplclass"} {
+		return 1 }
+
+	return 0
+}
+
+
+##
 # Find class with specified name
 #
 proc find_class_by_name { token class_name } {
@@ -648,15 +660,7 @@ proc function_argument_description { function_token arg_name } {
 }
 
 
-##
-# Return list of function arguments
-#
-# Each list item is a list of name, type, default, and description.
-#
-proc function_arguments { func_token } {
-
-	set funcsignature_token [sub_token $func_token          funcsignature]
-	set argparenblk_token   [sub_token $funcsignature_token argparenblk]
+proc argparenblk_arguments { compound_token argparenblk_token } {
 
 	if {$argparenblk_token == ""} { return {} }
 
@@ -692,12 +696,44 @@ proc function_arguments { func_token } {
 			#
 			# Determine argument description from the function's mlcomment
 			#
-			set arg_desc [function_argument_description $func_token $arg_name]
+			set arg_desc [function_argument_description $compound_token $arg_name]
 
 			lappend args [list $arg_name $arg_type $arg_default $arg_desc]
 		}
+
+		if {[tok_type $token] == "varargs"} {
+
+			lappend args [list "..." "..." "" ""]
+		}
 	}
 	return $args
+}
+
+
+##
+# Return list of function arguments
+#
+# Each list item is a list of name, type, default, and description.
+#
+proc function_arguments { func_token } {
+
+	set funcsignature_token [sub_token $func_token          funcsignature]
+	set argparenblk_token   [sub_token $funcsignature_token argparenblk]
+
+	return [argparenblk_arguments $func_token $argparenblk_token]
+}
+
+
+##
+# Return list of class template arguments
+#
+# Each list item is a list of name, type, default, and description.
+#
+proc class_template_arguments { class_template_token } {
+
+	set tplargs_token [sub_token $class_template_token tplargs]
+
+	return [argparenblk_arguments $class_template_token $tplargs_token]
 }
 
 
@@ -754,9 +790,9 @@ proc function_exceptions { func_token } {
 
 
 ##
-# Extract sequence of public members from class or struct tokens
+# Extract sequence of public and protected members from class or struct tokens
 #
-proc public_class_members { class_token } {
+proc public_and_protected_class_members { class_token } {
 
 	if {[tok_type $class_token] == "tplclass"} {
 		set class_token [sub_token $class_token class] }
@@ -779,7 +815,8 @@ proc public_class_members { class_token } {
 	if {[tok_type $class_token] == "class"} {
 
 		foreach_sub_token [tok_text $classblock_token] plain { } prot_token {
-			if {[tok_type $prot_token] == "public"} {
+			if {[tok_type $prot_token] == "public" ||
+			    [tok_type $prot_token] == "protected"} {
 				foreach_sub_token [tok_text $prot_token] plain { } token {
 					if {[tok_type $token] == "declseq"} {
 						append members_sequence [tok_text $token]
@@ -798,7 +835,7 @@ proc public_class_members { class_token } {
 proc accessor_functions { class_token } {
 
 	set accessors {}
-	set members_sequence [public_class_members $class_token]
+	set members_sequence [public_and_protected_class_members $class_token]
 	foreach_sub_token $members_sequence plain { } token {
 		if {[is_function $token] && [function_is_accessor $token]} {
 			lappend accessors $token
@@ -814,7 +851,7 @@ proc accessor_functions { class_token } {
 #
 proc class_has_members { class_token } {
 
-	set members_sequence [public_class_members $class_token]
+	set members_sequence [public_and_protected_class_members $class_token]
 	set has_members 0
 	foreach_sub_token $members_sequence plain { } token {
 		if {[is_function $token]} {
@@ -954,7 +991,7 @@ proc class_is_subtype { class_token } {
 
 	# a subtype class can have constructors but no other members
 	set has_more_members_than_constructor 0
-	set members_sequence [public_class_members $class_token]
+	set members_sequence [public_and_protected_class_members $class_token]
 	foreach_sub_token $members_sequence plain { } token {
 		if {[tok_type $token] != "constimpl"} {
 			set has_more_members_than_constructor 1 }

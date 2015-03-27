@@ -102,7 +102,7 @@ proc generate_diagram { class_token } {
 
 		puts "    \\nodepart{three}"
 
-		set members_sequence [public_class_members $class_token]
+		set members_sequence [public_and_protected_class_members $class_token]
 		set first 1
 		puts {    \begin{tabular}{ll}}
 		foreach_sub_token $members_sequence plain { } token {
@@ -115,6 +115,7 @@ proc generate_diagram { class_token } {
 
 				set method_name [function_name $token]
 				set method_link "$class_name\::$method_name"
+				regsub -all {~} $method_link {Destructor} method_link
 				set method_name_out [out_latex $method_name]
 				if {[function_is_static $token]} {
 					set method_name_out "\\underline{$method_name_out}" }
@@ -205,6 +206,7 @@ proc generate_method_description { namespace_name class_name method_token } {
 	set method_name [function_name $method_token]
 	set class_link  "$namespace_name\::$class_name"
 	set method_link "$class_link\::$method_name"
+	regsub -all {~} $method_link {Destructor} method_link
 
 	puts -nonewline "\\hypertarget{$method_link}{\\hspace{0cm}}"
 	puts {\begin{tikzpicture}}
@@ -235,7 +237,7 @@ proc generate_methods { class_token } {
 	set class_name     ""
 	regexp {(.*)::([^:]+)} [class_name $class_token] dummy namespace_name class_name
 
-	set members_sequence [public_class_members $class_token]
+	set members_sequence [public_and_protected_class_members $class_token]
 	foreach_sub_token $members_sequence plain { } token {
 
 		if {[is_function $token] && [method_is_interesting $token]} {
@@ -263,10 +265,12 @@ puts { \begin{apibox}{0.8,0.85,0.9}}
 set namespace_name ""
 set only_class_name     ""
 regexp {(.*)::([^:]+)} $class_name dummy namespace_name only_class_name
-set class_type "class"
+set annotation "class"
+if {[is_class_template $class_token]} {
+	set annotation "class template" }
 puts "\\apiclassboxtitle{\\texttt{\\normalsize \\strut [out_latex $namespace_name]}}"
 puts "  {\\texttt{\\textbf{\\normalsize \\strut [out_latex $only_class_name]}}}"
-puts "  {\\normalsize [out_latex $class_type]}"
+puts "  {\\normalsize [out_latex $annotation]}"
 
 # brief description and diagram
 set brief_description [brief_class_description $class_token]
@@ -278,10 +282,11 @@ puts { \tikzstyle{dropshadow}+=[fill opacity=0.9, left color=white, right color=
 generate_diagram $class_token
 puts "}"
 
-puts "\\apisection{Header}{0.95,0.95,0.95}"
-puts "\\apiboxcontent{"
-puts " \\href{[code_url][header_file]}{\\textit{[out_latex [header_file]]}}"
-puts "}"
+# template arguments
+if {[is_class_template $class_token]} {
+	set arguments [class_template_arguments $class_token]
+	generate_list_of_arguments $arguments "Template argument" "Template arguments"
+}
 
 set accessor_tokens [accessor_functions $class_token]
 if {[llength $accessor_tokens] > 0} {
@@ -319,6 +324,8 @@ if {[llength $detailed_description] > 0} {
 	puts "  \\end{minipage}"
 	puts "}"
 }
+
+generate_link_to_header
 
 puts { \end{apibox}}
 puts "\\end{tikzpicture} } \\linebreak"
