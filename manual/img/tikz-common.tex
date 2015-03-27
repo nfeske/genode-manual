@@ -541,8 +541,9 @@
 % Common color definitions for the API spec
 %
 \definecolor{apinamespace} {rgb}{1.0,0.95,0.78}
-\definecolor{apifunction}  {rgb}{0.8,0.9,0.7}
+\definecolor{apimethod}    {rgb}{0.8,0.9,0.7}
 \definecolor{apiclass}     {rgb}{0.8,0.85,0.9}
+\definecolor{apifunction}  {rgb}{1.0,0.85,0.6}
 
 %
 % Tikz style definitions used in the API spec
@@ -555,6 +556,7 @@
 
 \tikzstyle{apinamespacelabel} = [apititlelabel, bottom color=apinamespace]
 \tikzstyle{apiclasslabel}     = [apititlelabel, bottom color=apiclass]
+\tikzstyle{apimethodlabel}    = [apititlelabel, bottom color=apimethod]
 \tikzstyle{apifunctionlabel}  = [apititlelabel, bottom color=apifunction]
 
 \tikzstyle{apisectionlabel} = [at=(leftanchor), inner xsep=1ex, inner ysep=0.8ex,
@@ -613,6 +615,65 @@
 	}
 
 	%%
+	% Create API box title for a global namespace overview
+	%
+	% argument 1: annotation (at the top-right corner)
+	%
+	\newcommand{\apiglobalnamespaceboxtitle}[1]{
+
+		\apiboxtitle{
+
+			%
+			% Invisible namespacelabel
+			%
+			\node[at=(leftanchor), anchor=north west]
+				(namespacelabel) {};
+
+		}{##1}
+	}
+
+	%%
+	% Create API box title for a namespace overview
+	%
+	% argument 1: namespace
+	% argument 2: annotation (at the top-right corner)
+	%
+	\newcommand{\apinamespaceboxtitle}[2]{
+
+		\apiboxtitle{
+
+			%
+			% Segmented title label
+			%
+			\node[apinamespacelabel, at=(leftanchor), anchor=north west]
+				(namespacelabel) {##1};
+
+		}{##2}
+	}
+
+	%%
+	% Create API box title for a global-function description
+	%
+	% argument 1: namespace
+	% argument 2: function name
+	% argument 3: annotation (at the top-right corner)
+	%
+	\newcommand{\apifunctionboxtitle}[3]{
+
+		\apiboxtitle{
+
+			%
+			% Segmented title label
+			%
+			\node[apinamespacelabel, at=(leftanchor), anchor=north west, text opacity=0.5]
+				(namespacelabel) {##1};
+			\node[apifunctionlabel, at=(namespacelabel.east), anchor=west, signal from=west]
+				(classlabel) {##2};
+
+		}{##3}
+	}
+
+	%%
 	% Create API box title for a class description
 	%
 	% argument 1: namespace
@@ -653,7 +714,7 @@
 				(namespacelabel) {##1};
 			\node[apiclasslabel, at=(namespacelabel.east), anchor=west, text opacity=0.5, signal from=west]
 				(classlabel) {##2};
-			\node[apifunctionlabel, at=(classlabel.east), anchor=west, signal from=west]
+			\node[apimethodlabel, at=(classlabel.east), anchor=west, signal from=west]
 				(functionlabel) {##3};
 		}{##4}
 	}

@@ -49,6 +49,14 @@ proc get_cmd_arg { arg_name default_value } {
 
 
 ##
+# Return base URL for browsing the source code
+#
+# XXX evaluate command-line argument
+#
+proc code_url { } { return "https://github.com/genodelabs/genode/blob/master/" }
+
+
+##
 # Read input file with token data
 #
 proc import_tokens {file_name} {
@@ -344,6 +352,21 @@ proc header_comment { } {
 
 
 ##
+# Return brief comment in file header
+#
+proc header_brief_comment { } {
+
+	foreach part [header_comment] {
+		if {[regexp {^\\brief\s} $part]} {
+			regsub {^\\brief\s+} $part "" part
+			return $part
+		}
+	}
+	return ""
+}
+
+
+##
 # Return parsed multi-line comment for a function
 #
 proc function_comment { func_token } {
@@ -385,13 +408,7 @@ proc brief_class_description { class_token } {
 	if {[number_of_top_level_classes] == 1} {
 
 		# search the mlcomment of the file header for a brief description
-		foreach part [header_comment] {
-
-			if {[regexp {^\\brief\s} $part]} {
-				regsub {^\\brief\s+} $part "" part
-				return $part
-			}
-		}
+		return [header_brief_comment]
 	}
 	return ""
 }
@@ -579,9 +596,9 @@ proc function_is_accessor { func_token } {
 
 
 ##
-# Return true if function should be described in detail
+# Return true if method should be described in detail
 #
-proc function_is_interesting { func_token } {
+proc method_is_interesting { func_token } {
 
 	#
 	# Skip overrides with no prepending comment. Those are mere implementation
@@ -655,7 +672,7 @@ proc function_arguments { func_token } {
 			#
 			set arg_name ""
 			if {[tok_type $token] == "argdecl"} {
-				set arg_name [unfold_token [sub_token $token argname]]
+				set arg_name [concat [unfold_token [sub_token $token argname]]]
 
 				# try to infer the argument name from commented-out name
 				if {$arg_name == ""} {
@@ -814,4 +831,222 @@ proc class_detailed_description { class_token } {
 
 	# the implementation happens to be identical for classes and functions
 	return [function_detailed_description $class_token]
+}
+
+
+##
+# Return name of namespace
+#
+proc namespace_name { namespace_token } {
+
+	set namespace_name_token [sub_token $namespace_token identifier]
+	set namespace_name       [tok_text $namespace_name_token]
+
+	return $namespace_name
+}
+
+
+##
+# Return true if token is a namespace
+#
+proc is_namespace { token } {
+
+	if {[tok_type $token] == "namespace"} {
+		return 1 }
+
+	return 0
+}
+
+
+##
+# Return list of namespace present in the header
+#
+proc namespaces_in_header { } {
+
+	set result {}
+
+	foreach_sub_token [tok_text content0] plain { } token {
+		if {[is_namespace $token]} {
+			lappend result [namespace_name $token]
+		}
+	}
+
+	return [lsort -unique $result]
+}
+
+
+##
+# Return sequence of namespace content for the specified namespace name
+#
+proc namespace_sequence { name } {
+
+	set sequence ""
+	foreach_sub_token [tok_text content0] plain { } token {
+		if {[is_namespace $token] && [namespace_name $token] == $name} {
+			append sequence [tok_text [sub_token $token namespaceblock]]
+		}
+	}
+
+	return $sequence
+}
+
+
+##
+# Return list of function tokens defined in the namespace
+#
+proc namespace_functions { namespace_name } {
+
+	set result { }
+	foreach_sub_token [namespace_sequence $namespace_name] plain { } token {
+
+		if {[is_function $token]} {
+			lappend result $token }
+	}
+
+	return $result
+}
+
+
+##
+# Return true if token is a type definition
+#
+proc is_typedef { token } {
+
+	if {[tok_type $token] == "typedef"} { return 1 }
+	return 0
+}
+
+
+##
+# Return true if token is a typed enum
+#
+proc is_enum_typedef { token } {
+
+	if {[tok_type $token] == "enum"} {
+
+		set enum_type [sub_token $token identifier]
+		if {$enum_type != ""} { return 1 }
+	}
+	return 0
+}
+
+
+##
+# Return type name of typed enumeration
+#
+proc enum_type_name { enum_token } {
+
+	return [unfold_token [sub_token $enum_token identifier]]
+}
+
+
+##
+# Return true if struct or class is a mere subtype
+#
+# A subtype is a class definition that interits from a base class and has
+# nothing else than constructors.
+#
+proc class_is_subtype { class_token } {
+
+	# a subtype class must have exactly one public base class
+	set base_classes [public_base_classes $class_token]
+	if {[llength $base_classes] != 1} { return 0 }
+
+	# a subtype class can have constructors but no other members
+	set has_more_members_than_constructor 0
+	set members_sequence [public_class_members $class_token]
+	foreach_sub_token $members_sequence plain { } token {
+		if {[tok_type $token] != "constimpl"} {
+			set has_more_members_than_constructor 1 }
+	}
+	if {$has_more_members_than_constructor} {
+		return 0 }
+
+	return 1;
+}
+
+
+##
+# Return token of sub-type definition if token is a sub type
+#
+proc sub_typedef { namespace_name token } {
+
+	#
+	# Handle case where the subtype is declared in the namespace but defined in
+	# the global scope (as usual).
+	#
+	if {[tok_type $token] == "classdecl" || [tok_type $token] == "structdecl"} {
+
+		set class_name [unfold_token [sub_token $token "identifier"]]
+		set full_name "$namespace_name\::$class_name"
+
+		# find class definition in the global scope
+		set class_token [find_class_by_name content0 $full_name]
+		if {$class_token == ""} { return 0 }
+
+		if {[class_is_subtype $class_token]} {
+			return $class_token }
+	}
+
+	#
+	# Handle the case where the subtype is directly defined within the
+	# namespace.
+	#
+	if {[tok_type $token] == "class" || [tok_type $token] == "struct"} {
+
+		if {[class_is_subtype $token]} {
+			return $token }
+	}
+
+	return ""
+}
+
+
+##
+# Return list of type definitions defined in the specified token sequence
+#
+# Each list element has is a list of type (typedef, subtype, or enum), type
+# name, type definition, and a description.
+#
+proc collect_types_from_sequence { namespace_name sequence } {
+
+	set result { }
+	foreach_sub_token $sequence plain { } token {
+
+		if {[is_typedef $token]} {
+			set name [unfold_token [sub_token $token typename]]
+			set def  [unfold_token [sub_token $token identifier]]
+			set desc [mlcomment_parts $token]
+			lappend result [list "typedef" $name $def $desc]
+		} elseif {[is_enum_typedef $token]} {
+			set name [enum_type_name $token]
+			set desc [mlcomment_parts $token]
+			lappend result [list "enum" $name "" $desc]
+		} else {
+			set sub_typedef_token [sub_typedef $namespace_name $token]
+			if {$sub_typedef_token != ""} {
+				set name [class_name $sub_typedef_token]
+
+				if {$namespace_name != "" || ![regexp {::} $name]} {
+					regsub "^$namespace_name\::" $name "" name
+					set def  [lindex [public_base_classes $sub_typedef_token] 0]
+					set desc [mlcomment_parts $sub_typedef_token]
+					lappend result [list "subtype" $name $def $desc]
+				}
+			}
+		}
+	}
+	return $result
+}
+
+
+proc namespace_types { namespace_name } {
+
+	return [collect_types_from_sequence $namespace_name [namespace_sequence $namespace_name]]
+}
+
+
+proc global_types { } {
+
+	return [collect_types_from_sequence "" [tok_text content0]]
 }
