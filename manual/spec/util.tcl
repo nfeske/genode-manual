@@ -627,10 +627,13 @@ proc method_is_interesting { func_token } {
 	if {[function_is_accessor $func_token]} { return 0; }
 
 	#
-	# A destructor or constructor without comments is not interesting
+	# A destructor or constructor without comments and arguments is not interesting
 	#
 	foreach func_type { constdecl constimpl destdecl destimpl } {
 		if {[tok_type $func_token] == "$func_type"} {
+
+			if {[llength [function_arguments $func_token]] > 0} { return 1 }
+
 			set num_mlcomment_parts [llength [mlcomment_parts $func_token]]
 			if {$num_mlcomment_parts == 0} { return 0 }
 
