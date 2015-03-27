@@ -65,3 +65,112 @@ proc out_latex {string} {
 	return $string
 }
 
+
+##
+# Return string of the return type description as used in UML class diagrams
+#
+proc return_type_uml_style { func_token } {
+
+	set return_type [function_return_type $func_token]
+	if {$return_type == "void"} { set return_type "" }
+	if {$return_type != ""} {
+	set return_type ":\\ $return_type" }
+
+	return $return_type
+}
+
+
+proc generate_function_info_sections { func_token } {
+
+	# brief description
+	set brief_description [function_brief_description $func_token]
+	if {$brief_description != ""} {
+		puts "\\apiboxcontent{"
+		puts "  \\begin{minipage}{10cm}"
+		puts "    [out_latex $brief_description]"
+		puts "  \\end{minipage}"
+		puts "}"
+	} else {
+		puts "\\apiboxvspace{0.9ex}"
+	}
+
+	# arguments description
+	set arguments [function_arguments $func_token]
+	if {[llength $arguments] != 0} {
+		set arguments_label "Argument"
+		if {[llength $arguments] > 1} { append arguments_label s }
+		puts "\\apisection{$arguments_label}{0.95,0.95,0.95}"
+
+		puts "\\apiboxcontent{"
+		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
+		set first 1
+		foreach argument $arguments {
+			set arg_name    [lindex $argument 0]
+			set arg_type    [lindex $argument 1]
+			set arg_default [lindex $argument 2]
+			set arg_desc    [lindex $argument 3]
+			if {!$first} { puts {\noalign{\medskip}} }
+			set first 0
+			puts "    \\texttt{[out_latex $arg_name]} & \\texttt{\\textbf{[out_latex "$arg_type"]}}"
+			puts "    \\\\"
+			if {$arg_desc != ""} {
+				puts "    & [out_latex $arg_desc]\\\\"
+			}
+			if {$arg_default != ""} {
+				puts "    & \\textit{Default is \\texttt{[out_latex $arg_default]}}\\\\"
+			}
+		}
+		puts "  \\end{tabularx}"
+		puts "} % apiboxcontent"
+	}
+
+	# exceptions
+	set exceptions [function_exceptions $func_token]
+	if {[llength $exceptions] != 0} {
+		set exceptions_label "Exception"
+		if {[llength $exceptions] > 1} { append exceptions_label s }
+		puts "\\apisection{$exceptions_label}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
+		foreach exception $exceptions {
+			set exc_type [lindex $exception 0]
+			set exc_desc [lindex $exception 1]
+			puts "    \\texttt{\\textbf{[out_latex $exc_type]}} & [out_latex "$exc_desc"]\\\\"
+		}
+		puts "  \\end{tabularx}"
+		puts "}"
+	}
+
+	# return value
+	set return_type [function_return_type $func_token]
+	if {$return_type != "void" && $return_type != ""} {
+		puts "\\apisection{Return value}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
+		set return_desc [function_return_description $func_token]
+		puts "   \\texttt{\\textbf{[out_latex $return_type]}} & [out_latex "$return_desc"]\\\\"
+		puts "  \\end{tabularx}"
+		puts "}"
+	}
+
+	# detailed description
+	set detailed_description [function_detailed_description $func_token]
+	if {[llength $detailed_description] > 0} {
+		puts "\\apisection{Details}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		puts "  \\begin{minipage}{0.96\\textwidth}"
+		puts "    [out_latex [join $detailed_description {\\}]]"
+		puts "  \\end{minipage}"
+		puts "}"
+	}
+}
+
+
+proc generate_link_to_header { } {
+	puts "\\apisection{Header}{0.95,0.95,0.95}"
+	puts "\\apiboxcontent{"
+	puts " \\href{[code_url][header_file]}{\\textit{[out_latex [header_file]]}}"
+	puts "}"
+}
+
+

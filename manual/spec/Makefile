@@ -8,32 +8,36 @@ ifeq ($(GENODE_DIR),)
 $(error GENODE_DIR not specified)
 endif
 
-define BASE_INCLUDE_DIRS
-  ram_session
-endef
-
 #define BASE_INCLUDE_DIRS
-#  base
-#  cap_session
-#  cpu
-#  cpu_session
-#  dataspace
-#  io_mem_session
-#  io_port_session
-#  irq_session
-#  log_session
-#  parent
-#  pd_session
 #  ram_session
-#  rm_session
-#  rom_session
-#  root
-#  session
-#  signal_session
-#  thread
-#  trace_session
+#  base
 #  util
+#  32bit
+#  64bit
 #endef
+
+define BASE_INCLUDE_DIRS
+  base
+  cap_session
+  cpu
+  cpu_session
+  dataspace
+  io_mem_session
+  io_port_session
+  irq_session
+  log_session
+  parent
+  pd_session
+  ram_session
+  rm_session
+  rom_session
+  root
+  session
+  signal_session
+  thread
+  trace_session
+  util
+endef
 
 #define OS_INCLUDE_DIRS
 #  audio_out_session
@@ -70,10 +74,6 @@ SRC_H := $(shell cd $(GENODE_DIR); \
              for i in $(API_DIRS); do \
                  find $$i -name "*.h"; done)
 
-# XXX
-SRC_H += repos/base/include/base/child.h
-SRC_H += repos/base/include/base/allocator.h
-
 # list of token files to generate
 TOKEN_FILES := $(SRC_H:.h=.h.tokens)
 
@@ -82,7 +82,9 @@ TOKEN_FILES := $(SRC_H:.h=.h.tokens)
 
 usage:
 	@echo --- available targets ---
-	@echo class_index.mk - generate class index
+	@echo class_index.mk     - generate class index
+	@echo class_descriptions - generate class descriptions
+	@echo file_overviews     - generate file overviews
 	@echo
 	@echo When invoking this Makefile, the GENODE_DIR variable must be
 	@echo set to the base directory of the Genode source tree.
@@ -119,3 +121,20 @@ $(SRC_H):
 %.h.tokens: %.h
 	@echo "extract tokens from $^"
 	$(VERBOSE)$(GENODE_ABS_DIR)/tool/parse_cxx -format tokens $^ > $@
+
+FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
+                         repos/base/include/base/blocking.h \
+                         repos/base/include/base/cache.h \
+                         repos/base/include/base/stdint.h \
+                         repos/base/include/64bit/base/fixed_stdint.h \
+                         repos/base/include/32bit/base/fixed_stdint.h \
+                         repos/base/include/ram_session/ram_session.h
+
+FILE_OVERVIEWS := $(addsuffix .overview.tex,$(FILE_OVERVIEW_HEADERS))
+
+file_overviews: $(FILE_OVERVIEWS)
+
+%.h.overview.tex: %.h.tokens
+	@echo "generate file overview for $*"
+	$(VERBOSE)./gen_file_overview $< > $@
+

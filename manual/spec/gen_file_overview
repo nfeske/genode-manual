@@ -1,0 +1,205 @@
+#!/usr/bin/tclsh
+
+#
+# \brief  Generate header-file overview
+# \author Norman Feske
+# \date   2015-03-26
+#
+# Usage ./gen_file_overview <tokens-file> > output.tikz
+#
+
+source util.tcl
+source latex.tcl
+
+#
+# User interface interface
+#
+import_tokens [token_file]
+
+
+proc function_annotation { func_token } {
+
+	return "global function"
+}
+
+
+##
+# Generate description of a global function
+#
+proc generate_function_description { namespace_name func_token } {
+
+	set function_name [function_name $func_token]
+
+	set link "$namespace_name\::$function_name"
+
+	puts -nonewline "\\hypertarget{$link}{\\hspace{0cm}}"
+	puts {\begin{tikzpicture}}
+	puts { \tikzstyle{every node} = [font=\small] }
+	puts { \begin{apibox}{1.0,0.85,0.6}}
+
+	# title
+	set function_name_out [out_latex $function_name]
+	puts "\\apifunctionboxtitle{\\texttt{\\small \\strut [out_latex $namespace_name]}}"
+	puts "  {\\texttt{\\textbf{\\small \\strut $function_name_out}}}"
+	puts "  {\\normalsize [out_latex [function_annotation $func_token]]}"
+
+	generate_function_info_sections $func_token
+
+	puts { \end{apibox}}
+	puts "\\end{tikzpicture} \\linebreak"
+}
+
+
+##
+# Generate description boxes for specified namespace
+#
+proc generate_namespace_functions { namespace_name } {
+
+	foreach func_token [namespace_functions $namespace_name] {
+		generate_function_description $namespace_name $func_token
+	}
+}
+
+
+proc generate_type_definitions { typedefs } {
+
+	if {[llength $typedefs] > 0} {
+		set section_label "Type"
+		if {[llength $typedefs] > 1} { append section_label "s" }
+		puts "\\apisection{$section_label}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
+
+		set first 0
+		foreach typedef $typedefs {
+
+			if {!$first} { puts {\noalign{\medskip}} }
+			set first 0
+
+			set typedef_type [lindex $typedef 0]
+			set typedef_name [lindex $typedef 1]
+			set typedef_def  [lindex $typedef 2]
+			set typedef_desc [lindex $typedef 3]
+
+			if {$typedef_type == "subtype"} {
+				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
+				puts " & is subtype of \\texttt{[out_latex "$typedef_def"]}\\\\"
+			}
+
+			if {$typedef_type == "typedef"} {
+				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
+				puts " & is defined as \\texttt{[out_latex "$typedef_def"]}\\\\"
+			}
+
+			if {$typedef_type == "enum"} {
+				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
+				puts " & is an enumeration type\\\\"
+			}
+
+			if {[llength $typedef_desc] > 0} {
+				puts {\noalign{\medskip}}
+				puts "   & [out_latex [lindex $typedef_desc 0]]\\\\"
+
+				if {[llength $typedef_desc] > 1} {
+
+					foreach part [lrange $typedef_desc 1 end] {
+					puts {\noalign{\medskip}}
+						puts "   & [out_latex $part]"
+					}
+				}
+				puts "    \\\\"
+			}
+		}
+		puts "  \\end{tabularx}"
+		puts "}"
+	}
+}
+
+
+# global scope
+set global_typedefs [global_types]
+
+if {[llength $global_typedefs] > 0} {
+
+	puts "{ \\noindent \\raggedleft"
+	puts {\begin{tikzpicture}}
+	puts { \tikzstyle{every node} = [font=\small] }
+	puts { \begin{apibox}{1.0,0.95,0.78}}
+
+	# title
+	puts "\\apiglobalnamespaceboxtitle{\\normalsize root namespace}"
+
+	# brief description
+	set brief_description [header_brief_comment]
+	if {$brief_description != ""} {
+		puts "\\apiboxcontent{[out_latex $brief_description]}" }
+
+	# type definitions
+	generate_type_definitions $global_typedefs
+
+	generate_link_to_header
+
+	puts { \end{apibox}}
+	puts "\\end{tikzpicture}"
+	puts "}"
+	puts ""
+}
+
+
+foreach namespace_name [namespaces_in_header] {
+
+	puts "{ \\noindent \\raggedleft"
+	puts {\begin{tikzpicture}}
+	puts { \tikzstyle{every node} = [font=\small] }
+	puts { \begin{apibox}{1.0,0.95,0.78}}
+
+	# title
+	puts "\\apinamespaceboxtitle{\\texttt{\\textbf{\\normalsize \\strut [out_latex $namespace_name]}}}"
+	puts "  {\\normalsize namespace}"
+
+	# brief description
+	set brief_description [header_brief_comment]
+	if {$brief_description != ""} {
+		puts "\\apiboxcontent{[out_latex $brief_description]}" }
+
+	# types
+	set typedefs [namespace_types $namespace_name]
+	generate_type_definitions $typedefs
+
+	# functions
+	set function_tokens [namespace_functions $namespace_name]
+	if {[llength $function_tokens] > 0} {
+		set section_label "Function"
+		if {[llength $function_tokens] > 1} { append section_label "s" }
+		puts "\\apisection{$section_label}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{ \\begin{minipage}{15cm}"
+		puts "  \\begin{itemize}\[label={\\color{apifunction}\\textbullet}\] \\itemsep1pt \\parskip0pt"
+		foreach func_token $function_tokens {
+
+				set params ""
+				if {[llength [function_arguments $func_token]] > 0} {
+					set params {$\ldots$} }
+
+				set name [function_name $func_token]
+				set link "$namespace_name\::$name"
+				set name_out [out_latex $name]
+				set name_out "$name_out\($params)"
+
+				puts "     \\item"
+				puts -nonewline "       \\texttt{\\hyperlink{$link}{$name_out}"
+				puts "\\ [out_latex [return_type_uml_style $func_token]]}"
+			}
+		puts "  \\end{itemize}"
+		puts "\\end{minipage} }"
+	}
+
+	generate_link_to_header
+
+	puts { \end{apibox}}
+	puts "\\end{tikzpicture}"
+
+	generate_namespace_functions $namespace_name
+
+	puts "}"
+	puts ""
+}
