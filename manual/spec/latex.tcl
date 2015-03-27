@@ -80,25 +80,11 @@ proc return_type_uml_style { func_token } {
 }
 
 
-proc generate_function_info_sections { func_token } {
+proc generate_list_of_arguments { arguments label_one label_multi } {
 
-	# brief description
-	set brief_description [function_brief_description $func_token]
-	if {$brief_description != ""} {
-		puts "\\apiboxcontent{"
-		puts "  \\begin{minipage}{10cm}"
-		puts "    [out_latex $brief_description]"
-		puts "  \\end{minipage}"
-		puts "}"
-	} else {
-		puts "\\apiboxvspace{0.9ex}"
-	}
-
-	# arguments description
-	set arguments [function_arguments $func_token]
 	if {[llength $arguments] != 0} {
-		set arguments_label "Argument"
-		if {[llength $arguments] > 1} { append arguments_label s }
+		set arguments_label $label_one
+		if {[llength $arguments] > 1} { set arguments_label $label_multi }
 		puts "\\apisection{$arguments_label}{0.95,0.95,0.95}"
 
 		puts "\\apiboxcontent{"
@@ -123,6 +109,26 @@ proc generate_function_info_sections { func_token } {
 		puts "  \\end{tabularx}"
 		puts "} % apiboxcontent"
 	}
+}
+
+
+proc generate_function_info_sections { func_token } {
+
+	# brief description
+	set brief_description [function_brief_description $func_token]
+	if {$brief_description != ""} {
+		puts "\\apiboxcontent{"
+		puts "  \\begin{minipage}{10cm}"
+		puts "    [out_latex $brief_description]"
+		puts "  \\end{minipage}"
+		puts "}"
+	} else {
+		puts "\\apiboxvspace{0.9ex}"
+	}
+
+	# arguments description
+	set arguments [function_arguments $func_token]
+	generate_list_of_arguments $arguments "Argument" "Arguments"
 
 	# exceptions
 	set exceptions [function_exceptions $func_token]
