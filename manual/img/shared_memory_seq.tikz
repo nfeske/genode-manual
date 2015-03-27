@@ -36,14 +36,14 @@
 		\draw[timelinemessage, dashed, above] (coreram) -- node {$create$} (physdataspace);
 		\timestep
 		\transition{coreram}{server}{}
-		\node[align=center] at (transitionlabel) {return \\ capability $\bf{cap_{ds}}$};
+		\node[align=center] at (transitionlabel) {return \\ capability \textbf{$cap_{ds}$}};
 		\renewcommand{\timestepvector}{0,-1.4}
 		\timestep
 
 		% server attaches dataspace
 
 		\transition{server}{corerm}{}
-		\node[align=center] at (transitionlabel) {attach \\ dataspace $\bf{cap_{ds}}$};
+		\node[align=center] at (transitionlabel) {attach \\ dataspace \textbf{$cap_{ds}$}};
 		\renewcommand{\timestepvector}{0,-0.8}
 		\timestep
 		\path (server)+(-1,0) node[dataspace, dotted] (serverdataspace) {Data \\space};
@@ -56,7 +56,7 @@
 
 		% server delegates dataspace to client
 
-		\draw[timelinemessage, dashed] (server) -- node[above] {$delegate$ $\bf{cap_{ds}}$} (client);
+		\draw[timelinemessage, dashed] (server) -- node[above] {$delegate$ \textbf{$cap_{ds}$}} (client);
 		\activate{client}
 		\renewcommand{\timestepvector}{0,-0.4}
 		\timestep
@@ -64,7 +64,7 @@
 		% client attaches dataspace
 
 		\transition{client}{corerm}{}
-		\node[align=center] at (transitionlabel) {attach \\ dataspace $\bf{cap_{ds}}$};
+		\node[align=center] at (transitionlabel) {attach \\ dataspace \textbf{$cap_{ds}$}};
 		\renewcommand{\timestepvector}{0,-0.8}
 		\timestep
 		\path (client)+(1,0) node[dataspace, dotted] (clientdataspace) {Data \\space};

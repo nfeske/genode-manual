@@ -24,7 +24,7 @@
 	
 		\path (timelineanchor)+(2.5,0) node (timelineanchor) {};
 		\newtimeline{serverrpcobj}
-		\node[draw, fill=white, align=center, dropshadow] at (serverrpcobj) (rpcobj) {RPC object\\ \bf{a}};
+		\node[draw, fill=white, align=center, dropshadow] at (serverrpcobj) (rpcobj) {RPC object\\ \textbf{a}};
 
 		\activate{client}
 		\timestep
@@ -32,16 +32,16 @@
 		% invoke capability
 
 		\transition{client}{serverep}{}
-		\node[align=center] at (transitionlabel) {invoke \\ $\bf{cap_a}$};
+		\node[align=center] at (transitionlabel) {invoke \\ \textbf{$cap_a$}};
 		\timestep
 		\transition{serverep}{serverobjpool}{}
-		\node[align=center] at (transitionlabel) {lookup by \\ $\bf{cap_a}$};
+		\node[align=center] at (transitionlabel) {lookup by \\ \textbf{$cap_a$}};
 		\timestep
 		\renewcommand{\timestepvector}{0,-0.4}
 		\draw[timelinemessage, dashed, shorten >= 0.0ex] (serverobjpool) -- node[above] {$lookup$} (serverrpcobj);
 		\renewcommand{\timestepvector}{0,-0.8}
 		\timestep
-		\transition{serverobjpool}{serverep}{return \bf{a}}
+		\transition{serverobjpool}{serverep}{return \textbf{a}}
 		\timestep
 		\transition{serverep}{serverrpcobj}{dispatch}
 		\renewcommand{\timestepvector}{0,-1}

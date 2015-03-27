@@ -2,14 +2,14 @@
 
 	% object-pool entry
 	\node[umlclass2] (objpoolentry) {
-		\bf Object-pool entry
+		\textbf{Object-pool entry}
 		\nodepart{two}
 		capability
 	};
 
 	% RPC-object base
 	\node[umlclass3, below of=objpoolentry, node distance=15ex] (rpcobjbase) {
-		\bf RPC-object base
+		\textbf{RPC-object base}
 		\nodepart{two}
 		\nodepart{three}
 		$dispatch()$
@@ -17,7 +17,7 @@
 
 	% RPC object
 	\node[umlclass3, below of=rpcobjbase, node distance=18ex] (rpcobj) {
-		\bf RPC object
+		\textbf{RPC object}
 		\nodepart{two}
 		\nodepart{three}
 		dispatch()
@@ -26,7 +26,7 @@
 
 	% object pool
 	\node[umlclass, right of=objpoolentry, node distance=35ex, inner sep=2ex] (objpool)
-		{\bf Object pool};
+		{\textbf{Object pool}};
 	\path (objpool.north east) node[umlclass, dashed] {T};
 
 	% info about object pool
@@ -36,7 +36,7 @@
 
 	% entrpoint
 	\node[umlclass3, below of=objpool, node distance=15ex] (rpcentrypoint) {
-		\bf Entrypoint
+		\textbf{Entrypoint}
 		\nodepart{two}
 		IPC server
 		\nodepart{three}
