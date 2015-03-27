@@ -127,10 +127,17 @@ In addition to the component's initial sessions, the environment
 contains the heap of the component. The heap can be used for
 anonymous memory allocation and is the front end for allocating
 RAM dataspaces from the component's RAM session and attaching
-these dataspaces to the component's RM session.
+these dataspaces to the component's RM session. The component's
+environment can be accessed via the global 'env()' function:
+
+[raw spec/repos/base/include/base/env.h.overview]
+
+The 'Env' class as returned by the 'env()' function has the following
+interface.
 
 ; Genode::Env
 [raw spec/classes/genode/env/description]
+
 
 By default, the component environment holds one initial LOG session
 used as the standard text-output facility. For debugging purposes,
@@ -138,8 +145,7 @@ there exists a 'printf' front end for writing text to the initial
 LOG session.
 
 ; XXX base: printf
-; Genode::Console
-[raw spec/classes/genode/console/description]
+[raw spec/repos/base/include/base/printf.h.overview]
 
 
 [raw spec/clearpage]
@@ -162,9 +168,10 @@ session corresponds to a memory budget with a bounded quota. From this
 budget, the RAM-session client can allocate memory blocks in the form
 of dataspaces.
 
-; XXX Genode::Ram_dataspace
-
 ; XXX Genode::Ram_session_client
+
+; Genode::Ram_dataspace
+[raw spec/repos/base/include/ram_session/ram_session.h.overview]
 
 ; Genode::Ram_session
 [raw spec/classes/genode/ram_session/description]
@@ -586,7 +593,19 @@ types are defined in _base/stdint.h_ and _base/fixed_stdint.h_.
 Whereas the former is independent from the machine type, the latter
 differs between 32-bit and 64-bit architectures.
 
-;XXX stdint, fixed stdint
+[raw spec/repos/base/include/base/stdint.h.overview]
+
+[raw spec/clearpage]
+The fixed-width integer types for 32-bit architectures are defined
+as follows.
+
+[raw spec/repos/base/include/32bit/base/fixed_stdint.h.overview]
+
+[raw spec/clearpage]
+The fixed-width integer types for 64-bit architectures are defined
+as follows.
+
+[raw spec/repos/base/include/64bit/base/fixed_stdint.h.overview]
 
 
 Exception types
@@ -898,8 +917,19 @@ String processing
 Basic string operations
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Number_of_bytes
-[raw spec/classes/genode/number_of_bytes/description]
+There exists a small set of string-manipulation operations as global functions
+in the 'Genode' namespace.
+
+[raw spec/repos/base/include/util/string.h.overview]
+
+; XXX ascii_to
+; XXX Genode::Number_of_bytes
+;[raw spec/classes/genode/number_of_bytes/description]
+
+[raw spec/clearpage]
+To cover the common case of embedding a string buffer as a member variable in
+a class, there exists the 'String' class template, which alleviates the
+need for C-style arrays in such situations.
 
 ; Genode::String<>
 [raw spec/classes/genode/string/description]
@@ -923,6 +953,18 @@ simple tokenizing support is provided via the 'Token' class.
 
 Format strings
 ~~~~~~~~~~~~~~
+
+Format strings are commonly used for printing debug output. Throughout Genode,
+only a small subset of format-string features are needed. The processing of
+such simple format strings is performed by the low-complexity 'Console'
+utility. For the subset of supported formatting commands, please refer to the
+implementation at _repos/base/src/base/console/console.cc_.
+
+; XXX Genode::Console
+[raw spec/classes/genode/console/description]
+
+The 'String_console' allows the rendering of format strings into a character
+buffer.
 
 ; Genode::String_console
 [raw spec/classes/genode/string_console/description]

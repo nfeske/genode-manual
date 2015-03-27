@@ -125,6 +125,8 @@ $(SRC_H):
 FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/base/blocking.h \
                          repos/base/include/base/cache.h \
+                         repos/base/include/base/printf.h \
+                         repos/base/include/base/env.h \
                          repos/base/include/base/stdint.h \
                          repos/base/include/64bit/base/fixed_stdint.h \
                          repos/base/include/32bit/base/fixed_stdint.h \

@@ -17,6 +17,7 @@ define CHAPTERS
 #development
 #system_configuration
 functional_specification
+#spectest
 #under_the_hood
 endef
 
