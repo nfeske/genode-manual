@@ -698,13 +698,11 @@ dedicated 'Fifo' template.
 AVL tree
 ~~~~~~~~
 
-For use cases where associative arrays are needed such as allocators, the
-following class template for AVL trees is provided.
-
-;XXX is this really interesting for the API?
-;To accommodate the common use case for using strings as keys into an
-;dictionary, there exists a specialized version of the AVL tree for managing
-;pools of strings.
+For use cases where associative arrays are needed such as allocators, there
+is class template for creating AVL trees. The tree-balancing mechanism
+is implemented in the 'Avl_node_base' class. The actual 'Avl_node' and
+'Avl_tree' classes are tagged with the element type, which ensures that each
+AVL tree hosts only one type of elements.
 
 ; Genode::Avl_node_base
 [raw spec/classes/genode/avl_node_base/description]
@@ -715,7 +713,10 @@ following class template for AVL trees is provided.
 ; Genode::Avl_tree<>
 [raw spec/classes/genode/avl_tree/description]
 
-
+;XXX is this really interesting for the API?
+;To accommodate the common use case for using strings as keys into an
+;dictionary, there exists a specialized version of the AVL tree for managing
+;pools of strings.
 ;; Genode::Avl_string_base
 ;[raw spec/classes/genode/avl_string_base/description]
 ;
@@ -727,6 +728,12 @@ following class template for AVL trees is provided.
 
 Bit array
 ~~~~~~~~~
+
+Bit arrays are typically used for the allocation of IDs. The 'Bit_array_base'
+class operates on a memory buffer specified to its constructor. The
+'Bit_array' class template addresses the common case where the ID space
+is dimensioned at compile time. It takes the number of bits as arguments
+and hosts the memory buffer for storing the bits within the object.
 
 ; Genode::Bit_array_base
 [raw spec/classes/genode/bit_array_base/description]
