@@ -25,6 +25,7 @@ proc produce_head_latex {} {
 	printline {\usepackage{color}}
 	printline {\usepackage[scaled]{beramono}}
 	printline {\usepackage[pdftex,pagebackref=true,colorlinks=true,linkcolor=darkblue,citecolor=darkblue,urlcolor=darkblue]{hyperref}}
+	printline {\usepackage{enumitem} % for colored items as used in spec }
 	printline {\input{img/tikz-preamble.tex}}
 	printline {\urlstyle{same}}
 
