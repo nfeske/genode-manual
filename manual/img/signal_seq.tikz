@@ -40,14 +40,14 @@
 		% create signal context
 
 		\path (handler)+(4,0) node[draw, fill=white, align=center, dropshadow]
-			(context) {Signal\\ context \bf c};
+			(context) {Signal\\ context \textbf{c}};
 		\draw[timelinemessage, dashed] (handler) -- node[above] {$create$} (context);
 		\renewcommand{\timestepvector}{0,-0.7}
 		\timestep
 
 		% manage context
 
-		\transition{handler}{receiver}{manage \bf c}
+		\transition{handler}{receiver}{manage \textbf{c}}
 		\renewcommand{\timestepvector}{0,-0.3}
 		\timestep
 		\transition{receiver}{coresignal}{allocate capability}
@@ -56,14 +56,14 @@
 		\timestep
 		\transition{receiver}{handler}{}
 		\path (transitionlabel)+(1ex,0)
-			node[align=center, below] {signal-context \\ capability $\bf cap_c$};
+			node[align=center, below] {signal-context \\ capability \textbf{$cap_c$}};
 		\renewcommand{\timestepvector}{0,-0.3}
 		\timestep
 
 		% delegate context capability
 
 		\draw[timelinemessage, dashed] (handler) -- node[align=center]
-			{$delegate$ \\ ${\bf{cap_c}}$} (producer);
+			{$delegate$ \\ {\textbf{$cap_c$}}} (producer);
 		\timestep
 
 		% create signal transmitter
@@ -71,7 +71,7 @@
 		\path (producer)+(-2.5,0) node (timelineanchor) {};
 		\newtimeline{transmitter}
 		\node[draw, fill=white, align=center, dropshadow] at (transmitter)
-			(signaltransmitter) {Signal\\ transmitter\\ for $\bf cap_c$};
+			(signaltransmitter) {Signal\\ transmitter\\ for \textbf{$cap_c$}};
 		\draw[timelinemessage, dashed] (producer) -- node[above] {$create$} (signaltransmitter);
 		\timestep
 
@@ -106,7 +106,7 @@
 		\renewcommand{\timestepvector}{0,-0.6}
 		\transition{receiver}{handler}{} \timestep
 		\path (transitionlabel)+(1ex,0)
-			node[align=center, below] {context {\bf c} count {\bf 2}};
+			node[align=center, below] {context {\textbf{c}} count {\textbf{2}}};
 		\timestep
 
 		% handler waits for signal
@@ -121,7 +121,7 @@
 		\timestep
 		\transition{receiver}{handler}{}
 		\path (transitionlabel)+(1ex,0)
-			node[align=center, below] {context {\bf c} count {\bf 1}};
+			node[align=center, below] {context {\textbf{c}} count {\textbf{1}}};
 		\draw[timelinemessage, dotted, pos=0.75] (transmitter) -- node[above] {$wake$ $up$} (handler);
 		\timestep
 		\renewcommand{\timestepvector}{0,-0.4}
