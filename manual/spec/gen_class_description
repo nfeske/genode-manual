@@ -168,6 +168,11 @@ proc generate_diagram { class_token } {
 
 proc method_prefix { method_token } {
 
+	if {[is_function_template $method_token]} {
+		set prefix [method_prefix [sub_token $method_token funcimpl]]
+		return "$prefix template"
+	}
+
 	set method_types {{funcdecl  method}
 	                  {funcimpl  method}
 	                  {constdecl constructor}

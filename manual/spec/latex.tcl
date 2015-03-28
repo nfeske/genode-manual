@@ -62,6 +62,8 @@ proc out_latex {string} {
 	regsub -all {e\.g\.} $string "e.\\,g." string
 	regsub -all {i\.e\.} $string "i.\\,e." string
 
+	set string [string map {{³} {\&}} $string]
+
 	return $string
 }
 
@@ -124,6 +126,11 @@ proc generate_function_info_sections { func_token } {
 		puts "}"
 	} else {
 		puts "\\apiboxvspace{0.9ex}"
+	}
+
+	if {[is_function_template $func_token]} {
+		set tplargs [function_template_arguments $func_token]
+		generate_list_of_arguments $tplargs "Template argument" "Template arguments"
 	}
 
 	# arguments description

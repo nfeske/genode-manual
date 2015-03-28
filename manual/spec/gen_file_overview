@@ -19,6 +19,9 @@ import_tokens [token_file]
 
 proc function_annotation { func_token } {
 
+	if {[is_function_template $func_token]} {
+		return "function template";
+	}
 	return "global function"
 }
 
@@ -175,20 +178,19 @@ foreach namespace_name [namespaces_in_header] {
 		puts "\\apiboxcontent{ \\begin{minipage}{15cm}"
 		puts "  \\begin{itemize}\[label={\\color{apifunction}\\textbullet}\] \\itemsep1pt \\parskip0pt"
 		foreach func_token $function_tokens {
+			set params ""
+			if {[llength [function_arguments $func_token]] > 0} {
+				set params {$\ldots$} }
 
-				set params ""
-				if {[llength [function_arguments $func_token]] > 0} {
-					set params {$\ldots$} }
+			set name [function_name $func_token]
+			set link "$namespace_name\::$name"
+			set name_out [out_latex $name]
+			set name_out "$name_out\($params)"
 
-				set name [function_name $func_token]
-				set link "$namespace_name\::$name"
-				set name_out [out_latex $name]
-				set name_out "$name_out\($params)"
-
-				puts "     \\item"
-				puts -nonewline "       \\texttt{\\hyperlink{$link}{$name_out}"
-				puts "\\ [out_latex [return_type_uml_style $func_token]]}"
-			}
+			puts "     \\item"
+			puts -nonewline "       \\texttt{\\hyperlink{$link}{$name_out}"
+			puts "\\ [out_latex [return_type_uml_style $func_token]]}"
+		}
 		puts "  \\end{itemize}"
 		puts "\\end{minipage} }"
 	}
