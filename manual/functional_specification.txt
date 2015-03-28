@@ -1124,8 +1124,8 @@ enables the implementation of this synchronization scheme.
 To synchronize method calls of an object, the 'Synced_interface' can be
 used to equip the class of the called object with thread safety.
 
-; Genode::Synced_interface<>
-[raw spec/classes/genode/synced_interface/description]
+; XXX Genode::Synced_interface<>
+;[raw spec/classes/genode/synced_interface/description]
 
 ; Page-fault handling should become private
 ;; Genode::Pager_object
@@ -1210,23 +1210,23 @@ The RPC mechanism consists of the following header files:
 Each RPC interface is an abstract C++ interface, supplemented by a few
 annotations. For example:
 
-!#include <session/session.h>
-!#include <base/rpc.h>
+! #include <session/session.h>
+! #include <base/rpc.h>
 !
-!namespace Hello {
+! namespace Hello {
 !
-!  struct Session : public Genode::Session
-!  {
-!      static const char *service_name() { return "Hello"; }
+!   struct Session : public Genode::Session
+!   {
+!       static const char *service_name() { return "Hello"; }
 !
-!      virtual void say_hello() = 0;
-!      virtual int add(int a, int b) = 0;
+!       virtual void say_hello() = 0;
+!       virtual int add(int a, int b) = 0;
 !
-!      GENODE_RPC(Rpc_say_hello, void, say_hello);
-!      GENODE_RPC(Rpc_add, int, add, int, int);
-!      GENODE_RPC_INTERFACE(Rpc_say_hello, Rpc_add);
-!  };
-!}
+!       GENODE_RPC(Rpc_say_hello, void, say_hello);
+!       GENODE_RPC(Rpc_add, int, add, int, int);
+!       GENODE_RPC_INTERFACE(Rpc_say_hello, Rpc_add);
+!   };
+! }
 
 The macros 'GENODE_RPC' and 'GENODE_RPC_INTERFACE' are defined in _base/rpc.h_
 and enrich the interface with type information. They are only used at compile
@@ -1253,16 +1253,16 @@ The implementation of the RPC interface inherits the 'Rpc_object' class
 template with the interface type as argument and implements the abstract
 RPC interface class.
 
-The server-side RPC dispatching is performed by the compile-time-generated
+;The server-side RPC dispatching is performed by the compile-time-generated
 'dispatch' method of the 'Rpc_object' class template, according to the type
 information found in the annotations of the 'Session' interface.
 
 ; Genode::Rpc_object_base
 [raw spec/classes/genode/rpc_object_base/description]
 
-; Genode::Rpc_object<>
+; XXX Genode::Rpc_object<>
 ; XXX Genode::Rpc_dispatcher<>
-[raw spec/classes/genode/rpc_object/description]
+;[raw spec/classes/genode/rpc_object/description]
 
 
 To make an instance of an RPC object invokable via RPC, it must be associated
@@ -1287,33 +1287,34 @@ of the abstract interface where each RPC function is implemented by calling
 the 'Capability::call' method. This convention is facilitated by the
 'Rpc_client' class template.
 
+; Genode::Rpc_client
 [raw spec/classes/genode/rpc_client/description]
 
-The client-side implementation of the abstract interface of the example
-RPC interface looks as follows.
+Using this template, the client-side implementation of the example RPC
+interface looks as follows.
 
-!#include <hello_session/hello_session.h>
-!#include <base/rpc_client.h>
-!#include <base/printf.h>
+! #include <hello_session/hello_session.h>
+! #include <base/rpc_client.h>
+! #include <base/printf.h>
 !
-!namespace Hello {
+! namespace Hello {
 !
-!  struct Session_client : Genode::Rpc_client<Session>
-!  {
-!    Session_client(Genode::Capability<Session> cap)
-!    : Genode::Rpc_client<Session>(cap) { }
+!   struct Session_client : Genode::Rpc_client<Session>
+!   {
+!     Session_client(Genode::Capability<Session> cap)
+!     : Genode::Rpc_client<Session>(cap) { }
 !
-!    void say_hello()
-!    {
-!      call<Rpc_say_hello>();
-!    }
+!     void say_hello()
+!     {
+!       call<Rpc_say_hello>();
+!     }
 !
-!    int add(int a, int b)
-!    {
-!      return call<Rpc_add>(a, b);
-!    }
-!  };
-!}
+!     int add(int a, int b)
+!     {
+!       return call<Rpc_add>(a, b);
+!     }
+!   };
+! }
 
 For passing RPC arguments and results, the regular C++ type-conversion rules
 are in effect. If there is no valid type conversion, or if the number of
@@ -1635,9 +1636,10 @@ Session policing
 ; XXX Init::Name_registry
 
 
-Server API
-==========
-
+;XXX
+;Server API
+;==========
+;
 ; Server::Entrypoint
 
 
