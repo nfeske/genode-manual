@@ -1058,15 +1058,18 @@ to the corresponding constructor argument.
 ; Genode::Thread_base
 [raw spec/classes/genode/thread_base/description]
 
+
+[raw spec/clearpage]
+
 The 'Thread' class template accommodates the common case of creating
 threads with their stack size known at compile time. It takes the
 stack size as template argument.
 
-
-[raw spec/clearpage]
-
 ; Genode::Thread<>
 [raw spec/classes/genode/thread/description]
+
+
+[raw spec/clearpage]
 
 Blocking operations performed by threads can be canceled via the
 thread's 'cancel_blocking' method. The cancellation of a blocking
@@ -1078,6 +1081,7 @@ operation is reflected at the API level by a raised exception of the type
 
 
 [raw spec/clearpage]
+
 
 Locks and semaphores
 ~~~~~~~~~~~~~~~~~~~~
@@ -1103,6 +1107,9 @@ unlocking of a lock when leaving a variable scope.
 ; Genode::Lock_guard<>
 [raw spec/classes/genode/lock_guard/description]
 
+
+[raw spec/clearpage]
+
 Alongside lock-based mutual exclusion of entering critical sections,
 organizing threads in a producer-consumer relationship is a common
 design pattern for thread synchronization. The 'Semaphore' interface
@@ -1110,6 +1117,9 @@ enables the implementation of this synchronization scheme.
 
 ; Genode::Semaphore
 [raw spec/classes/genode/semaphore/description]
+
+
+[raw spec/clearpage]
 
 To synchronize method calls of an object, the 'Synced_interface' can be
 used to equip the class of the called object with thread safety.
@@ -1171,53 +1181,282 @@ Remote procedure calls
 ======================
 
 Section [Synchronous remote procedure calls (RPC)] provides the high-level
-description of synchronous remote procedure calls.
+description of synchronous remote procedure calls (RPC).
 
 
 RPC mechanism
 ~~~~~~~~~~~~~
 
-An RPC interface is declared by annotating its abstract C++ class using the
-macros 'GENODE_RPC_FUNCTION' and 'GENODE_RPC_INTERFACE'.
+The RPC mechanism consists of the following header files:
 
-; XXX explain the macros
+:_base/rpc.h_:
+  Contains the basic type definitions and utility macros to declare RPC
+  interfaces.
 
-The RPC API supports the use of basic types and compound types both as
-values and references. For carrying more sophistic payload as RPC function
-arguments or return values, the following RPC-specific types become handy:
+:_base/rpc_args.h_:
+  Contains definitions of non-trivial argument types used for transferring
+  strings and binary buffers. Its use by RPC interfaces is optional.
 
-; XXX rpc args
+:_base/rpc_server.h_:
+  Contains the interfaces of the server-side RPC API. This part of the API
+  consists of the 'Rpc_object' class template and the 'Rpc_entrypoint' class.
 
-The client-side API for performing synchronous RPC communication is
-represented by the 'Rpc_client' class template accompanied with the
-'Capability' class template defined in 'base/capability.h'.
+:_base/rpc_client.h_:
+  Contains the API support for invoking RPC functions. It is complemented by
+  the definitions in _base/capability.h_. The most important elements of the
+  client-side RPC API are the 'Capability' class template and 'Rpc_client',
+  which is a convenience wrapper around 'Capability'.
 
-; XXX Rpc_client
+Each RPC interface is an abstract C++ interface, supplemented by a few
+annotations. For example:
 
-On the server side, the RPC API consists of the 'Rpc_object' class template
-and 'Rpc_entrypoint' class. An RPC entry point is a thread that manages a
-number of RPC object and dispatches incoming RPC requests.
-An RPC object is a C++ object that becomes remotely accessible once it is
-associated with an RPC entrypoint (using the 'manage' function). At
-association time, a capability for the RPC object is created, which can be
-passed to other components. The RPC object can then be invoked by everyone who
-is in possession of this capability.
+! #include <session/session.h>
+! #include <base/rpc.h>
+!
+! namespace Hello {
+!
+!   struct Session : public Genode::Session
+!   {
+!       static const char *service_name() { return "Hello"; }
+!
+!       virtual void say_hello() = 0;
+!       virtual int add(int a, int b) = 0;
+!
+!       GENODE_RPC(Rpc_say_hello, void, say_hello);
+!       GENODE_RPC(Rpc_add, int, add, int, int);
+!       GENODE_RPC_INTERFACE(Rpc_say_hello, Rpc_add);
+!   };
+! }
 
-; XXX Genode::Rpc_object_base
-;[raw spec/classes/genode/rpc_object_base/description]
+The macros 'GENODE_RPC' and 'GENODE_RPC_INTERFACE' are defined in _base/rpc.h_
+and enrich the interface with type information. They are only used at compile
+time and have no effect on the run time or the size of the class.
+Each RPC function is represented as a type. In the example, the type meta
+data of the 'say_hello' function is attached to the 'Rpc_say_hello' type
+within the scope of 'Session'. The macro arguments are:
 
-;; XXX Genode::Rpc_object<>
+! GENODE_RPC(func_type, ret_type, func_name, arg_type ...)
+
+The 'func_type' argument is an arbitrary type name (except for the type name
+'Rpc_functions') used to refer to the RPC function, 'ret_type' is the return
+type or 'void', 'func_name' is the name of the server-side function that
+implements the RPC function, and the list of 'arg_type' arguments comprises the
+RPC function argument types. The 'GENODE_RPC_INTERFACE' macro defines a type
+called 'Rpc_functions' that contains the list of the RPC functions provided by
+the RPC interface.
+
+
+Server side
+-----------
+
+The implementation of the RPC interface inherits the 'Rpc_object' class
+template with the interface type as argument and implements the abstract
+RPC interface class.
+
+;The server-side RPC dispatching is performed by the compile-time-generated
+'dispatch' method of the 'Rpc_object' class template, according to the type
+information found in the annotations of the 'Session' interface.
+
+; Genode::Rpc_object_base
+[raw spec/classes/genode/rpc_object_base/description]
+
+; XXX Genode::Rpc_object<>
+; XXX Genode::Rpc_dispatcher<>
 ;[raw spec/classes/genode/rpc_object/description]
+
+
+To make an instance of an RPC object invokable via RPC, it must be associated
+with an RPC entrypoint. By passing an RPC object to the 'manage' function of
+an RPC entrpoint, a new capability for the RPC object is created. The
+capability tagged with the type of the RPC object.
 
 ; Genode::Rpc_entrypoint
 [raw spec/classes/genode/rpc_entrypoint/description]
 
+
+Client side
+-----------
+
+At the client side, a capability can be invoked by the capability's 'call'
+method template with the RPC functions type as template argument. The
+method arguments correspond to the RPC function arguments.
+
+By convention, the 'Capability::call' method is rarely used directly.
+Instead, each RPC interface is accompanied with a client-side implementation
+of the abstract interface where each RPC function is implemented by calling
+the 'Capability::call' method. This convention is facilitated by the
+'Rpc_client' class template.
+
+; Genode::Rpc_client
+[raw spec/classes/genode/rpc_client/description]
+
+Using this template, the client-side implementation of the example RPC
+interface looks as follows.
+
+! #include <hello_session/hello_session.h>
+! #include <base/rpc_client.h>
+! #include <base/printf.h>
+!
+! namespace Hello {
+!
+!   struct Session_client : Genode::Rpc_client<Session>
+!   {
+!     Session_client(Genode::Capability<Session> cap)
+!     : Genode::Rpc_client<Session>(cap) { }
+!
+!     void say_hello()
+!     {
+!       call<Rpc_say_hello>();
+!     }
+!
+!     int add(int a, int b)
+!     {
+!       return call<Rpc_add>(a, b);
+!     }
+!   };
+! }
+
+For passing RPC arguments and results, the regular C++ type-conversion rules
+are in effect. If there is no valid type conversion, or if the number of
+arguments is wrong, or if the RPC type annotations are not consistent with the
+abstract interface, the error is detected at compile time.
+
+
+Transferable argument types
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The arguments specified to 'GENODE_RPC' behave mostly as expected for a normal
+function call. But there are some notable differences:
+
+:Value types:
+  Value types are supported for basic types and plain-old-data types
+  (self-sufficient structs or classes). The object data is transferred as such.
+  If the type is not self-sufficient (it contains pointers or references), the
+  pointers and references are transferred as plain data, most likely
+  pointing to the wrong thing in the callee's address space.
+
+:Const references:
+  Const references behave like value types. The referenced object is
+  transferred to the server and a reference to the server-local copy is passed
+  to the server-side function. Note that in contrast to a normal function
+  call that takes a reference argument, the size of the referenced object is
+  accounted for allocating the message buffer on the client side.
+
+:Non-const references:
+  Non-const references are handled similar to const references. In addition the
+  server-local copy gets transferred back to the caller so that server-side
+  modifications of the object become visible to the client.
+
+:Capabilities:
+  Capabilities can be transfered as values, const references, or non-const
+  references.
+
+:Variable-length buffers:
+  There exists special support for passing binary buffers to RPC functions using
+  the 'Rpc_in_buffer' class template provided by _base/rpc_args.h_. The maximum
+  size of the buffer must be specified as template argument. An 'Rpc_in_buffer'
+  object does not contain a copy of the data passed to the constructor, only a
+  pointer to the data. In contrast to a fixed-sized object containing a copy of
+  the payload, the RPC framework does not transfer the whole object but only
+  the actually used payload.
+
+:Pointers:
+  Pointers and const pointers are handled similar to references. The pointed-to
+  argument gets transferred and the server-side function is called with a
+  pointer to the local copy.
+
+All types specified at RPC arguments or as return value must have a default
+constructor.
+
+By default, all RPC arguments are input arguments, which are transferred to the
+server. The return type of the RPC function, if present, is an output-only
+value. To avoid a reference argument from acting as both input- and output
+argument, a const reference should be used.
+
+
+Throwing C++ exceptions across RPC boundaries
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The propagation of C++ exceptions from the server to the client is supported
+by a special variant of the 'GENODE_RPC' macro:
+
+! GENODE_RPC_THROW(func_type, ret_type, func_name,
+!                  exc_type_list, arg_type ...)
+
+This macro accepts an additional 'exc_type_list' argument, which is a type
+list of exception types. Exception objects are not
+transferred as payload. The RPC mechanism propagates solely the information
+that the specific exception was raised. Hence, information provided with the
+thrown object will be lost when crossing an RPC boundary.
+
+
+RPC interface inheritance
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is possible to extend existing RPC interfaces with additional RPC
+functions. Internally, such an RPC interface inheritance is realized by
+concatenation of the 'Rpc_functions' type lists of both the base interface
+and the derived interface. This use case is supported by a special version of
+the 'GENODE_RPC_INTERFACE' macro:
+
+! GENODE_RPC_INTERFACE_INHERIT(base_interface,
+!                              rpc_func ...)
+
+
+Casting capability types
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+For typed capabilities, the same type conversion rules apply as for pointers.
+In fact, a typed capability pretty much resembles a typed pointer, pointing
+to a remote object. Hence, assigning a specialized capability (e.g.,
+'Capability<Input::Session>') to a base-typed capability (e.g.,
+'Capability<Session>') is always valid. For the opposite case, a static cast
+is needed. For capabilities, this cast is supported by
+! static_cap_cast<INTERFACE>(cap)
+
+In rare circumstances, mostly in platform-specific base code, a reinterpret
+cast for capabilities is required. It allows to convert any capability to
+another type:
+! reinterpret_cap_cast<INTERFACE>(cap)
+
+
+Non-virtual RPC interface functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It is possible to declare RPC functions using 'GENODE_RPC', which do not
+exist as virtual functions in the abstract interface class. In this case, the
+function name specified as third argument to 'GENODE_RPC' is of course not
+valid for the interface class but an alternative class can be specified as
+second argument to the server-side 'Rpc_object'. This way, a server-side
+implementation may specify its own class to direct the RPC function to a local
+(possibly non-virtual) implementation.
+
+
 ; XXX Genode::Rpc_in_buffer_base
-; XXX Genode::Rpc_dispatcher<>
 ; XXX Genode::Rpc_in_buffer<>
 
 
+Limitations of the RPC mechanism
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The maximum *number of RPC function arguments* is limited to 7.
+If a function requires more arguments, it may be worthwhile to consider
+grouping some of them in a compound struct.
+
+The maximum *number of RPC functions* per interface supported by the
+'GENODE_RPC_INTERFACE' macro is limited to 9. In contrast to the limitation of
+the number of function arguments, this limitation cannot be always avoided.
+However, in cases like this, the limitation can be side-stepped by
+manually constructing the type list of RPC functions instead of using the
+convenience macro:
+! typedef Meta::Type_tuple<Rpc_create_thread,
+!         Meta::Type_tuple<Rpc_kill_thread,
+!                          Meta::Empty> >
+!         Rpc_functions;
+
+
 [raw spec/clearpage]
+
 
 Root interface
 ~~~~~~~~~~~~~~
@@ -1397,14 +1636,137 @@ Session policing
 ; XXX Init::Name_registry
 
 
-Server API
-==========
-
+;XXX
+;Server API
+;==========
+;
 ; Server::Entrypoint
 
 
 Utilities for user-level device drivers
 =======================================
+
+To avoid common implementation bugs in device drivers,
+the framework facilitates the declaration of hardware register and bit
+layouts in the form of C++ types. By subjecting the device driver's
+interaction with the hardware to the to C++ type
+system, the consistency of register accesses with the hardware specifications
+can be maintained automatically.
+Such hardware specifications are declarative and can be cleanly
+separated from the program logic of the driver.
+The actual driver program is relieved from any intrinsics in the form of
+bit-masking operations.
+
+The MMIO access utilities comes in the form of two header files located at
+_util/register.h_ and _util/mmio.h_.
+
+
+Register declarations
+~~~~~~~~~~~~~~~~~~~~~
+
+The class templates found in _util/register.h_ provide a means to express
+register layouts using C++ types. In a way, these templates make up for
+C++'s missing facility to define accurate bitfields.
+The following example uses the 'Register' class template to define
+a register as well as a bitfield within the register:
+
+! struct Vaporizer : Register<16>
+! {
+!   struct Enable : Bitfield<2,1> { };
+!   struct State  : Bitfield<3,3> {
+!     enum{ SOLID = 1, LIQUID = 2, GASSY = 3 };
+!   };
+!
+!   static void     write (access_t value);
+!   static access_t read  ();
+! };
+
+In the example, 'Vaporizer' is a 16-bit register, which is expressed via the
+'Register' template argument. The 'Register' class template allows for
+accessing register content at a finer granularity than the whole register
+width. To give a specific part of the register a name, the 'Register::Bitfield'
+class template is used. It describes a bit region within the range of the
+compound register. The bit 2 corresponds to true if the device is enabled and
+bits 3 to 5 encode the 'State'. To access the actual register, the methods
+'read()' and 'write()' must be provided as back end, which performs the access
+of the whole register. Once defined, the 'Vaporizer' offers a handy way to
+access the individual parts of the register, for example:
+
+! /* read the whole register content */
+! Vaporizer::access_t r = Vaporizer::read();
+!
+! /* clear a bit field */
+! Vaporizer::Enable::clear(r);
+!
+! /* read a bit field value */
+! unsigned old_state = Vaporizer::State::get(r);
+!
+! /* assign new bit field value */
+! Vaporizer::State::set(r, Vaporizer::State::LIQUID);
+!
+! /* write whole register */
+! Vaporizer::write(r);
+
+
+Memory-mapped I/O
+~~~~~~~~~~~~~~~~~
+
+The utilities provided by _util/mmio.h_ use the 'Register' template class as
+a building block to provide easy-to-use access to memory-mapped I/O registers.
+The 'Mmio' class represents a memory-mapped I/O region taking its local base
+address as constructor argument. The following example illustrates its use:
+
+! class Timer : Mmio
+! {
+!   struct Value   : Register<0x0, 32> { };
+!   struct Control : Register<0x4, 8> {
+!     struct Enable  : Bitfield<0,1> { };
+!     struct Irq     : Bitfield<3,1> { };
+!     struct Method  : Bitfield<1,2>
+!     {
+!       enum { ONCE = 1, RELOAD = 2, CYCLE = 3 };
+!     };
+!   };
+!
+!   public:
+!
+!     Timer(addr_t base) : Mmio(base) { }
+!
+!     void enable();
+!     void set_timeout(Value::access_t duration);
+!     bool irq_raised();
+! };
+
+The memory-mapped timer device consists of two registers: The 32-bit 'Value'
+register and the 8-bit 'Control' register. They are located at the MMIO offsets
+0x0 and 0x4, respectively. Some parts of the 'Control' register have specific
+meanings as expressed by the 'Bitfield' definitions within the 'Control'
+struct.
+
+Using these declarations, accessing the individual bits becomes almost a
+verbatim description of how the device is used. For example:
+
+! void enable()
+! {
+!   /* access an individual bitfield */
+!   write<Control::Enable>(true);
+! }
+!
+! void set_timeout(Value::access_t duration)
+! {
+!   /* write complete content of a register */
+!   write<Value>(duration);
+!
+!   /* write all bitfields as one transaction */
+!   write<Control>(Control::Enable::bits(1) |
+!                  Control::Method::bits(Control::Method::ONCE) |
+!                  Control::Irq::bits(0));
+! }
+!
+! bool irq_raised()
+! {
+!   return read<Control::Irq>();
+! }
 
 ; XXX describe w/o the generated class descriptions
 ;; Genode::Register<>
