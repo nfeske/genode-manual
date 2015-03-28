@@ -209,6 +209,18 @@ proc is_class_template { token } {
 
 
 ##
+# Return true if token is a function template
+#
+proc is_function_template { token } {
+
+	if {[tok_type $token] == "tplfunc" || [tok_type $token] == "tplfuncdecl"} {
+		return 1 }
+
+	return 0
+}
+
+
+##
 # Find class with specified name
 #
 proc find_class_by_name { token class_name } {
@@ -217,6 +229,22 @@ proc find_class_by_name { token class_name } {
 	foreach_sub_token [tok_text $token] plain { } token {
 
 		if {[class_name $token] == "$class_name"} {
+			set result $token;
+		}
+	}
+	return $result
+}
+
+
+##
+# Find function with specified name
+#
+proc find_func_by_name { token func_name } {
+
+	set result ""
+	foreach_sub_token [tok_text $token] plain { } token {
+
+		if {[function_name $token] == "$func_name"} {
 			set result $token;
 		}
 	}
@@ -439,9 +467,26 @@ proc class_is_rpc_interface { class_token } {
 
 
 ##
+# Return function token that is embedded in a template function token
+#
+proc tplfunc_function { tplfunc_token } {
+
+	foreach token_type { funcdecl funcimpl constdecl constimpl destdecl destimpl } {
+		set func_token [sub_token $tplfunc_token $token_type]
+		if {$func_token != ""} {
+			return $func_token }
+	}
+	return ""
+}
+
+
+##
 # Return function name
 #
 proc function_name { func_token } {
+
+	if {[is_function_template $func_token]} {
+		set func_token [tplfunc_function $func_token] }
 
 	if {[is_function $func_token]} {
 		set funcsignature_token [sub_token $func_token          funcsignature]
@@ -457,6 +502,9 @@ proc function_name { func_token } {
 # Return the return type of a function
 #
 proc function_return_type { func_token } {
+
+	if {[is_function_template $func_token]} {
+		set func_token [tplfunc_function $func_token] }
 
 	if {[is_function $func_token]} {
 		set retval_token [sub_token $func_token retval]
@@ -535,7 +583,7 @@ proc function_detailed_description { function_token } {
 #
 proc is_function { token } {
 
-	foreach token_type { funcdecl funcimpl constdecl constimpl destdecl destimpl } {
+	foreach token_type { funcdecl funcimpl constdecl constimpl destdecl destimpl tplfunc tplfuncdecl } {
 		if {[tok_type $token] == "$token_type"} {
 			if {![function_is_blacklisted $token]} {
 				return 1 }
@@ -720,10 +768,28 @@ proc argparenblk_arguments { compound_token argparenblk_token } {
 #
 proc function_arguments { func_token } {
 
-	set funcsignature_token [sub_token $func_token          funcsignature]
-	set argparenblk_token   [sub_token $funcsignature_token argparenblk]
+	if {[is_function_template $func_token]} {
+		set funcsignature_token [sub_token [tplfunc_function $func_token] funcsignature]
+	} else {
+		set funcsignature_token [sub_token $func_token funcsignature]
+	}
+
+	set argparenblk_token [sub_token $funcsignature_token argparenblk]
 
 	return [argparenblk_arguments $func_token $argparenblk_token]
+}
+
+
+##
+# Return list of function template arguments
+#
+# Each list item is a list of name, type, default, and description.
+#
+proc function_template_arguments { func_template_token } {
+
+	set tplargs_token [sub_token $func_template_token tplargs]
+
+	return [argparenblk_arguments $func_template_token $tplargs_token]
 }
 
 
@@ -932,22 +998,6 @@ proc namespace_sequence { name } {
 
 
 ##
-# Return list of function tokens defined in the namespace
-#
-proc namespace_functions { namespace_name } {
-
-	set result { }
-	foreach_sub_token [namespace_sequence $namespace_name] plain { } token {
-
-		if {[is_function $token]} {
-			lappend result $token }
-	}
-
-	return $result
-}
-
-
-##
 # Return true if token is a type definition
 #
 proc is_typedef { token } {
@@ -1080,9 +1130,57 @@ proc collect_types_from_sequence { namespace_name sequence } {
 }
 
 
+##
+# Return token of function declaration or implementation where it is
+# commented
+#
+proc function_specification { namespace_name token } {
+
+	#
+	# Handle case where the function template is declared in the namespace
+	# but defined in the global scope (as usual).
+	#
+	if {[tok_type $token] == "tplfuncdecl"} {
+
+		set func_name [function_name $token]
+		set full_name "$namespace_name\::$func_name"
+
+		# find implementation in the global scope
+		set funcimpl_token [find_func_by_name content0 $full_name]
+
+		if {$funcimpl_token != ""} {
+			return $funcimpl_token }
+	}
+
+	return $token
+}
+
+
+##
+# Return list of function tokens referred to by the specified token sequence
+#
+proc collect_functions_from_sequence { namespace_name sequence } {
+
+	set result { }
+	foreach_sub_token $sequence plain { } token {
+
+		if {[is_function $token]} {
+			lappend result [function_specification $namespace_name $token]
+		}
+	}
+	return $result
+}
+
+
 proc namespace_types { namespace_name } {
 
 	return [collect_types_from_sequence $namespace_name [namespace_sequence $namespace_name]]
+}
+
+
+proc namespace_functions { namespace_name } {
+
+	return [collect_functions_from_sequence $namespace_name [namespace_sequence $namespace_name]]
 }
 
 
