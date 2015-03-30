@@ -838,13 +838,15 @@ Volatile objects
 
 ; XXX description
 
+; construct_at
+[raw spec/repos/base/include/util/construct_at.h.overview]
+
 ; XXX Genode::Volatile_object<>
 ;[raw spec/classes/genode/volatile_object/description]
 
 ; XXX Genode::Lazy_volatile_object<>
 ;[raw spec/classes/genode/lazy_volatile_object/description]
 
-; XXX construct_at
 
 
 Allocators

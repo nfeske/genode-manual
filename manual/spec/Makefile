@@ -123,6 +123,7 @@ $(SRC_H):
 	$(VERBOSE)$(GENODE_ABS_DIR)/tool/parse_cxx -format tokens $^ > $@
 
 FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
+                         repos/base/include/util/construct_at.h \
                          repos/base/include/base/blocking.h \
                          repos/base/include/base/cache.h \
                          repos/base/include/base/printf.h \
