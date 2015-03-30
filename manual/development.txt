@@ -1,7 +1,7 @@
 Development
 ###########
 
-The Genode OS framework is accompanied with a scalable build system and tooling
+The Genode OS framework is accompanied by a scalable build system and tooling
 infrastructure that is designed for the creation of highly modular and
 portable systems software.
 Understanding the underlying concepts is important for leveraging the full
@@ -90,8 +90,8 @@ following benefits over hosting 3rd-party source code along with Genode's
 genuine source code:
 
 * Working with grep within the repositories works very efficient because
-  downloaded and extracted 3rd-party code are no longer in the way. They
-  reside next to the repositories.
+  downloaded and extracted 3rd-party code is not in the way. Such code
+  resides next to the repositories.
 
 * Adding a supplemental repository can be achieved intuitively by cloning a
   repository into the _repos/_ directory.
@@ -112,8 +112,8 @@ _<genode-dir>/tool/ports/_.
 
 The _prepare_port_ tool scans all repositories under _repos/_ for the specified
 port and installs the port into _contrib/_. Each version
-of an installed port resides in a dedicated subdirectory within the _contrib/_ directory.
-The port-specific directory is called port directory. It is named
+of an installed port resides in a dedicated subdirectory within the _contrib/_
+directory. The port-specific directory is called port directory. It is named
 _<port-name>-<fingerprint>_. The _<fingerprint>_ uniquely identifies
 the version of the port (it is a SHA1 hash of the ingredients of the
 port). If two versions of the same port are installed, each of them will
@@ -197,7 +197,7 @@ To remove all generated files, use
 
 Both 'clean' and 'cleanall' won't remove any files from the _bin/_
 subdirectory. This makes the _bin/_ a safe place for files that are
-unrelated to the build process, yet required for the integration stage, e.g.,
+unrelated to the build process, yet are required for the integration stage, e.g.,
 binary data.
 
 
@@ -277,7 +277,7 @@ Specifying search locations
 ---------------------------
 
 When specifying search locations for header files via the 'INC_DIR' variable or
-for source files via 'vpath', relative pathnames are illegal to use. Instead,
+for source files via 'vpath', the use of relative pathnames is illegal. Instead,
 the following variables can be used to reference locations within the
 source-code repository where the target resides:
 
@@ -297,8 +297,8 @@ source-code repository where the target resides:
 :'$(call select_from_ports,<port-name>)':
   This function returns the absolute path for the _contrib_ directory of the
   specified _<port-name>_. The contrib directory is located at
-  _<genode-dir>/contrib/<port-name>-<fingerprint>_ whereby _<fingerprint>_ uniquely
-  identifies the version of the port as expected by the current state
+  _<genode-dir>/contrib/<port-name>-<fingerprint>_ whereby _<fingerprint>_
+  uniquely identifies the version of the port as expected by the current state
   of the Genode source tree.
 
 
@@ -321,8 +321,8 @@ Library-description files support the following additional declaration:
 Platform specifications
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Building components for different platforms likely implicates that portions of code
-are tied to certain aspects of the target platform. For example, target
+Building components for different platforms likely implicates that portions of
+code are tied to certain aspects of the target platform. For example, target
 platforms may differ in the following respects:
 
 * The API of the used kernel,
@@ -342,13 +342,13 @@ values.
 The *developer* of a software component knows the constraints of his
 software and thus specifies these requirements in the build-description
 file of the component.
-The *system integrator* decides to build software for a specific platform
-and specifies the targeted platform via the SPECS declaration in the
+The *system integrator* defines the platform the software will be
+built for by specifying the targeted platform in the SPECS declaration in the
 build directory's _etc/specs.conf_ file.
 In addition to the (optional) _etc/specs.conf_
 file within the build directory, the build system incorporates the first
-_etc/specs.conf_ file found in the repositories as configured for the
-build directory. For example, for a 'linux_x86' build directory, the
+_etc/specs.conf_ file found in the enabled repositories. For example, for
+a 'linux_x86' build directory, the
 _base-linux/etc/specs.conf_ file is used by default. The build directory's
 'specs.conf' file can still be used to extend the SPECS declarations, for
 example to enable special features.
@@ -419,7 +419,7 @@ Building 3rd-party software
 
 The source code of 3rd-party software is managed by the mechanism presented in
 Section [Integration of 3rd-party software]. Once prepared, such source codes
-resides in subdirectory of _<genode-dir>/contrib/_.
+resides in a subdirectory of _<genode-dir>/contrib/_.
 
 If the build system encounters a target that incorporates
 ported source code (that is, a build-description file that calls the
@@ -439,8 +439,8 @@ System integration and automated testing
 
 Genode's portability across kernels and hardware platforms is one of the prime
 features of the framework. However, each kernel or hardware platform requires
-different considerations when it comes to configuring, integrating, and
-booting the system. For using a particular kernel, profound knowledge
+different considerations when it comes to system configuration, integration, and
+booting. When using a particular kernel, profound knowledge
 about the boot concept and the kernel-specific tools is required. To
 streamline the testing of system scenarios across the many different supported
 kernels and hardware platforms, the framework is equipped with tools that
@@ -461,7 +461,7 @@ test drive a system scenario. Those steps are:
 # *Powering-on* the test machine
 # *Loading* of the boot image
 # Capturing the *LOG output*
-# *Validation* of the scenario behavior
+# *Validation* of the scenario's behavior
 # *Powering-off* the test machine
 
 Each of those steps depends on various parameters such as the
@@ -523,7 +523,7 @@ Further instructions about the use of each module (e.g., additional
 configuration arguments) can be found in the form of comments inside the
 respective script snippets.
 Thanks to this modular structure,
-the extension of the tool kit comes down to adding a file at the corresponding
+an extension of the tool kit comes down to adding a file at the corresponding
 module-type subdirectory. This way, custom work flows (such as tunneling JTAG
 over SSH) can be accommodated fairly easily.
 
@@ -534,7 +534,7 @@ Run-tool configuration examples
 To execute a run script, a combination of modules may be used. The combination
 is controlled via the RUN_OPT declaration contained in the build directory's
 _etc/build.conf_ file.
-The following example illustrate to selection and configuration of different
+The following examples illustrate the selection and configuration of different
 run modules:
 
 Executing NOVA in Qemu
@@ -544,11 +544,11 @@ Executing NOVA in Qemu
 !          --include power_on/qemu --include log/qemu --include image/iso
 
 By including 'boot_dir/nova', the run tool assembles a boot directory equipped
-with a boot loader and boot-loader configuration that is able to bootstrap
+with a boot loader and a boot-loader configuration that is able to bootstrap
 the NOVA kernel. The combination of the modules 'power_on/qemu' and 'log/qemu'
 prompts the run tool to spawn the Qemu emulator with the generated boot image
 and fetch the log output of the emulated machine from its virtual comport.
-The specification of 'image/iso' tells the run tool to use an bootable
+The specification of 'image/iso' tells the run tool to use a bootable
 ISO image as a boot medium as opposed to a disk image.
 
 
@@ -602,7 +602,7 @@ Meaningful default behaviour
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 'create_builddir' tool introduced in Section [Using the build system]
-equips each freshly created build directory with a meaningful
+equips a freshly created build directory with a meaningful
 default configuration that depends on the selected platform. For example, when
 creating a build directory for the Linux base platform, RUN_OPT
 is initially defined as
@@ -618,9 +618,9 @@ Using run scripts, complete system scenarios can be described in a
 concise and kernel-independent way. As
 described in Section [A simple system scenario], a run script can be used
 to integrate and test-drive the scenario directly from the build directory.
-The best way to get acquainted with the concept is reviewing the run script
+The best way to get acquainted with the concept is by reviewing the run script
 for the hello-world example presented in Section [Defining a system scenario].
-It performs of the following steps:
+It performs the following steps:
 
 # Building the components needed for the system using the 'build' command.
   This command instructs the build system to compile the targets listed in
@@ -636,7 +636,7 @@ It performs of the following steps:
   using the
   'install_config' command. The argument to this command will be written
   to a file called 'config' within the boot directory. It will eventually
-  be loaded as boot module to be made available by core's ROM service
+  be loaded as boot module and made available by core's ROM service
   to the init component. The configuration of init is explained in
   Chapter [System configuration].
 
@@ -672,7 +672,7 @@ Note that the _hello.run_ script does not contain kernel-specific information.
 Therefore it can be executed from the build directory of any base platform
 via the command 'make run/hello'.
 When invoking 'make' with an argument of the form 'run/*', the build system
-looks in all repositories for a run script with the specified name. The run
+searches all repositories for a run script with the specified name. The run
 script must be located in one of the repositories' _run/_ subdirectories and
 have the file extension '.run'.
 
@@ -717,7 +717,7 @@ of the module, e.g., 'power_on/amt' has an argument called
 for argument values. For example, the function 'power_on_amt_host' in the run module
 _power_on/amt_ returns the value supplied to the argument '--power-on-amt-host'.
 Thereby, a run script can access the value of such arguments
-in a defined way by using calling 'power_on_amt_host'. Also, arguments without a value
+in a defined way by calling 'power_on_amt_host'. Also, arguments without a value
 are treated similarly. For example, for querying the presence of the argument
 '--image-uboot-no-gzip', the run module _run/image/uboot_
 provides the corresponding function 'image_uboot_use_no_gzip'.
@@ -749,7 +749,7 @@ are probed via the 'have_spec' function. Depending on the probed spec
 values, the run script uses the 'append_if' and 'lappend_if' commands
 to conditionally assemble the init configuration and the list of boot modules.
 
-To use run mechanism efficiently, a basic understanding of the Tcl
+To use the run mechanism efficiently, a basic understanding of the Tcl
 scripting language is required. Furthermore the functions provided by
 _tool/run/run_ and the run modules at _tool/run/_ should be studied.
 
@@ -798,7 +798,7 @@ branch is fixed and will never change.
 Staging branch
 --------------
 
-The staging branch contains the commits that are scheduled for the inclusion
+The staging branch contains the commits that are scheduled for inclusion
 into the master branch. However, before changes are merged into the master
 branch, they are subjected to quality-assurance measures conducted by
 Genode Labs. Those measures include the successful building of the framework
@@ -829,7 +829,7 @@ Release version
 
 The version number of a Genode release refers to the release date. The
 two-digit major number corresponds to the last two digits of the year and
-the two-digit minor number correponds to the month. For example, "15.02".
+the two-digit minor number corresponds to the month. For example, "15.02".
 
 Each Genode release represents a snapshot of the master branch taken at
 release time. It is complemented by the following commits:
@@ -855,7 +855,7 @@ to fetch the cloned repository to your development machine.
 
 In the following, we refer to the official Genode repository as
 "genodelabs/genode". To conveniently follow the project's mainline
-development, It is recommended to register the official repository as a
+development, it is recommended to register the official repository as a
 "remote" in your Git repository:
 
 ! git remote add genodelabs https://github.com/genodelabs/genode.git
@@ -968,7 +968,7 @@ consider the following questions:
 
 Reconsider the documentation related to your patch: If the commit message
 contains important information not present in the source code, this
-information should better placed into the code or the accompanied
+information should better be placed into the code or the accompanied
 documentation (e.g., in the form of a README file).
 
 

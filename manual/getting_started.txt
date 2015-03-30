@@ -2,7 +2,7 @@ Getting started
 ###############
 
 Genode can be approached from two different angles: as an operating-system
-architecture and as a practical tool kit. This chapter assists you with
+architecture or as a practical tool kit. This chapter assists you with
 exploring Genode as the latter. After introducing the recommended
 development environment,
 it guides you through the steps needed to obtain the source code
@@ -161,7 +161,7 @@ repositories.
 
   Various services and applications used for demonstration purposes, for
   example the graphical application launcher and the tutorial browser
-  described in Section [A simple system scenario].
+  described in Section [A simple system scenario] can be found here.
 
 :_hello_tutorial/_:
 
@@ -243,7 +243,7 @@ Build configuration
 -------------------
 
 Before using the build directory, it is recommended to revisit and
-possibly adjust the build configuration, which is contained in the
+possibly adjust the build configuration, which is located in the
 _etc/_ subdirectory of the build directory, e.g., _build/linux_x86/etc/_.
 The _build.conf_ file contains global build parameters, in particular
 the selection of source-code repositories to be incorporated. It is also
@@ -257,7 +257,7 @@ _build.conf_ file:
 Building components
 -------------------
 
-The receipt for building a component has the form of a _target.mk_ file
+The recipe for building a component has the form of a _target.mk_ file
 within the _src/_ directory of one of the source-code repositories.
 For example, the _target.mk_ file of the init component is located
 at _<genode-dir>/repos/os/src/init/target.mk_. To build the component, execute
@@ -268,7 +268,7 @@ the following command from within the build directory:
 The argument "init" refers to the path relative to the _src/_ subdirectory.
 The build system determines and builds all targets found under this path in
 all source-code repositories.
-After the build is completed, the resulting executable binary can be found
+When the build the is finished, the resulting executable binary can be found
 in a subdirectory that matches the target's path. Additionally, the build
 system installs a symbolic link in the _bin/_ subdirectory that points to the
 executable binary.
@@ -300,21 +300,21 @@ which typically include the following steps:
 # Booting the target platform with the boot image,
 # Validating the behaviour of the scenario.
 
-The receipt for such a sequence of steps can be expressed in the form of
+The recipe for such a sequence of steps can be expressed in the form of
 a so-called run script. Each run script represents a system scenario and
-entails all information needed to reproduce the scenario. Run scripts can
+entails all information required to reproduce the scenario. Run scripts can
 reside within the _run/_ subdirectory of any source-code repository.
 
-Genode comes with a ready-to-use run script for a simple graphical demo
+Genode comes with a ready-to-use run script showcasing simple graphical demo
 scenario. It is located at _<genode-dir>/repos/os/run/demo.run_ and can
 be executed from within the build directory via:
 
 ! make run/demo
 
 The command will lookup a run script called _demo.run_ in all repositories
-listed in _etc/build.con_. It will eventually find the run script within
+listed in _etc/build.conf_. It will eventually find the run script within
 the _os/_ repository. After completing the build of all components needed,
-the command will automatically start the scenario.
+the command will then automatically start the scenario.
 Because the build directory was created for the _linux_x86_ platform, the
 scenario
 will be executed directly on the host system where each Genode component
@@ -352,10 +352,10 @@ microhypervisor, the following preparatory steps are needed:
 
   The source code will be downloaded to _<genode-dir>/contrib/x86emu-<hash>/_.
 
-# Create a build directory for the _nova_x86_32_ platform:
-  ! <genode-dir>/tool/create_builddir nova_x86_32
+# Create a build directory for the _nova_x86_64_ platform:
+  ! <genode-dir>/tool/create_builddir nova_x86_64
 
-  This step creates a new build directory at _<genode-dir>/build/nova_x86_32_.
+  This step creates a new build directory at _<genode-dir>/build/nova_x86_64_.
 
 # Adjust the build configuration by editing the file _etc/build.conf_
   within the just-created build directory.
@@ -368,7 +368,7 @@ microhypervisor, the following preparatory steps are needed:
 With those preparations in place, issue the execution of the demo run
 script from within the build directory:
 
-! cd <genode-dir>/build/nova_x86_32
+! cd <genode-dir>/build/nova_x86_64
 ! make run/demo
 
 This time, an instance of Qemu will be started to execute the demo scenario.
@@ -379,7 +379,7 @@ also with a real machine. For example, creating a bootable USB stick with
 the system scenario is as simple as writing the ISO image onto an USB stick:
 ! sudo dd if=var/run/demo.iso of=/dev/<usb-device> bs=8M conv=fsync
 
-Note that _<usb-device>_ refers to the device node of USB stick. It can be
+Note that _<usb-device>_ refers to the device node of an USB stick. It can be
 determined using the 'dmesg' command after plugging-in the USB stick.
 For booting from the USB stick, you may need to adjust the BIOS
 settings of the test machine accordingly.
@@ -425,7 +425,7 @@ hello-world component, an appropriate location would be _src/app/hello/_:
 Source code and build description
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The _hello/_ directory contains both the source code and build description
+The _hello/_ directory contains both the source code and the build description
 of the component. The main part of each component typically resides in a
 file called _main.cc_. Hence, for a hello-world program, we have to create
 the _repos/lab/src/app/hello/main.cc_ file with the following content:
@@ -450,16 +450,16 @@ optional C and C++ standard libraries are available.
 
 Please note that there exists a recommended coding style for genuine Genode
 components. If you consider submitting your work to the upstream development
-of the project, please pay attention to the common guidelines.
+of the project, please pay attention to these common guidelines.
 
 :Coding-style guidelines:
 
   http://genode.org/documentation/developer-resources/coding_style
 
-The source file _main.cc_ is accompanied with a build-description file called
+The source file _main.cc_ is accompanied by a build-description file called
 _target.mk_. It contains the declarations for the source files, the libraries
 used by the component, and the name of the component. Create the file
-_repos/lab/src/app/hello/target.mk_ will the following content:
+_repos/lab/src/app/hello/target.mk_ with the following content:
 
 ! TARGET = hello
 ! SRC_CC = main.cc
@@ -471,14 +471,14 @@ Building the component
 
 With the build-description file in place, it is time to build the new
 component, for example from within the _linux_x86_ build directory as
-created in Section [A simple system scenario]. Before the build system
-will be able to build the component, we have to extend the build
+created in Section [A simple system scenario]. To aid the build system
+to find the component, we have to extend the build
 configuration _<build-dir>/etc/build.conf_ by appending the following line:
 
 ! REPOSITORIES += $(GENODE_DIR)/repos/lab
 
-By adding this line, the build system will consider the custom source-code
-repository. To build the component, issue the command:
+By adding this line, the build system will consider our custom source-code
+repository. To build the component, issue the following command:
 
 ! make app/hello
 
@@ -541,7 +541,7 @@ This run script performs the following steps:
 
 # It instructs Qemu (if used) to disable the graphical output.
 
-# It starts the execution of the system scenario and watches the log
+# It triggers the execution of the system scenario and watches the log
   output for the given regular expression. The execution ends when
   the log output appears or after a timeout of 10 seconds.
 

@@ -31,9 +31,9 @@ The Genode OS framework is a tool kit for building highly secure
 special-purpose operating systems. It scales from embedded systems with as
 little as 4 MB of memory to highly dynamic general-purpose workloads.
 
-Genode is based on a recursive system structure. Each program runs in a
+Genode is based on a recursive system structure. Each program is executed in a
 dedicated sandbox and gets granted only those access rights and resources that
-are needed for its specific purpose. Programs can create and manage
+are required to fulfill its specific purpose. Programs can create and manage
 sub-sandboxes out of their own resources, thereby forming hierarchies where
 policies can be applied at each level. The framework provides mechanisms to
 let programs communicate with each other and trade their resources, but only
@@ -54,7 +54,7 @@ stacks.
   Genode supports the x86 (32 and 64 bit) and ARM CPU architectures.
   On x86, modern architectural features such as IOMMUs and
   hardware virtualization can be utilized.
-  On ARM, Genode is able to use TrustZone technology.
+  On ARM, Genode is able to take advantage of TrustZone technology.
 
 :Kernels:
 
@@ -64,7 +64,7 @@ stacks.
   Furthermore, it can be used on top of the Linux kernel to attain
   rapid development-test cycles during development.
   Additionally, the framework is accompanied with a custom kernel for
-  ARM-based platforms that was specifically developed for Genode and thereby
+  ARM-based platforms that has been specifically developed for Genode and thereby
   further reduces the complexity of the trusted computing base compared to
   other kernels.
 

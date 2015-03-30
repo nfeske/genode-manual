@@ -23,12 +23,12 @@ functions from the rest of the operating system. In contrary, they are
 co-located with most other operating-system functionality in a single
 high-complexity kernel. Thereby, those functions are exposed to the other
 parts of the operating system. The likelihood of a security breach is as
-high as the likelihood for bugs in the overly complex kernel. In other words:
+high as the likelihood of bugs in an overly complex kernel. In other words:
 It is certain. Moreover, once an in-kernel function has been compromised, the
 defect has unlimited reach throughout the system.
 
 The Genode architecture was designed to give more assuring answers to the two
-stated questions. Each piece of functionality should be exposed to only those
+questions stated. Each piece of functionality should be exposed to only those
 parts of the system, on which it ultimately depends. But it remains hidden
 from all unrelated parts. This minimizes the attack surface on individual
 security functions and thereby reduces the likelihood for a security breach.
@@ -256,7 +256,7 @@ Capability delegation through capability invocation
 
 Section [Delegation of authority and ownership] explained that capabilities
 can be delegated from one protection domain to another via a kernel operation.
-But it left open the question how this procedure works. The answer is the use
+But it left open the question of how this procedure works. The answer is the use
 of capabilities as RPC message payload. Similar to how a caller of a regular
 function can pass a pointer as an argument, a client can pass a capability as
 an argument to an RPC call. In fact, passing capabilities as RPC arguments or
@@ -333,8 +333,8 @@ a parent and a child is two-fold.
 [tikz img/parent_child]
 
 On the one hand, ownership stands for _responsibility_.
-Each component requires physical resources such as the memory used by the
-component or in-kernel data structures that represent the component in the
+Each component requires physical resources such as the memory
+or in-kernel data structures that represent the component in the
 kernel.
 The parent is responsible for providing a budget of those physical resources to
 the child at the child's creation time but also during the child's entire
@@ -353,7 +353,7 @@ seeking acquaintances with other components.
 On the other hand, ownership stands for _control_. Because the parent has
 created its children out of its own resources, it is in the position to
 exercise ultimate power over its children. This includes the decision to
-destruct a child at any time to regain the resources that were assigned
+destruct a child at any time in order to regain the resources that were assigned
 to the child. But it is also in control over the relationships of the child
 with other components known to the parent.
 
@@ -610,7 +610,7 @@ memory, the processing time of the CPUs, and devices.
 The traditional approach to resource management
 -----------------------------------------------
 
-Traditional operating systems usually provide abstractions of those resources
+Traditional operating systems usually provide abstractions of physical resources
 to applications running on top of the operating system. For example, instead
 of exposing the real interface of a device to an application, a Unix kernel
 provides a representation of the device as a pseudo file in the virtual file
@@ -647,7 +647,7 @@ There are several approaches to relieve those problems. For example, OS
 kernels that are optimized for resource utilization may employ heuristics that
 take the application behavior into account for parametrizing page-swapping
 strategies. Another example is the provisioning of a facility for pinned
-memory to application. Such memory is guaranteed to be backed by physical
+memory to applications. Such memory is guaranteed to be backed by physical
 memory. But such a facility bears the risk of allowing any application to
 exhaust physical memory directly. Hence, further heuristics are needed to
 limit the amount of pinned memory an application may use. Those counter
@@ -1008,7 +1008,7 @@ The protocol consists of two parts, which are complementary.
 Resource requests
 -----------------
 
-By issuing a resource request to it parent, a child applies for an upgrade
+By issuing a resource request to its parent, a child applies for an upgrade
 of its resources. The request takes the amount of desired resources as
 argument. A child would issue such a request if it detects scarceness of
 resources. A resource request returns immediately regardless of whether
@@ -1261,7 +1261,7 @@ preserved for stacks. Between the stacks, the virtual address space must
 remain empty so that stack overflows won't silently corrupt data. This
 is achieved by creating an RM session that represents the complete
 thread-context area. This RM session is attached as a dataspace to the
-component's virtual address space. When creating a new thread with its
+component's virtual address space. When creating a new thread along with its
 corresponding stack, the thread's stack is not directly attached to the
 component's RM session but to the context area's RM session. Another
 example is the virtual-address range managed by a dynamic linker to load
@@ -1318,7 +1318,7 @@ the capability allocated from the CAP service.
 
 For more information about the relationship between RPC objects and object
 identities, refer to Section [Capability-based security].
-The interplay between RPC objects, the RPC entrpoint, and core's CAP service
+The interplay between RPC objects, the RPC entrypoint, and core's CAP service
 is described in depth in
 Section [Synchronous remote procedure calls (RPC)].
 
@@ -1350,7 +1350,7 @@ Core hands out each physical address range only once. Session requests for
 ranges that intersect with physical memory are denied. Even though the
 granularity of memory protection is limited by the MMU page size, the IO_MEM
 service accepts the specification of the physical base address and size at the
-granularity of byes. The rationale behind this contradiction is the
+granularity of bytes. The rationale behind this contradiction is the
 unfortunate existence of platforms that host memory-mapped resources of
 unrelated devices on the same physical page. When driving such devices from
 different components, each of those components requires access to its
@@ -1525,7 +1525,7 @@ in the ELF executable's header:
   entries for the new components will be configured accordingly (by setting or
   clearing the non-executable bit in the page-table entries).
   Note that the propagation of this information (or the lack thereof) depends
-  on the used kernel. Also note that not all hardware platforms distinguish
+  on the kernel used. Also note that not all hardware platforms distinguish
   executable from non-executable memory mappings.
 
 :Read-writable segments:
@@ -1542,7 +1542,7 @@ in the ELF executable's header:
     file size). In particular, if the segment contains a DATA section
     followed by a BSS section, the file size corresponds to the size of the
     DATA section whereby the memory size corresponds to the sum of both
-    sections. Core's RAM service ensures that each fresh allocated RAM
+    sections. Core's RAM service ensures that each freshly allocated RAM
     dataspace is guaranteed to contain zeros. Core's RAM service returns
     a RAM dataspace capability as the result of the allocation operation.
 
@@ -1551,7 +1551,7 @@ in the ELF executable's header:
     RAM dataspace capability as argument.
 
   # Copying of the segment content from the ELF binary's dataspace to the
-    fresh allocated RAM dataspace. If the memory size of the segment is
+    freshly allocated RAM dataspace. If the memory size of the segment is
     larger than the file size, no special precautions are needed as the
     remainder of the RAM dataspace is known to be initialized with zeros.
 
@@ -1666,7 +1666,7 @@ Section [Shared memory] explains the procedure of establishing shared memory
 between components.
 
 Each of the three basic mechanisms is rarely found in isolation.
-Most inter-component interactions are a combination of the various mechanisms.
+Most inter-component interactions are a combination of these mechanisms.
 Section [Asynchronous state propagation] introduces a pattern for propagating
 state information by combining asynchronous notifications with RPC.
 Section [Synchronous bulk transfer] shows how synchronous RPC can be
@@ -1731,7 +1731,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   the C++ language level. It consists of the local name of the referred-to
   object identity as well as a means to manage the lifetime of the
   capability, i.e., a reference counter. The exact representation of an
-  untyped capability depends on the used kernel.
+  untyped capability depends on the kernel used.
 
   A _message buffer_ is a statically sized buffer that carries the payload
   of an IPC message. It distinguishes two types of payload, namely raw data
@@ -1853,7 +1853,7 @@ Section [Capability invocation],
 each entrypoint maintains a so-called object pool. The object pool contains
 references to RPC objects associated with the entrypoint. When receiving
 an RPC request along with the local name of the invoked object identity,
-the entrpoint uses the object pool to lookup the corresponding RPC object.
+the entrypoint uses the object pool to lookup the corresponding RPC object.
 As seen in the figure, the RPC object is a class template parametrized with
 its RPC interface. When instantiated, the dispatch function is generated
 by the C++ compiler according to the RPC interface.
@@ -1970,7 +1970,7 @@ its limitations in the following situations.
   from each other -- as their execution depends only on their respective
   condition -- they need to synchronize access to shared state.
   Consequently, components that need to respond to multiple conditions
-  would not only waste threads but also suffer from synchronization overheads.
+  would not only waste threads but also suffer from synchronization overhead.
 
   At the server side, the approach of blocking RPC calls is equally bad
   in the presence of multiple clients. For example, a timer service with
@@ -2098,8 +2098,8 @@ refer to globally visible files and thereby establish shared memory by
 mapping a prior-agreed file into their respective virtual memory spaces, Genode
 does not have a global name space. How do components refer to the to-be-shared
 piece of memory?
-Figure [img/shared_memory_seq] answers these questions with the sequence of
-establishing shared memory between a server and its client. The diagram
+Figure [img/shared_memory_seq] answers these questions showing the sequence of
+shared-memory establishment between a server and its client. The diagram
 depicts a client, core, and a server.
 The notion of a client-server relationship is intrinsic for the shared-memory
 mechanism.
@@ -2135,7 +2135,7 @@ client and server must be clearly defined.
   not occupied with existing mappings and returns the base
   address of the occupied range to the server.
   Using this base address and the known dataspace size, the server can
-  savely access the dataspace content by reading or writing its virtual
+  safely access the dataspace content by reading from or writing to its virtual
   memory.
 
 # The server delegates the authority to use the dataspace to the client.

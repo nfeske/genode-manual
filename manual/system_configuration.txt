@@ -11,7 +11,7 @@ graphics mode depending on its configuration. Hence, the graphics mode
 to be used by the OS could be defined right at this early stage
 of booting. More prominently, however, is the mere passing of configuration
 information to the booted OS, e.g., in the form of a kernel command line or as
-command-line arguments to boot modules. The OS would interpret
+command-line arguments to boot modules. The OS interprets
 boot-loader-provided data structures (i.e., multiboot info structures) to
 obtain such information. Most kernels interpret certain configuration
 arguments passed via this mechanism.
@@ -31,7 +31,7 @@ The diversity and complexity of configuration mechanisms, however, is
 problematic for high-assurance computing. To attain a high level of
 assurance, Genode's architecture must be complemented by a low-complexity
 yet scalable configuration concept.
-The design of this concept takes the following considerations into account.
+The design of this concept takes the following considerations into account:
 
 :Uniformity across platforms:
   To be applicable across a variety of kernels and hardware platforms, the
@@ -178,7 +178,7 @@ to decide if and how to make this service accessible to its other children.
 When a child requests a service, the parent may deny the session request,
 delegate the request to its own parent, implement the requested service
 locally, or open a session at one of its other children. This decision may
-depend on the requested service or the session-construction arguments provided
+depend on the service requested or the session-construction arguments provided
 by the child. Apart from assigning resources to children, the central
 element of the policy implemented in the parent is a set of rules to
 route session requests. Therefore, init's configuration concept is laid out
@@ -390,7 +390,7 @@ As illustrated by this example, the use of nested configurations
 enables the construction of arbitrarily complex component trees via a single
 configuration.
 
-Alternatively to specifying all nested configurations in a single
+As an alternative to specifying all nested configurations in a single
 configuration, sub configurations can be placed in separate ROM modules
 specified via the 'configfile' node. For example:
 ! <start name="nitpicker">
