@@ -1072,7 +1072,7 @@ proc sub_typedef { namespace_name token } {
 
 		# find class definition in the global scope
 		set class_token [find_class_by_name content0 $full_name]
-		if {$class_token == ""} { return 0 }
+		if {$class_token == ""} { return "" }
 
 		if {[class_is_subtype $class_token]} {
 			return $class_token }

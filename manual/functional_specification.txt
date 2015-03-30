@@ -34,8 +34,7 @@ the type of a specific C++ object.
 ;; internal
 ;; Genode::Native_capability_tpl<>
 
-; XXX Genode::Capability<>
-
+; Genode::Capability<>
 [raw spec/classes/genode/capability/description]
 
 ; XXX typed capabilities
@@ -77,7 +76,7 @@ constructor arguments, session functions can be called directly
 on the 'Connection' object, and the session gets properly closed
 when destructing the 'Connection'.
 
-; XXX Genode::Connection<>
+; Genode::Connection<>
 [raw spec/classes/genode/connection/description]
 
 
@@ -100,7 +99,20 @@ dataspaces provide the following interface.
 ; Genode::Dataspace
 [raw spec/classes/genode/dataspace/description]
 
-; XXX Genode::Attached_dataspace
+[clearpage]
+
+
+Attached dataspace
+------------------
+
+As a utility for handling the common case where a dataspace is attached to the
+component's address space as long as a certain object (like a session) exists,
+an instance of an 'Attached_dataspace' can be hosted as a member variable.
+When destructed, the dataspace will be automatically detached from the
+component's address space.
+
+; Genode::Attached_dataspace
+[raw spec/classes/genode/attached_dataspace/description]
 
 
 Component execution environment
@@ -160,7 +172,17 @@ by 'env()->parent()'.
 Component-configuration interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Genode::Config
+The 'Config' interface provides a convenient way to obtain the component's
+configuration. The underlying mechanism is explained in Section
+[Component configuration]. By convention, configurations are represented
+in XML syntax. The top-level XML node of the configuration can be
+requested by calling 'Genode::config()->xml_node()'. Components may respond
+to dynamic configuration changes at runtime by installing a signal handler
+via the 'Config::sigh' function.
+
+; Genode::Config
+[raw spec/repos/os/include/os/config.h.overview]
+[raw spec/classes/genode/config/description
 
 
 Session interfaces of the base API
@@ -186,7 +208,17 @@ of dataspaces.
 ; Genode::Ram_connection
 [raw spec/classes/genode/ram_connection/description]
 
-; XXX Genode::Attached_ram_dataspace
+
+Attached RAM dataspace
+----------------------
+
+The instantiation of an 'Attached_ram_dataspace' object subsumes the tasks of
+allocating a dataspaces from the component's RAM session and attaching the
+dataspace to the component's RM session. Furthermore, the reverse operations
+are performed during the destruction of an 'Attached_ram_dataspace' object.
+
+; Genode::Attached_ram_dataspace
+[raw spec/classes/genode/attached_ram_dataspace/description]
 
 
 [raw spec/clearpage]
@@ -211,7 +243,15 @@ the client in the form of a dataspace (Section [Dataspaces]).
 ; Genode::Rom_connection
 [raw spec/classes/genode/rom_connection/description]
 
-; XXX Genode::Attached_rom_dataspace
+
+Attached RAM dataspace
+----------------------
+
+By instantiating an 'Attached_rom_dataspace' object, a ROM module is requested
+and made visible within the component's address space in a single step.
+
+; Genode::Attached_rom_dataspace
+[raw spec/classes/genode/attached_rom_dataspace/description]
 
 
 [raw spec/clearpage]
@@ -313,7 +353,6 @@ visible in its address space by attaching the dataspace to
 its own RM session.
 
 ; XXX Genode::Io_mem_session_client
-
 ; XXX Genode::Io_mem_dataspace
 [raw spec/repos/base/include/io_mem_session/io_mem_session.h.overview]
 
@@ -323,7 +362,15 @@ its own RM session.
 ; Genode::Io_mem_connection
 [raw spec/classes/genode/io_mem_connection/description]
 
-; XXX Genode::Attached_io_mem_dataspace
+
+Attached IO_MEM dataspace
+-------------------------
+
+An instance of an 'Attached_io_mem_dataspace' represents a locally mapped
+memory-mapped I/O range.
+
+; Genode::Attached_io_mem_dataspace
+[raw spec/classes/genode/attached_io_mem_dataspace/description]
 
 
 [raw spec/clearpage]
@@ -431,135 +478,296 @@ OS-level session interfaces
 Report session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Genode::Reporter
+Report sessions (Section [Report]) allow a component to propagate internal
+state to the outside. The most prominent use case is the realization of
+publisher-subscriber communication schemes as discussed in
+Section [Publishing and subscribing].
+
 ; XXX Report::Session_client
-; XXX Report::Connection
-; XXX Report::Session
+
+; Report::Session
+[raw spec/classes/report/session/description]
+
+; Report::Connection
+[raw spec/classes/report/connection/description]
 
 
-Terminal session interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+[clearpage]
+
+The client-side 'Reporter' is a convenient front end for the use of a
+report connection to propagate XML-formed data.
+
+; Genode::Reporter
+[raw spec/classes/genode/reporter/description]
+
+
+[raw spec/clearpage]
+
+Terminal and UART session interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A terminal session (Section [Terminal]) is a bi-directional communication
+channel. The UART session interface supplements the terminal
+session interface with a facility to parametrize UART configuration
+parameters
 
 ; XXX Terminal::Session_client
-; XXX Terminal::Connection
-; XXX Terminal::Session
 
+; Terminal::Session
+[raw spec/classes/terminal/session/description]
 
-UART session interface
-~~~~~~~~~~~~~~~~~~~~~~
+; Terminal::Connection
+[raw spec/classes/terminal/connection/description]
 
 ; XXX Uart::Session_client
-; XXX Uart::Session
-; XXX Uart::Connection
 
+; Uart::Session
+[raw spec/classes/uart/session/description]
+
+; Uart::Connection
+[raw spec/classes/uart/connection/description]
+
+
+[raw spec/clearpage]
 
 Input session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Input::Session
-; XXX Input::Session_client
-; XXX Input::Connection
+An input session (Section [Input]) represents a stream of user-input events.
 
+; XXX Input::Session_client
+
+; Input::Session
+[raw spec/classes/input/session/description]
+
+; Input::Connection
+[raw spec/classes/input/connection/description]
+
+
+[raw spec/clearpage]
 
 Framebuffer session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Framebuffer::Session_client
-; XXX Framebuffer::Connection
-; XXX Framebuffer::Mode
-; XXX Framebuffer::Session
+; XXX description, reference to components section
 
+; XXX Framebuffer::Session_client
+
+; Framebuffer::Mode
+[raw spec/classes/framebuffer/mode/description]
+
+; Framebuffer::Session
+[raw spec/classes/framebuffer/session/description]
+
+; Framebuffer::Connection
+[raw spec/classes/framebuffer/connection/description]
+
+
+[raw spec/clearpage]
 
 Nitpicker session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Nitpicker::Session
-; XXX Nitpicker::Session_client
-; XXX Nitpicker::Connection
+; XXX description, reference to components section
 
+; XXX Nitpicker::Session_client
+
+; Nitpicker::Session
+[raw spec/classes/nitpicker/session/description]
+
+; Nitpicker::Connection
+[raw spec/classes/nitpicker/connection/description]
+
+
+[raw spec/clearpage]
 
 PCI session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Pci::Device_client
-; XXX Pci::Device
-; XXX Pci::Session_client
-; XXX Pci::Session
-; XXX Pci::Connection
+; XXX description, reference to components section
 
+; XXX Pci::Device_client
+
+; Pci::Device
+[raw spec/classes/pci/device/description]
+
+; XXX Pci::Session_client
+
+; Pci::Session
+[raw spec/classes/pci/session/description]
+
+; Pci::Connection
+[raw spec/classes/pci/connection/description]
+
+
+[raw spec/clearpage]
 
 Block session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Block::Session_client
-; XXX Block::Packet_descriptor
-; XXX Block::Session
-; XXX Block::Session_rpc_object
-; XXX Block::Connection
+; XXX description, reference to components section
 
+; XXX Block::Session_client
+
+; Block::Packet_descriptor
+[raw spec/classes/block/packet_descriptor/description]
+
+; Block::Session
+[raw spec/classes/block/session/description]
+
+; XXX Block::Session_rpc_object
+
+; Block::Connection
+[raw spec/classes/block/connection/description]
+
+
+[raw spec/clearpage]
 
 Regulator session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+; XXX description, reference to components section
+
 ; XXX Regulator::Session_client
 ; XXX Regulator::Session_rpc_object
-; XXX Regulator::Session
-; XXX Regulator::Connection
 
+; Regulator::Session
+[raw spec/classes/regulator/session/description]
+
+; Regulator::Connection
+[raw spec/classes/regulator/connection/description]
+
+
+[raw spec/clearpage]
 
 Timer session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Timer::Session_client
-; XXX Timer::Session
-; XXX Timer::Connection
+; XXX description, reference to components section
 
+; XXX Timer::Session_client
+
+; Timer::Session
+[raw spec/classes/timer/session/description]
+
+; Timer::Connection
+[raw spec/classes/timer/connection/description]
+
+
+[raw spec/clearpage]
 
 NIC session interface
 ~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Nic::Session_client
-; XXX Nic::Mac_address
-; XXX Nic::Session
-; XXX Nic::Session_rpc_object
-; XXX Nic::Connection
+; XXX description, reference to components section
 
+; XXX Nic::Session_client
+
+; Nic::Mac_address
+[raw spec/classes/nic/mac_address/description]
+
+; Nic::Session
+[raw spec/classes/nic/session/description]
+
+; XXX Nic::Session_rpc_object
+
+; Nic::Connection
+[raw spec/classes/nic/connection/description]
+
+
+[raw spec/clearpage]
 
 Audio-out session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; XXX description, reference to components section
 
 ; XXX Audio_out::Signal
 ; XXX Audio_out::Session_client
 ; XXX Audio_out::Packet
 ; XXX Audio_out::Stream
-; XXX Audio_out::Session
 ; XXX Audio_out::Session_rpc_object
-; XXX Audio_out::Connection
 
+; Audio_out::Session
+[raw spec/classes/audio_out/session/description]
+
+; Audio_out::Connection
+[raw spec/classes/audio_out/connection/description]
+
+
+[raw spec/clearpage]
 
 File-system session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX File_system::Session_client
-; XXX File_system::Node_handle
-; XXX File_system::File_handle
-; XXX File_system::Dir_handle
-; XXX File_system::Symlink_handle
-; XXX File_system::Packet_descriptor
-; XXX File_system::Status
-; XXX File_system::Control
-; XXX File_system::Directory_entry
-; XXX File_system::Session
-; XXX File_system::Session_rpc_object
-; XXX File_system::Connection
+; XXX description, reference to components section
+The file-system session (Section [File system]) interface provides to store
+and retrieve data in the form of files organized in a hierarchic directory
+structure. Directory operations are performed via a synchronous RPC interface
+whereas the actual read and write operations are performed asynchronously
+using a packet stream.
 
+; XXX File_system::Session_client
+
+A node handle refers to an open directory node, which can be a file, a
+directory, or a symlink. It is a number local to the file-system session.
+
+; File_system::Node_handle
+[raw spec/classes/file_system/node_handle/description]
+
+; File_system::File_handle
+; File_system::Dir_handle
+; File_system::Symlink_handle
+[raw spec/repos/os/include/file_system_session/file_system_session.h.overview]
+
+A file-system client issues read or write requests by submitting packet
+descriptors to the file-system session's packet stream. Each packet descriptor
+contains all parameters of the transaction including the type of operation,
+the seek offset, and the length.
+
+; File_system::Packet_descriptor
+[raw spec/classes/file_system/packet_descriptor/description]
+
+
+; XXX File_system::Session_rpc_object
+
+; File_system::Session
+[raw spec/classes/file_system/session/description]
+
+; File_system::Connection
+[raw spec/classes/file_system/connection/description]
+
+
+[spec/clearpage]
+
+The file-system session's 'status' and 'control' operations use the compound
+structures 'Status' and 'Control' as arguments. The format of the data
+retrieved by reading a directory node is defined by the 'Directory_entry'.
+
+; File_system::Status
+[raw spec/classes/file_system/status/description]
+
+; File_system::Control
+[raw spec/classes/file_system/control/description]
+
+; File_system::Directory_entry
+[raw spec/classes/file_system/directory_entry/description]
+
+
+[raw spec/clearpage]
 
 Loader session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+; XXX description, reference to components section
+
 ; XXX Loader::Session_client
-; XXX Loader::Connection
-; XXX Loader::Session
+
+; Loader::Session
+[raw spec/classes/loader/session/description]
+
+; Loader::Connection
+[raw spec/classes/loader/connection/description]
 
 
 ;GPIO session interface
@@ -836,17 +1044,33 @@ invalidated. So it is save to destruct and free the object.
 Volatile objects
 ~~~~~~~~~~~~~~~~
 
-; XXX description
+The 'construct_at' utility allows for the
+manual placement of objects without the need to have a global placement new
+operation nor the need for type-specific new operators.
 
 ; construct_at
 [raw spec/repos/base/include/util/construct_at.h.overview]
 
-; XXX Genode::Volatile_object<>
-;[raw spec/classes/genode/volatile_object/description]
 
-; XXX Genode::Lazy_volatile_object<>
-;[raw spec/classes/genode/lazy_volatile_object/description]
+The Genode framework promotes a programming style that largely avoids dynamic
+memory allocations. For the most part, higher-level objects aggregate
+lower-level objects as class members.
+This functional programming style leads to robust programs but it poses a
+problem for programs that are expected to adopt their behaviour at runtime.
+A way to selectively replace an aggregated object by a
+new version with updated constructor arguments is desired. The
+'Volatile_object' utility solves this problem by wrapping an object of the
+type specified as template argument.
+In contrast of a regular object, a 'Volatile_object' can be re-constructed any
+number of times by calling 'construct' with the constructor arguments. It is
+accompanied with a so-called 'Lazy_volatile_object', which remains
+unconstructed until 'construct' is called the first time.
 
+; Genode::Volatile_object<>
+[raw spec/classes/genode/volatile_object/description]
+
+; Genode::Lazy_volatile_object<>
+[raw spec/classes/genode/lazy_volatile_object/description]
 
 
 Allocators
@@ -1126,8 +1350,8 @@ enables the implementation of this synchronization scheme.
 To synchronize method calls of an object, the 'Synced_interface' can be
 used to equip the class of the called object with thread safety.
 
-; XXX Genode::Synced_interface<>
-;[raw spec/classes/genode/synced_interface/description]
+; Genode::Synced_interface<>
+[raw spec/classes/genode/synced_interface/description]
 
 ; Page-fault handling should become private
 ;; Genode::Pager_object
@@ -1262,7 +1486,7 @@ information found in the annotations of the 'Session' interface.
 ; Genode::Rpc_object_base
 [raw spec/classes/genode/rpc_object_base/description]
 
-; XXX Genode::Rpc_object<>
+; Genode::Rpc_object<>
 ; XXX Genode::Rpc_dispatcher<>
 ;[raw spec/classes/genode/rpc_object/description]
 
@@ -1460,6 +1684,8 @@ convenience macro:
 [raw spec/clearpage]
 
 
+[raw spec/clearpage]
+
 Root interface
 ~~~~~~~~~~~~~~
 
@@ -1473,7 +1699,9 @@ to create and destroy sessions.
 ; Genode::Root
 [raw spec/classes/genode/root/description]
 
-; XXX Genode::Typed_root<>
+; Genode::Typed_root<>
+[raw spec/classes/genode/root/description]
+
 ; XXX Genode::Root_client
 
 Because defining root interfaces for services follows a recurring pattern,
@@ -1487,7 +1715,7 @@ services with a single client ('Static_root').
 ; XXX Genode::Single_client
 ; XXX Genode::Multiple_clients
 
-; XXX Genode::Static_root<>
+; Genode::Static_root<>
 ;[raw spec/classes/genode/static_root/description]
 
 
@@ -1496,11 +1724,15 @@ services with a single client ('Static_root').
 Server-side policy handling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX Genode::Session_label
-;[raw spec/classes/genode/session_label/description]
+The 'Session_label' and 'Session_policy' utilities aid the implementation
+of the server-side policy-selection mechanism described in Section
+[Server-side policy selection].
 
-; XXX Genode::Session_policy
-;[raw spec/classes/genode/session_policy/description]
+; Genode::Session_label
+[raw spec/classes/genode/session_label/description]
+
+; Genode::Session_policy
+[raw spec/classes/genode/session_policy/description]
 
 ; Should be preserved for internal use
 ;; Genode::Object_pool<>
@@ -1513,44 +1745,118 @@ Server-side policy handling
 ;; Genode::Ipc_server
 
 
+[raw spec/clearpage]
+
 Packet stream
 ~~~~~~~~~~~~~
 
+The 'Packet_stream' is the building block of the asynchronous transfer of bulk
+data (Section [Asynchronous bulk transfer - packet streams]).
+The public interface consists of
+the two class templates 'Packet_stream_source', and 'Packet_stream_sink'.
+Both communication parties agree on a policy with regard to the
+organization of the communication buffer by specifying the same
+'Packet_stream_policy' as template argument.
+
+The communication buffer consists of three parts, a submit queue, an
+acknowledgement queue, and a bulk buffer. The submit queue contains
+packets generated by the source to be processed by the sink. The
+acknowledgement queue contains packets that are processed and acknowledged
+by the sink. The bulk buffer contains the actual payload. The assignment
+of packets to bulk-buffer regions is performed by the source.
+
+; Genode::Packet_descriptor
+[raw spec/classes/genode/packet_descriptor/description]
+
+; Genode::Packet_stream_base
+[raw spec/classes/genode/packet_stream_base/description]
+
+; Genode::Packet_stream_source
+[raw spec/classes/genode/packet_stream_source/description]
+
+; Genode::Packet_stream_sink
+[raw spec/classes/genode/packet_stream_sink/description]
+
+; Genode::Packet_stream_policy
+[raw spec/classes/genode/packet_stream_policy/description]
+
+
 ; XXX Genode::Packet_allocator
-; XXX Genode::Packet_descriptor
-; XXX Genode::Packet_stream_base
 ; XXX Genode::Packet_descriptor_queue<>
 ; XXX Genode::Packet_descriptor_transmitter<>
 ; XXX Genode::Packet_descriptor_receiver<>
-; XXX Genode::Packet_stream_source<>
-; XXX Genode::Packet_stream_sink<>
-; XXX Genode::Packet_stream_policy<>
-; XXX Packet_stream_rx::Client<>
-; XXX Packet_stream_rx::Rpc_object<>
-; XXX Packet_stream_tx::Client<>
-; XXX Packet_stream_tx::Rpc_object<>
-; XXX Packet_stream_rx::Channel<>
-; XXX Packet_stream_tx::Channel<>
+
+In client-server scenarios, each client and server can play the role of either
+a source or a sink of packets. To ease the use of packet streams in such
+scenarios, the classes within the 'Packet_stream_rx' and 'Packet_stream_tx'
+namespaces provide ready-to-use building blocks to be aggregated in session
+interfaces.
+
+
+Data transfer from server to client
+-----------------------------------
+
+; Packet_stream_rx::Channel
+[raw spec/classes/packet_stream_rx/channel/description]
+
+; Packet_stream_rx::Client
+[raw spec/classes/packet_stream_rx/client/description]
+
+; XXX Packet_stream_rx::Rpc_object
+;[raw spec/classes/packet_stream_rx/rpc_object/description]
+
+
+Data transfer from client to server
+-----------------------------------
+
+; Packet_stream_tx::Channel
+[raw spec/classes/packet_stream_tx/channel/description]
+
+; Packet_stream_tx::Client
+[raw spec/classes/packet_stream_tx/client/description]
+
+;; Packet_stream_tx::Rpc_object
+;[raw spec/classes/packet_stream_tx/rpc_object/description]
 
 
 XML processing
 ==============
 
+The configuration concept [Chapter [System configuration] and Section
+[Component configuration]) of the framework relies on XML syntax. Hence,
+there is the need to process XML-formed data. For parsing XML data, the
+'Xml_node' and the accompanied 'Xml_attribute' utilities are provided.
+Those utilities operate directly on a text buffer that contains the XML
+data. There is no conversion step into an internal representation. This
+alleviates the need for allocating any meta data while extracting information
+from XML data. The XML parser is stateless.
+
+Vice versa, the 'Xml_generator' serves as a utility for generating XML
+formatted data. The scope of an XML node is represented by a lamda function.
+Hence, nested XML nodes can be created by nested lamda functions, which makes
+the structure of the XML data immediately apparent at the C++ source code.
+As for the 'Xml_node' the 'Xml_generator' does not use any internal
+intermediate representation of the XML data. No dynamic memory allocations
+are needed while generating XML-formatted output.
+
+
 XML parsing
 ~~~~~~~~~~~
 
-; XXX Genode::Xml_attribute
-;[raw spec/classes/genode/xml_attribute/description]
+; Genode::Xml_attribute
+[raw spec/classes/genode/xml_attribute/description]
 
-; XXX Genode::Xml_node
-;[raw spec/classes/genode/xml_node/description]
+; Genode::Xml_node
+[raw spec/classes/genode/xml_node/description]
 
+
+[raw spec/clearpage]
 
 XML generation
 ~~~~~~~~~~~~~~
 
-; XXX Genode::Xml_generator
-;[raw spec/classes/genode/xml_generator/description]
+; Genode::Xml_generator
+[raw spec/classes/genode/xml_generator/description]
 
 
 Component management
@@ -1602,15 +1908,15 @@ RAM session holding the child's memory quota.
 
 [raw spec/clearpage]
 
-Session routing
-~~~~~~~~~~~~~~~
-
-The service classes support the management of services
-announced by children or provided locally, and the synchronization
-of service requests with service announcements.
 
 ; XXX we may go into more detail - or leave this stuff out?
-
+;Session routing
+;~~~~~~~~~~~~~~~
+;
+;The service classes support the management of services
+;announced by children or provided locally, and the synchronization
+;of service requests with service announcements.
+;
 ; XXX Genode::Client
 ; XXX Genode::Server
 ; XXX Genode::Service
@@ -1620,9 +1926,9 @@ of service requests with service announcements.
 ; XXX Genode::Service_registry
 
 
-Session policing
-~~~~~~~~~~~~~~~~
-
+;Session policing
+;~~~~~~~~~~~~~~~~
+;
 ; Genode::Child_policy_dynamic_rom_file
 ; XXX Init::Child_policy_ram_phys
 ; XXX Init::Child_policy_enforce_labeling
@@ -1710,6 +2016,56 @@ access the individual parts of the register, for example:
 ! Vaporizer::write(r);
 
 
+Bitfields that span multiple registers
+--------------------------------------
+
+The register interface of hardware devices may be designed such that
+bitfields are not always consecutive in a single register.
+For example, values of the HDMI configuration of the Exynos-5 SoC are
+scattered over multiple hardware registers.
+The problem is best illustrated by the following example of a hypothetical
+timer device. The bits of the clock count value are scattered across
+two hardware registers, the lower 6 bits of
+the 16-bit-wide register 0x2, and two portions of the 32-bit-wide register
+0x4. A declaration of those registers would look like this:
+
+! struct Clock_2 : Register<0x2, 16>
+! {
+!   struct Value : Bitfield<0, 6> { };
+! };
+!
+! struct Clock_1 : Register<0x4, 32>
+! {
+!   struct Value_2 : Bitfield<2, 13> { };
+!   struct Value_1 : Bitfield<18, 7> { };
+! };
+
+Writing a clock value needs consecutive write accesses to both registers
+with bit shift operations applied to the value:
+
+! write<Clock_1::Value_1>(clk);
+! write<Clock_1::Value_2>(clk >> 7);
+! write<Clock_2::Value>(clk >> 20);
+
+The new 'Bitset_2' and 'Bitset_3' class templates contained in
+_util/register.h_ allow the user to compose a logical bit field from 2 or 3
+physical bit fields. The order of the template arguments expresses the order of
+physical bits in the logical bit set. Each argument can be a register, a
+bit field, or another bit set. The declaration of such a composed bit set for
+the example above looks as follows:
+
+! struct Clock : Bitset_3<Clock_1::Value_1,
+!                         Clock_1::Value_2,
+!                         Clock_2::Value> { };
+
+With this declaration in place, the driver code becomes as simple as:
+
+! write<Clock>(clk);
+
+Under the hood, the framework performs all needed consecutive write operations
+on the registers 0x2 and 0x4.
+
+
 Memory-mapped I/O
 ~~~~~~~~~~~~~~~~~
 
@@ -1770,7 +2126,7 @@ verbatim description of how the device is used. For example:
 !   return read<Control::Irq>();
 ! }
 
-; XXX describe w/o the generated class descriptions
+; describe w/o the generated class descriptions
 ;; Genode::Register<>
 ;[raw spec/classes/genode/register/description]
 ;

@@ -12,8 +12,6 @@ endif
 #  ram_session
 #  base
 #  util
-#  32bit
-#  64bit
 #endef
 
 define BASE_INCLUDE_DIRS
@@ -37,33 +35,35 @@ define BASE_INCLUDE_DIRS
   thread
   trace_session
   util
+  32bit
+  64bit
 endef
 
-#define OS_INCLUDE_DIRS
-#  audio_out_session
-#  block_session
-#  file_system_session
-#  framebuffer_session
-#  gpio_session
-#  init
-#  input_session
-#  loader_session
-#  nic_session
-#  nitpicker_session
-#  os
-#  packet_stream_rx
-#  packet_stream_tx
-#  pci_device
-#  pci_session
-#  regulator_session
-#  report_session
-#  rtc_session
-#  terminal_session
-#  timer_session
-#  uart_session
-#  usb_session
-#  util
-#endef
+define OS_INCLUDE_DIRS
+  audio_out_session
+  block_session
+  file_system_session
+  framebuffer_session
+  gpio_session
+  init
+  input_session
+  loader_session
+  nic_session
+  nitpicker_session
+  os
+  packet_stream_rx
+  packet_stream_tx
+  pci_device
+  pci_session
+  regulator_session
+  report_session
+  rtc_session
+  terminal_session
+  timer_session
+  uart_session
+  usb_session
+  util
+endef
 
 GENODE_ABS_DIR := $(realpath $(shell echo $(GENODE_DIR)))
 
@@ -134,7 +134,9 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/32bit/base/fixed_stdint.h \
                          repos/base/include/ram_session/ram_session.h \
                          repos/base/include/rom_session/rom_session.h \
-                         repos/base/include/io_mem_session/io_mem_session.h
+                         repos/base/include/io_mem_session/io_mem_session.h \
+                         repos/os/include/os/config.h \
+                         repos/os/include/file_system_session/file_system_session.h
 
 FILE_OVERVIEWS := $(addsuffix .overview.tex,$(FILE_OVERVIEW_HEADERS))
 
