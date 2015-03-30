@@ -48,8 +48,9 @@ repositories ultimately defines the view of the build system on the source
 tree.
 
 Note that the order of the repositories as configured in the build
-configuration is important. Front-most repositories shadow subsequent
-repositories. This makes the repository mechanism a powerful tool for tweaking
+configuration (in _etc/build.conf_) is important. Front-most repositories
+shadow subsequent repositories.
+This makes the repository mechanism a powerful tool for tweaking
 existing repositories: By adding a custom repository in front of another one,
 customized versions of single files (e.g., header files or target description
 files) can be supplied to the build system without changing the original
@@ -77,8 +78,8 @@ Each source-code repository has the principle structure shown in Table
   _ports/_      | Port descriptions of 3rd-party software
 
 [table repository_overview]
-  Structure of a source-code repository.
-
+  Structure of a source-code repository. Depending on the repository,
+  only a subset of those directories may be present.
 
 
 Integration of 3rd-party software
@@ -92,9 +93,6 @@ genuine source code:
 * Working with grep within the repositories works very efficient because
   downloaded and extracted 3rd-party code is not in the way. Such code
   resides next to the repositories.
-
-* Adding a supplemental repository can be achieved intuitively by cloning a
-  repository into the _repos/_ directory.
 
 * Storing all build directories and downloaded 3rd-party source code somewhere
   outside the Genode source tree, e.g., on different disk partitions, can
@@ -128,8 +126,8 @@ The _<port-name>.hash_ file contains the fingerprint of the corresponding
 port description, thereby uniquely identifying a version of the port
 as expected by the checked-out Genode version.
 
-For step-by-step instructions on how to add a port using the new mechanism,
-please refer to the updated porting guide:
+For step-by-step instructions on how to add a port using the mechanism,
+please refer to the porting guide:
 
 :Genode Porting Guide:
 
@@ -151,7 +149,8 @@ directories associated, each targeted at a different platform.
 
 The recommended way for creating a build directory is the use of the
 _create_builddir_ tool located at _<genode-dir>/tool/_.
-The tool prints usage information when started without arguments.
+The tool prints usage information along with a list of supported base
+platforms when started without arguments.
 For creating a new
 build directory, one of the listed target platforms must be specified.
 Furthermore, the location of the new build directory can optionally be
@@ -451,8 +450,8 @@ Run tool
 ~~~~~~~~
 
 The centerpiece of the system-integration infrastructure is the so-called run
-tool. Steered by a script (run script), it performs all the steps necessary to
-test drive a system scenario. Those steps are:
+tool. Directed by a script (run script), it performs all the steps necessary to
+test a system scenario. Those steps are:
 
 # *Building* the components of a scenario
 # *Configuration* of the init component
@@ -469,10 +468,10 @@ used kernel, the hardware platform used to execute the scenario, the
 way the test hardware is connected to the test infrastructure
 (e.g., UART, AMT, JTAG, network), the way the test hardware is powered or
 reseted, or the way of how the scenario is loaded into the test hardware.
-To accommodate the variety of combinations of those
+To accommodate the variety of combinations of these
 parameters, the run tool consists of an extensible library of modules.
 The selection and configuration of the modules is expressed in the run-tool
-configuration. There exist the following types of modules:
+configuration. The following types of modules exist:
 
 :boot-dir modules:
   These modules contain the functionality to populate the boot directory
@@ -563,12 +562,15 @@ that the example requires a working network-boot setup including a TFTP
 server, a DHCP server, and a PXE boot loader.
 
 !RUN_OPT = --include boot_dir/nova \
-!          --include power_on/amt --power-on-amt-host 10.23.42.13 \
-!                                 --power-on-amt-password 'foo!' \
-!          --include load/tftp --load-tftp-base-dir /var/lib/tftpboot \
-!                              --load-tftp-offset-dir /x86 \
-!          --include log/amt --log-amt-host 10.23.42.13 \
-!                            --log-amt-password 'foo!'
+!          --include power_on/amt \
+!                  --power-on-amt-host 10.23.42.13 \
+!                  --power-on-amt-password 'foo!' \
+!          --include load/tftp \
+!                  --load-tftp-base-dir /var/lib/tftpboot \
+!                  --load-tftp-offset-dir /x86 \
+!          --include log/amt \
+!                  --log-amt-host 10.23.42.13 \
+!                  --log-amt-password 'foo!'
 
 If the test machine has a comport connection to the machine where the run
 tool is executed, the 'log/serial' module may be used instead of 'log/amt':
@@ -584,18 +586,23 @@ Raspberry Pi is connected to a JTAG debugger, which is used
 to load the system image onto the device.
 
 !RUN_OPT = --include boot_dir/hw \
-!          --include power_on/powerplug --power-on-powerplug-ip 10.23.42.5 \
-!                                       --power-on-powerplug-user admin \
-!                                       --power-on-powerplug-password secret \
-!                                       --power-on-powerplug-port 1
-!          --include power_off/powerplug --power-off-powerplug-ip 10.23.42.5 \
-!                                        --power-off-powerplug-user admin \
-!                                        --power-off-powerplug-password secret \
-!                                        --power-off-powerplug-port 1
+!          --include power_on/powerplug \
+!                  --power-on-powerplug-ip 10.23.42.5 \
+!                  --power-on-powerplug-user admin \
+!                  --power-on-powerplug-password secret \
+!                  --power-on-powerplug-port 1 \
+!          --include power_off/powerplug \
+!                  --power-off-powerplug-ip 10.23.42.5 \
+!                  --power-off-powerplug-user admin \
+!                  --power-off-powerplug-password secret \
+!                  --power-off-powerplug-port 1 \
 !          --include load/jtag \
-!          --load-jtag-debugger /usr/share/openocd/scripts/interface/flyswatter2.cfg \
-!          --load-jtag-board /usr/share/openocd/scripts/interface/raspberrypi.cfg \
-!          --include log/serial --log-serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
+!          --load-jtag-debugger \
+!              /usr/share/openocd/scripts/interface/flyswatter2.cfg \
+!          --load-jtag-board \
+!              /usr/share/openocd/scripts/interface/raspberrypi.cfg \
+!          --include log/serial \
+!                  --log-serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
 
 
 Meaningful default behaviour
@@ -671,10 +678,10 @@ message "Run script execution successful.".
 Note that the _hello.run_ script does not contain kernel-specific information.
 Therefore it can be executed from the build directory of any base platform
 via the command 'make run/hello'.
-When invoking 'make' with an argument of the form 'run/*', the build system
-searches all repositories for a run script with the specified name. The run
-script must be located in one of the repositories' _run/_ subdirectories and
-have the file extension '.run'.
+When invoking 'make' with an argument of the form 'run/<run-script>', the
+build system searches all repositories for a run script with the specified name.
+The run script must be located in one of the repositories' _run/_ subdirectories
+and have the file extension '.run'.
 
 
 The run mechanism explained

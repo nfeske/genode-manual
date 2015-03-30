@@ -550,3 +550,16 @@ command:
 
 ! make run/hello
 
+After the boot output of the used kernel, the scenario will produce the
+following output:
+
+! [init -> hello] Hello world
+! [init] virtual void Genode::Child_policy::exit(int):
+!        child "hello" exited with exit value 0
+! Run script execution successful.
+
+The label within the brackets at the start of each line identifies the
+component where the message originated from. The final line is printed by the
+run tool after it successfully matched the log output against the regular
+expression specified to the 'run_genode_until' command.
+
