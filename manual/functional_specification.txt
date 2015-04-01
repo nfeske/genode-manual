@@ -1,20 +1,72 @@
 Functional specification
 ########################
 
-; * Scope and design principles
-;   * Self-sufficient
-;   * Cover everything needed to host Genode
-;   * Convenience functions accepted only if the Genode base system benefits
-;     from them
-;   * No application-level API (for example, string functions must not be
-;     misunderstood as string API)
-; * Mention roles of base and os repositories
-; * Check for headers that contain no classes
-; * Naming convention
-;   * colors (blue: class; yellow: namespace; green: method)
-;   * global function, class function, object methods
-;   * accessor
-;   * typedef vs. sub type
+This chapter complements the architectural information of Chapters
+[Architecture] and [Components] with a thorough description of the
+framework's C++ programming interface. The material is partially generated
+from the source code, specifically the public header files of the _base_
+and _os_ source-code repositories. The location of the headers in either
+both repositories depends on role of the respective header. Only if the
+interface is fundamentally required by the core component or by the base
+framework itself, it is contained in the base repository. Otherwise, the
+header is found in the _os_ repository.
+
+Scope of the API
+----------------
+
+The Genode API covers
+everything needed by Genode to be self-sufficient without any dependency on
+3rd-party code. It does not even depend on a C runtime.
+It is possible to create components that solely use the raw Genode API, as is
+the case for the ones hosted within the _repos/os/_ repository.
+Because such components do not rely on any library code except for the
+low-complexity Genode base libraries, they are relatively easy to evaluate.
+That said, the API must not be mistaken as an application-level API.
+It does not present an alternative to established application-level libraries
+like the standard C++ library. For example, even though the framework contains
+a few utilities for processing strings, those utilities do merely exist to
+support the use cases present in Genode.
+
+
+General conventions
+-------------------
+
+The functional specification adheres to the following general conventions:
+
+* Static member functions are called _class functions_. All other member
+  functions are called _methods_.
+
+* Both structs and classes are referred to as _classes_. There is no
+  distinction between both at the API level.
+
+* Constant functions with no argument and a return value are called
+  _accessors_. Technically, they are "getters" but since Genode does not
+  have any "setters", accessors are synonymous to "getters". Because those
+  functions are so simple, they are listed in the class overview and are not
+  described separately.
+
+* Classes that merely inherit other classes are called _sub types_.
+  In contrast to the use of a 'typedef', such classes are not mere
+  name aliases but represent a new type. The type is compatible to the
+  base class but not vice versa. For example, exception types are
+  sub types of the 'Exception' class.
+
+* Namespace-wide information is presented with a light yellow background.
+
+* Each non-trivial class is presented in the form of a class diagram on a
+  blue-shaded background. The diagram shows the
+  public base classes and the list of public class functions and methods.
+  If the class is a template, the template arguments are annotated at
+  the top-right of corner of the class. If the class represents an
+  RPC interface, an information box is attached.
+  The methods listed in the diagram can be used as hyperlinks to further
+  descriptions if available.
+
+* Method descriptions are presented on a green-shaded background,
+  global functions are presented on an orange-shaded background.
+
+* The directory path presented under "Header" sections is a hyperlink to the
+  corresponding source code at GitHub.
 
 
 API primitives
@@ -85,7 +137,7 @@ when destructing the 'Connection'.
 Dataspace interface
 ~~~~~~~~~~~~~~~~~~~
 
-The dataspace abstraction described in Section [Dataspace] is the
+The dataspace abstraction described in Section [Dataspaces] is the
 fundamental API primitive for representing a container of memory as
 provided by core's RAM, IO_MEM, or ROM services. Each dataspace is referenced
 by a capability that can be passed among components.
@@ -492,7 +544,7 @@ Section [Publishing and subscribing].
 [raw spec/classes/report/connection/description]
 
 
-[clearpage]
+[raw spec/clearpage]
 
 The client-side 'Reporter' is a convenient front end for the use of a
 report connection to propagate XML-formed data.
@@ -506,7 +558,7 @@ report connection to propagate XML-formed data.
 Terminal and UART session interfaces
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A terminal session (Section [Terminal]) is a bi-directional communication
+A terminal session (Section [Terminal and UART]) is a bi-directional communication
 channel. The UART session interface supplements the terminal
 session interface with a facility to parametrize UART configuration
 parameters
@@ -596,8 +648,8 @@ PCI session interface
 ; Pci::Session
 [raw spec/classes/pci/session/description]
 
-; Pci::Connection
-[raw spec/classes/pci/connection/description]
+;XXX trivial Pci::Connection
+;[raw spec/classes/pci/connection/description]
 
 
 [raw spec/clearpage]
@@ -738,7 +790,7 @@ the seek offset, and the length.
 [raw spec/classes/file_system/connection/description]
 
 
-[spec/clearpage]
+[raw spec/clearpage]
 
 The file-system session's 'status' and 'control' operations use the compound
 structures 'Status' and 'Control' as arguments. The format of the data
@@ -952,9 +1004,9 @@ and hosts the memory buffer for storing the bits within the object.
 
 [raw spec/clearpage]
 
-Ring buffer
-~~~~~~~~~~~
-
+;Ring buffer
+;~~~~~~~~~~~
+;
 ; Genode::Ring_buffer_unsynchronized
 ; Genode::Ring_buffer_synchronized
 ; Genode::Ring_buffer<>
@@ -1793,8 +1845,7 @@ namespaces provide ready-to-use building blocks to be aggregated in session
 interfaces.
 
 
-Data transfer from server to client
------------------------------------
+*Data transfer from server to client*
 
 ; Packet_stream_rx::Channel
 [raw spec/classes/packet_stream_rx/channel/description]
@@ -1806,8 +1857,7 @@ Data transfer from server to client
 ;[raw spec/classes/packet_stream_rx/rpc_object/description]
 
 
-Data transfer from client to server
------------------------------------
+*Data transfer from client to server*
 
 ; Packet_stream_tx::Channel
 [raw spec/classes/packet_stream_tx/channel/description]
@@ -1822,7 +1872,7 @@ Data transfer from client to server
 XML processing
 ==============
 
-The configuration concept [Chapter [System configuration] and Section
+The configuration concept (Chapter [System configuration] and Section
 [Component configuration]) of the framework relies on XML syntax. Hence,
 there is the need to process XML-formed data. For parsing XML data, the
 'Xml_node' and the accompanied 'Xml_attribute' utilities are provided.
