@@ -9,8 +9,12 @@ $(error GENODE_DIR not specified)
 endif
 
 #define BASE_INCLUDE_DIRS
-#  ram_session
+#  util
 #  base
+#endef
+
+#define OS_INCLUDE_DIRS
+#  os
 #  util
 #endef
 
@@ -85,9 +89,13 @@ usage:
 	@echo class_index.mk     - generate class index
 	@echo class_descriptions - generate class descriptions
 	@echo file_overviews     - generate file overviews
+	@echo all                - generate everything
 	@echo
 	@echo When invoking this Makefile, the GENODE_DIR variable must be
 	@echo set to the base directory of the Genode source tree.
+
+all: class_index.mk class_descriptions file_overviews
+
 
 #
 # Generate class index

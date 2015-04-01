@@ -25,33 +25,66 @@ set class_name [get_cmd_arg --class ""]
 proc tikz_node { identifier } {
 	regsub -all {_} $identifier "" identifier
 	regsub -all {::} $identifier "" identifier
+	regsub -all {<} $identifier "" identifier
+	regsub -all {>} $identifier "" identifier
+	regsub -all { } $identifier "" identifier
+	regsub -all {,} $identifier "" identifier
 	return $identifier
+}
+
+
+##
+# Return class name with template arguments stripped off
+#
+proc class_name_identifier { } {
+
+	global class_name
+
+	regexp {^[^<]+} $class_name class_name_identifier
+	return $class_name_identifier
 }
 
 
 proc out_class_name { class_name } {
 
-	regexp {^[^<]+} $class_name class_name_identifier
-
 	set template_args ""
 	regexp {<.*>} $class_name template_args
 
-	regsub {^Genode::} $class_name_identifier {} short_class_name
+	regsub {^Genode::} [class_name_identifier] {} short_class_name
 
 	return "[out_latex $short_class_name][out_latex $template_args]"
 }
 
 
-proc out_linked_class_name { class_name } {
+proc in_genode_namespace { class_name } {
 
-	regexp {^[^<]+} $class_name class_name_identifier
+	if {[regexp {^Genode::} $class_name]} { return 1 }
+	return 0
+}
+
+
+proc out_linked_class_name { class_name } {
 
 	set template_args ""
 	regexp {<.*>} $class_name template_args
 
-	regsub {^Genode::} $class_name_identifier {} short_class_name
+	regexp {^[^<]+} $class_name link_identifier
 
-	return "\\hyperlink{$class_name}{[out_latex $short_class_name]}\
+	#
+	# If classes within the Genode namespace refer to other classes within
+	# Genode, they usually omit the Genode:: namespace prefix. For the
+	# huperlink, however, we need to fully quality the class name.
+	# For a generic solution, we needed a cross-referencing database that
+	# knows the C++ name-resolution rules.
+	#
+	if {[in_genode_namespace [class_name_identifier]] &&
+	    ![in_genode_namespace $link_identifier]} {
+		set link_identifier "Genode::$link_identifier"
+	}
+
+	regsub {^Genode::} $link_identifier {} short_class_name
+
+	return "\\hyperlink{$link_identifier}{[out_latex $short_class_name]}\
 	        [out_latex $template_args]"
 }
 
@@ -88,7 +121,9 @@ proc generate_diagram { class_token } {
 	set has_members [class_has_members $class_token]
 
 	set nodestyle "umlclass, inner sep=0.7ex,"
-	if {$has_members} { set nodestyle "umlclass3" }
+	if {$has_members} { set nodestyle "umlclass3, inner sep=0.7ex" }
+
+	set template_args [class_template_arguments $class_token]
 
 	puts "  \\node\[$nodestyle,$class_below_of\] (class) {"
 
@@ -138,6 +173,25 @@ proc generate_diagram { class_token } {
 	}
 	puts "  };"
 
+	# attach template arguments
+	if {[llength $template_args] > 0} {
+
+		set first 1
+		set args ""
+		foreach arg $template_args {
+
+			if {!$first} { append args ", " }
+			set arg_name [lindex $arg 0]
+			if {$arg_name == ""} { set arg_name [lindex $arg 1] }
+			append args "\\texttt{[out_latex $arg_name]}"
+			set first 0
+		}
+		if {[string length $args] > 30} {
+			regsub -all {,\s*} $args {,\\\\} args }
+
+		puts "  \\path (class.north east) node\[align=left,anchor=south west, inner xsep=0.8ex, minimum size=3ex, xshift=-1.5ex, yshift=-1.5ex, umlclass, dashed\] {$args};"
+	}
+
 	# inheritance relationships
 	if {[llength $base_classes]} {
 		set index 0
@@ -169,7 +223,10 @@ proc generate_diagram { class_token } {
 proc method_prefix { method_token } {
 
 	if {[is_function_template $method_token]} {
-		set prefix [method_prefix [sub_token $method_token funcimpl]]
+		set impl_token [sub_token $method_token funcimpl]
+		if {$impl_token == ""} {
+			set impl_token [sub_token $method_token constimpl] }
+		set prefix [method_prefix $impl_token]
 		return "$prefix template"
 	}
 
@@ -260,7 +317,7 @@ proc code_url { } { return "https://github.com/genodelabs/genode/blob/master/" }
 
 
 puts "{ \\noindent \\raggedleft"
-puts "\\hypertarget{$class_name}{"
+puts "\\hypertarget{[class_name_identifier]}{"
 puts {\begin{tikzpicture}}
 puts { \tikzstyle{every node} = [font=\small] }
 puts { \begin{apibox}{0.8,0.85,0.9}}

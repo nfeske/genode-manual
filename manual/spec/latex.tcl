@@ -147,7 +147,7 @@ proc generate_function_info_sections { func_token } {
 		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
 		foreach exception $exceptions {
 			set exc_type [lindex $exception 0]
-			set exc_desc [lindex $exception 1]
+			set exc_desc [string totitle [lindex $exception 1]]
 			puts "    \\texttt{\\textbf{[out_latex $exc_type]}} & [out_latex "$exc_desc"]\\\\"
 		}
 		puts "  \\end{tabularx}"

@@ -480,6 +480,14 @@ proc tplfunc_function { tplfunc_token } {
 }
 
 
+proc function_is_operator { func_token } {
+
+	set operatorfunction_token [sub_token $func_token operatorfunction]
+	if {$operatorfunction_token != ""} { return 1 }
+	return 0
+}
+
+
 ##
 # Return function name
 #
@@ -489,12 +497,25 @@ proc function_name { func_token } {
 		set func_token [tplfunc_function $func_token] }
 
 	if {[is_function $func_token]} {
-		set funcsignature_token [sub_token $func_token          funcsignature]
-		set name_token          [sub_token $funcsignature_token identifier]
-		set tilde ""
-		if {[sub_token $func_token tilde] != ""} { set tilde "~" }
-		return "$tilde[unfold_token $name_token]"
+
+		if {[function_is_operator $func_token]} {
+
+			set operatorfunction_token [sub_token $func_token operatorfunction]
+			set operator_name_token [sub_token $operatorfunction_token operator]
+			set operator_name [concat [unfold_token $operator_name_token]]
+			regsub {\s+} $operator_name " " operator_name
+			return $operator_name
+
+		} else {
+			set funcsignature_token [sub_token $func_token          funcsignature]
+			set name_token          [sub_token $funcsignature_token identifier]
+			set tilde ""
+			if {[sub_token $func_token tilde] != ""} { set tilde "~" }
+			return "$tilde[unfold_token $name_token]"
+		}
 	}
+
+	return ""
 }
 
 
@@ -768,15 +789,20 @@ proc argparenblk_arguments { compound_token argparenblk_token } {
 #
 proc function_arguments { func_token } {
 
+	set orig_func_token $func_token
+
 	if {[is_function_template $func_token]} {
-		set funcsignature_token [sub_token [tplfunc_function $func_token] funcsignature]
+		set func_token [tplfunc_function $func_token] }
+
+	if {[function_is_operator $func_token]} {
+		set operatorfunction_token [sub_token $func_token operatorfunction]
+		set argparenblk_token [sub_token $operatorfunction_token argparenblk]
 	} else {
 		set funcsignature_token [sub_token $func_token funcsignature]
+		set argparenblk_token [sub_token $funcsignature_token argparenblk]
 	}
 
-	set argparenblk_token [sub_token $funcsignature_token argparenblk]
-
-	return [argparenblk_arguments $func_token $argparenblk_token]
+	return [argparenblk_arguments $orig_func_token $argparenblk_token]
 }
 
 
