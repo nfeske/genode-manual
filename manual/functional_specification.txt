@@ -1,17 +1,13 @@
 Functional specification
 ########################
 
-| TODO
-
 ; * Scope and design principles
-;   * Low complexity
 ;   * Self-sufficient
 ;   * Cover everything needed to host Genode
 ;   * Convenience functions accepted only if the Genode base system benefits
 ;     from them
 ;   * No application-level API (for example, string functions must not be
 ;     misunderstood as string API)
-; * No hidden allocations (why? Refer to Section [Component-local heap partitioning])
 ; * Mention roles of base and os repositories
 ; * Check for headers that contain no classes
 ; * Naming convention
@@ -52,11 +48,21 @@ Sessions and connections
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Servers provide their services over session-based communication channels.
-Each session provides an interface inherited from the 'Session' base class.
+A Session type is defined as an abstract interface inherited from the
+'Session' base class.
 
-; XXX explain the service_name class function
-; XXX Genode::Session
+; Genode::Session
 [raw spec/classes/genode/session/description]
+
+Each session interface has to provide an implementation of the following
+class function that returns the name of the service as constant string.
+
+! static const char *service_name();
+
+This function is used by the framework for the announcement of the
+service's root interface at the component's parent. The string returned
+by this function corresponds to the service name as used in the
+system configuration (Section [System configuration]).
 
 The interaction of a client with a server involves the definition of
 session-construction arguments, the request of the session creation
@@ -100,19 +106,6 @@ dataspaces provide the following interface.
 Component execution environment
 ===============================
 
-Parent interface
-~~~~~~~~~~~~~~~~
-
-At its creation time, the only communication partner of a component
-is its immediate parent, which provides the following interface.
-
-; XXX Genode::Parent_client
-
-; Genode::Parent
-[raw spec/classes/genode/parent/description]
-
-
-[raw spec/clearpage]
 
 Interface to the component's environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,19 +120,39 @@ In addition to the component's initial sessions, the environment
 contains the heap of the component. The heap can be used for
 anonymous memory allocation and is the front end for allocating
 RAM dataspaces from the component's RAM session and attaching
-these dataspaces to the component's RM session.
+these dataspaces to the component's RM session. The component's
+environment can be accessed via the global 'env()' function:
+
+[raw spec/repos/base/include/base/env.h.overview]
+
+The interface returned by the 'env()' function looks as follows:
 
 ; Genode::Env
 [raw spec/classes/genode/env/description]
+
 
 By default, the component environment holds one initial LOG session
 used as the standard text-output facility. For debugging purposes,
 there exists a 'printf' front end for writing text to the initial
 LOG session.
 
-; XXX base: printf
-; Genode::Console
-[raw spec/classes/genode/console/description]
+; base: printf
+[raw spec/repos/base/include/base/printf.h.overview]
+
+
+[raw spec/clearpage]
+
+Parent interface
+~~~~~~~~~~~~~~~~
+
+At its creation time, the only communication partner of a component
+is its immediate parent. The parent can be reached via interface returned
+by 'env()->parent()'.
+
+; XXX Genode::Parent_client
+
+; Genode::Parent
+[raw spec/classes/genode/parent/description]
 
 
 [raw spec/clearpage]
@@ -162,9 +175,10 @@ session corresponds to a memory budget with a bounded quota. From this
 budget, the RAM-session client can allocate memory blocks in the form
 of dataspaces.
 
-; XXX Genode::Ram_dataspace
-
 ; XXX Genode::Ram_session_client
+
+; Genode::Ram_dataspace
+[raw spec/repos/base/include/ram_session/ram_session.h.overview]
 
 ; Genode::Ram_session
 [raw spec/classes/genode/ram_session/description]
@@ -186,6 +200,9 @@ ROM modules, e.g., binary data loaded by the boot loader
 Each session refers to one ROM module. The module's data is provided to
 the client in the form of a dataspace (Section [Dataspaces]).
 
+; Genode::Rom_dataspace
+[raw spec/repos/base/include/rom_session/rom_session.h.overview]
+
 ; Genode::Rom_session
 [raw spec/classes/genode/rom_session/description]
 
@@ -193,8 +210,6 @@ the client in the form of a dataspace (Section [Dataspaces]).
 
 ; Genode::Rom_connection
 [raw spec/classes/genode/rom_connection/description]
-
-; XXX Genode::Rom_dataspace
 
 ; XXX Genode::Attached_rom_dataspace
 
@@ -300,6 +315,7 @@ its own RM session.
 ; XXX Genode::Io_mem_session_client
 
 ; XXX Genode::Io_mem_dataspace
+[raw spec/repos/base/include/io_mem_session/io_mem_session.h.overview]
 
 ; Genode::Io_mem_session
 [raw spec/classes/genode/io_mem_session/description]
@@ -586,7 +602,19 @@ types are defined in _base/stdint.h_ and _base/fixed_stdint.h_.
 Whereas the former is independent from the machine type, the latter
 differs between 32-bit and 64-bit architectures.
 
-;XXX stdint, fixed stdint
+[raw spec/repos/base/include/base/stdint.h.overview]
+
+[raw spec/clearpage]
+The fixed-width integer types for 32-bit architectures are defined
+as follows.
+
+[raw spec/repos/base/include/32bit/base/fixed_stdint.h.overview]
+
+[raw spec/clearpage]
+The fixed-width integer types for 64-bit architectures are defined
+as follows.
+
+[raw spec/repos/base/include/64bit/base/fixed_stdint.h.overview]
 
 
 Exception types
@@ -598,8 +626,8 @@ for grouping errors. Normally, exceptions do not carry payload.
 For code consistency, exception types should inherit from the
 'Exception' base class. By convention, exceptions carry no payload.
 
-; XXX Genode::Exception
-; XXX Genode::Blocking_canceled
+; Genode::Exception
+[raw spec/classes/genode/exception/description]
 
 
 C++ supplements
@@ -612,7 +640,25 @@ C++ supplements
 Data structures
 ===============
 
-;XXX Rationale behind using intrusive data structures
+The framework API features a small library of data structures that are
+solely exist to support the framework implementation. They have been
+designed under the following considerations:
+
+* They should be *as simple as possible* to make them easy to evaluate for
+  correctness. Low complexity takes precedence over performance.
+
+* Each data structure provides a *rigid interface* that is targeted at a
+  specific use case and does not attempt to be a power tool. For example,
+  the 'Fifo' deliberately provides no way to randomly access
+  elements, the 'List' merely provides the functionality to remember
+  elements but lacks list-manipulation operations.
+
+* Data structures perform no hidden anonymous memory allocations by
+  *storing meta data intrusively*. This is precondition for allowing
+  resources multiplexers and runtime environments to properly account their
+  local memory allocations. Section [Component-local heap partitioning]
+  provides the rationale behind the need for full control over memory
+  allocations.
 
 
 [raw spec/clearpage]
@@ -898,8 +944,19 @@ String processing
 Basic string operations
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-; Genode::Number_of_bytes
-[raw spec/classes/genode/number_of_bytes/description]
+There exists a small set of string-manipulation operations as global functions
+in the 'Genode' namespace.
+
+[raw spec/repos/base/include/util/string.h.overview]
+
+; XXX ascii_to
+; XXX Genode::Number_of_bytes
+;[raw spec/classes/genode/number_of_bytes/description]
+
+[raw spec/clearpage]
+To cover the common case of embedding a string buffer as a member variable in
+a class, there exists the 'String' class template, which alleviates the
+need for C-style arrays in such situations.
 
 ; Genode::String<>
 [raw spec/classes/genode/string/description]
@@ -924,10 +981,28 @@ simple tokenizing support is provided via the 'Token' class.
 Format strings
 ~~~~~~~~~~~~~~
 
+Format strings are commonly used for printing debug output. Throughout Genode,
+only a small subset of format-string features are needed. The processing of
+such simple format strings is performed by the low-complexity 'Console'
+utility. For the subset of supported formatting commands, please refer to the
+implementation at _repos/base/src/base/console/console.cc_. The 'Console'
+has a protected pure virtual '_out_char' function that needs to be implemented
+by a derived class.
+
+; Genode::Console
+[raw spec/classes/genode/console/description]
+
+The 'String_console' implements the 'Console' interface by writing the output
+to memory. It thereby allows the rendering of format strings into character
+buffers.
+
 ; Genode::String_console
 [raw spec/classes/genode/string_console/description]
 
-; XXX snprintf
+There exists a convenient wrapper for the 'String_console' in the form of the
+'snprintf' function.
+
+[raw spec/repos/base/include/base/snprintf.h.overview]
 
 
 [raw spec/clearpage]
@@ -963,27 +1038,36 @@ Multi-threading and synchronization
 Threads
 ~~~~~~~
 
-A thread is created by constructing an object of a class
-inherited from 'Thread_base'. The new thread starts its execution at the
-'entry' member function.
+A thread is created by constructing an object of a class inherited from
+'Thread_base'. The new thread starts its execution at the 'entry' member
+function.
 Thereby, each thread runs in the context of its object and
 can access context-specific information by accessing its member
-variables. This largely alleviates the need to a thread-local storage (TLS)
+variables. This largely alleviates the need for a thread-local storage (TLS)
 mechanism.
 Threads use a statically allocated stack, which is dimensioned according
 to the corresponding constructor argument.
-The special case of infinite blocking a thread is covered by
-the following base API function.
-Genode allows all blocking operations of threads to be canceled via
-a 'cancel_blocking' mechanism provided by core's CPU service. The
-cancellation of a blocking operation is reflected at the API level
-by a raised exception of the type 'Blocking_canceled'.
 
 ; Genode::Thread_base
 [raw spec/classes/genode/thread_base/description]
 
+The 'Thread' class template accommodates the common case of creating
+threads with their stack size known at compile time. It takes the
+stack size as template argument.
+
+
+[raw spec/clearpage]
+
 ; Genode::Thread<>
 [raw spec/classes/genode/thread/description]
+
+Blocking operations performed by threads can be canceled via the
+thread's 'cancel_blocking' method. The cancellation of a blocking
+operation is reflected at the API level by a raised exception of the type
+'Blocking_canceled'.
+
+; Genode::Blocking_canceled
+[raw spec/repos/base/include/base/blocking.h.overview]
 
 
 [raw spec/clearpage]
