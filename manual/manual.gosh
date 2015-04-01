@@ -6,6 +6,8 @@ proc produce_head_latex {} {
 #	printline {\documentclass[11pt,a4paper,normalheadings,twoside,DIV12]{scrartcl}}
 	printline {\documentclass[a4paper,normalheadings]{scrartcl}}
 	printline {\usepackage[T1]{fontenc}}
+	printline {\linespread{1.05} % avoid foot-note markers to mess up the line spacing}
+	printline {\usepackage[norule,perpage]{footmisc}}
 	printline {\usepackage{textcomp}}
 	printline {\usepackage[latin1]{inputenc}}
 	printline {\usepackage[english]{babel}}

@@ -1090,7 +1090,7 @@ obtained a session to core's RAM service is a RAM client.
 Dataspaces
 ~~~~~~~~~~
 
-A dataspace is an RPC object that resides in core and represents a contiguous
+A dataspace is an RPC object[1] that resides in core and represents a contiguous
 physical address-space region with an arbitrary size. Its base address and
 size are subjected to the granularity of physical pages as dictated by the
 memory-management unit (MMU) hardware. Typically the granularity is 4 KiB.
@@ -1108,16 +1108,20 @@ On Genode, only core deals with physical memory pages. All other components
 use dataspaces as a uniform abstraction for memory, memory-mapped I/O
 regions, and ROM modules.
 
+[1] Interface specification in Section [Dataspace interface]
+
 
 Physical memory allocation (RAM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A RAM session is a quota-bounded allocator of physical memory.
+A RAM session[1] is a quota-bounded allocator of physical memory.
 At session-creation time, its quota is zero.
 To make the RAM session functional, it must first receive quota from
 another already existing RAM session, which is called the _reference account_.
 Once the reference account is defined, quota can be transferred back and
 forth between the reference account and the new RAM session.
+
+[1] Interface specification in Section [RAM session interface]
 
 Provided that the RAM session is equipped with sufficient quota, the RAM
 client can allocate RAM dataspaces from the RAM session. The size of
@@ -1157,7 +1161,7 @@ the kernel.
 Examples of boot modules are the ELF images of the core component, the
 init component, the components created by init, and the configuration of the
 init component.
-Core makes each boot module available as a ROM session. Because boot modules
+Core makes each boot module available as a ROM session[1]. Because boot modules
 are read-only memory, they are generally called ROM modules.
 On session construction, the client specifies the name of the ROM module
 as session argument.
@@ -1167,6 +1171,8 @@ visible within its local address space.
 The ROM session interface is described in more detail in
 Section [Read-only memory (ROM)].
 
+[1] Interface specification in Section [ROM session interface]
+
 
 Protection domains (PD)
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1175,8 +1181,10 @@ A protection domain (PD) corresponds to a unit of protection within the Genode
 system. Typically, there is a one-to-one relationship between a component and
 a PD. At the hardware-level, the CPU isolates different protection domains via
 a memory-management unit. Each domain is represented by a different page
-directory, or an address-space ID (ASID). A PD session represents the
+directory, or an address-space ID (ASID). A PD session[1] represents the
 used hardware-based protection facility.
+
+[1] Interface specification in Section [PD session interface]
 
 In addition to representing the unit of memory protection, a PD comprises a
 capability space as introduced in
@@ -1196,9 +1204,11 @@ can be combined as basic building blocks for creating a component.
 Address-space management (RM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A region-manager (RM) session represents the layout of a virtual address
+A region-manager (RM) session[1] represents the layout of a virtual address
 space. The size of the virtual address space can be defined via session
 arguments at the session-creation time.
+
+[1] Interface specification in Section [RM session interface]
 
 
 Populating an address space
@@ -1284,10 +1294,12 @@ thread.
 Processing-time allocation (CPU)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A CPU session is an allocator for processing time that allows for the creation,
+A CPU session[1] is an allocator for processing time that allows for the creation,
 the control, and the destruction of threads of execution.
 At session-construction time, the affinity of a CPU session with CPU cores can
 be defined via session arguments.
+
+[1] Interface specification in Section [CPU session interface]
 
 Once created, the session can be used to create, control, and kill threads.
 Each thread created via a CPU session is represented by a thread capability.
@@ -1312,11 +1324,13 @@ Object-identity allocation (CAP)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Genode regards object identities as a physical resource because each object
-identity is represented as a kernel object. Core's CAP service allows for the
-creation and destructions of new object identities. For each RPC object
+identity is represented as a kernel object. Core's CAP service[1] allows for
+the creation and destructions of new object identities. For each RPC object
 associated to an RPC entrypoint, the entrypoint requests the creation of
 a new object identity from a CAP session and associates the RPC object with
 the capability allocated from the CAP service.
+
+[1] Interface specification in Section [CAP session interface]
 
 For more information about the relationship between RPC objects and object
 identities, refer to Section [Capability-based security].
@@ -1328,14 +1342,14 @@ Section [Synchronous remote procedure calls (RPC)].
 Access to device resources (IO_MEM, IO_PORT, IRQ)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Core's IO_MEM, IO_PORT, and IRQ services enable the realization of user-level
-device drivers as Genode components.
+Core's IO_MEM, IO_PORT, and IRQ services enable the realization of
+user-level device drivers as Genode components.
 
 
 Memory mapped I/O (IO_MEM)
 --------------------------
 
-An IO_MEM session provides a dataspace representation for a non-memory part of
+An IO_MEM session[1] provides a dataspace representation for a non-memory part of
 the physical address space such as memory-mapped I/O regions or BIOS areas.
 In contrast to a memory block that is used for storing information, of which
 the physical location in memory is of no matter, a non-memory object has
@@ -1347,6 +1361,8 @@ created by specifying the physical base address, the size, and the
 write-combining policy of the memory-mapped resource as session arguments.
 Once an IO_MEM session is created, the IO_MEM client can request a dataspace
 containing the specified physical address range.
+
+[1] Interface specification in Section [IO_MEM session interface]
 
 Core hands out each physical address range only once. Session requests for
 ranges that intersect with physical memory are denied. Even though the
@@ -1366,7 +1382,7 @@ Port I/O (IO_PORT)
 
 For platforms that rely on I/O ports for device access, core's IO_PORT service
 enables the fine-grained assignment of port ranges to individual components.
-Each IO_PORT session corresponds to the exclusive access right to a port range
+Each IO_PORT session[1] corresponds to the exclusive access right to a port range
 specified as session arguments. Core creates the new IO_PORT session only if
 the specified port range does not overlap with an already existing session.
 This ensures that each I/O port is driven by only one IO_PORT client at a
@@ -1380,12 +1396,14 @@ The read and write operations take absolute port addresses as arguments.
 Core performs the I/O-port operation only if the specified port address lies
 within the port range of the session.
 
+[1] Interface specification in Section [IO_PORT session interface]
+
 
 Reception of device interrupts (IRQ)
 ------------------------------------
 
 Core's IRQ service enables device-driver components to respond to
-device interrupts. Each IRQ session corresponds to an interrupt.
+device interrupts. Each IRQ session[1] corresponds to an interrupt.
 The physical interrupt number is specified as session argument.
 Each physical interrupt number can be specified by only one session.
 The IRQ session
@@ -1396,19 +1414,23 @@ Once the interrupt occurs, core wakes up the IRQ client and masks the
 interrupt at the interrupt controller until the driver has completed the IRQ
 handling and waits for the next interrupt.
 
+[1] Interface specification in Section [IRQ session interface]
+
 
 Logging (LOG)
 ~~~~~~~~~~~~~
 
 The LOG service is used by the lowest-level system components such as the init
 component for printing diagnostic output.
-Each LOG session takes a label as session argument, which is used to prefix
+Each LOG session[1] takes a label as session argument, which is used to prefix
 the output of this session.
 This enables developers to distinguish the output of different components with
 each component having a unique label.
 The LOG client transfers the to-be-printed characters as payload of plain RPC
 messages, which represents the simplest possible communication mechanism
 between the LOG client and core's LOG service.
+
+[1] Interface specification in Section [LOG session interface]
 
 
 Asynchronous notifications (SIGNAL)
