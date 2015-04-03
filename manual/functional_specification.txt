@@ -234,7 +234,7 @@ via the 'Config::sigh' function.
 
 ; Genode::Config
 [raw spec/repos/os/include/os/config.h.overview]
-[raw spec/classes/genode/config/description
+[raw spec/classes/genode/config/description]
 
 
 Session interfaces of the base API
