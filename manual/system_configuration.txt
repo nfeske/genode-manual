@@ -360,7 +360,7 @@ child is routed to the timer service started at the first-level init instance.
 !     <resource name="RAM" quantum="1M"/>
 !     <provides><service name="Timer"/></provides>
 !     <route>
-!       <any-service"> <parent/> </any-service>
+!       <any-service> <parent/> </any-service>
 !     </route>
 !   </start>
 !   <start name="init">
@@ -374,13 +374,13 @@ child is routed to the timer service started at the first-level init instance.
 !       <start name="test-timer">
 !         <resource name="RAM" quantum="1M"/>
 !         <route>
-!           <any-service"> <parent/> </any-service>
+!           <any-service> <parent/> </any-service>
 !         </route>
 !       </start>
 !     </config>
 !     <route>
 !       <service name="Timer"> <child name="timer"/> </service>
-!       <any-service">         <parent/>             </any-service>
+!       <any-service>          <parent/>             </any-service>
 !     </route>
 !   </start>
 ! </config>
