@@ -11,13 +11,15 @@ SHELL = bash
 define CHAPTERS
 title
 introduction
+part_1
 getting_started
 architecture
 components
 development
 system_configuration
-functional_specification
 under_the_hood
+part_2
+functional_specification
 endef
 
 default: manual.pdf
