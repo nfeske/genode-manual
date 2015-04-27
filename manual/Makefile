@@ -26,13 +26,25 @@ default: manual.pdf
 manual.txt: $(addsuffix .txt,$(patsubst #%,,$(strip $(CHAPTERS))))
 	cat $^ > $@
 
-%.pdf: %.txt manual.gosh Makefile $(wildcard img/*.pdf) $(wildcard img/*.tikz)
-	gosh --style manual.gosh $< > $(TEXFILE).tex
+manual.pdf: manual.txt manual.gosh Makefile \
+       $(wildcard img/*.pdf) \
+       $(wildcard img/*.tikz) \
+       spec/repos spec/classes
+	gosh --style manual.gosh manual.txt > $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	cp $(TEXFILE).pdf $@
 	rm -f $(TEXFILE) $(TEXFILE).*
 
-clean:
+clean_manual:
 	rm -f $(TEXFILE) $(TEXFILE).* manual.txt manual.pdf
+
+spec/repos spec/classes:
+	make -C spec all
+
+clean_spec:
+	make -C spec clean
+
+clean: clean_manual clean_spec
+
