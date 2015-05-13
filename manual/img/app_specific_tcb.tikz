@@ -1,0 +1,113 @@
+\begin{tikzpicture}[scale=1.7, transform shape]
+
+	\definecolor{regular} {rgb}{1,0.8,0.5}
+	\definecolor{yellow}  {rgb}{1,0.8,0.1}
+	\definecolor{initred} {rgb}{0.9,0.7,0.5}
+	\definecolor{tcbred}  {rgb}{0.7,0.3,0.2}
+
+	%
+	% Tree nodes
+	%
+
+	\tikzstyle{treenode} = [component, path fading=flow fade,
+	                        align=center, rounded corners=2,
+	                        inner sep=0,
+	                        minimum width=2ex, minimum height=2ex,
+	                        top color=white, bottom color=regular]
+	\tikzstyle{appnode}  = [treenode, top color=yellow, bottom color=yellow!80!black]
+	\tikzstyle{initnode} = [treenode, top color=initred, bottom color=initred!80!black]
+
+	\node[initnode] (init) {};
+
+	\node[treenode, above=2ex of init, xshift=-2ex] (a1) {};
+	\node[treenode, above=2ex of init, xshift=3ex]  (a2) {};
+
+	\node[treenode, above=2ex of a1, xshift=-5ex] (a11) {};
+	\node[treenode, above=2ex of a1, xshift=-1ex] (a12) {};
+	\node[treenode, above=2ex of a2, xshift=-1ex] (a21) {};
+	\node[treenode, above=2ex of a2, xshift=3ex]  (a22) {};
+
+	\node[treenode, above=2ex of a12, xshift=-4ex] (a121) {};
+	\node[treenode, above=2ex of a12, xshift=0ex]  (a122) {};
+	\node[treenode, above=2ex of a12, xshift=4ex]  (a123) {};
+	\node[treenode, above=2ex of a22, xshift=2ex]  (a221) {};
+
+	\node[treenode, above=2ex of a121, xshift=-2ex] (a1211) {};
+	\node[treenode, above=2ex of a121, xshift=2ex]  (a1212) {};
+	\node[appnode,  above=2ex of a123, xshift=-2ex] (a1231) {};
+
+	\node[treenode, above=2ex of a221, xshift=-2ex] (a2211) {};
+	\node[treenode, above=2ex of a221, xshift=3ex]  (a2212) {};
+
+	\node[treenode, above=2ex of a2211, xshift=-2ex] (a22111) {};
+	\node[treenode, above=2ex of a2211, xshift=2ex]  (a22112) {};
+
+	%
+	% Arrows
+	%
+
+	\tikzstyle{owns} = [thick, fill=black!40!red, draw=black!40!red, ->, >= stealth]
+
+	\path[owns] (init)  -- (a1);
+	\path[owns] (init)  -- (a2);
+	\path[owns] (a1)    -- (a11);
+	\path[owns] (a1)    -- (a12);
+	\path[owns] (a2)    -- (a21);
+	\path[owns] (a2)    -- (a22);
+	\path[owns] (a12)   -- (a121);
+	\path[owns] (a12)   -- (a122);
+	\path[owns] (a12)   -- (a123);
+	\path[owns] (a22)   -- (a221);
+	\path[owns] (a121)  -- (a1211);
+	\path[owns] (a121)  -- (a1212);
+	\path[owns] (a123)  -- (a1231);
+	\path[owns] (a221)  -- (a2211);
+	\path[owns] (a221)  -- (a2212);
+	\path[owns] (a2211) -- (a22111);
+	\path[owns] (a2211) -- (a22112);
+
+	%
+	% Outline around the TCB of the appnode
+	%
+
+	\tikzstyle{outline} = [inner sep=0.7ex]
+
+	\node[outline, fit=(init)]  (oinit) {};
+	\node[outline, fit=(a1)]    (o1)    {};
+	\node[outline, fit=(a11)]   (o11)   {};
+	\node[outline, fit=(a12)]   (o12)   {};
+	\node[outline, fit=(a123)]  (o123)  {};
+	\node[outline, fit=(a1231)] (o1231) {};
+
+	\begin{scope}[on background layer]
+
+		\tikzstyle{tcb} = [fill=tcbred, opacity=0.4, rounded corners=7, draw]
+
+		\path[tcb] (oinit.south west)
+		        -- (oinit.north west)
+		        -- (o1.south west)
+		        -- (o1.160)
+		        -- (o11.300)
+		        -- (o11.south west)
+		        -- (o11.north west)
+		        -- (o12.70)
+		        -- (o123.200)
+		        -- (o123.north west)
+		        -- (o1231.south west)
+		        -- (o1231.north west)
+		        -- (o1231.north east)
+		        -- (o1231.south east)
+		        -- (o123.north east)
+		        -- (o123.south east)
+		        -- (o123.south)
+		        -- (o12.20)
+		        -- (o12.south east)
+		        -- (o1.north east)
+		        -- (o1.south east)
+		        -- (oinit.north east)
+		        -- (oinit.south east)
+		        --cycle;
+
+	\end{scope}
+
+\end{tikzpicture}

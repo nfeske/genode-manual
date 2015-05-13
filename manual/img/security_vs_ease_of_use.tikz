@@ -1,0 +1,18 @@
+\begin{tikzpicture}
+
+	\definecolor{arrowcol} {rgb}{1,0.8,0.5}
+
+	\node[draw, dropshadow, path fading=flow fade, shape=double arrow,
+	      draw opacity=0.5,
+	      top color=arrowcol, bottom color=black!50!arrowcol,
+	      double arrow head extend=1.5ex,
+	      inner xsep=5ex, inner ysep=1.5ex]
+	      (arrow) { };
+
+	\node[left=0ex  of arrow, minimum width=30ex] {};
+	\node[right=0ex of arrow, minimum width=30ex] {};
+
+	\node[left=2ex  of arrow] { \Large Security };
+	\node[right=2ex of arrow] { \Large Ease of use };
+
+\end{tikzpicture}
