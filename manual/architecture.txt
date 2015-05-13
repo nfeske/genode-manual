@@ -144,6 +144,10 @@ This operation is called _delegation_ and can be performed only by the kernel.
 Note that the originator of the delegation does not diminish its authority by
 delegating a capability. It merely shares its authority with the receiving
 protection domain.
+There is no superficial notion of access rights associated with a capability.
+The possession of a capability ultimately enables a protection domain to use
+it and to delegate it further. A capability should hence be understood as an
+access right.
 Figure [img/delegation] shows the
 delegation of the RPC object's capability to a second protection domain
 and a further delegation of the capability from the second to a third
@@ -540,6 +544,10 @@ control. It just expects that a function returns at some point. However, in
 contrast to a call of a library function, a capability invocation does not put
 the integrity and confidentiality of the client's internal state at risk.
 
+
+Servers do not trust their clients
+----------------------------------
+
 When exercising the _role of a server_, a component should generally not trust
 its clients. On the contrary, from the server's perspective, clients should be
 expected to misbehave. This has two practical implications. First, a server is
@@ -563,7 +571,14 @@ By responding to an RPC request, the server does immediately become ready
 to accept the next RPC request without any prior handshake with the client
 of the first request.
 
-Regarding the lifetime of a session, the client is not in the immediate
+
+Ownership and lifetime of a session
+-----------------------------------
+
+The object identity of a session RPC object and additional RPC objects
+that may have been created via the session is owned by the server. So
+the server is in control over the lifetime of those RPC objects.
+The client is not in the immediate
 position to dictate the server when to close a session because it has no power
 over the server. Instead, the procedure of closing a session follows the same
 chain of commands as involved in the session creation. The common parent of
@@ -571,14 +586,39 @@ both client and server plays the role of a broker, which is trusted by both
 parties. From the client's perspective, closing a session is a request to its
 parent. The client has to accept that the response to such a request is up to
 the policy of the parent.
+The closing of a session can alternatively be initiated by all nodes of the
+component tree that were involved in the session creation.
+
 From the perspective of a server that is implemented by a child, the request
 to close a session originates from its parent, which, as the owner of the
-server, represents an authority that must be ultimately obeyed. Otherwise, the
-parent of a server might take steps to enforce its will by destructing the
-server altogether.
+server, represents an authority that must be ultimately obeyed.
+If the server complies,
+the object identity of the session's RPC object vanishes. Since the kernel
+invalidates capabilities once their associated RPC object is destroyed,
+all capabilities referring to the RPC object - however delegated - are
+implicitly revoked as a side effect.
+Still, a server may ignore the session-close request. In this case, the parent
+of a server might take steps to enforce its will by destructing the server
+altogether.
 
-; XXX  Description how to resolve mutual distrust and cyclic dependencies.
-;      Maybe this topic is better suited for Chapter [Components]?
+
+Trustworthiness of servers
+--------------------------
+
+Servers that are shared by clients of different security levels must be
+designed and implemented with special care. Besides the correct response to
+session-close requests, another consideration is the adherence to the security
+policy as configured by the parent. The mere fact that a server is a child of
+its parent does not imply that the parent won't need to trust it in some
+respects.
+
+In cases where is not viable to trust the server (e.g., because the
+server is based on ported software that is too complex for thorough
+evaluation), certain security properties such as the effectiveness of
+closing sessions could be enforced by a small (and thereby trustworthy)
+intermediate server that sits in-between the real server and the client.
+This intermediate server would then effectively wrap the server's
+session interface.
 
 
 Resource trading
@@ -666,7 +706,7 @@ the in-kernel disk driver is part of its trusted computing base.
 RAM sessions and balances
 -------------------------
 
-Genode does hardly abstract from physical resources. Instead, it solely
+Genode does not abstract from physical resources. Instead, it solely
 arbitrates the access to such resources and provides means to delegate the
 authority over resources between components.
 Each low-level physical resource is represented as a dedicated service
@@ -1219,6 +1259,12 @@ mechanism. Analogously to how a page table is populated with physical page
 frames, an RM session is populated with dataspaces.
 Under the hood, core uses the MMU's page-table mechanism as a cache for RM
 sessions.
+The exact way of how MMU translations are installed depends on the
+underlying kernel and is opaque to Genode components.
+On most base platforms, memory mappings are established in a lazy
+fashion by core's page-fault resolution mechanism described in Section
+[Page-fault handling].
+
 An RM client in possession of a dataspace capability is
 able to _attach_ the dataspace to the RM session.
 Thereby the content of the dataspace becomes visible within the RM session's
@@ -1240,6 +1286,7 @@ Note that a single dataspace may be attached to any number of RM sessions.
 A dataspace may also be attached multiple times to one RM session. In this
 case, each attach operation populates a distinct region of the virtual
 address space.
+
 
 
 Assigning threads to an address space
@@ -1781,8 +1828,10 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   Analogously to the IPC client, it uses two message buffers, a receive buffer
   for incoming requests and a send buffer for delivering the reply of the last
   request.
-  Each IPC server has a corresponding untyped capability that can be used to
-  perform calls to the server using an IPC client object.
+  For each IPC server, there exists an associated untyped
+  capability that is created with the IPC server object. This capability
+  and can be combined with an IPC client object to perform calls to the
+  IPC server.
   An IPC server object can be used to wait for incoming messages, read the
   arguments from the receive buffer using the C++ extraction operator,
   populate the send buffer with the reply message, and submit the reply to the
