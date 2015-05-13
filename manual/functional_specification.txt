@@ -1893,6 +1893,39 @@ are needed while generating XML-formatted output.
 XML parsing
 ~~~~~~~~~~~
 
+Genode's XML parser consists of the two classes 'Xml_node' and
+'Xml_attribute'. Its primary use case is the provisioning of configuration
+information to low-level components. Consequently, it takes the following
+considerations into account:
+
+:Low complexity: Because the parser is implicitly used in most components,
+  it must not be complex to keep its footprint on the trusted computing base
+  as small as possible.
+
+:Free-standing:
+  The parser must be able to operate without external dependencies such as
+  a C runtime. Otherwise, each Genode-based system would inherit such
+  dependencies.
+
+:No dynamic memory allocations:
+  The parser should not dynamically allocate memory to be usable in
+  resource multiplexers and runtime environments where no anonymous memory
+  allocations are allowed (Section [Component-local heap partitioning]).
+
+:Robustness:
+  The parser must be robust in the sense that it must not contain buffer
+  overflows, infinite loops, memory corruptions, or any other defect that may
+  make the program crash.
+
+Other possible goals like expressive error messages, the support for more
+general use cases, and even the adherence to standards are deliberately
+subordinated.
+Given its low complexity, the XML parser cannot satisfy components that need
+advanced XML processing such as validating XML data against a DTD or schema,
+mutating XML nodes, or using different character encodings.
+In such cases, component developers may consider the use of ported 3rd-party
+XML parser.
+
 ; Genode::Xml_attribute
 [raw spec/classes/genode/xml_attribute/description]
 
