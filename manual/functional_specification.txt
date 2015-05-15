@@ -1277,12 +1277,16 @@ by a derived class.
 ; Genode::Console
 [raw spec/classes/genode/console/description]
 
+[raw spec/clearpage]
+
 The 'String_console' implements the 'Console' interface by writing the output
 to memory. It thereby allows the rendering of format strings into character
 buffers.
 
 ; Genode::String_console
 [raw spec/classes/genode/string_console/description]
+
+[raw spec/clearpage]
 
 There exists a convenient wrapper for the 'String_console' in the form of the
 'snprintf' function.
@@ -1838,6 +1842,8 @@ of packets to bulk-buffer regions is performed by the source.
 ; XXX Genode::Packet_descriptor_transmitter<>
 ; XXX Genode::Packet_descriptor_receiver<>
 
+[raw spec/clearpage]
+
 In client-server scenarios, each client and server can play the role of either
 a source or a sink of packets. To ease the use of packet streams in such
 scenarios, the classes within the 'Packet_stream_rx' and 'Packet_stream_tx'
@@ -1856,6 +1862,8 @@ interfaces.
 ; XXX Packet_stream_rx::Rpc_object
 ;[raw spec/classes/packet_stream_rx/rpc_object/description]
 
+
+[raw spec/clearpage]
 
 *Data transfer from client to server*
 
