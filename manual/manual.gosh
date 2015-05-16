@@ -38,14 +38,15 @@ proc produce_head_latex {} {
 
 	printline {\definecolor{lightgray}{gray}{0.5}}
 	printline {\definecolor{darkblue}{rgb}{0.1,0,0.55}}
+
+	printline {\begin{titlepage}}
+	printline {\thispagestyle{empty}}
+	printline {\input{img/title.tikz}}
+	printline {\end{titlepage}}
 	
-	if {$title != ""} {
-		printline "\\title{[out_latex $title]}"
-		if {$authors != ""} {
-			printline "\\author{[out_latex $authors]}"
-		}
-		printline {\maketitle}
-	}
+	printline "\\title{[out_latex $title]}"
+	printline "\\author{[out_latex $authors]}"
+
 	printline {\pagestyle{fancy}}
 	printline {\fancyhf{}}
 	printline {\fancyhead[RE]{\slshape \uppercase{\leftmark}}}
