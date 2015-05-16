@@ -1,4 +1,7 @@
-all: manual.pdf
+GENODE_VERSION = 15.05
+FOUNDATIONS_PDF = genode-foundations-$(GENODE_VERSION).pdf
+
+all: $(FOUNDATIONS_PDF)
 
 TEXFILE := misc.tmp
 SHELL = bash
@@ -22,17 +25,17 @@ part_2
 functional_specification
 endef
 
-default: manual.pdf
+default: $(FOUNDATIONS_PDF)
 
 # concatenate chapters except for those that are commented out
-manual.txt: $(addsuffix .txt,$(patsubst #%,,$(strip $(CHAPTERS))))
+$(FOUNDATIONS_PDF:.pdf=.txt): $(addsuffix .txt,$(patsubst #%,,$(strip $(CHAPTERS))))
 	cat $^ > $@
 
-manual.pdf: manual.txt manual.gosh Makefile \
+$(FOUNDATIONS_PDF): $(FOUNDATIONS_PDF:.pdf=.txt) manual.gosh Makefile \
        $(wildcard img/*.pdf) \
        $(wildcard img/*.tikz) \
        spec/repos spec/classes
-	gosh --style manual.gosh manual.txt > $(TEXFILE).tex
+	gosh --style manual.gosh $(FOUNDATIONS_PDF:.pdf=.txt) > $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
@@ -40,7 +43,7 @@ manual.pdf: manual.txt manual.gosh Makefile \
 	rm -f $(TEXFILE) $(TEXFILE).*
 
 clean_manual:
-	rm -f $(TEXFILE) $(TEXFILE).* manual.txt manual.pdf
+	rm -f $(TEXFILE) $(TEXFILE).* $(FOUNDATIONS_PDF:.pdf=.txt) $(FOUNDATIONS_PDF)
 
 spec/repos spec/classes:
 	make -C spec all

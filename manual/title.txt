@@ -3,6 +3,7 @@
 
                     =================================
                     Genode Operating System Framework
+                               Foundations
                     =================================
 
                               Norman Feske

@@ -26,7 +26,7 @@ proc produce_head_latex {} {
 	printline {\usepackage{graphicx}}
 	printline {\usepackage{color}}
 	printline {\usepackage[scaled]{beramono}}
-	printline {\usepackage[pdftex,pagebackref=true,colorlinks=true,linkcolor=darkblue,citecolor=darkblue,urlcolor=darkblue]{hyperref}}
+	printline "\\usepackage\[pdftex,pdfauthor={$authors},pdftitle={$title},pagebackref=true,colorlinks=true,linkcolor=darkblue,citecolor=darkblue,urlcolor=darkblue\]{hyperref}"
 	printline {\usepackage{enumitem} % for colored items as used in spec }
 	printline {\usepackage{tabularx} % for tables with paragraphs as used in spec }
 	printline {\input{img/tikz-preamble.tex}}
