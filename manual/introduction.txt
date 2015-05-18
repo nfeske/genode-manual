@@ -89,8 +89,8 @@ system remains uncertain to vendors and users alike.
 The uncertainty that comes with the staggering TCB complexity becomes a
 problem when such systems get connected to the internet:
 Is my internet router under control of a bot net? Is my mobile phone remotely
-manipulated to wiretap me? Is my TV spying on me when switched off? Can I
-safely store a sensitive document on my computer?
+manipulated to wiretap me? Is my TV spying on me when switched off? Are
+my sensitive documents stored on my computer prone to leakage?
 Faithfully, we hope the answers to those question to be no. But because
 it is impossible to reason about the trusted computing base of the employed
 operating systems, there are no answers.
@@ -105,8 +105,8 @@ The ease of use of software systems is often perceived as diametrical to
 security. There are countless mundane examples: Remembering passwords
 of sufficient strength is annoying. Even more so is picking a dedicated
 password for each different purpose. Hence, users tend to become lax about
-choosing and updating passwords. Another example is PGP. Because setting up
-PGP for secure email communication is perceived as complicated,
+choosing and updating passwords. Another example is OpenPGP. Because setting
+it up for secure email communication is perceived as complicated,
 business-sensitive information is routinely exchanged unencrypted. Yet another
 example is the lack of adoption of the security frameworks such as SELinux.
 Even though they are readily available on commodity OS distributions,
@@ -407,7 +407,7 @@ That said, feedback from you as the reader of the document is always
 welcome. If you identify points you would like to see improved or
 if you spot grammatical errors, please do not hesitate to contact the
 author by writing to _norman.feske@genode-labs.com_ or to post your feedback
-to the Genode mailing list [http://genode.org/community/mailing-lists].
+to the mailing list [http://genode.org/community/mailing-lists].
 
 
 
