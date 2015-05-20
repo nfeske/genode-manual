@@ -975,7 +975,7 @@ Split kernel interface
 The system-call interface of the base-hw kernel is split into two parts.
 One part is usable by all components and solely contains system calls for
 inter-component communication and thread synchronization. The definition
-of this interface is located at _include/kernel/interface.h_. The second
+of this interface is located at _include/kernel/thread.h_. The second
 part is exposed only to core. It supplements the public interface with
 operations for the creation, the management, and the destruction of kernel
 objects. The definition of the core-private interface is located at
@@ -1063,14 +1063,17 @@ of core and the kernel.
 The core-private kernel interface consists of the following operations:
 
 * The creation and destruction of protection domains
-  (_new_pd_ and _bin_pd_), invoked by the PD service
+  (_new_pd_, _update_pd_, _delete_pd_), invoked by the PD service
 * The creation, manipulation, and destruction of threads
-  (_new_thread_, _bin_thread_, _start_thread_, _resume_thread_,
+  (_new_thread_, _start_thread_, _resume_thread_, _thread_quota_,
+  _pause_thread_, _delete_thread_,
   _access_thread_regs_, and _route_thread_event_), used by the CPU service
   and the core-specific back end of the 'Genode::Thread' API
 * The creation and destruction of signal receivers and signal contexts
-  (_new_signal_receiver_, _bin_signal_receiver_, _new_signal_context_, and
-  _bin_signal_context_), invoked by the SIGNAL service
+  (_new_signal_receiver_, _delete_signal_receiver_, _new_signal_context_, and
+  _delete_signal_context_), invoked by the SIGNAL service
+* The creation and destruction of kernel-protected object identities
+  (_new_obj_, _delete_obj_)
 
 
 Scheduler of the base-hw kernel
@@ -1200,23 +1203,6 @@ those kernel objects but it does not play the role of a signal-delivery proxy.
 Instead, signals are communicated directly by using the public kernel
 operations _await_signal_, _signal_pending_, _submit_signal_, and
 _ack_signal_.
-
-
-Limitations of the base-hw platform
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The base-hw kernel does not (yet) support the model of kernel-protected
-capabilities as described in Section [Capability-based security].
-All kernel objects are referred to by global IDs.
-On this platform, a capability is represented as a tuple of a thread ID
-and a global object ID. Capability delegation is realized as a plain copy
-of those values. Since any thread can specify arbitrary global thread IDs
-and object IDs when performing RPC calls, capability-based security access
-control remains ineffective.
-
-| Note that the lack of kernel-protected capabilities is not an
-| inherent limitation of the design of base-hw but a temporary limitation
-| due to the kernel's stage of its ongoing development.
 
 
 Execution on the NOVA microhypervisor (base-nova)
