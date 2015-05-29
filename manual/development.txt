@@ -847,7 +847,7 @@ release time. It is complemented by the following commits:
   published at the _genode.org_ website,
 * "Version: <version>" with the adaptation of the _VERSION_ file.
 
-The latter commit is tagged wit the version number. The tag is signed by one
+The latter commit is tagged with the version number. The tag is signed by one
 of the mainline developers.
 
 
