@@ -311,8 +311,6 @@ proc generate_methods { class_token } {
 
 set class_token [find_class_by_name content0 $class_name]
 
-proc code_url { } { return "https://github.com/genodelabs/genode/blob/master/" }
-
 #puts {\noindent\rule{\textwidth}{0.1pt}}
 
 

@@ -1460,9 +1460,9 @@ On NOVA, each EC has a pre-defined range of portal selectors.
 For each type of exception, the range has a dedicated portal that is entered in
 the event of an exception.
 The page-fault portal of a Genode thread is defined at the creation
-time of the thread and points to a dedicated pager EC within core.
-Hence, for each Genode thread, there exist two ECs. One in the PD where
-the thread executes and the pager EC in core.
+time of the thread and points to a pager EC per CPU within core. Hence,
+for each CPU, a pager EC in core pages all Genode threads running on the same
+CPU.
 
 
 The operation of pager ECs
