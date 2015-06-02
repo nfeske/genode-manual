@@ -1399,7 +1399,7 @@ Memory mapped I/O (IO_MEM)
 An IO_MEM session[1] provides a dataspace representation for a non-memory part of
 the physical address space such as memory-mapped I/O regions or BIOS areas.
 In contrast to a memory block that is used for storing information, of which
-the physical location in memory is of no matter, a non-memory object has
+the physical location in memory is of no concern, a non-memory object has
 special semantics attached to its location within the physical address space.
 Its location is either fixed (by standard) or can be determined at runtime,
 for example by scanning the PCI bus for PCI resources. If the physical
