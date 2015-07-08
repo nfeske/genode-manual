@@ -1,0 +1,59 @@
+\begin{tikzpicture}
+
+	\tikzstyle{partition} = [rectangle, draw, text centered,
+	                         top color=white,
+	                         bottom color=black!5,
+	                         dropshadow,
+	                         inner sep=0.2ex,
+	                         minimum height=7ex,
+	                         minimum width=5ex,
+	                         align=center,
+	                         draw=black!50]
+
+	\node[partition, minimum width=25ex] (genodepartition)
+		{genode\\\\\em{\tiny ext2}};
+	\node[partition, minimum width=25ex,right=0 of genodepartition] (homepartition)
+		{home\\(LUKS encrypted)\\\em{\tiny ext4}};
+	\node[partition,right=0 of homepartition] (rescuepartition)
+		{boot / rescue\\\\\em{\tiny ext4 4GiB}};
+
+	\path (genodepartition.south)
+		node[below=1ex, inner sep=1ex, anchor=north, align=left] (genodecontent) {
+			\texttt{/boot} \\
+			\texttt{/genode} \\
+			\texttt{linux.vdi}
+		};
+
+	\path (genodecontent.south)+(0,1ex) coordinate (genodecontent);
+
+	\path (rescuepartition.south west)
+		node[below=1ex, inner sep=1ex, anchor=north west, align=left] {
+			- GRUB \\
+			- GNU/Linux \\
+			- X11 \\
+			- VirtualBox \\
+			- mount home \\
+			- mount genode \\
+		};
+
+	\path (genodepartition.south west)
+		node[partition, minimum width=20ex, below=18ex, anchor=north west] (vmrootpartition)
+			{Rich GNU/Linux\\\em{\tiny ext3}};
+	\node[partition, minimum width=25ex,right=0 of vmrootpartition] (vmhomepartition)
+		{home\\(LUKS encrypted)\\\em{\tiny ext4}};
+
+	\draw[densely dotted] (vmrootpartition.north west) -- (genodecontent.south);
+	\draw[densely dotted] (vmrootpartition.north east) -- (genodecontent.south);
+
+	\draw[densely dotted] (vmhomepartition.north west) -- (homepartition.south west);
+	\draw[densely dotted] (vmhomepartition.north east) -- (homepartition.south east);
+
+	\path (genodepartition.north west)
+		node[color=black!50, anchor=south west, inner sep=0.2ex]
+			{Partitions of physical disk};
+
+	\path (vmrootpartition.north west)
+		node[color=black!50, anchor=south west, inner sep=0.2ex]
+			{Virtual-machine disks};
+
+\end{tikzpicture}

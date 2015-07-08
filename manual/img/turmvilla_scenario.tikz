@@ -1,0 +1,99 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}       {rgb}{1,1,0.7}
+	\definecolor{nitpickercolor} {rgb}{0.9,0.5,0.4}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1]
+
+	\tikzstyle{basenode}     = [treenode, minimum width=12ex, minimum height=6ex, bottom color=nitpickercolor]
+	\tikzstyle{minibasenode} = [basenode, minimum size=2ex]
+	\tikzstyle{appnode}      = [treenode, minimum width=12ex, minimum height=6ex, bottom color=appcolor]
+	\tikzstyle{miniappnode}  = [appnode, minimum size=2ex]
+
+	%
+	% Components
+	%
+
+	% init
+	\node[treenode, minimum width=12ex, minimum height=5ex] (init) {Init};
+
+	% base components
+	\node[basenode, above=8ex of init, xshift=-14ex] (nitpicker) {Nitpicker\\GUI};
+	\node[basenode, above=8ex of init, xshift=0ex]  (wm)        {Window\\Manager};
+	\node[minibasenode, left=1ex of nitpicker] (base1) {};
+	\node[minibasenode, left=1ex of base1] (base2) {};
+	\node[minibasenode, left=1ex of base2] (base3) {};
+	\node[basenode, above=8ex of init, xshift=14ex] (climonitor) {CLI monitor};
+
+	\node[umlinfo, align=left, left=1ex of base3, scale=0.5] {
+		timer \\
+		acpi\_drv \\
+		acpi\_report\_rom \\
+		platform\_drv \\
+		ahci\_drv \\
+		part\_blk \\
+		log\_file\_terminal \\
+		log \\
+		rump\_fs \\
+		wifi\_drv \\
+		ps2\_drv \\
+		usb\_drv \\
+		fb\_drv \\
+		rtc\_drv \\
+		trace\_subject\_reporter \\
+		input\_merger \\
+		report\_rom \\
+		nitpicker \\
+		wm\_report\_rom \\
+		wm \\
+		layouter \\
+		decorator \\
+		vbox\_pointer \\
+		shared\_fs \\
+		config\_fs \\
+		config\_rom \\
+		rom \\
+		cli\_nit\_fb \\
+		cli\_terminal
+	};
+
+	% apps
+	\node[appnode, above=8ex of climonitor, xshift=-7ex] (vbox) {VirtualBox};
+	\node[appnode, above=8ex of climonitor, xshift=7ex] (noux) {Noux};
+	\node[miniappnode, left=1ex of vbox] (app1) {};
+	\node[miniappnode, left=1ex of app1] (app2) {};
+	\node[miniappnode, left=1ex of app2] (app3) {};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init) -- (nitpicker.south);
+	\path[treechildarrow] (init) -- (wm.south);
+	\path[treechildarrow] (init) -- (climonitor.south);
+
+	\path[treechildarrow] (climonitor) -- (vbox.south);
+	\path[treechildarrow] (climonitor) -- (noux.south);
+
+	%
+	% Session relationships
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% cli monitor -> wm
+	\path[treesessionarrow] (climonitor.220)
+		.. controls +(0,-3ex) and +(0,-3ex) .. (wm.320);
+
+	% window manager -> nitpicker
+	\path[treesessionarrow] (wm.220)
+		.. controls +(0,-3ex) and +(0,-3ex) .. (nitpicker.320);
+
+	% nitpicker to base component
+	\path[treesessionarrow] (nitpicker.south)
+		.. controls +(0,-3ex) and +(0,-6ex) .. (base2.south);
+
+\end{tikzpicture}
