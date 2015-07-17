@@ -1,0 +1,13 @@
+#!/usr/bin/tclsh
+
+# supplement toc.ncx with sequential navpoint IDs and play-order numbers
+
+set toc [exec cat toc.ncx]
+set navpoint_pattern {<navPoint>}
+set cnt 1
+while {[regexp $navpoint_pattern $toc dummy]} {
+	regsub $navpoint_pattern $toc "<navPoint id=\"navPoint-$cnt\" playOrder=\"$cnt\">" toc
+	incr cnt
+}
+
+puts $toc

@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+
+<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="dcidid"
+   version="2.0">
+
+   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:dcterms="http://purl.org/dc/terms/"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:opf="http://www.idpf.org/2007/opf">
+      <dc:title>Genode OS Framework Foundations</dc:title>
+      <dc:language xsi:type="dcterms:RFC3066">en</dc:language>
+      <dc:identifier id="dcidid" opf:scheme="URI">
+         http://genode.org/documentation/genode-foundations-15.05.epub
+         </dc:identifier>
+      <dc:subject>Non-fiction, technical article, tutorial, Epub, IDPF, ebook
+         </dc:subject>
+      <dc:description>
+         The book "Genode Foundations"
+         describes the Genode OS Framework in a holistic and comprehensive
+         way. It equips the reader with a thorough understanding of the
+         architecture, assists developers with the explanation of the
+         development environment and system configuration, and provides a
+         look under the hood of the framework.
+         </dc:description>
+      <dc:relation>http://genode.org</dc:relation>
+      <dc:creator>Norman Feske</dc:creator>
+      <dc:publisher>Norman Feske</dc:publisher>
+      <dc:date xsi:type="dcterms:W3CDTF">2015-07-17</dc:date>
+      <dc:date xsi:type="dcterms:W3CDTF">2015-07-17</dc:date>
+      <dc:rights>Creative Commons BY-SA 3.0 License.</dc:rights>
+   </metadata>
+
+   <manifest>
+      <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml" />
+
+      <item id="introduction"         href="introduction.html"         media-type="application/xhtml+xml" />
+      <item id="getting_started"      href="getting_started.html"      media-type="application/xhtml+xml" />
+      <item id="architecture"         href="architecture.html"         media-type="application/xhtml+xml" />
+      <item id="components"           href="components.html"           media-type="application/xhtml+xml" />
+      <item id="development"          href="development.html"          media-type="application/xhtml+xml" />
+      <item id="system_configuration" href="system_configuration.html" media-type="application/xhtml+xml" />
+      <item id="under_the_hood"       href="under_the_hood.html"       media-type="application/xhtml+xml" />
+
+      <item id="affinity_spaces.png"               href="img/affinity_spaces.png"               media-type="image/png" />
+      <item id="announce.png"                      href="img/announce.png"                      media-type="image/png" />
+      <item id="anonymous_heap.png"                href="img/anonymous_heap.png"                media-type="image/png" />
+      <item id="app_specific_tcb.png"              href="img/app_specific_tcb.png"              media-type="image/png" />
+      <item id="assurance_vs_scalability.png"      href="img/assurance_vs_scalability.png"      media-type="image/png" />
+      <item id="audio_out_session.png"             href="img/audio_out_session.png"             media-type="image/png" />
+      <item id="call_rpc_obj_seq.png"              href="img/call_rpc_obj_seq.png"              media-type="image/png" />
+      <item id="capability_argument.png"           href="img/capability_argument.png"           media-type="image/png" />
+      <item id="capability_call.png"               href="img/capability_call.png"               media-type="image/png" />
+      <item id="capability_types.png"              href="img/capability_types.png"              media-type="image/png" />
+      <item id="config_virtualization.png"         href="img/config_virtualization.png"         media-type="image/png" />
+      <item id="creation_initial.png"              href="img/creation_initial.png"              media-type="image/png" />
+      <item id="creation_rmsession.png"            href="img/creation_rmsession.png"            media-type="image/png" />
+      <item id="creation_rom_ram.png"              href="img/creation_rom_ram.png"              media-type="image/png" />
+      <item id="creation_thread_pd.png"            href="img/creation_thread_pd.png"            media-type="image/png" />
+      <item id="delegation.png"                    href="img/delegation.png"                    media-type="image/png" />
+      <item id="device_driver.png"                 href="img/device_driver.png"                 media-type="image/png" />
+      <item id="entrypoint.png"                    href="img/entrypoint.png"                    media-type="image/png" />
+      <item id="heap_partitions.png"               href="img/heap_partitions.png"               media-type="image/png" />
+      <item id="iommu.png"                         href="img/iommu.png"                         media-type="image/png" />
+      <item id="memory_assignment.png"             href="img/memory_assignment.png"             media-type="image/png" />
+      <item id="mixer_sporadic.png"                href="img/mixer_sporadic.png"                media-type="image/png" />
+      <item id="mixer_streaming.png"               href="img/mixer_streaming.png"               media-type="image/png" />
+      <item id="nested_config.png"                 href="img/nested_config.png"                 media-type="image/png" />
+      <item id="new_rpc_obj_seq.png"               href="img/new_rpc_obj_seq.png"               media-type="image/png" />
+      <item id="nitpicker_session.png"             href="img/nitpicker_session.png"             media-type="image/png" />
+      <item id="no_iommu.png"                      href="img/no_iommu.png"                      media-type="image/png" />
+      <item id="object_identity.png"               href="img/object_identity.png"               media-type="image/png" />
+      <item id="object_pool.png"                   href="img/object_pool.png"                   media-type="image/png" />
+      <item id="packet_stream.png"                 href="img/packet_stream.png"                 media-type="image/png" />
+      <item id="parent_capability.png"             href="img/parent_capability.png"             media-type="image/png" />
+      <item id="parent_child.png"                  href="img/parent_child.png"                  media-type="image/png" />
+      <item id="protection_domain.png"             href="img/protection_domain.png"             media-type="image/png" />
+      <item id="protocol_stack.png"                href="img/protocol_stack.png"                media-type="image/png" />
+      <item id="qt_avplay.png"                     href="img/qt_avplay.png"                     media-type="image/png" />
+      <item id="qt_avplay_screen.png"              href="img/qt_avplay_screen.png"              media-type="image/png" />
+      <item id="recursive_structure.png"           href="img/recursive_structure.png"           media-type="image/png" />
+      <item id="resource_multiplexer.png"          href="img/resource_multiplexer.png"          media-type="image/png" />
+      <item id="resource_stealing.png"             href="img/resource_stealing.png"             media-type="image/png" />
+      <item id="rpc_classes.png"                   href="img/rpc_classes.png"                   media-type="image/png" />
+      <item id="rpc_layers.png"                    href="img/rpc_layers.png"                    media-type="image/png" />
+      <item id="rpc_object.png"                    href="img/rpc_object.png"                    media-type="image/png" />
+      <item id="runtime_environment.png"           href="img/runtime_environment.png"           media-type="image/png" />
+      <item id="security_vs_ease_of_use.png"       href="img/security_vs_ease_of_use.png"       media-type="image/png" />
+      <item id="session_request.png"               href="img/session_request.png"               media-type="image/png" />
+      <item id="session_root.png"                  href="img/session_root.png"                  media-type="image/png" />
+      <item id="shared_memory_seq.png"             href="img/shared_memory_seq.png"             media-type="image/png" />
+      <item id="signal_seq.png"                    href="img/signal_seq.png"                    media-type="image/png" />
+      <item id="simplified_nomenclature.png"       href="img/simplified_nomenclature.png"       media-type="image/png" />
+      <item id="sync_bulk_seq.png"                 href="img/sync_bulk_seq.png"                 media-type="image/png" />
+      <item id="utilization_vs_accountability.png" href="img/utilization_vs_accountability.png" media-type="image/png" />
+      <item id="nitpicker_wm.png"                  href="img/nitpicker_wm.png"                  media-type="image/png"  />
+      <item id="gdb_monitor.png"                   href="img/gdb_monitor.png"                   media-type="image/png"  />
+      <item id="arora_plugin.png"                  href="img/arora_plugin.png"                  media-type="image/png"  />
+      <item id="no_gdb.png"                        href="img/no_gdb.png"                        media-type="image/png"  />
+      <item id="noux.png"                          href="img/noux.png"                          media-type="image/png"  />
+      <item id="on_target_gdb.png"                 href="img/on_target_gdb.png"                 media-type="image/png"  />
+
+   </manifest>
+
+   <spine toc="ncx">
+      <itemref idref="introduction"/>
+      <itemref idref="getting_started"/>
+      <itemref idref="architecture"/>
+      <itemref idref="components"/>
+      <itemref idref="development"/>
+      <itemref idref="system_configuration"/>
+      <itemref idref="under_the_hood"/>
+   </spine>
+
+</package>
