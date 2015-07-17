@@ -88,7 +88,7 @@
 	\path (nitpicker.north) node[below=1ex] {Nitpicker GUI server};
 
 	\graphicspath{ {./img/} }
-	\path (nitpicker.south) node[above=1ex] (screenshot) {\includegraphics[width=24ex]{qt_avplay.png}};
+	\path (nitpicker.south) node[above=1ex] (screenshot) {\includegraphics[width=24ex]{qt_avplay_screen.png}};
 
 	\path (screenshot.south west)+(13ex,3ex) coordinate (nitpickerguisession) {};
 	\path (screenshot.south west)+(10ex,5ex) coordinate (nitpickeravplaysession) {};
