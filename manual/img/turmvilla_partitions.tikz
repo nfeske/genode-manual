@@ -5,6 +5,7 @@
 	                         bottom color=black!5,
 	                         dropshadow,
 	                         inner sep=0.2ex,
+	                         outer sep=0,
 	                         minimum height=7ex,
 	                         minimum width=5ex,
 	                         align=center,
