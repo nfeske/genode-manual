@@ -1,0 +1,60 @@
+source [get_style_file html]
+
+
+### WRITE HEADER OF HTML FILE ###
+proc produce_head_html {} {
+}
+
+
+set html_file ""
+
+regexp -- {\--toc-html-file\s+([^\s]+)} $argv dummy html_file
+
+
+proc process_chapter_html {txtblock} {
+	global html_file
+
+	set chapter_title [linetxt [lindex $txtblock 0]]
+
+	printline "<navPoint>"
+	printline "   <navLabel> <text>$chapter_title</text> </navLabel>"
+	printline "   <content src=\"$html_file\"/>"
+
+	global references toc_refs
+
+	set first_section 1
+
+	foreach ref_name $toc_refs {
+
+		set ref_type $references($ref_name,type)
+
+		if {$ref_type == "section" || $ref_type == "subsection"} {
+
+			if {$ref_type == "section"} {
+
+				# close previous section navpoint
+				if {!$first_section} {
+					printline "  </navPoint>"
+				}
+				set first_section 0
+				printline "  <navPoint>"
+				printline "     <navLabel> <text>$ref_name</text> </navLabel>"
+				printline "     <content src=\"$html_file#[label_html $ref_name]\"/>"
+			}
+			if {$ref_type == "subsection"} {
+				printline "     <navPoint>"
+				printline "       <navLabel> <text>$ref_name</text> </navLabel>"
+				printline "       <content src=\"$html_file#[label_html $ref_name]\"/>"
+				printline "     </navPoint>"
+			}
+		}
+	}
+
+	# close last section navpoint
+	printline "  </navPoint>"
+
+	# close chapter navpoint
+	printline "</navPoint>"
+
+	exit 0
+}

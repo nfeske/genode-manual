@@ -1,0 +1,77 @@
+source [get_style_file html]
+
+
+proc print_html_label {label} {
+	printline "<a id=\"[label_html $label]\"></a>"
+}
+
+
+### WRITE HEADER OF HTML FILE ###
+proc produce_head_html {} {
+	global title authors references toc_refs config_html_toc
+
+	printline {<?xml version="1.0" encoding="UTF-8"?>}
+	printline {<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"}
+	printline { "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">}
+
+	printline {<html xmlns="http://www.w3.org/1999/xhtml">}
+	printline {<head><title>Genode OS Framework Foundations</title></head>}
+	printline {<body>}
+}
+
+
+##
+# Invoke makefile to generate the png image for a given tikz image
+#
+proc generate_png_from_tikz { tikz_name } {
+
+	puts stderr "generating $tikz_name.png"
+	exec make $tikz_name.png
+}
+
+
+### TIKZ IMAGE ###
+proc process_tikz_html {txtblock} {
+
+	regexp {\[(tikz \w+.*)\]} [lindex $txtblock 0] dummy tikz_info
+	if {$tikz_info == ""} return
+	set tikz_name [lindex $tikz_info 1]
+
+	set tikz_cap ""
+	foreach tikz_capline $txtblock {
+		set txt [linetxt $tikz_capline]
+		regsub {^\[.*\]} $txt "" txt
+		regsub {^ *}     $txt "" txt
+		append tikz_cap $txt " "
+	}
+	regsub { *$} $tikz_cap "" tikz_cap
+
+	generate_png_from_tikz $tikz_name
+
+	#
+	# If no caption is provided, we insert the tikz image as is. If a caption
+	# is provided, we host the image along with its caption in a table.
+	#
+	if {$tikz_cap == ""} {
+		printline "<p><img src=\"$tikz_name.png\" alt=\"$tikz_name\"/></p>"
+	} else {
+		printline "<table class=\"captionedimage\"><tr><td>"
+		printline "  <a id=\"[label_html $tikz_name]\"></a>"
+		printline "  <img src=\"$tikz_name.png\" alt=\"$tikz_name\" />"
+		printline "</td></tr><tr><td>"
+		printline "  <div class=\"caption\">$tikz_cap</div>"
+		printline "</td></tr></table>"
+	}
+}
+
+### RAW INCLUDE ###
+proc process_rawinclude_html {txtblock} {
+
+	regexp {\[(raw \w+.*)\]} [lindex $txtblock 0] dummy raw_info
+	if {$raw_info == ""} return
+	set raw_name [lindex $raw_info 1]
+
+	puts [exec cat $raw_name.html]
+}
+
+
