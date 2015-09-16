@@ -503,6 +503,27 @@ corresponding '<start>' node. Valid priority values lie in the range of
 -prio_levels + 1 (maximum priority degradation) to 0 (no priority degradation).
 
 
+Propagation of exit events
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A component can notify its parent about its graceful exit via the exit RPC
+function of the parent interface. By default, init responds to such a
+notification from one of its children by merely printing a log message but
+ignores it otherwise. However, there are scenarios where the exit of a
+particular child should result in the exit of the entire init component. To
+propagate the exit of a child to the parent of init, start nodes can host the
+optional sub node '<exit>' with the attribute 'propagate' set to "yes".
+
+! <config>
+!   <start name="noux">
+!     <exit propagate="yes"/>
+!     ...
+!   </start>
+! </config>
+
+The exit value specified by the exiting child is forwarded to init's parent.
+
+
 Init verbosity
 ~~~~~~~~~~~~~~
 
