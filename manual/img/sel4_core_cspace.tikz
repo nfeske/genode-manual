@@ -1,0 +1,80 @@
+
+\input{sel4_styles.tikz}
+
+\begin{tikzpicture}
+
+	\path (-2ex, 2ex) node {};
+	\path (0ex, -42ex) node {};
+
+	% top-level CNode
+	\path (0,0) coordinate (anchor);
+	\begin{cnode}
+		\cnodetitle{CSpace}
+		\cnodeentry{0x0}{cnodeentry0}
+		\cnodeentry{0x1}{cnodeentry1}
+		\cnodedotdotdot
+		\cnodeentry{x}{cnodeentryx}
+		\cnodedotdotdot
+		\cnodeentry{0xfff}{cnodeentryfff}
+	\end{cnode}
+
+	% second-level guard CNode for core-local kobjects
+	\path (64ex,-8ex) coordinate (anchor) coordinate (corelocalguard);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodeentry{0x0}{guardentry}
+		\cnodedotdotdot
+		\cnodelast{0x3f}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentry0) .. controls +(5ex,0) and +(-5ex,0) .. (corelocalguard);
+
+	% second-level CNode for core-local kobjects
+	\path (anchor)+(0,-2ex) coordinate (anchor) coordinate (corelocalkobjs);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{core-local\\kernel\\objects}
+		\cnodedotdotdot
+		\cnodeannotation{\texttt{0x3fff}}
+	\end{cnode}
+
+	\path (corelocalkobjs)+(12ex,0) coordinate (corelocalkobjsright);
+	\path[cnoderef] (guardentry) .. controls +(5ex,0) and +(5ex,0) .. (corelocalkobjsright);
+
+	% second-level CNode for core-local pages and page tables
+	\path (48ex,-12ex) coordinate (anchor) coordinate (corelocalpages);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{core-local\\mapped\\pages and\\page tables}
+		\cnodedotdotdot
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentry1) .. controls +(5ex,0) and +(-5ex,0) .. (corelocalpages);
+
+	% second-level CNode for PD pages and page tables
+	\path (32ex,-16ex) coordinate (anchor) coordinate (pdvmpages);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{PD\\mapped\\pages and\\page tables}
+		\cnodedotdotdot
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentryx) .. controls +(5ex,0) and +(-5ex,0) .. (pdvmpages);
+
+	% second-level CNode for physical page frames
+	\path (16ex,-20ex) coordinate (anchor) coordinate (physpages);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{physical\\page\\frames}
+		\cnodedotdotdot
+		\cnodeannotation{\texttt{0xfffff}}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentryfff) .. controls +(5ex,0) and +(-5ex,0) .. (physpages);
+
+
+\end{tikzpicture}

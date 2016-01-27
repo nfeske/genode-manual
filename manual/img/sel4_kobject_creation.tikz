@@ -1,0 +1,31 @@
+
+\input{sel4_styles.tikz}
+
+\begin{tikzpicture}
+
+	\path (-2ex, 2ex) node {};
+	\path (52ex, -34ex) node {};
+
+	% top-level CNode
+	\path (0,0) coordinate (anchor);
+	\begin{cnode}
+		\cnodetitle{CSpace}
+		\cnodedotdotdot
+		\cnodeentry{0x44}{cnodeentry44}
+		\cnodedotdotdot
+		\cnodedotdotdot
+	\end{cnode}
+
+	% untyped memory
+	\path (17ex,-12ex) coordinate (untypedanchor);
+	\path (untypedanchor) node [sel4kobject, anchor=north west] (untypedmem) {Untyped Memory};
+
+	\node[below=1ex of untypedmem, anchor=north, sel4untypedempty, minimum height=8ex] (u) {};
+	\node[below=0ex of u, anchor=north, sel4untypedalloc2, minimum height=2ex] (u) {};
+	\node[below=0ex of u, anchor=north, sel4untypedempty, minimum height=1ex] (u) {};
+	\node[below=0ex of u, anchor=north, sel4untypedalloc2, minimum height=0.5ex] (u) {};
+	\node[below=0ex of u, anchor=north, sel4untypedempty, minimum height=2ex] (u) {};
+
+	\path[cnoderef] (cnodeentry44) .. controls +(5ex,0) and +(-5ex,0) .. (untypedanchor);
+
+\end{tikzpicture}

@@ -1,0 +1,64 @@
+
+\tikzstyle{cnode}       = [draw, minimum width=12ex, outer sep=0]
+\tikzstyle{cnodetitle}  = [cnode, top color=white, bottom color=black!10,
+                           dropshadow]
+\tikzstyle{cnodeentry}  = [cnode, top color=white, bottom color=black!10,
+                           minimum height=2ex]
+\tikzstyle{cnodelast}   = [cnode, text=gray, minimum height=2ex]
+
+\tikzstyle{cnoderef}    = [draw, arrow, *->, thick]
+\tikzstyle{cnodeassoc}  = [draw, arrow, *->, densely dotted, thick]
+
+\tikzstyle{sel4kobject} = [draw, minimum width=12ex, outer sep=0,
+                           top color=white, bottom color=black!10, dropshadow]
+
+\tikzstyle{sel4untyped}       = [rectangle, minimum width=3ex, very thin, draw,
+                                 outer sep=0, draw opacity=0.5]
+\tikzstyle{sel4untypedalloc1} = [sel4untyped, top color=red!10!lightgray,
+                                     bottom color=red!50!lightgray]
+\tikzstyle{sel4untypedalloc2} = [sel4untyped, top color=yellow!10!lightgray,
+                                     bottom color=yellow!50!lightgray]
+\tikzstyle{sel4untypedempty}  = [sel4untyped, top color=white!10!lightgray,
+                                     bottom color=white!50!lightgray]
+
+\newenvironment{cnode} {
+
+	%%
+	% Create CNode title
+	%
+	% argument 1: text to appear in the title
+	%
+	\newcommand{\cnodetitle}[1] {
+		\node[at=(anchor), anchor=north west, cnodetitle](n){##1};
+		\path (n.south west) coordinate (anchor);
+	}
+
+	\newcommand{\cnodedotdotdot} {
+		\node[at=(anchor), anchor=north west, cnode](n){...};
+		\path (n.south west) coordinate (anchor);
+	}
+
+	%%
+	% Create CNode entry
+	%
+	% argument 1: selector number
+	% argument 2: coordinate name of selector anchor
+	%
+	\newcommand{\cnodeentry}[2] {
+		\node[at=(anchor), anchor=north west, cnodeentry](n){};
+		\path (n.west)+(7ex,0) node[anchor=east] {\texttt{##1}};
+		\path (n.east)+(-2ex,0) coordinate (##2);
+		\path (n.south west) coordinate (anchor);
+	}
+
+	\newcommand{\cnodeannotation}[1] {
+		\node[at=(anchor), anchor=north west, cnode, align=center](n){##1};
+		\path (n.south west) coordinate (anchor);
+	}
+
+	\newcommand{\cnodelast}[1] {
+		\node[at=(anchor), anchor=north west, cnodelast](n){};
+		\path (n.west)+(7ex,0) node[anchor=east] {\texttt{##1}};
+		\path (n.south west) coordinate (anchor);
+	}
+} { }

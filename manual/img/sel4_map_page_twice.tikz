@@ -1,0 +1,108 @@
+
+\input{sel4_styles.tikz}
+
+\begin{tikzpicture}
+
+	\path (0ex, 0.2ex) node {};
+
+	% top-level CNode
+	\path (0,0) coordinate (anchor);
+	\begin{cnode}
+		\cnodetitle{CSpace}
+		\cnodedotdotdot
+		\cnodeentry{0x5}{cnodeentry5}
+		\cnodeentry{0x6}{cnodeentry6}
+		\cnodeentry{0x7}{cnodeentry7}
+		\cnodedotdotdot
+		\cnodeentry{0x13}{cnodeentry13}
+		\cnodedotdotdot
+	\end{cnode}
+
+	% copy page frame selector
+	\path[draw, arrow] (anchor |- cnodeentry7) .. controls +(-3ex,0) and +(-3ex,0) .. node[sloped=false, right, xshift=-2ex] {\tiny copy} (anchor |- cnodeentry13);
+
+	% page directory
+	\path (19ex,0ex) coordinate (anchor) coordinate (pagedirectory);
+	\begin{cnode}
+		\cnodetitle{Page dir}
+		\cnodedotdotdot
+		\cnodeentry{0x1}{pde}
+		\cnodedotdotdot
+		\cnodelast{0x3ff}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentry5) .. controls +(5ex,0) and +(-5ex,0) .. (pagedirectory);
+
+	\path (anchor |- pde) coordinate (pdeleft);
+	\path[cnodeassoc] (cnodeentry6) .. controls +(5ex,0) and +(-5ex,0) .. (pdeleft);
+
+	% page table
+	\path (anchor)+(0ex,-2ex) coordinate (anchor) coordinate (pagetable);
+	\path (anchor)+(12ex,0) coordinate (pagetableright);
+	\begin{cnode}
+		\cnodetitle{Page table}
+		\cnodedotdotdot
+		\cnodeentry{0x1}{pte}
+		\cnodedotdotdot
+		\cnodeentry{0x10}{pte2}
+		\cnodedotdotdot
+		\cnodelast{0x3ff}
+	\end{cnode}
+
+	\path[cnodeassoc] (pde) .. controls +(5ex,0) and +(5ex,5ex) .. (pagetableright);
+
+	\path[cnoderef] (cnodeentry6) .. controls +(5ex,0) and +(-5ex,0) .. (pagetable);
+
+	% page frame
+	\path (anchor)+(0ex,-2ex) coordinate (anchor) coordinate (pageframe);
+	\path (anchor)+(12ex,0) coordinate (pageright);
+	\path (anchor) node[anchor=north west, sel4kobject, align=center] (page) {4 KiB\\page frame};
+
+	\path (anchor |- pte) coordinate (pteleft);
+	\path[cnodeassoc] (cnodeentry7) .. controls +(5ex,0) and +(-5ex,0) .. (pteleft);
+
+	\path (anchor |- pte2) coordinate (pte2left);
+	\path[cnodeassoc] (cnodeentry13) .. controls +(5ex,0) and +(-5ex,0) .. (pte2left);
+
+	\path[cnoderef] (cnodeentry7) .. controls +(5ex,0) and +(-5ex,0) .. (pageframe);
+	\path[cnoderef] (cnodeentry13) .. controls +(5ex,0) and +(-5ex,0) .. (pageframe);
+
+	% virtual address space
+	\path (37ex,-4ex) coordinate (vmem) coordinate (vmemanchor);
+	\path (vmemanchor) node [anchor=north west] (vmem) {Virtual memory};
+
+	\node[below=1ex of vmem, anchor=north, sel4untypedempty, minimum height=6ex] (vmem) {};
+
+	% offset
+	\path [draw, <-] (vmem.north west) node[left=1.3ex] {\texttt{\tiny{0x0}}} -- +(-2ex,0);
+
+	\node[below=0ex of vmem, anchor=north, sel4untypedalloc1, inner ysep=0, minimum height=0.2ex] (vmem) {};
+
+	% association of page with virtual memory range
+	\begin{scope}[on background layer]
+		\path [fill=black!10] (page.north east) -- (vmem.north west)
+		                   -- (vmem.south west) -- (page.south east) --cycle;
+	\end{scope}
+
+	% offset
+	\path [draw, <-] (vmem.north west) node[left=1.3ex] {\texttt{\tiny{0x401000}}} -- +(-2ex,0);
+
+	\node[below=0ex of vmem, anchor=north, sel4untypedempty, minimum height=2ex] (vmem) {};
+
+	\node[below=0ex of vmem, anchor=north, sel4untypedalloc1, inner ysep=0, minimum height=0.2ex] (vmem) {};
+
+	% association of page with virtual memory range
+	\begin{scope}[on background layer]
+		\path [fill=black!10] (page.north east) -- (vmem.north west)
+		                   -- (vmem.south west) -- (page.south east) --cycle;
+	\end{scope}
+
+	\path [draw, <-] (vmem.north west) node[left=1.3ex] {\texttt{\tiny{0x410000}}} -- +(-2ex,0);
+
+	\node[below=0ex of vmem, anchor=north, sel4untypedempty, minimum height=5ex] (vmem) {};
+
+	\path[cnodeassoc] (pte) .. controls +(5ex,0) and +(5ex,5ex) .. (pageright);
+
+	\path[cnodeassoc] (pte2) .. controls +(5ex,0) and +(3ex,3ex) .. (pageright);
+
+\end{tikzpicture}

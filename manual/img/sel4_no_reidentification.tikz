@@ -1,0 +1,77 @@
+\input{sel4_styles.tikz}
+
+\begin{tikzpicture}
+
+	\begin{timelinediagram}
+
+		\renewcommand{\timestepvector}{0,-0.8}
+
+		% initial timelines
+
+		\path (0,0) node (timelineanchor) {};
+		\newtimeline{pda}
+		\path (pda) node[above=2pt, align=center] (pdalabel) {\normalsize PD A\\};
+
+		\path (timelineanchor)+(19ex,0) node (timelineanchor) {};
+		\newtimeline{pdb}
+		\path (pdb) node[above=2pt, align=center] (pdblabel) {\normalsize PD B\\};
+
+		\path (timelineanchor)+(20ex,0) node (timelineanchor) {};
+		\newtimeline{pdc}
+		\path (pdc) node[above=2pt, align=center] (pdclabel) {\normalsize PD C\\};
+
+		\activate{pda}
+		\renewcommand{\timestepvector}{0,-1ex}
+		\timestep
+
+		\node[capability, anchor=east, left=3ex] (badgedepcap) {13};
+
+		\path (badgedepcap.west)+(-3ex,0) node[anchor=east, umlclass, align=center] (obj) {Local\\Object 45};
+
+		\node[below=0ex of badgedepcap, scale=0.7, align=center] {minted\\ endpoint};
+
+		\draw[arrow, densely dotted, <->] (obj) -- (badgedepcap);
+
+		\renewcommand{\timestepvector}{0,-4ex}
+		\timestep
+
+		\transition{pda}{pdb}{}
+		\node[align=center] at (transitionlabel) {$send$\\ 13};
+
+		\node[capability, right=2ex of pdb] (delegatedcap) {17};
+		\node[above=0ex of delegatedcap, scale=0.7, align=center] {new \\ selector};
+
+		\node[below=2ex of delegatedcap, umlclass, scale=0.5] (metadata) {meta data};
+		\draw[arrow, densely dotted, <->] (delegatedcap) -- (metadata);
+
+		\renewcommand{\timestepvector}{0,-8ex}
+		\timestep
+
+		\transition{pdb}{pdc}{}
+		\node[align=center] at (transitionlabel) {$send$\\ 17};
+
+		\node[capability, right=2ex of pdc] (furtherdelegatedcap) {34};
+		\node[below=0ex of furtherdelegatedcap, scale=0.7, align=center] {new \\ selector};
+
+		\timestep
+
+		\transition{pdc}{pdb}{}
+		\node[align=center] at (transitionlabel) {$send$\\ 34};
+
+		\node[capability, left=2ex of pdb] (delegatednewcap) {18};
+		\node[above=0ex of delegatednewcap, scale=0.7, align=center] (newsel) {new \\ selector};
+
+		\node[below=2ex of delegatednewcap] (whatnow) {???};
+		\draw[arrow] (delegatednewcap) -- (whatnow);
+
+		\timestep
+
+	\end{timelinediagram}
+
+	\begin{scope}[on background layer]
+	\node[timelinegroup, fit=(pdblabel) (delegatedcap) (metadata) (delegatednewcap) (pdb)] {};
+	\node[timelinegroup, fit=(pdalabel) (obj) (pda)] {};
+	\node[timelinegroup, fit=(pdclabel) (pdc) (furtherdelegatedcap)] {};
+	\end{scope}
+
+\end{tikzpicture}

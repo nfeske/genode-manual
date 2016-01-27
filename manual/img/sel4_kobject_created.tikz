@@ -1,0 +1,54 @@
+
+\input{sel4_styles.tikz}
+
+\begin{tikzpicture}
+
+	\path (-2ex, 2ex) node {};
+	\path (52ex, -34ex) node {};
+
+	% top-level CNode
+	\path (0,0) coordinate (anchor);
+	\begin{cnode}
+		\cnodetitle{CSpace}
+		\cnodedotdotdot
+		\cnodeentry{0x17}{cnodeentry17}
+		\cnodedotdotdot
+		\cnodeentry{0x44}{cnodeentry44}
+		\cnodedotdotdot
+		\cnodedotdotdot
+	\end{cnode}
+
+	% untyped memory
+	\path (17ex,-12ex) coordinate (untypedanchor);
+	\path (untypedanchor) node [sel4kobject, anchor=north west] (untypedmem) {Untyped Memory};
+
+	\node[below=1ex of untypedmem, anchor=north, sel4untypedempty, minimum height=6ex] (u) {};
+
+	\node[below=0ex of u, anchor=north, sel4untypedalloc1, minimum height=1ex] (untypedendpoint) {};
+
+	\node[below=0ex of untypedendpoint, anchor=north, sel4untypedempty, minimum height=1ex] (u) {};
+
+	\node[below=0ex of u, anchor=north, sel4untypedalloc2, minimum height=2ex] (u) {};
+	\node[below=0ex of u, anchor=north, sel4untypedempty, minimum height=1ex] (u) {};
+	\node[below=0ex of u, anchor=north, sel4untypedalloc2, minimum height=0.5ex] (u) {};
+	\node[below=0ex of u, anchor=north, sel4untypedempty, minimum height=2ex] (u) {};
+
+	\path[cnoderef] (cnodeentry44) .. controls +(3ex,0) and +(-3ex,1ex) .. (untypedanchor);
+
+	% offset
+	\path [draw, <-] (untypedendpoint.north west) node[left=1.3ex] {offset} -- +(-2ex,0);
+
+	% endpoint
+	\path (38ex,-14ex) coordinate (endpointanchor);
+	\path (endpointanchor) node [sel4kobject, anchor=north west] (endpoint) {Endpoint};
+
+	% relationship between endpoint and the used untyped memory region
+	\path [draw, densely dotted] (untypedendpoint.north east) -- (endpoint.north west);
+	\path [draw, densely dotted] (untypedendpoint.south east) -- (endpoint.south west);
+
+	\path[cnoderef] (cnodeentry17) .. controls +(22ex,0) and +(-5ex, 4ex) .. (endpointanchor);
+
+
+	\path (40ex,-2ex) node {\texttt{seL4\_Untype\_Retype}};
+
+\end{tikzpicture}

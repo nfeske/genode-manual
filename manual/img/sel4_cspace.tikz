@@ -1,0 +1,51 @@
+
+\input{sel4_styles.tikz}
+
+\begin{tikzpicture}
+
+	% top-level CNode
+	\path (0,0) coordinate (anchor);
+	\begin{cnode}
+		\cnodetitle{CSpace}
+		\cnodedotdotdot
+		\cnodeentry{0x5}{cnodeentry5}
+		\cnodeentry{0x6}{cnodeentry6}
+		\cnodedotdotdot
+		\cnodelast{0xfff}
+	\end{cnode}
+
+	% second-level CNode
+	\path (17ex,-18ex) coordinate (anchor) coordinate (a2ndcnode);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeentry{0x55}{cnodeentry55}
+		\cnodedotdotdot
+		\cnodelast{0xff}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentry6) .. controls +(5ex,0) and +(-5ex,0) .. (a2ndcnode);
+
+	% another second-level CNode
+	\path (17ex,-8ex) coordinate (anchor) coordinate (another2ndcnode);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeentry{0xffff}{last}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentry5) .. controls +(3ex,0) and +(-3ex,0) .. (another2ndcnode);
+
+	% third-level CNode
+	\path (34ex,-26ex) coordinate (anchor) coordinate (a3rdcnode);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeentry{0x200}{x}
+		\cnodedotdotdot
+		\cnodeentry{0xfff}{last}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentry55) .. controls +(3ex,0) and +(-3ex,0) .. (a3rdcnode);
+
+\end{tikzpicture}

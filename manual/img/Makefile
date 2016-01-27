@@ -20,3 +20,5 @@ TIKZ_FILES := $(wildcard *.tikz)
 PDF_FILES  := $(TIKZ_FILES:.tikz=.pdf)
 
 $(PDF_FILES): tikz-common.tex tikz-preamble.tex tikz-standalone.tex Makefile
+
+$(PDF_FILES): sel4_styles.tikz

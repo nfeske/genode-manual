@@ -1,0 +1,66 @@
+\input{sel4_styles.tikz}
+
+\begin{tikzpicture}
+
+	\begin{timelinediagram}
+
+		\renewcommand{\timestepvector}{0,-0.8}
+
+		% initial timelines
+
+		\path (0,0) node (timelineanchor) {};
+		\newtimeline{pda}
+		\path (pda) node[above=2pt, align=center] (pdalabel) {\normalsize PD A\\};
+
+		\path (timelineanchor)+(2.5,0) node (timelineanchor) {};
+		\newtimeline{pdb}
+		\path (pdb) node[above=2pt, align=center] (pdblabel) {\normalsize PD B\\};
+
+		\activate{pda}
+		\renewcommand{\timestepvector}{0,-1ex}
+		\timestep
+
+		\path (pda) node[anchor=east, left=2ex, sel4kobject] (endpoint) {Endpoint};
+		\node[capability, below=1ex of endpoint] (epcap) {3};
+		\draw[thick] (endpoint) -- (epcap);
+
+		\path (endpoint.north west)+(-2ex,0) node[anchor=north east, umlclass, align=center] (obj) {Local\\Object 45};
+
+		\node[capability, below=4ex of epcap] (badgedepcap) {13};
+		\node[below=0ex of badgedepcap, scale=0.7] {minted endpoint};
+
+		\draw[arrow] (epcap) -- coordinate (mintlabel) (badgedepcap);
+		\path (mintlabel) node[left] {$mint(45)$};
+		\draw[arrow, densely dotted, <->] (obj) -- (badgedepcap);
+
+		\renewcommand{\timestepvector}{0,-14ex}
+		\timestep
+
+		\transition{pda}{pdb}{}
+		\node[align=center] at (transitionlabel) {$send$\\ 13};
+
+		\node[capability, right=2ex of pdb] (delegatedcap) {17};
+		\node[below=0ex of delegatedcap, scale=0.7, align=center] {new \\ selector};
+
+		\renewcommand{\timestepvector}{0,-8ex}
+		\timestep
+		\transition{pdb}{pda}{}
+		\node[align=center] at (transitionlabel) {$send$\\ 17};
+
+		\path (pda) node[anchor=east, left=2ex] (unwrap) {$unwrap$};
+		\node[below=1ex of unwrap] (unwrappedbadge) {45};
+		\draw[arrow] (unwrap) -- (unwrappedbadge);
+
+		\draw[arrow, densely dotted, <->] (unwrappedbadge) .. controls +(-8ex, 0) and +(0, -10ex) .. (obj);
+
+		\renewcommand{\timestepvector}{0,-4ex}
+		\timestep
+
+	\end{timelinediagram}
+
+	\begin{scope}[on background layer]
+	\node[timelinegroup, fit=(pdblabel) (delegatedcap) (pdb)] {};
+	\node[timelinegroup, fit=(pdalabel) (obj) (pda)] {};
+	\end{scope}
+
+\end{tikzpicture}
