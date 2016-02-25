@@ -1,5 +1,5 @@
 
-\tikzstyle{cnode}       = [draw, minimum width=12ex, outer sep=0]
+\tikzstyle{cnode}       = [draw, minimum width=12ex, minimum height=2ex, outer sep=0]
 \tikzstyle{cnodetitle}  = [cnode, top color=white, bottom color=black!10,
                            dropshadow]
 \tikzstyle{cnodeentry}  = [cnode, top color=white, bottom color=black!10,

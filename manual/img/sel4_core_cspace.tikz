@@ -45,7 +45,7 @@
 	% second-level CNode for core-local pages and page tables
 	\path (48ex,-12ex) coordinate (anchor) coordinate (corelocalpages);
 	\begin{cnode}
-		\cnodetitle{CNode}
+		\cnodetitle{VM CNode}
 		\cnodedotdotdot
 		\cnodeannotation{core-local\\mapped\\pages and\\page tables}
 		\cnodedotdotdot
@@ -56,7 +56,7 @@
 	% second-level CNode for PD pages and page tables
 	\path (32ex,-16ex) coordinate (anchor) coordinate (pdvmpages);
 	\begin{cnode}
-		\cnodetitle{CNode}
+		\cnodetitle{VM CNode}
 		\cnodedotdotdot
 		\cnodeannotation{PD\\mapped\\pages and\\page tables}
 		\cnodedotdotdot

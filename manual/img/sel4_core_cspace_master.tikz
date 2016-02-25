@@ -1,0 +1,142 @@
+
+\input{sel4_styles.tikz}
+
+\begin{tikzpicture}
+
+	\path (-2ex, 2ex) node {};
+	\path (0ex, -42ex) node {};
+
+	% top-level CNode
+	\path (0,0) coordinate (anchor);
+	\begin{cnode}
+		\cnodetitle{CSpace}
+		\cnodeentry{0x0}{cnodeentry0}
+		\cnodeentry{0x1}{cnodeentry1}
+		\cnodedotdotdot
+		\cnodeentry{x}{cnodeentryx}
+		\cnodedotdotdot
+		\cnodeentry{0xffe}{cnodeentryffe}
+		\cnodeentry{0xfff}{cnodeentryfff}
+	\end{cnode}
+
+	% second-level guard CNode for core-local kobjects
+	\path (80ex,-8ex) coordinate (anchor) coordinate (corelocalguard);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodeentry{0x0}{guardentry}
+		\cnodedotdotdot
+		\cnodelast{0x3f}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentry0) .. controls +(5ex,0) and +(-5ex,0) .. (corelocalguard);
+
+	% second-level CNode for core-local kobjects
+	\path (anchor)+(0,-2ex) coordinate (anchor) coordinate (corelocalkobjs);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{core-local\\kernel\\objects}
+		\cnodedotdotdot
+		\cnodeannotation{\texttt{0x3fff}}
+	\end{cnode}
+
+	\path (corelocalkobjs)+(12ex,0) coordinate (corelocalkobjsright);
+	\path[cnoderef] (guardentry) .. controls +(5ex,0) and +(5ex,0) .. (corelocalkobjsright);
+
+	% second-level CNode for core-local pages and page tables
+	\path (64ex,-12ex) coordinate (anchor) coordinate (corelocalpages);
+
+	\begin{cnode}
+		\cnodetitle{VM CNode}
+		\cnodeentry{}{vmentry2nd}
+		\cnodedotdotdot
+		\cnodelast{0xf}
+	\end{cnode}
+
+	\path (anchor)+(0,-2ex) coordinate (anchor) coordinate (vm2nd);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeentry{}{vmentry3rd}
+		\cnodedotdotdot
+		\cnodelast{0xff}
+	\end{cnode}
+
+	\path (vm2nd)+(12ex,0) coordinate (vm2ndright);
+	\path[cnoderef] (vmentry2nd) .. controls +(5ex,0) and +(5ex,0) .. (vm2ndright);
+
+	\path (anchor)+(0,-2ex) coordinate (anchor) coordinate (vm3rd);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{core-local \\mapped \\pages and\\ page tables}
+		\cnodedotdotdot
+		\cnodelast{0xff}
+	\end{cnode}
+
+	\path (vm3rd)+(12ex,0) coordinate (vm3rdright);
+	\path[cnoderef] (vmentry3rd) .. controls +(5ex,0) and +(5ex,0) .. (vm3rdright);
+
+	\path[cnoderef] (cnodeentry1) .. controls +(5ex,0) and +(-5ex,0) .. (corelocalpages);
+
+	% second-level CNode for PD pages and page tables
+	\path (48ex,-16ex) coordinate (anchor) coordinate (pdvmpages);
+	\begin{cnode}
+		\cnodetitle{VM CNode}
+		\cnodeentry{}{vmentry2nd}
+		\cnodedotdotdot
+		\cnodelast{0xf}
+	\end{cnode}
+
+	\path (anchor)+(0,-2ex) coordinate (anchor) coordinate (vm2nd);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeentry{}{vmentry3rd}
+		\cnodedotdotdot
+		\cnodelast{0xff}
+	\end{cnode}
+
+	\path (vm2nd)+(12ex,0) coordinate (vm2ndright);
+	\path[cnoderef] (vmentry2nd) .. controls +(5ex,0) and +(5ex,0) .. (vm2ndright);
+
+	\path (anchor)+(0,-2ex) coordinate (anchor) coordinate (vm3rd);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{PD\\mapped\\pages and\\page tables}
+		\cnodedotdotdot
+		\cnodelast{0xff}
+	\end{cnode}
+
+	\path (vm3rd)+(12ex,0) coordinate (vm3rdright);
+	\path[cnoderef] (vmentry3rd) .. controls +(5ex,0) and +(5ex,0) .. (vm3rdright);
+
+	\path[cnoderef] (cnodeentryx) .. controls +(5ex,0) and +(-5ex,0) .. (pdvmpages);
+
+	% second-level CNode for untyped pages
+	\path (32ex,-20ex) coordinate (anchor) coordinate (untypedpages);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{untyped\\pages}
+		\cnodedotdotdot
+		\cnodeannotation{\texttt{0xfffff}}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentryffe) .. controls +(5ex,0) and +(-5ex,0) .. (untypedpages);
+
+	% second-level CNode for physical page frames
+	\path (16ex,-24ex) coordinate (anchor) coordinate (physpages);
+	\begin{cnode}
+		\cnodetitle{CNode}
+		\cnodedotdotdot
+		\cnodeannotation{physical\\page\\frames}
+		\cnodedotdotdot
+		\cnodeannotation{\texttt{0xfffff}}
+	\end{cnode}
+
+	\path[cnoderef] (cnodeentryfff) .. controls +(5ex,0) and +(-5ex,0) .. (physpages);
+
+
+\end{tikzpicture}

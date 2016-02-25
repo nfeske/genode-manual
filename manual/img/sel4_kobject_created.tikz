@@ -49,6 +49,6 @@
 	\path[cnoderef] (cnodeentry17) .. controls +(22ex,0) and +(-5ex, 4ex) .. (endpointanchor);
 
 
-	\path (40ex,-2ex) node {\texttt{seL4\_Untype\_Retype}};
+	\path (37ex,-2ex) node {\texttt{seL4\_Untype\_RetypeAtOffset}};
 
 \end{tikzpicture}
