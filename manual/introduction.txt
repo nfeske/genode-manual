@@ -279,7 +279,7 @@ stacks.
 
   Genode can be deployed on a variety of different kernels including
   most members of the L4 family (NOVA, Fiasco.OC, OKL4 v2.1, L4ka::Pistachio,
-  Codezero, L4/Fiasco).
+  seL4, L4/Fiasco).
   Furthermore, it can be used on top of the Linux kernel to attain
   rapid development-test cycles during development.
   Additionally, the framework is accompanied with a custom kernel for

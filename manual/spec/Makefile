@@ -21,6 +21,9 @@ VERBOSE ?= @
 GENODE_GIT_URL := https://github.com/genodelabs/genode.git
 GENODE_GIT_REV := 15.05
 
+# XXX override rev with current staging, update when release is ready
+GENODE_GIT_REV := daa5a2c0a6e9a06146dda0cddede3e07ee041c6c
+
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
 class_index.mk: genode.git/checked_out.tag
@@ -58,9 +61,9 @@ clean_local_genode_git:
 
 define BASE_INCLUDE_DIRS
   base
-  cap_session
   cpu
   cpu_session
+  cpu_thread
   dataspace
   io_mem_session
   io_port_session
@@ -69,16 +72,16 @@ define BASE_INCLUDE_DIRS
   parent
   pd_session
   ram_session
+  region_map
   rm_session
   rom_session
   root
   session
-  signal_session
   thread
   trace_session
   util
-  32bit
-  64bit
+  spec/32bit
+  spec/64bit
 endef
 
 define OS_INCLUDE_DIRS
@@ -95,11 +98,12 @@ define OS_INCLUDE_DIRS
   os
   packet_stream_rx
   packet_stream_tx
-  pci_device
-  pci_session
+  platform_session
+  platform_device
   regulator_session
   report_session
   rtc_session
+  spec/x86
   terminal_session
   timer_session
   uart_session
@@ -190,12 +194,15 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/util/construct_at.h \
                          repos/base/include/base/blocking.h \
                          repos/base/include/base/cache.h \
+                         repos/base/include/base/component.h \
                          repos/base/include/base/printf.h \
                          repos/base/include/base/env.h \
+                         repos/base/include/base/log.h \
+                         repos/base/include/base/output.h \
                          repos/base/include/base/snprintf.h \
                          repos/base/include/base/stdint.h \
-                         repos/base/include/64bit/base/fixed_stdint.h \
-                         repos/base/include/32bit/base/fixed_stdint.h \
+                         repos/base/include/spec/64bit/base/fixed_stdint.h \
+                         repos/base/include/spec/32bit/base/fixed_stdint.h \
                          repos/base/include/ram_session/ram_session.h \
                          repos/base/include/rom_session/rom_session.h \
                          repos/base/include/io_mem_session/io_mem_session.h \

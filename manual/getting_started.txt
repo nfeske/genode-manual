@@ -148,9 +148,10 @@ repositories.
 
     L4/Fiasco kernel originally developed at Technische Universität Dresden.
 
-  :_codezero_:
+  :_sel4_:
 
-    Codezero microkernel originally developed by B-Labs.
+    The seL4 microkernel developed by NICTA in Sydney. The support for this
+    kernel is highly experimental.
 
 :_os/_:
 
@@ -184,9 +185,9 @@ repositories.
 
   Device-driver environment for executing network drivers of the iPXE project.
 
-:_dde_oss/_:
+:_dde_bsd/_:
 
-  Device-driver environment for the audio drivers of the Open Sound System.
+  Device-driver environment for audio drivers ported from OpenBSD.
 
 :_dde_rump/_:
 
@@ -430,23 +431,37 @@ of the component. The main part of each component typically resides in a
 file called _main.cc_. Hence, for a hello-world program, we have to create
 the _repos/lab/src/app/hello/main.cc_ file with the following content:
 
-! #include <base/printf.h>
+! #include <base/component.h>
+! #include <base/log.h>
 !
-! int main()
+! Genode::size_t Component::stack_size() { return 64*1024; }
+!
+! void Component::construct(Genode::Env &)
 ! {
-!   Genode::printf("Hello world\n");
-!   return 0;
+!   Genode::log("Hello world");
 ! }
 
-For C and C++ programmers, the program is self-explanatory. Still, the
-'printf' function deserves an explanation. This function is not provided by
-a C library. In fact, the simple hello-world component will be built
-with no C library at all. It will solely incorporate the low-complexity
-base libraries of the Genode framework. The 'Genode::printf' function is
-a small and very rigid output facility, which covers not more than the
-limited use cases present in low-level Genode components. Of course,
-for higher-level applications where low complexity is not a concern, the
-optional C and C++ standard libraries are available.
+The _base/component.h_ header contains the interface each component must
+implement. The interface consists of two functions. The 'stack_size'
+function dimensions the stack of the component's initial entrypoint thread.
+The function allows the component developer to adjust the memory usage
+by taking knowledge about the component's behavior into account.
+Whereas a stack of 64 KiB is more than enough for most components, a higher
+value is sensible for components that rely on deeply recursive functions or
+that are known to host large objects as local variables on the stack.
+
+The 'construct' function is called by the component's execution environment
+to initialize the component. The interface to the execution environment is
+passed as argument. This interface allows the application code to interact
+with the outside world. Normally, the implementation of the 'construct'
+function creates an object representing the application as a 'static' local
+variable. But the simple example above merely produces a log message. The
+'log' function is defined in the _base/log.h_ header.
+
+The component does not exit after the 'construct' function returns. Instead,
+it becomes ready to respond to requests or signals originating from other
+components. The example above does not interact with other components though.
+Hence, it will just keep waiting infinitely.
 
 Please note that there exists a recommended coding style for genuine Genode
 components. If you consider submitting your work to the upstream development
@@ -507,7 +522,6 @@ _<genode-dir>/repos/lab/run/hello.run_ with the following content:
 ! <config>
 !   <parent-provides>
 !     <service name="LOG"/>
-!     <service name="RM"/>
 !   </parent-provides>
 !   <default-route>
 !     <any-service> <parent/> </any-service>
@@ -519,7 +533,7 @@ _<genode-dir>/repos/lab/run/hello.run_ with the following content:
 !}
 !build_boot_image "core init hello"
 !append qemu_args "-nographic -m 64"
-!run_genode_until {child "hello" exited with exit value 0} 10
+!run_genode_until {Hello world.*\n} 10
 
 This run script performs the following steps:
 
@@ -553,9 +567,8 @@ command:
 After the boot output of the used kernel, the scenario will produce the
 following output:
 
-! [init -> hello] Hello world
-! [init] virtual void Genode::Child_policy::exit(int):
-!        child "hello" exited with exit value 0
+! [init -> test-printf] Hello world
+!
 ! Run script execution successful.
 
 The label within the brackets at the start of each line identifies the

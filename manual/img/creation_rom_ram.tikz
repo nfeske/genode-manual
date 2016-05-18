@@ -4,7 +4,7 @@
 
 	\labeledcompoundnode{core}{creationcomponent, inner sep=2ex}{Core}{
 
-		\rpcobjectrnode{corermsession}{minimum width=0ex}{}{RM session}
+		\rpcobjectrnode{corermsession}{minimum width=0ex}{}{Region map}
 		\rpcobjectrnode{coreramsession}{minimum width=0ex,
 		                               below=1ex of corermsession, xshift=4ex}{}{RAM session}
 

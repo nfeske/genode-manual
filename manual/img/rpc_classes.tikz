@@ -38,7 +38,6 @@
 	\node[umlclass3, below of=objpool, node distance=15ex] (rpcentrypoint) {
 		\textbf{Entrypoint}
 		\nodepart{two}
-		IPC server
 		\nodepart{three}
 		manage(RPC object base \&) : Capability \\
 		dissolve(RPC object base \&)

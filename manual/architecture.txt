@@ -186,9 +186,10 @@ caller can pick them up, and finally hands back the control to the caller.
 In contrast to a program-local function call, however, client and server
 are different _threads_ in their respective protection domains. The thread
 at the server side is called _entrypoint_ denoting the fact that it
-becomes active only when a call from a client enters the protection domain.
-In order to be able to act as a server, a component has to have at least
-one entrypoint.
+becomes active only when a call from a client enters the protection domain
+or when an asynchronous notification comes in. Each component has at least one
+initial entrypoint, which is created as part of the component's execution
+environment.
 
 [tikz img/entrypoint]
 
@@ -438,8 +439,8 @@ a client by issuing a _session_ request to its parent. Figure
 "GUI" session. Along with the session call, the client specifies the
 type of the service and a number of session arguments. The session arguments
 enable the client to inform the server about various properties of the
-desired session. In the example, the client informs the server that it
-is interested in reading user input and that the client's window should be
+desired session. In the example, the client informs the server that
+the client's window should be
 labeled with the name "browser". As a result of the session request, the
 client expects to obtain a capability to an RPC object that implements
 the session interface of the requested service. Such a capability is called
@@ -482,7 +483,6 @@ of the ownership tree can impose its policy onto sessions. The routing of the
 session request and the final session arguments as received by the server are
 the result of the successive application of all policies along the route.
 
-In the example, init decides to override the "input" argument.
 Because the GUI announced its "GUI" service beforehand, init is in possession
 of the root capability, which enables it to create and destroy GUI
 sessions. It decides to respond to the launcher's session request by
@@ -1140,8 +1140,8 @@ Because each dataspace is a distinct RPC object, the authority over the
 contained physical address range is represented by a capability and can
 thereby be delegated between components.
 Each component in possession of a dataspace capability can make the
-dataspace content visible in its local address space (using core's RM service
-described in Section [Address-space management (RM)]). Hence, by means of
+dataspace content visible in its local address space.
+Hence, by the means of
 delegating dataspace capabilities, components can establish shared memory.
 
 On Genode, only core deals with physical memory pages. All other components
@@ -1149,6 +1149,55 @@ use dataspaces as a uniform abstraction for memory, memory-mapped I/O
 regions, and ROM modules.
 
 [1] Interface specification in Section [Dataspace interface]
+
+
+Region maps
+~~~~~~~~~~~
+
+A region map[1] represents the layout of a virtual address
+space. The size of the virtual address space is defined at its creation
+time. Region maps are created implicitly as part of a PD session (Section
+[Protection domains (PD)]) or
+manually via the RM service (Section [Region-map management (RM)]).
+
+[1] Interface specification in Section [Region-map interface]
+
+
+Populating an address space
+---------------------------
+
+The concept behind region maps is a generalization of the MMU's page-table
+mechanism. Analogously to how a page table is populated with physical page
+frames, a region map is populated with dataspaces.
+Under the hood, core uses the MMU's page-table mechanism as a cache for
+region maps.
+The exact way of how MMU translations are installed depends on the
+underlying kernel and is opaque to Genode components.
+On most base platforms, memory mappings are established in a lazy
+fashion by core's page-fault resolution mechanism described in Section
+[Page-fault handling].
+
+A region-map client in possession of a dataspace capability is
+able to _attach_ the dataspace to the region map.
+Thereby the content of the dataspace becomes visible within the region
+map's virtual address space.
+When attaching a dataspace to a region map, core selects an appropriate
+virtual address range that is not yet populated with dataspaces.
+Alternatively, the client can specify a designated virtual address.
+It also has the option to attach a mere window of the dataspace to the region
+map. Furthermore, the client can specify whether the content of the
+dataspace should be executable or not.
+
+The counter part of the _attach_ operation is the _detach_ operation, which
+enables the region-map client to remove
+dataspaces from the region map by specifying a virtual address. Under the
+hood, this operation flushes the MMU mappings of the corresponding virtual
+address range so that the dataspace content becomes invisible.
+
+Note that a single dataspace may be attached to any number of region maps.
+A dataspace may also be attached multiple times to one region map. In this
+case, each attach operation populates a distinct region of the virtual
+address space.
 
 
 Physical memory allocation (RAM)
@@ -1219,120 +1268,75 @@ Protection domains (PD)
 
 A protection domain (PD) corresponds to a unit of protection within the Genode
 system. Typically, there is a one-to-one relationship between a component and
-a PD. At the hardware-level, the CPU isolates different protection domains via
-a memory-management unit. Each domain is represented by a different page
-directory, or an address-space ID (ASID). A PD session[1] represents the
-used hardware-based protection facility.
+a PD session[1]. Each PD consists of a virtual memory address space and
+a capability space
+(Section [Capability spaces, object identities, and RPC objects]).
 
-[1] Interface specification in Section [PD session interface]
+At the hardware-level, the CPU isolates different virtual memory address
+spaces via a memory-management unit. Each domain is represented by a different
+page directory, or an address-space ID (ASID). Genode provides an abstraction
+from the underlying hardware mechanism in the form of region maps as
+introduced in Section [Region maps]. Each PD is readily equipped with three
+region maps. The _address space_ represents the layout of the PD's virtual
+memory address space, the _stack area_ represents the portion of the PD's
+virtual address space where stacks are located, and the _linker area_ is
+designated for dynamically linked shared objects. The stack area and linker
+area are attached to the address space at the component initialisation time.
 
-In addition to representing the unit of memory protection, a PD comprises a
-capability space as introduced in
-Section [Capability spaces, object identities, and RPC objects].
+The capability space is provided as a kernel mechanism. Note that not all
+kernels provide equally good mechanisms to implement Genode's capability model
+as described in Section [Capability-based security]. On kernels with support
+for kernel-protected object capabilities, the PD session interface allows
+components to create and manage kernel-protected capabilities.
 Initially, the PD's capability space is empty. However, the PD client can
 populate the capability space with a single capability, which is the
 parent capability of the component within the PD. The assignment of the
 parent capability is done at the creation time of the component by its
 parent.
 
-A PD on its own is not useful unless it becomes associated with an
-address-space layout (RM session) and at least one thread of execution
-(CPU session). Section [Component creation] explains how those sessions
-can be combined as basic building blocks for creating a component.
+[1] Interface specification in Section [PD session interface]
+
+Core's PD service also plays the role of a broker of asynchronous notifications
+on kernels that lack the semantics of Genode's signalling API. The service
+is not used directly by components at the framework's API level but is merely
+an implementation artifact.
 
 
-Address-space management (RM)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Region-map management (RM)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A region-manager (RM) session[1] represents the layout of a virtual address
-space. The size of the virtual address space can be defined via session
-arguments at the session-creation time.
-
-[1] Interface specification in Section [RM session interface]
-
-
-Populating an address space
----------------------------
-
-The concept behind RM sessions is a generalization of the MMU's page-table
-mechanism. Analogously to how a page table is populated with physical page
-frames, an RM session is populated with dataspaces.
-Under the hood, core uses the MMU's page-table mechanism as a cache for RM
-sessions.
-The exact way of how MMU translations are installed depends on the
-underlying kernel and is opaque to Genode components.
-On most base platforms, memory mappings are established in a lazy
-fashion by core's page-fault resolution mechanism described in Section
-[Page-fault handling].
-
-An RM client in possession of a dataspace capability is
-able to _attach_ the dataspace to the RM session.
-Thereby the content of the dataspace becomes visible within the RM session's
-virtual address space.
-When attaching a dataspace to an RM session, core selects an appropriate
-virtual address range that is not yet populated with dataspaces.
-Alternatively, the client can specify a designated virtual address.
-It also has the option to attach a mere window of the dataspace to the RM
-session. Furthermore, the client can specify whether the content of the
-dataspace should be executable or not.
-
-The counter part of the _attach_ operation is the _detach_ operation, which
-enables the RM client to remove
-dataspaces from its RM session by specifying a virtual address. Under the
-hood, this operation flushes the MMU mappings of the corresponding virtual
-address range so that the dataspace content becomes invisible.
-
-Note that a single dataspace may be attached to any number of RM sessions.
-A dataspace may also be attached multiple times to one RM session. In this
-case, each attach operation populates a distinct region of the virtual
-address space.
-
-
-
-Assigning threads to an address space
--------------------------------------
-
-As for a PD session, an RM session is not useful on its own. To enable the
-use of the RM-session's address-space layout for a component, it must first be
-associated with a thread of execution. An RM client can establish this
-association with the RM session's _add-client_ operation, which takes a
-thread capability (obtained from a CPU session) as argument.
-Once associated, core uses the address-space layout of the RM session to
-resolve page faults caused by the thread.
-
-
-Realizing managed dataspaces
-----------------------------
-
-The entirety of an RM session can be used as a dataspace. Such a
-_managed dataspace_ is not backed by a range of physical addresses but
-by the range of virtual addresses of its underlying RM session.
-This makes RM sessions a generalization of nested page tables.
-An RM client can obtain a dataspace capability for a given RM session
+As explained in Section [Protection domains (PD)], each PD session is
+equipped with three region maps by default. The RM service allows
+components to create additional region maps manually. Such manually
+created region maps are also referred to as _managed dataspaces_.
+A managed dataspace is not backed by a range of physical addresses but
+its content is defined by its underlying region map.
+This makes region maps a generalization of nested page tables.
+A region-map client can obtain a dataspace capability for a given region map
 and use this dataspace capability in the same way as any other dataspace
 capability, i.e., attaching it to its local address space, or delegating
 it to other components.
 
 Managed dataspaces are used in two ways. First, they allow for the manual
 management of portions of a component's virtual address space. For example,
-the so-called thread-context area is a dedicated virtual-address range
+the so-called stack area of a protection domain is a dedicated virtual-address range
 preserved for stacks. Between the stacks, the virtual address space must
 remain empty so that stack overflows won't silently corrupt data. This
-is achieved by creating an RM session that represents the complete
-thread-context area. This RM session is attached as a dataspace to the
+is achieved by using a dedicated region map that represents the complete
+stack area. This region map is attached as a dataspace to the
 component's virtual address space. When creating a new thread along with its
 corresponding stack, the thread's stack is not directly attached to the
-component's RM session but to the context area's RM session. Another
+component's address space but to the stack area's region map. Another
 example is the virtual-address range managed by a dynamic linker to load
 shared libraries into.
 
-The second use of managed dataspaces is the provision of on-demand-paged
-dataspaces. A server may hand out dataspace capabilities that are backed by RM
-sessions to its clients. Once the client has attached this dataspace to its
+The second use of managed dataspaces is the provision of on-demand-populated
+dataspaces. A server may hand out dataspace capabilities that are backed by
+region maps to its clients. Once the client has attached this dataspace to its
 address space and touches the content, the client triggers a page fault. Core
 responds to this page fault by blocking the client thread and delivering a
-notification to the RM client of the managed dataspace (the server) along with
-the information about the fault address within the RM session. The server can
+notification to the server that created the managed dataspace along with
+the information about the fault address within the region map. The server can
 resolve this condition by attaching a dataspace with real backing store at the
 fault address, which prompts core to resume the execution of the faulted
 thread.
@@ -1350,8 +1354,7 @@ be defined via session arguments.
 
 Once created, the session can be used to create, control, and kill threads.
 Each thread created via a CPU session is represented by a thread capability.
-The thread capability is used for associating the thread with its address
-space layout (RM session) as well as for subsequent thread-control operations.
+The thread capability is used for subsequent thread-control operations.
 The most prominent thread-control operation is the _start_ of the thread,
 which takes the thread's initial stack pointer and instruction pointer as
 arguments.
@@ -1365,25 +1368,6 @@ To aid the graceful destruction of threads, the CPU client can issue a
 _cancel-blocking_ operation, which causes the specified thread to cancel a
 current blocking operation such as waiting for an RPC response
 or the attempt to acquire a contended lock.
-
-
-Object-identity allocation (CAP)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Genode regards object identities as a physical resource because each object
-identity is represented as a kernel object. Core's CAP service[1] allows for
-the creation and destructions of new object identities. For each RPC object
-associated to an RPC entrypoint, the entrypoint requests the creation of
-a new object identity from a CAP session and associates the RPC object with
-the capability allocated from the CAP service.
-
-[1] Interface specification in Section [CAP session interface]
-
-For more information about the relationship between RPC objects and object
-identities, refer to Section [Capability-based security].
-The interplay between RPC objects, the RPC entrypoint, and core's CAP service
-is described in depth in
-Section [Synchronous remote procedure calls (RPC)].
 
 
 Access to device resources (IO_MEM, IO_PORT, IRQ)
@@ -1480,15 +1464,6 @@ between the LOG client and core's LOG service.
 [1] Interface specification in Section [LOG session interface]
 
 
-Asynchronous notifications (SIGNAL)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Core's SIGNAL service plays the role of a broker of asynchronous notifications
-on kernels that lack the semantics of Genode's signalling API. The service
-is not used directly by components at the framework's API level but is merely
-an implementation artifact.
-
-
 Event tracing (TRACE)
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -1508,7 +1483,6 @@ Each Genode component is made out of five basic ingredients:
 :RAM: session for allocating the memory for the program's BSS segment and heap
 :ROM: session with the executable binary
 :CPU: session for creating the initial thread of the component
-:RM: session for managing the component's address-space layout
 :PD: session representing the component's protection domain
 
 ; Initial situation
@@ -1521,13 +1495,13 @@ sessions. The initial situation of the parent is depicted in Figure
 [img/creation_initial].
 The parent's memory budget is represented by the
 parent's RAM (Section [Physical memory allocation (RAM)]) session.
-The parent's virtual address space is represented
-by the parent's RM session (Section [Address-space management (RM)]).
+The parent's virtual address space is represented by the region map contained
+in the parent's PD session (Section [Protection domains (PD)]).
 Both sessions were originally created at the parent's construction time.
-Along with the parent's CPU session and PD session, those sessions form
-the parent's so-called _environment_. The parent's RM session is populated
+Along with the parent's CPU session, those sessions form
+the parent's so-called _environment_. The address space is populated
 with the parent's code (shown as red), the so-called
-thread-context area that hosts the stacks (shown as blue), and
+stack area that hosts the stacks (shown as blue), and
 presumably several RAM dataspaces for the heap, the DATA segment,
 and the BSS segment. Those are shown as yellow.
 
@@ -1540,7 +1514,7 @@ executable binary, e.g., by creating a session to a ROM service such as the
 one provided by core (Section [Access to boot modules (ROM)]). With the
 ROM session created, the parent can make the dataspace with the executable
 binary (i.e., an ELF binary) visible within its virtual address space by
-attaching the dataspace to its RM session. After this step, the parent is
+attaching the dataspace to its PD's region map. After this step, the parent is
 able to inspect the ELF header to determine the memory required for the
 binary's DATA and BSS segments.
 
@@ -1564,30 +1538,29 @@ Constructing the child's address space
 With the child's RAM session equipped with memory, the parent can construct
 the address space for the new child and populate it with memory allocated
 from the child's budget.
-The address-space layout is represented
-as a session to core's RM service (Section [Address-space management (RM)]).
-Hence, as illustrated in Figure [img/creation_rmsession], the parent has to
-create an RM session designated for the child.
-When creating the session, the parent is able to constrain the bounds of the
-virtual address space. By default, the first page is excluded such that
+The address-space layout is represented as a region map that is part of each
+PD session (Section [Protection domains (PD)]).
+Hence, as illustrated in Figure [img/creation_pdsession], the parent has to
+create an PD session designated for the child.
+The first page of the address space is excluded such that
 any attempt by the child to de-reference a null pointer will cause a
 fault instead of silently corrupting memory. After its creation time, the
-child's RM session is empty. It is up to the parent to populate the virtual
-address space with meaningful information by attaching dataspaces to the RM
-session. The parent performs this procedure based on the information found
+child's region map is empty. It is up to the parent to populate the virtual
+address space with meaningful information by attaching dataspaces to the
+region map. The parent performs this procedure based on the information found
 in the ELF executable's header:
 
-[tikz img/creation_rmsession]
+[tikz img/creation_pdsession]
   The parent creates and populates the virtual address space of the child
-  using a new RM session (the parent's RM and RAM sessions are not depicted
+  using a new PD session (the parent's PD and RAM sessions are not depicted
   for brevity)
 
 :Read-only segments:
   For each read-only segment of the ELF binary, the parent attaches the
   corresponding portion of the ELF dataspace to the child's address space
-  by invoking the attach operation on the child's RM-session capability.
+  by invoking the attach operation on the child's region-map capability.
   By attaching a portion of the existing ELF dataspace to the new child's
-  RM session, no memory must be copied. If multiple instances of the same
+  region map, no memory must be copied. If multiple instances of the same
   executable are created, the read-only segments of all instances refer to the
   same physical memory pages.
   If the segment contains the TEXT segment (the program code), the parent
@@ -1618,7 +1591,7 @@ in the ELF executable's header:
     a RAM dataspace capability as the result of the allocation operation.
 
   # Attachment of the RAM dataspace to the parent's virtual address space
-    by invoking the attach operation on the parent's RM session with the
+    by invoking the attach operation on the parent's region map with the
     RAM dataspace capability as argument.
 
   # Copying of the segment content from the ELF binary's dataspace to the
@@ -1628,11 +1601,11 @@ in the ELF executable's header:
 
   # After filling the content of the segment dataspace, the parent no longer
     needs to access it. It can remove it from its virtual address space
-    by invoking the detach operation on its own RM session.
+    by invoking the detach operation on its own region map.
 
   # Based on the virtual segment address as found in the ELF header, the
     parent attaches the RAM dataspace to the child's virtual address space
-    by invoking the attach operation on the child's RM session with the
+    by invoking the attach operation on the child PD's region map with the
     RAM dataspace as argument.
 
 This procedure is repeated for each segment. Note that although the above
@@ -1640,14 +1613,14 @@ description refers to ELF executables, the underlying mechanisms used to
 load the executable binary are file-format agnostic.
 
 
-Creating the initial thread and the child's protection domain
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating the initial thread
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-[tikz img/creation_thread_pd]
-  Creation of the child's protection domain and initial thread
+[tikz img/creation_thread]
+  Creation of the child's initial thread
 
 With the virtual address space of the child configured, it is time to
-create the component's initial thread. Analogously to the child's RAM and RM
+create the component's initial thread. Analogously to the child's RAM and PD
 sessions, the parent creates a CPU session
 (Section [Processing-time allocation (CPU)]) for the child.
 The parent may use session arguments to constrain the scheduling parameters
@@ -1656,53 +1629,48 @@ Whichever session arguments are specified, the child's abilities will never
 exceed the parent's abilities. I.e., the child's priority is subjected to the
 parent's priority constraints.
 Once constructed, the CPU session can be used to create new threads by
-invoking the session's create-thread operation.
+invoking the session's create-thread operation with the thread's designated
+PD as argument.
+Based on this association of the thread with its PD, core knows how to respond to
+page faults triggered by the thread.
 The invocation of this operation results in a thread capability, which can be
 used to control the execution of the thread.
 Immediately after its creation, the thread remains inactive.
-In order to be executable, it first needs to be configured. In particular, the
-thread needs to be associated with its address space.
-Otherwise, the kernel respectively core would not know how to respond to
-page faults triggered by the thread.
-To associate the thread with the virtual address space of the new child, the
-parent invokes the add-client operation at the child's RM session with the
-thread capability as argument.
+In order to be executable, it first needs to be configured.
 
-The final step is the creation of the child's protection domain and the
-assignment of the child's initial thread to the new protection domain. A
-protection domain is represented by a session to core's PD service.
-As described in Section [Component ownership], each protection domain has
+As described in Section [Component ownership], each PD has
 initially a single capability installed, which allows the child to communicate
 to its parent.
 Right after the creation of the PD for a new child, the parent can register
 a capability to a locally implemented RPC object as parent capability for the
-PD session. Furthermore, the parent binds the initial thread to the child's
-protection domain using the PD-session interface.
-Now that the initial thread has a defined virtual address space and a
-protection domain, it is the right time to kick off the execution of the
-thread using the start operation of the CPU session with the thread
-capability and the initial program counter
-as arguments. The latter argument corresponds to the program's entry-point
+PD session.
+Now that the child's PD is equipped with an initial thread and a communication
+channel to its parent,
+is the right time to kick off the execution of the
+thread invoking the start operation on the thread capability. The start
+operation takes the initial program counter as argument,
+which corresponds to the program's entry-point
 address as found in the ELF header of the child's executable binary.
-Figure [img/creation_thread_pd] illustrates the relationship between the
+Figure [img/creation_thread] illustrates the relationship between the
 PD session, the CPU session, and the parent capability. Note that neither the
 ROM dataspace containing the ELF binary nor the RAM dataspaces
 allocated during the ELF loading are visible in the parent's
 virtual address space any longer. After initially loading the ELF binary,
-the parent has detached those dataspaces from its own RM session.
+the parent has detached those dataspaces from its own region map.
 
 The child starts its execution at the virtual address defined by the ELF
 entrypoint. For regular Genode components, it points to a short assembly
 routine that sets up the initial stack and calls the low-level C++ startup
 code. This code, in turn, initializes the C++ runtime (such as the exception
 handling) along with the component's local Genode environment. The environment
-is constructed by successively requesting the component's RM, RAM, CPU, and PD
+is constructed by successively requesting the component's RAM, CPU, and PD
 sessions from its parent. With the Genode environment in place, the startup
-code initializes the thread-context area, sets up the real stack for the main
-thread within the thread-context area, and returns to the assembly startup
+code initializes the stack area, sets up the real stack for the initial
+thread within the stack area, and returns to the assembly startup
 code. The assembly code, in turn, switches the stack from the initial stack to
 the real stack and calls the program-specific C++ startup code. This code
-executes global constructors before calling the program's main function.
+initializes the component's initial entrypoint and executes all global
+constructors before calling the component's 'construct' function.
 Section [Component-local startup code and linker scripts] describes
 the component-local startup procedure in detail.
 
@@ -1813,30 +1781,31 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   message-buffer content to the format understood by the kernel's IPC
   operation.
 
-  The _IPC client_ represents the calling side of the communication channel
-  to a given destination capability. It uses two message buffers, a
-  send buffer for the arguments to be sent to the server and a receive buffer
-  for the results delivered as a reply by the server.
-  The user of an IPC client object can populate the send buffer with raw data
-  and capabilities using the C++ insertion operator, invoke the kernel's call
-  operation, and obtain the results by using the C++ extraction operator.
-  The kernel's call operation blocks the execution of the IPC client until the
-  server has replied to the call.
+  The client side of the communication channel executes an _IPC call_
+  operation with a destination capability, a send buffer, and a receive buffer
+  as arguments.
+  The send buffer contains the RPC function arguments, which can comprise
+  plain data as well as capabilities.
+  The IPC library transfers these arguments to the server via a
+  platform-specific kernel operation and waits for the server's response.
+  The response is returned to the caller as new content of the receive
+  buffer.
 
-  The _IPC server_ represents the callee side of the communication with
-  potentially many IPC clients.
-  Analogously to the IPC client, it uses two message buffers, a receive buffer
+  At the server side of the communication channel, en entrypoint thread
+  executes the _IPC reply_ and _IPC reply-and-wait_ operations to interact
+  with potentially many clients.
+  Analogously to the client, it uses two message buffers, a receive buffer
   for incoming requests and a send buffer for delivering the reply of the last
   request.
-  For each IPC server, there exists an associated untyped
-  capability that is created with the IPC server object. This capability
+  For each entrypoint, there exists an associated untyped
+  capability that is created with the entrypoint. This capability
   and can be combined with an IPC client object to perform calls to the
-  IPC server.
-  An IPC server object can be used to wait for incoming messages, read the
-  arguments from the receive buffer using the C++ extraction operator,
-  populate the send buffer with the reply message, and submit the reply to the
-  client.
-  The IPC server does not obtain any form of client identification along with
+  server.
+  The _IPC reply-and-wait_ operation delivers the content of the reply buffer
+  to the last caller and blocks for a new request using a platform-specific
+  kernel operation. Once unblocked by the kernel, it returns the arguments
+  for the new request in the request buffer.
+  The server does not obtain any form of client identification along with
   an incoming message that could be used to implement server-side
   access-control policies.
   Instead of performing access control based on a client identification in the
@@ -1860,8 +1829,8 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   language barrier when designing RPC interfaces and alleviates the need for
   code-generating tools in addition to the compiler.
 
-  The client-side stub code translates C++ method calls to a sequence of
-  operations on an IPC client object. Each RPC function of an
+  The client-side stub code translates C++ method calls to the IPC-library
+  operations. Each RPC function of an
   RPC interface has an associated opcode (according to the order of RPC
   functions). This opcode along with the method arguments are inserted
   into the IPC client's send buffer. Vice versa, the stub code translates
@@ -1956,11 +1925,10 @@ created its corresponding object pool.
 # The server component associates the RPC object with the entrypoint by
   calling the entrypoint's _manage_ function with the RPC object as argument.
   The entrypoint responds to this call by allocating a new object identity
-  using a session to core's CAP service
-  (Section [Object-identity allocation (CAP)]).
+  using a session to core's PD service (Section [Protection domains (PD)]).
   For allocating the new object identity, the entrypoint specifies the
   untyped capability of its IPC server as argument.
-  Core's CAP service responds to the request by instructing the kernel to
+  Core's PD service responds to the request by instructing the kernel to
   create a new object identity associated with the untyped capability.
   Thereby, the kernel creates a new capability that is derived from the
   untyped capability.
@@ -2005,7 +1973,7 @@ calls an RPC object by invoking a capability.
   fails, the entrypoint replies with an error.
 
 # If the matching RPC object was found, the entrypoint calls the
-  RPC object's dispatch function. This function is implemented by the
+  RPC object's dispatch method. This method is implemented by the
   server-side stub code. It converts the content of the receive buffer of the
   IPC server to a method call. I.e., it obtains the opcode of the RPC function
   from the receive buffer to decide which method to call, and supplies
@@ -2083,19 +2051,20 @@ Signal-context creation and delegation
 The upper part of Figure [img/signal_seq] depicts the steps needed by a
 signal handler to become able to receive asynchronous notifications.
 
-# Initially, the signal-handler component creates a so-called _signal receiver_.
-  Similar to an entrypoint that can respond to RPC requests for a number
-  of RPC objects, a signal receiver is able to receive signals for an
-  arbitrary number of sources. Within the signal-handler component,
+# Each Genode component is equipped with at least one initial entrypoint that
+  responds to incoming RPC requests as well as asynchronous notifications.
+  Similar to how it can handle requests for arbitrary number of RPC objects,
+  it can receive signals from many different sources.
+  Within the signal-handler component,
   each source is represented as a so-called _signal context_. A component
   that needs to respond to multiple conditions creates one signal context
   for each condition. In the figure, a signal context "c" is created.
 
-# The signal-handler component associates the signal context with the
-  signal receiver via the manage function.
+# The signal-handler component associates the signal context with its
+  entrypoint via the manage method.
   Analogous to the way how RPC objects are associated with entrypoints,
-  the manage function returns a capability for the signal context.
-  Under the hood, the signal receiver uses core's SIGNAL service to create
+  the manage method returns a capability for the signal context.
+  Under the hood, the entrypoint uses core's PD service to create
   this kind of capability.
 
 # As for regular capabilities, a signal-context capability can be delegated
@@ -2112,25 +2081,29 @@ signal-context capability by the signal producer.
 # Now in possession of the signal-context capability, the signal producer
   creates a so-called _signal transmitter_ for the capability.
   The signal transmitter can be used to trigger a signal by calling the
-  _submit_ function. This function returns immediately. In contrast to
+  _submit_ method. This method returns immediately. In contrast to
   a remote procedure call, the submission of a signal is a fire-and-forget
   operation.
 
 # At the time when the signal producer submitted the first signals, the
   signal handler is not yet ready to handle them. It is still busy with other
   things.
-  However, the number of submitted signals is recorded.
-  Once the signal handler finally calls the wait-for-signal function at the
-  signal receiver, the call immediately returns the information about the
-  context, to which the signals refer, and the number of signals that were
-  submitted for this context.
+  Once the signal producer becomes ready to receive a new signal, the
+  pending signal is delivered, which triggers the execution of the
+  corresponding signal-handler method.
+  Note that signals are not buffered. If signals are triggered at a high
+  rate, multiple signals may result in only a single execution of the
+  signal handler. For this reason, the handler cannot infer the number
+  of events from the number of signal-handler invocations. In situations
+  where such information is needed, the signal handler must retrieve it
+  via another mechanism such as an RPC call to query the most current
+  status of the server that produces the signals.
 
 # After handling the first batch of signals, the signal handler component
-  blocks its execution by calling the signal receiver's wait-for-signal
-  function again. This time, no signals are immediately pending. After
+  blocks and becomes ready for another signal or RPC request.
+  This time, no signals are immediately pending. After
   a while, however, the signal producer submits another signal, which
-  eventually wakes up the signal handler with the information about the
-  associated context.
+  eventually triggers another execution of the signal handler.
 
 In contrast to remote procedure calls, signals carry no payload. If signals
 carried any payload, this payload would need to be buffered somewhere.
@@ -2142,9 +2115,7 @@ indeterministic, which is hardly desirable. The second option would be
 to sacrifice the fire-and-forget semantics at the producer side, blocking
 the producer when the buffer is full. However, this approach would put the
 liveliness of the producer at the whim of the signal handler. Consequently,
-signals are void of any payload. However, the number of signals is recorded,
-which does not require a buffer but merely a counter. Note that this counter
-could overflow in the presence of a producer that constantly submits signals.
+signals are void of any payload.
 
 
 \clearpage
@@ -2155,7 +2126,7 @@ Shared memory
 [tikz img/shared_memory_seq]
   Establishing shared memory between client and server.
   The server interacts with core's RAM service. Both client and server
-  interact with core's RM service.
+  interact with the region maps of their respective PD sessions at core.
 
 By sharing memory between components, large amounts of information can be
 propagated across protection-domain boundaries without the active involvement of
@@ -2200,10 +2171,11 @@ client and server must be clearly defined.
   allocation.
 
 # The server makes the content of the dataspace visible in its virtual
-  address space by attaching the dataspace within its RM session. The server
+  address space by attaching the dataspace within the region map of its
+  PD session. The server
   refers to the dataspace via the dataspace capability as returned from the
   prior allocation.
-  When attaching the dataspace to the server's RM session, core's RM service
+  When attaching the dataspace to the server's region map, core's PD service
   maps the dataspace content at a suitable virtual-address range that is
   not occupied with existing mappings and returns the base
   address of the occupied range to the server.
@@ -2218,14 +2190,14 @@ client and server must be clearly defined.
   delegate the dataspace capability. Therefore, the delegation operation is
   depicted as a dashed line.
 
-# Once the client has obtained the dataspace capability, it can use its
-  own RM session to make the dataspace content visible in its address
-  space. Note that even though both client and server use core's RM service,
-  each component uses a different session.
+# Once the client has obtained the dataspace capability, it can use the region
+  map of its own PD session to make the dataspace content visible in its
+  address space. Note that even though both client and server use core's PD
+  service, each component uses a different session.
   Analogous to the server, the client receives a client-local address
   within its virtual address space as the result of the attach operation.
 
-# After the client has attached the dataspace within its RM session,
+# After the client has attached the dataspace within its region map,
   both client and server can access the shared memory using their respective
   virtual addresses.
 
@@ -2239,7 +2211,7 @@ is consistent with the discussion in Section [Client-server relationship].
 A well-behaving server should tie the lifetime of a shared-memory dataspace
 to the lifetime of the client session. When the server frees the dataspace
 at its RAM session, core implicitly detaches the dataspace from all
-RM sessions. Thereby the dataspace will become inaccessible to the client.
+region maps. Thereby the dataspace will become inaccessible to the client.
 
 
 Asynchronous state propagation

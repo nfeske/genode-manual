@@ -46,7 +46,7 @@
 	\path[umlinherit] (belowsession) -- (session);
 	\coordinate[below=4.5ex of belowsession] (currpos) {};
 
-	\foreach \i in {CAP, CPU, IRQ, PD, RAM, RM} {
+	\foreach \i in {CPU, IRQ, PD, RAM, RM} {
 
 		\node[captype, bottom color=session] at (currpos)
 			(currnode) {\i};
@@ -57,7 +57,7 @@
 	\coordinate[below=12ex of belowsession] (currpos) {};
 	\coordinate[right=5.5ex of currpos] (currpos) {};
 
-	\foreach \i in {I/O\\port, I/O\\mem, TRACE, LOG, SIGNAL, ROM} {
+	\foreach \i in {I/O\\port, I/O\\mem, TRACE, LOG, ROM} {
 		\node[captype, bottom color=session] at (currpos)
 			(currnode) {\i};
 		\path (currnode)+(11ex,0) coordinate (currpos) {};

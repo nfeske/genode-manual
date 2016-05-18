@@ -9,7 +9,7 @@
 		\node[minimum width=22ex, font=\normalsize]
 			(producerlabel) {Signal producer};
 		\node[minimum width=32ex, font=\normalsize, right of=producerlabel,
-		     node distance=35ex]
+		     node distance=31ex]
 			(handlerlabel)  {Signal handler};
 
 		\path (producerlabel)+(8ex,-3ex) node (timelineanchor) {};
@@ -21,19 +21,18 @@
 		\node[minimum width=10ex, font=\normalsize, right of=handlerlabel,
 		      node distance=28ex] (corelabel) {Core};
 		\path (corelabel)+(0ex,-3ex) node (timelineanchor) {};
-		\path (corelabel.south) node[below, font=\normalsize] (coresignallabel) {SIGNAL};
+		\path (corelabel.south) node[below, font=\normalsize] (corepdlabel) {PD};
 		\newtimeline{coresignal}
 
 		\activate{producer}
 		\activate{handler}
 		\timestep
 
-		% create signal receiver
+		% entrypoint
 
 		\path (handler)+(2.5,0) node (timelineanchor) {};
-		\newtimeline{receiver}
-		\node[draw, fill=white, align=center, dropshadow] at (receiver)
-			(signalreceiver) {Signal\\ receiver};
+		\newtimeline{ep}
+		\node[draw, fill=white, align=center, dropshadow] at (ep) {Entrypoint};
 		\renewcommand{\timestepvector}{0,-1}
 		\timestep
 
@@ -47,14 +46,14 @@
 
 		% manage context
 
-		\transition{handler}{receiver}{manage \textbf{c}}
+		\transition{handler}{ep}{manage \textbf{c}}
 		\renewcommand{\timestepvector}{0,-0.3}
 		\timestep
-		\transition{receiver}{coresignal}{allocate capability}
+		\transition{ep}{coresignal}{allocate capability}
 		\timestep
-		\transition{coresignal}{receiver}{}
+		\transition{coresignal}{ep}{}
 		\timestep
-		\transition{receiver}{handler}{}
+		\transition{ep}{handler}{}
 		\path (transitionlabel)+(1ex,0)
 			node[align=center, below] {signal-context \\ capability \textbf{$cap_c$}};
 		\renewcommand{\timestepvector}{0,-0.3}
@@ -68,7 +67,7 @@
 
 		% create signal transmitter
 
-		\path (producer)+(-2.5,0) node (timelineanchor) {};
+		\path (producer)+(-13ex,0) node (timelineanchor) {};
 		\newtimeline{transmitter}
 		\node[draw, fill=white, align=center, dropshadow] at (transmitter)
 			(signaltransmitter) {Signal\\ transmitter\\ for \textbf{$cap_c$}};
@@ -102,9 +101,9 @@
 		% handler receives 2 signals
 
 		\renewcommand{\timestepvector}{0,-0.2}
-		\transition{handler}{receiver}{wait for signal} \timestep
+		\transition{handler}{ep}{block} \timestep
 		\renewcommand{\timestepvector}{0,-0.6}
-		\transition{receiver}{handler}{} \timestep
+		\transition{ep}{handler}{} \timestep
 		\path (transitionlabel)+(1ex,0)
 			node[align=center, below] {context {\textbf{c}} count {\textbf{2}}};
 		\timestep
@@ -112,14 +111,14 @@
 		% handler waits for signal
 
 		\renewcommand{\timestepvector}{0,-0.8}
-		\transition{handler}{receiver}{wait for signal} \timestep
+		\transition{handler}{ep}{block} \timestep
 
 		% producer submits one signal and immediately wakes up handler
 
 		\transition{producer}{transmitter}{submit}
 		\renewcommand{\timestepvector}{0,-0.1}
 		\timestep
-		\transition{receiver}{handler}{}
+		\transition{ep}{handler}{}
 		\path (transitionlabel)+(1ex,0)
 			node[align=center, below] {context {\textbf{c}} count {\textbf{1}}};
 		\draw[timelinemessage, dotted, pos=0.75] (transmitter) -- node[above] {$wake$ $up$} (handler);
@@ -133,7 +132,7 @@
 	\begin{scope}[on background layer]
 	\node[timelinegroup, fit=(producerlabel) (transmitter) (producer)] {};
 	\node[timelinegroup, fit=(handlerlabel) (context)  (handler)] {};
-	\node[timelinegroup, fit=(corelabel) (coresignallabel) (coresignal)] {};
+	\node[timelinegroup, fit=(corelabel) (corepdlabel) (coresignal)] {};
 	\end{scope}
 
 \end{tikzpicture}

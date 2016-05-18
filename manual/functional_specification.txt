@@ -142,8 +142,8 @@ fundamental API primitive for representing a container of memory as
 provided by core's RAM, IO_MEM, or ROM services. Each dataspace is referenced
 by a capability that can be passed among components.
 Each component with the capability to a dataspace can access the
-dataspace's content by attaching the dataspace to its RM session.
-In addition to be used as arguments for RM-session calls,
+dataspace's content by attaching the dataspace to the region map of its PD session.
+In addition to be used as arguments for region-map operations,
 dataspaces provide the following interface.
 
 ; XXX Genode::Dataspace_client
@@ -170,38 +170,26 @@ component's address space.
 Component execution environment
 ===============================
 
+Each component has to provide an implementation of the 'Component' interface
+as illustrated by the example given in Section
+[Source code and build description].
+
+[raw spec/repos/base/include/base/component.h.overview]
+
 
 Interface to the component's environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As described in Section [Component creation],
 each component is a composition of a protection domain (PD session), a
-memory budget (RAM session), an address-space layout (RM session),
+memory budget (RAM session),
 and a CPU session, from which the main thread is created. These
-sessions form the _environment_ of the process, which is represented
-by the 'Env' class.
-In addition to the component's initial sessions, the environment
-contains the heap of the component. The heap can be used for
-anonymous memory allocation and is the front end for allocating
-RAM dataspaces from the component's RAM session and attaching
-these dataspaces to the component's RM session. The component's
-environment can be accessed via the global 'env()' function:
-
-[raw spec/repos/base/include/base/env.h.overview]
-
-The interface returned by the 'env()' function looks as follows:
+sessions form the _environment_ of the component, which is represented
+by the 'Env' interface class. The environment is provided to the component
+as argument to the 'Component::construct' function.
 
 ; Genode::Env
 [raw spec/classes/genode/env/description]
-
-
-By default, the component environment holds one initial LOG session
-used as the standard text-output facility. For debugging purposes,
-there exists a 'printf' front end for writing text to the initial
-LOG session.
-
-; base: printf
-[raw spec/repos/base/include/base/printf.h.overview]
 
 
 [raw spec/clearpage]
@@ -211,7 +199,7 @@ Parent interface
 
 At its creation time, the only communication partner of a component
 is its immediate parent. The parent can be reached via interface returned
-by 'env()->parent()'.
+by 'Env::parent()'.
 
 ; XXX Genode::Parent_client
 
@@ -221,21 +209,48 @@ by 'env()->parent()'.
 
 [raw spec/clearpage]
 
-Component-configuration interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Entrypoint
+==========
 
-The 'Config' interface provides a convenient way to obtain the component's
-configuration. The underlying mechanism is explained in Section
-[Component configuration]. By convention, configurations are represented
-in XML syntax. The top-level XML node of the configuration can be
-requested by calling 'Genode::config()->xml_node()'. Components may respond
-to dynamic configuration changes at runtime by installing a signal handler
-via the 'Config::sigh' function.
+An entrypoint is a thread that is able respond to RPC requests and signals.
+Each component has at least one initial entrypoint that is created as
+part of the component's environment. It can be accessed via the 'Env::ep()'
+method.
 
-; Genode::Config
-[raw spec/repos/os/include/os/config.h.overview]
-[raw spec/classes/genode/config/description]
+The 'Entrypoint::manage' and 'Entrypoint::dissolve' methods are used to
+associate respectively disassociate signal handlers and RPC objects with the
+entrypoint. Under the hood, those operations interact with the component's PD
+session to bind the component's signal handlers and RPC objects to capabilities.
 
+_Note that the current version of the 'Entrypoint' utilizes the former_
+_'Rpc_entrypoint' and 'Signal_receiver' APIs. The entrypoint is designated_
+_to eventually replace those APIs. Hence, application code should no longer_
+_use the 'Rpc_entrypoint' and 'Signal_receiver' directly._
+
+; Genode::Entrypoint
+[raw spec/classes/genode/entrypoint/description]
+
+
+[raw spec/clearpage]
+
+Region-map interface
+====================
+
+A region map represents a (portion of) a virtual memory address space (Section
+[Region maps]). By attaching dataspaces to a region map, the content of those
+dataspaces becomes visible in the component's virtual address space.
+Furthermore, a region map can be used as a dataspace. Thereby the nesting of
+region maps becomes possible. This allows a component to manage portions of
+its own virtual address space manually as done for the stack area and linker
+area (Section [PD session interface]). The use of region maps as so-called
+managed dataspaces makes it even possible to manage portions of the virtual
+address space of other components (Section [RM session interface]).
+
+; Genode::Region_map
+[raw spec/classes/genode/region_map/description]
+
+
+[raw spec/clearpage]
 
 Session interfaces of the base API
 ==================================
@@ -266,7 +281,7 @@ Attached RAM dataspace
 
 The instantiation of an 'Attached_ram_dataspace' object subsumes the tasks of
 allocating a dataspaces from the component's RAM session and attaching the
-dataspace to the component's RM session. Furthermore, the reverse operations
+dataspace to the component's region map. Furthermore, the reverse operations
 are performed during the destruction of an 'Attached_ram_dataspace' object.
 
 ; Genode::Attached_ram_dataspace
@@ -302,6 +317,16 @@ Attached RAM dataspace
 By instantiating an 'Attached_rom_dataspace' object, a ROM module is requested
 and made visible within the component's address space in a single step.
 
+To accommodate the common use of a ROM session as provider of configuration
+data (Section [Component configuration]) or an XML-formatted data model in
+a publisher-subscriber scenario [Publishing and subscribing], the
+'Attached_rom_dataspace' provides a convenient way to retrieve its content
+as an XML node via the 'xml' method.
+The method always returns a valid 'Xml_node' even in the event where the
+dataspace is invalid or contains no XML. In such cases, the returned XML node
+is '<empty/>'. This relieves the caller from handling the exceptions that
+may occur during the XML parsing.
+
 ; Genode::Attached_rom_dataspace
 [raw spec/classes/genode/attached_rom_dataspace/description]
 
@@ -313,9 +338,27 @@ PD session interface
 
 The protection-domain (PD) service (Section [Protection domains (PD)]) enables
 the creation of address spaces that are isolated from each other. Each PD
-session corresponds to a protection domain. The PD service is rarely
-needed by applications directly but it is internally used by the
-child-management facilities described in Section [Child management].
+session corresponds to a protection domain. Each PD session is equipped with
+three region maps, one representing the PD's virtual address space, one
+for the component's stack area, and one for the component's linker area
+designated for shared objects. Of those region maps, only the virtual address
+space is needed by application code directly. The stack area and linker area
+are used by the framework internally only. The PD service is rarely
+needed by applications directly but it is internally.
+
+Besides representing the component's virtual address space, a PD session also
+entails the component's capability space. It thereby enables the component to
+create globally unique RPC-object capabilities and signal-context
+capabilities.
+
+Once allocated from a PD session, a capability can be associated with a local
+object or a signal handler. It can be passed to another protection domain via
+an RPC call whereby the receiving protection domain obtains the right to send
+messages to the associated object or to trigger the associated signal handler
+respectively. The capability-management operations are not used directly by
+components at the API level but used indirectly via the RPC mechanism
+described in Section [Remote procedure calls] and the signalling API described
+in Section [Signalling].
 
 ; XXX Genode::Pd_session_client
 
@@ -331,9 +374,15 @@ child-management facilities described in Section [Child management].
 RM session interface
 ~~~~~~~~~~~~~~~~~~~~
 
-The region-manager (RM) service (Section [Address-space management (RM)])
-manages address-space layouts. An RM session corresponds to an address-space
-layout, to which dataspaces can be attached.
+The region-map (RM) service (Section [Region-map management (RM)]) allows for
+the manual creation of region maps that represent (portions of) virtual
+address spaces. Components can use it to manage the virtual memory layout of
+so-called managed dataspaces manually. For example, it allows a dataspace
+provider to populate the content of dataspaces on demand, depending on the
+access patterns produced by the dataspace user.
+
+Note that the RM service is not available on all base platforms.
+In particular, it is not supported on Linux.
 
 ; XXX Genode::Rm_session_client
 
@@ -370,24 +419,12 @@ CPU-time allocator, from which multiple threads can be allocated.
 
 [raw spec/clearpage]
 
-CAP session interface
-~~~~~~~~~~~~~~~~~~~~~
+Once created, a thread is referred to via a thread capability. This
+capability allows for the destruction of the thread via the CPU session,
+and provides the 'Cpu_thread' RPC interface to operate on the thread.
 
-The capability (CAP) service (Section [Object-identity allocation (CAP)])
-enables the creation of globally unique object identities (capabilities).
-Once allocated from a CAP session, a capability can be associated with a local
-object. A capability can be passed to another protection domain via an RPC
-call whereby the receiving protection domain obtains the right to send
-messages to the associated object.
-
-; XXX Genode::Cap_session_client
-
-; Genode::Cap_session
-[raw spec/classes/genode/cap_session/description]
-
-; Genode::Cap_connection
-[raw spec/classes/genode/cap_connection/description]
-
+; Genode::Cpu_thread
+[raw spec/classes/genode/cpu_thread/description]
 
 [raw spec/clearpage]
 
@@ -402,7 +439,7 @@ IO_MEM session corresponds to the reservation of a physical
 address range, for which a dataspace is provided to the client.
 The user-level device driver can make the device resource
 visible in its address space by attaching the dataspace to
-its own RM session.
+the region map of its own PD session.
 
 ; XXX Genode::Io_mem_session_client
 ; XXX Genode::Io_mem_dataspace
@@ -486,23 +523,6 @@ each message is tagged with the label of the corresponding client.
 
 
 [raw spec/clearpage]
-
-SIGNAL session interface
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-The SIGNAL service (Section [Asynchronous notifications (SIGNAL)])
-is used for the allocation of signal contexts and the delivery of signals.
-It is not used directly by
-components at the API level but used indirectly via the signalling API
-described in Section [Signalling].
-
-; XXX Genode::Signal_session_client
-; XXX Genode::Signal_source
-; XXX Genode::Signal_source_client
-; XXX Genode::Signal_session
-; XXX Genode::Signal_source_rpc_object
-; XXX Genode::Signal_connection
-
 
 ;TRACE session interface
 ;~~~~~~~~~~~~~~~~~~~~~~~
@@ -633,23 +653,23 @@ Nitpicker session interface
 
 [raw spec/clearpage]
 
-PCI session interface
-~~~~~~~~~~~~~~~~~~~~~
+Platform session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ; XXX description, reference to components section
 
-; XXX Pci::Device_client
+; XXX Platform::Device_client
 
-; Pci::Device
-[raw spec/classes/pci/device/description]
+; Platform::Device
+[raw spec/classes/platform/device/description]
 
-; XXX Pci::Session_client
+; XXX Platform::Session_client
 
-; Pci::Session
-[raw spec/classes/pci/session/description]
+; Platform::Session
+[raw spec/classes/platform/session/description]
 
-;XXX trivial Pci::Connection
-;[raw spec/classes/pci/connection/description]
+;XXX trivial Platform::Connection
+;[raw spec/classes/platform/connection/description]
 
 
 [raw spec/clearpage]
@@ -868,13 +888,13 @@ differs between 32-bit and 64-bit architectures.
 The fixed-width integer types for 32-bit architectures are defined
 as follows.
 
-[raw spec/repos/base/include/32bit/base/fixed_stdint.h.overview]
+[raw spec/repos/base/include/spec/32bit/base/fixed_stdint.h.overview]
 
 [raw spec/clearpage]
 The fixed-width integer types for 64-bit architectures are defined
 as follows.
 
-[raw spec/repos/base/include/64bit/base/fixed_stdint.h.overview]
+[raw spec/repos/base/include/spec/64bit/base/fixed_stdint.h.overview]
 
 
 Exception types
@@ -1167,10 +1187,6 @@ For the common use case of using a slab allocator for a certain
 type rather than for a known byte size, there exists a typed
 slab allocator as a front end of 'Slab'.
 
-; XXX should be hidden
-; Genode::Slab_block
-; Genode::Slab_entry
-
 ; Genode::Slab
 [raw spec/classes/genode/slab/description]
 
@@ -1263,51 +1279,38 @@ simple tokenizing support is provided via the 'Token' class.
 
 [raw spec/clearpage]
 
-Format strings
-~~~~~~~~~~~~~~
+Diagnostic output
+~~~~~~~~~~~~~~~~~
 
-Format strings are commonly used for printing debug output. Throughout Genode,
-only a small subset of format-string features are needed. The processing of
-such simple format strings is performed by the low-complexity 'Console'
-utility. For the subset of supported formatting commands, please refer to the
-implementation at _repos/base/src/base/console/console.cc_. The 'Console'
-has a protected pure virtual '_out_char' function that needs to be implemented
-by a derived class.
+To let components produce diagnostic output like errors, warnings, and
+log messages, Genode provides a simple 'Output' interface for sequentially
+writing single characters or character sequences.
 
-; Genode::Console
-[raw spec/classes/genode/console/description]
+; Genode::Output
+[raw spec/classes/genode/output/description]
+
+Functions for generating output for different types are named 'print' and
+take an 'Output &' as first argument. The second argument is a 'const &'
+to the value to print. Overloads of the 'print' function for commonly
+used basic types are provided. Furthermore, there is a function template
+that is used if none of the type-specific overloads match. This function
+template expects the argument to be an object with a 'print' method. In
+contrast to a plain 'print' function overload, such a method is able
+to incorporate private state into the output.
+
+[raw spec/repos/base/include/base/output.h.overview]
+
+The component's execution environment provides an implementation of the
+'Output' interface that targets a LOG session. This output back end is
+provided to the component in the form of the 'log', 'warning', and 'error'
+functions that accept an arbitrary number of arguments that are printed
+in a concatenated fashion. Each messages is implicitly finalized with a
+newline character.
+
+[raw spec/repos/base/include/base/log.h.overview]
+
 
 [raw spec/clearpage]
-
-The 'String_console' implements the 'Console' interface by writing the output
-to memory. It thereby allows the rendering of format strings into character
-buffers.
-
-; Genode::String_console
-[raw spec/classes/genode/string_console/description]
-
-[raw spec/clearpage]
-
-There exists a convenient wrapper for the 'String_console' in the form of the
-'snprintf' function.
-
-[raw spec/repos/base/include/base/snprintf.h.overview]
-
-
-[raw spec/clearpage]
-
-String-argument parsing
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The 'Arg_string' utility is able to extract individual values from
-strings of comma-separated 'tag=value' sequences.
-
-; Genode::Arg
-[raw spec/classes/genode/arg/description]
-
-; Genode::Arg_string
-[raw spec/classes/genode/arg_string/description]
-
 
 ;; not important
 ;
@@ -1328,7 +1331,7 @@ Threads
 ~~~~~~~
 
 A thread is created by constructing an object of a class inherited from
-'Thread_base'. The new thread starts its execution at the 'entry' member
+'Thread'. The new thread starts its execution at the 'entry' member
 function.
 Thereby, each thread runs in the context of its object and
 can access context-specific information by accessing its member
@@ -1337,29 +1340,8 @@ mechanism.
 Threads use a statically allocated stack, which is dimensioned according
 to the corresponding constructor argument.
 
-; Genode::Thread_base
-[raw spec/classes/genode/thread_base/description]
-
-
-[raw spec/clearpage]
-
-The 'Thread' class template accommodates the common case of creating
-threads with their stack size known at compile time. It takes the
-stack size as template argument.
-
-; Genode::Thread<>
+; Genode::Thread
 [raw spec/classes/genode/thread/description]
-
-
-[raw spec/clearpage]
-
-Blocking operations performed by threads can be canceled via the
-thread's 'cancel_blocking' method. The cancellation of a blocking
-operation is reflected at the API level by a raised exception of the type
-'Blocking_canceled'.
-
-; Genode::Blocking_canceled
-[raw spec/repos/base/include/base/blocking.h.overview]
 
 
 [raw spec/clearpage]
@@ -1426,37 +1408,63 @@ used to equip the class of the called object with thread safety.
 Signalling
 ==========
 
-Section [Asynchronous notifications (SIGNAL)] provides the high-level
+Section [Asynchronous notifications] provides the high-level
 description of the mechanism for the delivery of asynchronous notifications
 (signals).
-The API defines interfaces for signal transmitters and signal
-receivers. A signal receiver can receive signals from multiple sources
-each source represented by a signal context.
-Signal contexts make incoming signals are distinguishable. One or
-multiple threads can either poll or block for incoming signals.
-Each signal receiver is addressable via its associated signal
-context capabilities.
+The API defines interfaces for signal transmitters and for the association
+of signal handlers with entrypoints.
+An entrypoint can be associated with many signal handlers where each
+handler usually corresponds to a different source of signals.
+Each signal handler is addressable via a distinct capability, Those so-called
+signal-context capabilities can be delegated across component boundaries
+in the same way as RPC-object capabilities.
+If a component is in possession of a signal-context capability, it can
+trigger the corresponding signal handler by using a so-called signal
+transmitter.
 The signal transmitter provides fire-and-forget semantics for submitting
-signals to one signal receiver.
-Signals serve as raw notifications and cannot carry any payload.
+signals.
+Signals serve as mere notifications and cannot carry any payload.
 
 ; Genode::Signal
-[raw spec/classes/genode/signal/description]
-
 ; Genode::Signal_context
-[raw spec/classes/genode/signal_context/description]
-
 ; Genode::Signal_receiver
-[raw spec/classes/genode/signal_receiver/description]
 
 ; Genode::Signal_transmitter
 [raw spec/classes/genode/signal_transmitter/description]
+
+; Genode::Signal_handler<>
+[raw spec/classes/genode/signal_handler/description]
 
 ; XXX Genode::Signal_dispatcher_base
 ; XXX Genode::Signal_rpc_dispatcher_base
 ; XXX Genode::Signal_dispatcher<>
 ; XXX Genode::Signal_rpc_functor<>
 ; XXX Genode::Signal_rpc_member<>
+
+A 'Signal_handler' object is meant to be hosted as a member of the class that
+also contains a member function to be executed on the arrival of a signal.
+Its constructor takes the entrypoint, the signal-handling object and a
+pointer to the handling function as argument. The following example
+illustrates the common pattern of using a 'Signal_handler'.
+
+! class Main
+! {
+!   ...
+!   Entrypoint &_ep;
+!   ...
+!   void _handle_config();
+!
+!   Signal_handler<Main> _config_handler =
+!     { _ep, *this, &Main::_handle_config };
+!   ...
+! };
+
+In the example above, the '_config_handler' creates a signal-context
+capability for the '_handle_config' method. In fact, the '_config_handler'
+is a capability since the 'Signal_handler' is derived from
+'Signal_context_capability'. Therefore, the '_config_handler' can be
+directly passed as argument to an RPC call for registering a signal
+handler at a server.
 
 
 Remote procedure calls
@@ -1480,8 +1488,8 @@ The RPC mechanism consists of the following header files:
   strings and binary buffers. Its use by RPC interfaces is optional.
 
 :_base/rpc_server.h_:
-  Contains the interfaces of the server-side RPC API. This part of the API
-  consists of the 'Rpc_object' class template and the 'Rpc_entrypoint' class.
+  Contains the interfaces of the server-side RPC API. In particular, this part
+  of the API consists of the 'Rpc_object' class template.
 
 :_base/rpc_client.h_:
   Contains the API support for invoking RPC functions. It is complemented by
@@ -1495,20 +1503,19 @@ annotations. For example:
 ! #include <session/session.h>
 ! #include <base/rpc.h>
 !
-! namespace Hello {
+! namespace Hello { struct Session; }
 !
-!   struct Session : public Genode::Session
-!   {
-!       static const char *service_name() { return "Hello"; }
+! struct Hello::Session : Genode::Session
+! {
+!   static const char *service_name() { return "Hello"; }
 !
-!       virtual void say_hello() = 0;
-!       virtual int add(int a, int b) = 0;
+!   virtual void say_hello() = 0;
+!   virtual int add(int a, int b) = 0;
 !
-!       GENODE_RPC(Rpc_say_hello, void, say_hello);
-!       GENODE_RPC(Rpc_add, int, add, int, int);
-!       GENODE_RPC_INTERFACE(Rpc_say_hello, Rpc_add);
-!   };
-! }
+!   GENODE_RPC(Rpc_say_hello, void, say_hello);
+!   GENODE_RPC(Rpc_add, int, add, int, int);
+!   GENODE_RPC_INTERFACE(Rpc_say_hello, Rpc_add);
+! };
 
 The macros 'GENODE_RPC' and 'GENODE_RPC_INTERFACE' are defined in _base/rpc.h_
 and enrich the interface with type information. They are only used at compile
@@ -1548,12 +1555,9 @@ information found in the annotations of the 'Session' interface.
 
 
 To make an instance of an RPC object invokable via RPC, it must be associated
-with an RPC entrypoint. By passing an RPC object to the 'manage' function of
-an RPC entrpoint, a new capability for the RPC object is created. The
-capability tagged with the type of the RPC object.
-
-; Genode::Rpc_entrypoint
-[raw spec/classes/genode/rpc_entrypoint/description]
+with an RPC entrypoint. By passing an RPC object to the 'Entrypoint::manage'
+method, a new capability for the RPC object is created. The capability tagged
+with the type of the RPC object.
 
 
 Client side
@@ -1724,20 +1728,6 @@ Limitations of the RPC mechanism
 The maximum *number of RPC function arguments* is limited to 7.
 If a function requires more arguments, it may be worthwhile to consider
 grouping some of them in a compound struct.
-
-The maximum *number of RPC functions* per interface supported by the
-'GENODE_RPC_INTERFACE' macro is limited to 9. In contrast to the limitation of
-the number of function arguments, this limitation cannot be always avoided.
-However, in cases like this, the limitation can be side-stepped by
-manually constructing the type list of RPC functions instead of using the
-convenience macro:
-! typedef Meta::Type_tuple<Rpc_create_thread,
-!         Meta::Type_tuple<Rpc_kill_thread,
-!                          Meta::Empty> >
-!         Rpc_functions;
-
-
-[raw spec/clearpage]
 
 
 [raw spec/clearpage]

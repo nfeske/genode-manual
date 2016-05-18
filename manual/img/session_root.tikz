@@ -53,17 +53,17 @@
 	% session call from application to launcher
 	\path[arrow] (applicationparentcap) .. controls +(0,-4ex) and +(0,4ex)
 	                            .. node [sloped=false, pos=0.6, text opacity=0]
-	                            {$session$("GUI", input:read label:browser)} (parentapplicationobj);
+	                            {$session$("GUI", label:browser)} (parentapplicationobj);
 
 	% session call from launcher to init
 	\path[arrow] (launcherparentcap) .. controls +(0,-4ex) and +(0,4ex)
 	                            .. node [sloped=false, pos=0.6, xshift=8ex, text opacity=0]
-	                            {$session$("GUI", input:read label:arora)} (parentlauncherobj);
+	                            {$session$("GUI", label:arora)} (parentlauncherobj);
 
 	% root call from init to gui
 	\path[arrow] (rootcap) .. controls +(0,4ex) and +(4ex,-4ex)
 	                            .. node [sloped=false, pos=0.3, xshift=-6ex]
-	                            {$session$(input:none label:arora)} (guirootobj);
+	                            {$session$(label:arora)} (guirootobj);
 
 	% session creation
 	\path[arrow] (guirootobj) -- node [sloped=false, pos=0.3]

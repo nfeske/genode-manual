@@ -15,7 +15,7 @@
 
 		\path (corelabel)+(-10ex,-3ex) node (timelineanchor) {};
 		\newtimeline{corerm}
-		\path (corerm) node {RM};
+		\path (corerm) node {PD};
 
 		\path (corelabel)+(10ex,-3ex) node (timelineanchor) {};
 		\newtimeline{coreram}

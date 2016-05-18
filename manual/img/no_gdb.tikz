@@ -16,8 +16,8 @@
 	\path (core.east) node[left=1ex] {Core};
 
 	\path (core.west)    node[right=1ex, subsystem] (coreram) {RAM};
-	\path (coreram.east) node[right=1ex, subsystem] (corerm)  {RM};
-	\path (corerm.east)  node[right=1ex, subsystem] (corecpu) {CPU};
+	\path (coreram.east) node[right=1ex, subsystem] (corepd)  {PD};
+	\path (corepd.east)  node[right=1ex, subsystem] (corecpu) {CPU};
 
 	%
 	% Component
@@ -26,18 +26,18 @@
 	\path (target.center) node {Component};
 
 	\coordinate (componentram) at (coreram |- target.south);
-	\coordinate (componentrm)  at (corerm  |- target.south);
+	\coordinate (componentpd)  at (corepd  |- target.south);
 	\coordinate (componentcpu) at (corecpu |- target.south);
 
 	\path (coreram) -- coordinate (midram) (componentram);
-	\path (corerm)  -- coordinate (midrm)  (componentrm);
+	\path (corepd)  -- coordinate (midpd)  (componentpd);
 	\path (corecpu) -- coordinate (midcpu) (componentcpu);
 
 	\draw (componentram) -- (midram);
 	\draw[arrow, densely dashed] (midram) -- (coreram);
 
-	\draw (componentrm) -- (midrm);
-	\draw[arrow, densely dashed] (midrm) -- (corerm);
+	\draw (componentpd) -- (midpd);
+	\draw[arrow, densely dashed] (midpd) -- (corepd);
 
 	\draw (componentcpu) -- (midcpu);
 	\draw[arrow, densely dashed] (midcpu) -- (corecpu);
