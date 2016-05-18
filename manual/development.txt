@@ -354,10 +354,10 @@ example to enable special features.
 
 Each _<spec>_ in the SPECS variable instructs the build system to
 
-* Include the make-rules of a corresponding _base/mk/spec-<specname>.mk_
+* Include the make-rules of a corresponding _base/mk/spec/<specname>.mk_
   file. This enables the customization of the build process for each platform.
 
-* Search for _<libname>.mk_ files in the _lib/mk/<specname>/_ subdirectory.
+* Search for _<libname>.mk_ files in the _lib/mk/spec/<specname>/_ subdirectory.
   This way, alternative implementations of one and the same
   library interface can be selected depending on the platform specification.
 
@@ -479,7 +479,7 @@ configuration. The following types of modules exist:
   module corresponding to the used kernel.
 
   _(the available modules are: linux, hw, okl4, fiasco, pistachio, nova,_
-  _codezero, foc)_
+  _sel4, foc)_
 
 :image modules:
   These modules are used to wrap up all components used by the run script

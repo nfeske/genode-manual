@@ -42,7 +42,7 @@
 
 		\rpcobjectrnode{corechildrmsession}{minimum width=0ex,
 		                                    right=1ex of corechildramsession
-		                                    }{}{RM session}
+		                                    }{}{Region map}
 
 		% horizontal space
 	%	\node[right=25ex of corechildrmsession, minimum size=0] {};
@@ -109,7 +109,7 @@
 
 	\node[capability, minimum size=2.3ex, left=2ex of envramsessioncap] (envrmsessioncap) {};
 
-	% association of the child's RM session with the child's virtual memory
+	% association of the child's region map with the child's virtual memory
 	\draw[dashed] (corechildrmsessioncap.east)
 	              .. controls +(3ex,3ex) and +(8ex,2ex) ..
 	              (childvmend.east);

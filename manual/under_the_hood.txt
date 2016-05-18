@@ -21,7 +21,7 @@ Linker scripts
 ~~~~~~~~~~~~~~
 
 Under the hood, the Genode build system uses three different linker scripts
-located at _repos/base/src/platform/_:
+located at _repos/base/src/ld/_:
 
 :genode.ld: is used for statically linked components, including core,
 
@@ -60,7 +60,7 @@ which appear consecutively in the component's virtual memory.
 
 The link address is not defined in the linker script but specified as
 linker argument. The default link address is specified in a platform-specific
-spec file, e.g., _repos/base-nova/mk/spec-nova.mk_ for the NOVA platform.
+spec file, e.g., _repos/base-nova/mk/spec/nova.mk_ for the NOVA platform.
 Components that need to organize their virtual address space in a special
 way (e.g., a virtual machine monitor that co-locates the guest-physical
 address space with its virtual address space) may specify link addresses
@@ -93,7 +93,7 @@ base framework.
   During the ELF loading of a new component, the parent writes
   information about the parent capability to this location (the start
   of the first read-writable ELF segment). See the corresponding code
-  in the '_setup_elf' function in _base/src/base/process/process.cc_.
+  in the 'Loaded_executable' constructor in _base/src/lib/base/child_process.cc_.
   The use of the information depends on the base platform. E.g.,
   on a platform where a capability is represented by a tuple of a global
   thread ID and an object ID such as OKL4 and L4ka::Pistachio, the
@@ -116,8 +116,8 @@ Startup code
 
 The execution of the initial thread of a new component starts at the ELF
 entry point, which corresponds to the '_start' function. This is an
-assembly function defined in _repos/base/src/platform/<arch>/crt0.s_ where
-_<arch>_ is the CPU architecture (x86_32, x86_64, or ARM).
+assembly function defined in _repos/base/src/lib/startup/spec/<arch>/crt0.s_
+where _<arch>_ is the CPU architecture (x86_32, x86_64, or ARM).
 
 
 Assembly startup code
@@ -163,13 +163,13 @@ The code performs the following steps:
   the dynamic linker, the startup immediately calls the 'init_rtld' hook
   function.
   For regular components, the function does not do anything. The default
-  implementation in _repos/base/src/platform/init_main_thread.cc_ is a weak
+  implementation in _init_main_thread.cc_ at  _repos/base/src/lib/startup/_ is a weak
   function. The dynamic linker provides a non-weak implementation, which
   allows the linker to perform initial relocations of itself very early at
   the dynamic linker's startup.
 
 # By calling the 'init_main_thread' function defined in
-  _repos/base/src/platform/init_main_thread.cc_, the assembly code triggers
+  _repos/base/src/lib/startup/init_main_thread.cc_, the assembly code triggers
   the execution of all the steps needed for the creation of the real stack.
   The function is implemented in C++, uses the initial stack, and returns
   the address of the real stack.
@@ -187,7 +187,7 @@ Initialization of the real stack along with the Genode environment
 ------------------------------------------------------------------
 
 As mentioned above, the assembly code calls the 'init_main_thread' function
-(located in _repos/base/src/platform/init_main_thread.cc_) for setting up the
+(located in _repos/base/src/lib/startup/init_main_thread.cc_) for setting up the
 real stack for the program. For placing a stack in a dedicated portion of the
 component's virtual address space, the function needs to overcome two
 principle problems:
@@ -200,10 +200,10 @@ principle problems:
   the stack and make the allocated memory visible within this portion.
 
 In order to solve both problems, the function needs to obtain capabilities
-for its RAM session and RM session from its parent. This comes down to
-the need to perform RPC calls. First, for requesting the RM and RAM
+for its RAM session and PD session from its parent. This comes down to
+the need to perform RPC calls. First, for requesting the PD and RAM
 session capabilities from the parent, and second, for invoking the session
-capabilities to perform the RAM allocation and RM attach operations.
+capabilities to perform the RAM allocation and region-map attach operations.
 
 The RPC mechanism is based on C++. In particular, the mechanism supports
 the propagation of C++ exceptions across RPC interfaces. Hence,
@@ -215,31 +215,31 @@ This chain of dependencies ultimately results in the need to construct the
 entire Genode environment as a side effect of initializing the real stack of
 the program.
 
-During the construction of the Genode environment (by calling
-'Genode::env()'), the program requests its own RM, RAM, CPU, and PD sessions
-from its parent, and initializes its heap ('env()->heap()').
+During the construction of the Genode environment, the program requests its
+own RAM, CPU, and PD sessions from its parent.
 
 With the environment constructed, the program is able to interact
-with its own RM and RAM sessions and can principally realize the
+with its own PD and RAM sessions and can principally realize the
 initialization of the real stack. However, instead of merely allocating
-a new RAM dataspace and attaching the dataspace to the RM session, a
-so-called thread-context area is constructed. The thread-context area
-is a secondary RM session that is attached as a dataspace to the component's
-actual RM session (See the description of managed dataspaces in Section
-[Address-space management (RM)]).
-This way, virtual-memory allocations within the thread-context area can be
+a new RAM dataspace and attaching the dataspace to the address space of the
+PD session, a so-called stack area is used. The stack area
+is a secondary region map that is attached as a dataspace to the component's
+address-space region map.
+This way, virtual-memory allocations within the stack area can be
 managed manually. I.e., the spaces between the stacks of different threads are
 guaranteed to remain free from any attached dataspaces.
-For constructing the thread-context area, a new RM session is created
-(_repos/base/src/base/context_area.cc_).
+The stack area of a component is created as part of the component's PD
+session. The environment initialization code requests its region-map
+capability via 'Pd_session::stack_area' and attaches it as a managed dataspace
+to the component's address space.
 
 
 Component-dependent startup code
 --------------------------------
 
 With the Genode environment constructed and the initial stack switched
-to a proper stack located in the thread-context area, the component-dependent
-startup code of the '_main' function in _repos/base/src/platform/_main.cc_ can be
+to a proper stack located in the stack area, the component-dependent
+startup code of the '_main' function in _repos/base/src/lib/startup/_main.cc_ can be
 executed. This code is responsible for calling the global constructors
 of the program before calling the program's main function.
 
@@ -385,7 +385,7 @@ C library. The emulation header contains only those definitions and
 declarations needed by the C++ runtime. The resulting libraries contain
 references to (some of) the symbols present in the emulation header.
 Those symbols are provided by Genode's C++ support code
-(_repos/base/src/base/cxx_). The implementation of those functions is
+(_repos/base/src/lib/cxx_). The implementation of those functions is
 specifically tied to the usage patterns of the C++ runtime.
 Several of the functions are mere dummies.
 
@@ -546,11 +546,11 @@ analogously to how an RPC entrypoint looks up the RPC object for an incoming
 RPC request.
 Given the pager object, the fault is handled by calling the 'pager' function
 with the fault information as argument. This function is implemented by
-the so-called 'Rm_client' (_repos/base/src/core/rm_session_component.cc_),
+the so-called 'Rm_client' (_repos/base/src/core/region_map_component.cc_),
 which represents the association of the pager object
-with its virtual address space (RM session). Given the context
-information about the RM session of the thread, the 'pager' function
-looks up the region within the RM session, on which the page fault occurred.
+with its virtual address space (region map). Given the context
+information about the region map of the thread's PD, the 'pager' function
+looks up the region within the region map, on which the page fault occurred.
 The lookup results in one of the following three cases:
 
 :Region is populated with a dataspace:
@@ -564,27 +564,27 @@ The lookup results in one of the following three cases:
 
 :Region is populated with a managed dataspace:
   If the fault occurred within a region where a managed dataspace is
-  attached, the fault handling is forwarded to the RM session that
+  attached, the fault handling is forwarded to the region map that
   represents the managed dataspace.
 
 :Region is empty:
   If no dataspace could be found at the fault address, the fault cannot
-  be resolved. In this case, core submits an RM-fault signal to the RM
-  session where the fault occurred. This way, the RM-session client has
+  be resolved. In this case, core submits an region-map-fault signal to the
+  region map where the fault occurred. This way, the region-map client has
   the chance to detect and possibly respond to the fault. Once the signal
   handler receives a fault signal, it is able to query the fault address
-  from the RM session.
-  As a response to the fault, the RM-session client may attach a dataspace at
+  from the region map.
+  As a response to the fault, the region-map client may attach a dataspace at
   this address.
   This attach operation, in turn, will prompt core to wake up the thread
   (or multiple threads) that faulted within the attached region.
   Unless a dataspace is attached at the page-fault address, the faulting
   thread remains blocked.
-  If no signal handler for RM faults is registered for the RM session,
+  If no signal handler for region-map faults is registered for the region map,
   core prints a diagnostic message and blocks the faulting thread forever.
 
-To optimize the TLB footprint and the use of kernel memory, the RM service
-does not merely operate at the granularity of memory pages but on
+To optimize the TLB footprint and the use of kernel memory, region maps
+do not merely operate at the granularity of memory pages but on
 address ranges whose size and alignment are arbitrary power-of-two values (at
 least as large as the size of the smallest physical page).
 The source and destinations of memory mappings may span many pages.
@@ -633,15 +633,15 @@ reminder, the mechanism has the following features:
   limited.
 
 The gap between this feature set and the mechanisms provided by the underlying
-kernel is bridged by core in the form of the SIGNAL service. This service
+kernel is bridged by core as part of the PD service. This service
 plays the role of a proxy between the producers and receivers of signals.
 Each component that interacts with signals has a session to this service.
 
 Within core, a signal context is represented as an RPC object. The RPC object
 maintains a counter of signals pending for this context. Signal
-contexts can be created and destroyed by the clients of the SIGNAL service
+contexts can be created and destroyed by the clients of the PD service
 using the _alloc_context_ and _free_context_ RPC functions. Upon the creation
-of a signal context, the SIGNAL client can specify an integer value called
+of a signal context, the PD client can specify an integer value called
 _imprint_ with a client-local meaning. Later, on the reception of signals,
 the imprint value is delivered along with the signal to enable the
 client to tell the contexts of the incoming signals apart. As a result of
@@ -655,7 +655,7 @@ Signal submission
 
 A component in possession of a signal-context capability is able to trigger
 signals using the _submit_ function
-of its SIGNAL session. The submit function takes the signal context capability
+of its PD session. The submit function takes the signal context capability
 of the targeted context and a counter value as arguments. The capability as
 supplied to the submit function does not need to originate from the called
 session. It may have been created and delegated by another component.
@@ -670,13 +670,13 @@ to one of the server's RPC functions.
 An example is the input session interface (Section [Input]) that allows the
 client to get notified when new user input becomes available.
 A malicious client may specify a capability that was not created via core's
-SIGNAL service but that instead refers to an RPC object local to the client.
+PD service but that instead refers to an RPC object local to the client.
 If the submit function was an RPC function of the signal context, the
 server's call of the submit RPC function would eventually invoke the
 RPC object of the client. This would put the client in a position where
 it may block the server indefinitely and thereby make the server unavailable to
 all clients. In contrast to the untrusted signal-context capability, the
-SIGNAL session of a signal producer is by definition trusted. So it is safe
+PD session of a signal producer is by definition trusted. So it is safe
 to invoke the submit RPC function with the signal-context capability as
 argument. In the case where an invalid signal-context capability is delegated
 to the signal producer, core will fail to look up a signal context for the
@@ -691,19 +691,19 @@ pending signals from core. This involves two steps: First, the component
 needs a way to block until signals are available. Second, if a signal is
 pending, the component needs a way to determine the signal context and the
 signal receiver associated with the signal and wake up the thread that
-called the 'Signal_receiver::wait_for_signal' API function.
+blocks the 'Signal_receiver::block_for_signal' API function.
 
 Both problems are solved by a dedicated thread that is spawned during
-component startup. This signal thread blocks at core's SIGNAL
+component startup. This signal thread blocks at core's PD
 service for incoming signals. The blocking operation is not directly
-performed on the SIGNAL session but on a decoupled RPC object called
+performed on the PD session but on a decoupled RPC object called
 _signal source_.
-In contrast to the SIGNAL session interface that is kernel agnostic, the
+In contrast to the PD session interface that is kernel agnostic, the
 underlying kernel mechanism used for blocking
 the signal thread at the signal source depends on the used base
 platform.
 
-The signal-source RPC object implements an RPC interface, on which the SIGNAL
+The signal-source RPC object implements an RPC interface, on which the PD
 client issues a blocking _wait_for_signal_ RPC function.
 This function blocks as long as no signal that refers to the session's signal
 contexts is pending. If the function returns, the return value contains the
@@ -719,7 +719,7 @@ Given the imprint value returned by the signal source, the signal thread
 determines the signal context and signal receiver that belongs to the pending
 signal (using a data structure called 'Signal_context_registry') and locally
 submits the signal to the signal-receiver object. This, in turn, unblocks the
-'Signal_receiver::wait_for_signal' function at the API level.
+'Signal_receiver::block_for_signal' function at the API level.
 
 
 Dynamic linker
@@ -753,7 +753,8 @@ Startup of dynamically-linked programs
 When creating a new component,
 the parent first detects whether the to-be-loaded ELF binary represents
 a statically-linked program or a dynamically-linked program by inspecting
-the ELF binary's program-header information (see _repos/base/src/base/elf/_).
+the ELF binary's program-header information (see
+_repos/base/src/lib/base/elf_binary.cc_).
 If the program is statically linked, the parent follows the procedure as
 described in Section [Component creation]. If the program is dynamically
 linked, the parent remembers the dataspace of the program's ELF image but
@@ -794,9 +795,11 @@ Address-space management
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 To load the binary and the associated shared libraries, the linker does not
-directly attach dataspaces to its RM session. Instead, it manages a dedicated
-part of the component's virtual address space manually by attaching a large
-managed dataspace to its RM session. This way, the linker can precisely
+directly attach dataspaces to its address space. Instead, it manages a dedicated
+part of the component's virtual address space called _linker area_ manually.
+The linker area is a region map that is created as part of a PD session.
+The dynamic linker attaches the linker area as a managed dataspace to its
+address space. This way, the linker can precisely
 control the layout within the virtual-address range covered by the managed
 dataspace. This control is needed because the loading of an ELF object does
 not correspond to an atomic attachment of a single dataspace but it involves
@@ -854,7 +857,7 @@ System-image assembly
 In contrast to other base platforms where core is a self-sufficient program,
 on the base-hw platform, core is actually built as a library. The library
 description file is specific for each platform and located at
-_lib/mk/platform_<pf>/core.mk_ where _<pf>_ corresponds to the
+_lib/mk/spec/<pf>/core.mk_ where _<pf>_ corresponds to the
 hardware platform used. It includes the platform-agnostic _lib/mk/core.inc_ file.
 The library contains everything core needs (including the C++ runtime,
 the kernel code, and the user-level core code) except for the
@@ -1025,10 +1028,15 @@ _submit_signal_, and _ack_signal_) as well as the life-time management
 of signal contexts (_kill_signal_context_). In contrast to other
 base platforms, Genode's signal API is directly supported by the kernel
 so that the propagation of signals does not require any interaction with
-core's SIGNAL service (Section [Asynchronous notifications (SIGNAL)]).
-However, the creation of signal contexts is arbitrated by the SIGNAL service.
+core's PD service.
+However, the creation of signal contexts is arbitrated by the PD service.
 This way, the kernel objects needed for the signalling mechanism are
-accounted to the corresponding clients of the SIGNAL service.
+accounted to the corresponding clients of the PD service.
+
+The kernel provides an interface to make the kernel's scheduling timer
+available as time source to the userland. Using this interface,
+user-level components can bind signal contexts to timeouts (_timeout_) and
+follow the progress of time (_timeout_age_us_ and _timeout_max_us_).
 
 
 Core-private part of the kernel interface
@@ -1071,7 +1079,7 @@ The core-private kernel interface consists of the following operations:
   and the core-specific back end of the 'Genode::Thread' API
 * The creation and destruction of signal receivers and signal contexts
   (_new_signal_receiver_, _delete_signal_receiver_, _new_signal_context_, and
-  _delete_signal_context_), invoked by the SIGNAL service
+  _delete_signal_context_), invoked by the PD service
 * The creation and destruction of kernel-protected object identities
   (_new_obj_, _delete_obj_)
 
@@ -1198,7 +1206,7 @@ Asynchronous notifications on base-hw
 The base-hw platform improves the mechanism described in Section
 [Asynchronous notification mechanism] by introducing signal receivers and
 signal contexts as first-class kernel objects. Core's
-SIGNAL service is merely used to arbitrate the creation and destruction of
+PD service is merely used to arbitrate the creation and destruction of
 those kernel objects but it does not play the role of a signal-delivery proxy.
 Instead, signals are communicated directly by using the public kernel
 operations _await_signal_, _signal_pending_, _submit_signal_, and
@@ -1255,8 +1263,8 @@ NOVA is not accompanied with bindings to its kernel interface. There
 only is a description of the kernel interface in the form of the kernel
 specification available. For this reason, Genode maintains the kernel
 bindings for NOVA within the Genode source tree. The bindings are located
-at _repos/base-nova/include/_ in the subdirectories _nova/_, _32bit/nova/_,
-and _64bit/nova/_.
+at _repos/base-nova/include/_ in the subdirectories _nova/_, _spec/32bit/nova/_,
+and _spec/64bit/nova/_.
 
 
 Bootstrapping of a NOVA-based system
@@ -1280,7 +1288,7 @@ the virtual memory of core but does not allocate any additional physical
 pages for backing the BSS. For this reason, the NOVA version of core
 does not use the _genode.ld_ linker script as described in Section
 [Linker scripts] but the linker script located at
-_repos/base-nova/src/platform/roottask.ld_. This version hosts the BSS section
+_repos/base-nova/src/core/core.ld_. This version hosts the BSS section
 within the data segment. Thereby, the BSS is physically present in the core
 binary in the form of zero-initialized data.
 
@@ -1385,13 +1393,24 @@ the same meaning in both contexts. A Genode capability refers to an RPC
 object or a signal context. In the context of NOVA, a capability refers to
 a NOVA kernel object. To avoid confusing both meanings of the term,
 Genode refers to NOVA's term as "capability selector", or simply
-"selector".
+"selector". A Genode signal context capability corresponds to a NOVA semaphore,
+all other Genode capabilities correspond to NOVA portals.
 
 
 PD service
 ----------
 
 A PD session corresponds to a NOVA PD.
+
+A Genode capability being a NOVA portal has a
+defined IP and an associated local EC (the Genode entrypoint). The invocation
+of a such a Genode capability is an IDC call to a portal. A Genode capability is
+delegated by passing its corresponding portal or semaphore selector as IDC argument.
+
+Page faults are handled as explained in Section
+[Page-fault handling on NOVA]. Each memory mapping installed in a component
+implicitly triggers the allocation of a node in the kernel's mapping
+database.
 
 
 CPU service
@@ -1419,38 +1438,26 @@ ROM service
 -----------
 
 Core's ROM service provides all boot modules as ROM modules. Additionally,
-NOVA's HIP is provided as a ROM module named "hypervisor_info_page".
-
-
-CAP service
------------
-
-A Genode capability corresponds to a NOVA portal. Each NOVA portal has a
-defined IP and an associated local EC (the Genode entrypoint). The invocation
-of a Genode capability is an IDC call to a portal. A Genode capability is
-delegated by passing its corresponding portal selector as IDC argument.
+a copy of NOVA's HIP is provided as a ROM module named "hypervisor_info_page".
 
 
 IRQ service
 -----------
 
-NOVA represents each interrupt as a semaphore. Within core, there is one
-entrypoint per IRQ session. When 'wait_for_irq' is called, the called IRQ
-entrypoint blocks on its corresponding IRQ semaphore. In the kernel, this
-semaphore-down operation implicitly unmasks the interrupt at the CPU.
+NOVA represents each interrupt as a semaphore created by the kernel. By
+registration of a Genode signal context capability via the sigh method of the
+Irq_session interface, the semaphore of the signal context capability is
+bound to the interrupt semaphore. Genode signals and NOVA semaphores are
+handled as described in [Asynchronous notifications on NOVA].
 
-When the interrupt occurs, the kernel masks the interrupt at the CPU and
-performs the semaphore-up operation on the IRQ's semaphore. Thereby, it wakes
-up the IRQ entrypoint, which replies to the 'wait_for_irq' RPC call.
-
-
-RM service
-----------
-
-The RM service is used for page-fault handling as explained in Section
-[Page-fault handling on NOVA]. Each memory mapping installed in a component
-implicitly triggers the allocation of a node in the kernel's mapping
-database.
+Upon the initial IRQ session's _ack_irq_ call, a NOVA semaphore-down operation
+is issued within core on the interrupt semaphore, which implicitly unmasks the
+interrupt at the CPU. When the interrupt occurs, the kernel masks the interrupt
+at the CPU and performs the semaphore-up operation on the IRQ's semaphore.
+Thereby, the chained semaphore, which is the beforehand registered Genode
+signal context, is triggered and the interrupt is delivered as
+Genode signal. The interrupt gets acknowledged and unmasked by calling the
+IRQ session's _ack_irq_ method.
 
 
 Page-fault handling on NOVA
@@ -1473,13 +1480,13 @@ IDC call to its pager. The IDC message contains the fault information.
 On NOVA, there is a one-to-one relationship between a pager EC and Genode's
 pager object. For resolving the page fault, core follows the procedure
 described in [Page-fault handling]. If the lookup for a dataspace within
-the faulter's RM session succeeds, core establishes
+the faulter's region map succeeds, core establishes
 a memory mapping into the EC's PD by sending a so-called map item as reply to
 the page fault message. In the case where the region lookup
-within the thread's corresponding RM session fails, the pager EC blocks
+within the thread's corresponding region map fails, the pager EC blocks
 on a semaphore. Because the page-fault message remains unanswered, the
 faulting thread is effectively put on halt.
-In the event that the RM fault is resolved by an RM client
+In the event that the fault is resolved by a region-map client
 as described in the paragraph "Region is empty" of Section
 [Page-fault handling], the blocking on the
 semaphore gets released and the pager EC is able to reply to the original
@@ -1502,33 +1509,36 @@ The tree is maintained in order to enable the kernel to rescind the authority.
 When a mapping is revoked, the kernel implicitly cancels all transitive
 mappings that originated from the revoked node.
 
-Because of this design, core needs to maintain a core-local memory mapping for
-each memory mapping established outside of core.
-This mapping is solely needed to revoke the memory mapping later on, for
-example, when a dataspace is detached from an RM session.
-The kernel's revoke operation takes the core-local address as argument and
-revokes all mappings originating from this mapping node.
-
-; XXX: Many repetitions of the term memory mapping in the previous paragraph...
 
 Asynchronous notifications on NOVA
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The NOVA base platform generally follows the mechanism described in Section
-[Asynchronous notification mechanism].
-However, in contrast to traditional L4 kernels, NOVA's kernel interface does
-not support the out-of-order processing of RPC requests.
+To support asynchronous notifications as described in Section
+[Asynchronous notifications], we extended the NOVA kernel semaphores to
+support signalling via chained NOVA semaphores. This extension enables the
+creation of kernel semaphores with a per-semaphore value, which can be bound to
+another kernel semaphore. Each bound semaphore corresponds to a Genode signal
+context. The per-semaphore value is used to distinguish different sources of
+signals.
+
 On this base platform, the blocking of the signal thread at the signal
-source is realized by using a kernel semaphore shared by the SIGNAL session
-and the SIGNAL client. When first issuing a _wait-for-signal_ operation
-at the signal source,
-the client requests a capability selector for the shared semaphore
-_(repos/base-nova/include/signal_session/source_client.h)_. It then performs
-a _down_ operation on this semaphore to block. Core issues an _up_ operation
-on the semaphore each time a signal of the SIGNAL session becomes pending.
-When unblocked from the semaphore's down operation, the client requests the
-signal's imprint and counter using a non-blocking _wait-for-signal_ RPC call
-from the signal source.
+source is realized by using a kernel semaphore shared by the PD session
+and the PD client. All chained semaphores (Signal contexts) are bound to this
+semaphore. When first issuing a _wait-for-signal_ operation
+at the signal source, the client requests a capability selector for the shared
+semaphore _(repos/base-nova/include/signal_session/source_client.h)_. It then
+performs a _down_ operation on this semaphore to block.
+
+If a signal sender issues a submit operation on a Genode signal
+capability, then a regular NOVA kernel semaphore-up syscall is used. If the
+kernel detects that the used semaphore is chained to another semaphore, the up
+operation is delegated to the one received during the initial _wait-for-signal_
+operation of the signal receiving thread.
+
+In contrast to other base platforms, Genode's signal API is supported by the
+kernel so that the propagation of signals does not require any interaction with
+core's PD service. However, the creation of signal contexts is arbitrated by
+the PD service.
 
 
 IOMMU support
@@ -1553,10 +1563,14 @@ configuration space of the device is mapped in the specified PD.
 Only if a user-level device driver has access to the extended PCI
 configuration space of the device, is it able to get the assignment in place.
 
-To make NOVA's IOMMU support available to Genode components,
-the ACPI driver has the ability to hand out the extended PCI configuration
-space of a device, and a NOVA-specific extension (_assign_pci_) to the PD session
-interface can be used to associate a PCI device with a protection domain.
+To make NOVA's IOMMU support available to Genode,
+the ACPI driver has the ability to lookup the extended PCI configuration
+space region for all devices and reports it via a Genode ROM. The platform
+driver on x86 evaluates the reported ROM and uses the information to obtain
+transparently for platform clients (device drivers) the extended PCI
+configuration space per device. The platform driver uses a NOVA-specific
+extension (_assign_pci_) to the PD session interface to associate a PCI device
+with a protection domain.
 
 ; XXX [image img/iommu_aware 63%]
 ;   NOVAs management of the IOMMU address spaces facilities the use of
@@ -1578,19 +1592,17 @@ _device PD_. Its sole purpose
 is to hold mappings of DMA buffers that are accessible by the associated
 device. By using one-to-one physical-to-virtual mappings for those buffers
 within the device PD, each device PD contains a subset of the physical address
-space. The ACPI driver performs the assignment of device PDs to PCI
+space. The platform driver performs the assignment of device PDs to PCI
 devices. If a device driver intends to use DMA, it allocates a new DMA buffer
-for a specific PCI device at the ACPI driver.
-The ACPI driver responds to such a request by allocating a RAM dataspace at core,
+for a specific PCI device at the platform driver.
+The platform driver responds to such a request by allocating a RAM dataspace at core,
 attaching it to the device PD using the dataspace's physical address as virtual
 address, and by handing out the dataspace capability to the client. If the driver
 requests the physical address of the dataspace, the address returned will be a
 valid virtual address in the associated device PD.
 This design implies that a device driver must allocate DMA buffers at the
-ACPI server (specifying the PCI device the buffer is intended for) instead of
-using core's RAM service to allocate buffers anonymously. Note that the
-current implementation of the ACPI server assigns all PCI devices to only one
-device PD.
+platform driver (specifying the PCI device the buffer is intended for) instead
+of using core's RAM service to allocate buffers anonymously.
 
 ; XXX Maybe mention this in the limitations section?
 
@@ -1690,22 +1702,22 @@ following problems:
 :Support for deferred page-fault resolution:
 
   With the original version of NOVA, the maximum number of threads is limited
-  by core's thread-context area:
+  by core's stack area:
   NOVA's page-fault handling protocol works completely synchronously. When a
   page fault occurs, the faulting EC enters its page-fault portal and thereby
   activates the corresponding pager EC in core. If the pager's lookup for a
-  matching dataspace within the faulter's RM session succeeds, the page fault
+  matching dataspace within the faulter's region map succeeds, the page fault
   is resolved by delegating a memory mapping as the reply to the page-fault
   IDC call. However, if a page fault occurs on a managed dataspace, the pager
-  cannot resolve it immediately. The resolution must be delayed until the RM
-  fault handler (outside of core) responds to the RM fault signal. In order to
-  enable core to serve page faults of other threads in the meantime, each thread
-  has its dedicated pager EC in core.
+  cannot resolve it immediately. The resolution must be delayed until the
+  region-map fault handler (outside of core) responds to the fault signal. In
+  order to enable core to serve page faults of other threads in the meantime,
+  each thread has its dedicated pager EC in core.
 
-  Each pager EC, in turn, consumes a thread context within core. Since core's
-  thread-context area is limited, the maximum number of ECs within core is
+  Each pager EC, in turn, consumes a slot in the stack area within core. Since
+  core's stack area is limited, the maximum number of ECs within core is
   limited too. Because one core EC is needed as pager for each thread outside
-  of core, the available thread contexts within core become a limited resource
+  of core, the available stacks within core become a limited resource
   shared by all CPU-session clients. Because each Genode component is a client
   of core's CPU service, this bounded resource is effectively shared among all
   components. Consequently, the allocation of threads on NOVA's version of
@@ -1725,6 +1737,84 @@ following problems:
   And the third benefit is that the helping mechanism of NOVA can be leveraged
   for concurrently faulting threads.
 
+:Remote revocation of memory mappings:
+  In the original version of NOVA, roottask must retain mappings to all memory
+  used throughout the system. In order to be able to delegate a mapping to
+  another PD as response of a page fault, it must possess a local mapping
+  of the physical page.
+  Otherwise, it would not be able to revoke the mapping later on
+  because the kernel expects roottask's mapping node as a proof of the
+  authorization for the revocation of the mapping.
+  Consequently, even though roottask never touches memory handed out to other
+  components, it needs to have memory mappings with full access rights
+  installed within its virtual address space.
+
+  To relieve Genode's roottask (core) from the need to keep local mappings
+  for all memory handed out to other components and thereby let core
+  benefit from a sparsely populated address space as described in Section
+  [Sparsely populated core address space] for base-hw, we changed the kernel's
+  revoke operation to take a PD selector and a virtual address within the
+  targeted PD as argument. By presenting the PD selector as a token of
+  authorization over the entire PD, we do no longer need core-locally
+  installed mappings as the proof of authorization. Hence, memory mappings can
+  always be installed directly from the physical address space to the target
+  PD.
+
+:Support for write-combined access to memory-mapped I/O resources:
+  The original version of NOVA is not able to benefit from write combining
+  because the kernel interface does not allow the userland to specify
+  cacheability attributes for memory mappings. To achieve good throughput to
+  the framebuffer, write combining is crucial. Hence, we extended the kernel
+  interface to allow the userland to propagate cacheability attributes to the
+  page-table entries of memory mappings and set up the x86 page attribute
+  table (PAT) with a configuration for write combining.
+
+:Support for the virtualization of 64-bit guest operating systems:
+  The original version of NOVA supports 32-bit guest operations only.
+  We enhanced the kernel to also support 64-bit guests.
+
+:Resource quotas for kernel resources:
+  The NOVA kernel lacks the ability to adopt the kernel memory pool to the
+  behavior of the userland. The kernel memory pool has a fixed size, which
+  cannot be changed at runtime. Even though we have not removed this
+  principal limitation, we extended the kernel with the ability to
+  subject kernel-memory allocations to a userlevel policy at the granularity
+  of PDs. Each kernel operation that consumes kernel memory is accounted
+  to a PD whereas each PD has a limited quota of kernel memory. This
+  measure prevents arbitrary userland programs to bring down the entire
+  system by exhausting the kernel memory. The reach of damage is limited to
+  the respective PD.
+
+:Asynchronous notification mechanism:
+  We extended the NOVA kernel semaphores to support signalling via chained
+  NOVA semaphores. This extension enables the creation of kernel semaphores
+  with a per-semaphore value, which can be bound to another kernel semaphore.
+  Each bound semaphore corresponds to a Genode signal context. The
+  per-semaphore value is used to distinguish different sources of signals. Now,
+  a signal sender issues a submit operation on a Genode signal capability via a
+  regular NOVA semaphore-up syscall. If the kernel detects that the used
+  semaphore is chained to another semaphore, the up operation is delegated to
+  the chained one. If a thread is blocked, it gets woken up directly and the
+  per-semaphore value of the bound semaphore gets delivered. In case no thread
+  is currently blocked, the signal is stored and delivered as soon as a thread
+  issues the next semaphore-down operation.
+
+  Chaining semaphores is an operation that is limited to a single level, which
+  avoids attacks targeting endless loops in the kernel. The creation of such
+  signals can solely be performed if the issuer has a NOVA PD capability with
+  the semaphore-create permission set. On Genode, this effectively reserves the
+  operation to core. Furthermore, our solution preserves the invariant of the
+  original NOVA kernel that a thread may be blocked in only one semaphore at
+  a time.
+
+:Interrupt delivery:
+  We applied the same principle of the asynchronous notification extension
+  to the delivery of interrupts by the NOVA kernel. Interrupts are delivered
+  as ordinary Genode signals, which alleviate of the need for one thread per
+  interrupt as required by the original NOVA kernel. The
+  interrupt gets directly delivered to the address space of the driver
+  in case of a Message Signalled Interrupt (MSI), or in case of a shared
+  interrupt, to the x86 platform driver.
 
 Known limitations of NOVA
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1736,67 +1826,18 @@ core.
   NOVA allocates kernel objects out of a memory pool of a fixed size. The pool
   is dimensioned in the kernel's linker script
   _nova/src/hypervisor.ld_ (at the symbol '_mempool_f').
-  The existence of a fixed pool implies that any component that is able to
-  trigger allocations in the kernel is able to indirectly consume kernel
-  resources. A misbehaving component in possession of its own PD capability
-  selector may even forcefully trigger the
-  exhaustion of the entire pool and thereby make the kernel unavailable. I.e.,
-  the kernel panics when running out of memory. The kernel provides no
-  mechanism to mitigate such a resource-exhaustion-based denial-of-service
-  attack.
-
-  On Genode, only core explicitly allocates kernel objects, which relieves
-  the problem but does not solve it. In order to create a kernel
-  object, a PD capability selector must be specified to the respective
-  system call. Since PD capability selectors are never delegated to the
-  outside of core, kernel objects cannot be directly created by arbitrary
-  components. The creation of kernel objects is rather a side effect of the
-  use of core's services. Thereby, core is principally in the position to
-  restrict the use of kernel memory per client. However, such an accounting
-  for kernel memory is not performed by the NOVA version of core.
-
-  In addition to the explicit creation of kernel objects, kernel memory is
-  implicitly allocated when mapping nodes are inserted into the kernel's
-  mapping database. Thereby, kernel memory is consumed as a side effect of IDC
-  calls that carry map items. Since ECs of the same PD can perform IDC calls
-  between one another, the allocation of mapping nodes can be artificially
-  stressed by delegating a large number of mappings within the same PD via
-  successive IDC calls.
-
-  Therefore, components are principally able to launch denial-of-service
-  attacks on the kernel. In the event of an exhaustion of kernel memory,
-  the kernel stops the system. Hence, even though the lack of proper
-  management of kernel memory is an availability risk, it cannot be
-  exploited as a covert storage channel.
 
 :Bounded number of object capabilities within core:
-  For each capability created via core's CAP service, core allocates the
-  corresponding NOVA portal and maintains the portal's capability selector
+  For each capability created via core's PD service,
+  core allocates the corresponding NOVA portal or NOVA semaphore and maintains
+  the capability selector
   during the lifetime of the associated object identity. Each allocation of
-  a capability via core's CAP service consumes one entry in core's capability
-  space. Because the space is bounded, clients of the CAP service could misuse
+  a capability via core's PD service consumes one entry in core's capability
+  space. Because the space is bounded, clients of the service could misuse
   core's capability space as covert storage channel.
 
-:Core must retain mappings to all memory used throughout the system:
-  As mentioned in Section [Page-fault handling on NOVA], core needs to own
-  a mapping node before delegating the mapping to another PD as a response
-  to a page fault. Otherwise, core is not able to revoke the mapping later on
-  because the kernel expects core's mapping node as a proof of the
-  authorization for the revocation of the mapping.
-
-  Consequently, even though core never touches memory handed out to other
-  components, it needs to have memory mappings with full access rights
-  installed within its virtual address space.
-  Therefore, core on NOVA cannot benefit from a sparsely populated address
-  space as described in Section [Sparsely populated core address space] for
-  base-hw.
-
-:Non-executable (NX) bit on 32-bit machines:
-
-  NOVA supports the NX bit on 64-bit machines. In the x86 32-bit architecture,
-  however, there exists no NX bit unless the x86 Physical Address Extension
-  (PAE) is enabled. Because NOVA does not support PAE, the NX bit
-  remains unsupported when using NOVA on 32-bit machines.
+:Non-executable (NX) bit:
+  NOVA does not support the NX bit.
 
 ; XXX further possible topics
 ; * Locking

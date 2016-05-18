@@ -17,8 +17,8 @@
 	\path (core.east) node[left=1ex] {Core};
 
 	\path (core.west)    node[right=1ex, subsystem] (coreram) {RAM};
-	\path (coreram.east) node[right=1ex, subsystem] (corerm)  {RM};
-	\path (corerm.east)  node[right=1ex, subsystem] (corecpu) {CPU};
+	\path (coreram.east) node[right=1ex, subsystem] (corepd)  {PD};
+	\path (corepd.east)  node[right=1ex, subsystem] (corecpu) {CPU};
 
 	%
 	% GDB monitor
@@ -28,8 +28,8 @@
 	\path (gdbmon.east) node[left=1ex, align=right] {GDB\\Monitor};
 
 	\path (gdbmon.west)    node[right=1ex, subsystem] (gdbmonram) {RAM};
-	\path (gdbmonram.east) node[right=1ex, subsystem] (gdbmonrm)  {RM};
-	\path (gdbmonrm.east)  node[right=1ex, subsystem] (gdbmoncpu) {CPU};
+	\path (gdbmonram.east) node[right=1ex, subsystem] (gdbmonpd)  {PD};
+	\path (gdbmonpd.east)  node[right=1ex, subsystem] (gdbmoncpu) {CPU};
 
 	%
 	% Component
@@ -38,18 +38,18 @@
 	\path (target.center) node[align=center] {Component\\as Debugging Target};
 
 	\coordinate (componentram) at (coreram |- target.south);
-	\coordinate (componentrm)  at (corerm  |- target.south);
+	\coordinate (componentpd)  at (corepd  |- target.south);
 	\coordinate (componentcpu) at (corecpu |- target.south);
 
 	\path (coreram) -- coordinate (midram) (componentram);
-	\path (corerm)  -- coordinate (midrm)  (componentrm);
+	\path (corepd)  -- coordinate (midpd)  (componentpd);
 	\path (corecpu) -- coordinate (midcpu) (componentcpu);
 
 	\draw[arrow] (componentram) -- (gdbmonram);
 	\draw[arrow, densely dashed] (gdbmonram) -- (coreram);
 
-	\draw[arrow] (componentrm) -- (gdbmonrm);
-	\draw[arrow, densely dashed] (gdbmonrm) -- (corerm);
+	\draw[arrow] (componentpd) -- (gdbmonpd);
+	\draw[arrow, densely dashed] (gdbmonpd) -- (corepd);
 
 	\draw[arrow] (componentcpu) -- (gdbmoncpu);
 	\draw[arrow, densely dashed] (gdbmoncpu) -- (corecpu);

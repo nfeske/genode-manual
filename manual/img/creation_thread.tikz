@@ -23,7 +23,7 @@
 
 		\rpcobjectrnode{corechildrmsession}{minimum width=0ex,
 		                                    below=1ex of corechildramsession,
-		                                    xshift=5ex}{}{RM session}
+		                                    xshift=5ex}{}{Region map}
 	}
 
 	\labeledcompoundnode{parent}{creationcomponent, above=2ex of core}{Parent}{
@@ -115,10 +115,6 @@
 	\draw[dashed] (corechildpdsessionobj.west)
 	              .. controls +(-4ex,0ex) and +(-4ex,-4ex) ..
 	              (parentrpcobjobj);
-
-	\path[arrow, sloped=false] (parentthread.south)
-		.. controls +(4ex,0) and +(0,4ex) ..
-		node[below, pos=0.2, align=center] {\scriptsize set parent\\ \scriptsize bind thread} (childpdsessioncap);
 
 	\path[arrow, sloped=false] (parentthread.south)
 		.. controls +(4ex,0) and +(0,4ex) ..

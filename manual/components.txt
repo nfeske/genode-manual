@@ -534,7 +534,7 @@ a large variety of policies using two principal approaches:
   child, it is principally able to interpose the child's use of any service
   including those normally provided by core such as
   RAM (Section [Physical memory allocation (RAM)]),
-  RM (Section [Address-space management (RM)]), and
+  PD (Section [Protection domains (PD)]), and
   CPU (Section [Processing-time allocation (CPU)]).
   The runtime environment may provide a locally implemented version of those
   session interfaces instead of routing session requests directly towards the
@@ -602,10 +602,10 @@ At session-creation time, the client specifies the name of a ROM module as
 session argument. One server may hand out different ROM modules depending
 on the name specified. Once a ROM session has been created, the client can
 request the capability of the dataspace that contains the ROM module.
-Using this capability and the client's RM session, the client can attach
-the ROM module to its local address space and thereby access the information.
-The client is expected to merely read the data, hence the name of the
-interface.
+Using this capability and the region map of the client's PD session, the
+client can attach the ROM module to its local address space and thereby access
+the information. The client is expected to merely read the data, hence the
+name of the interface.
 
 
 ROM module updates
@@ -1249,10 +1249,16 @@ Each time a session is created, the server matches the supplied session label
 against the configured policies. Only if a policy matches, the parameters of
 the matching policy come into effect. The way how the session label is
 matched against the policies depends on the implementation of the server.
-Usually, the server selects the policy where the session label starts with
-the policy's label. If multiple policies match, the one with the longest (most
-specific) policy label is selected. If multiple policies have the same label,
-the selection is undefined. This is a configuration error.
+However, by convention, servers usually select the policy depending on the
+attributes 'label', 'label_prefix', and 'label_suffix'. If present, the
+'label' attribute must perfectly match the session label whereby the
+suffix and prefix counterparts allow for partially matching the session label.
+If multiple '<policy>' nodes match at the server side, the most specific
+policy is selected. Exact matches are considered as most specific, prefixes as
+less specific, and suffixes as least specific. If multiple prefixes or
+suffixes match, the longest is considered as the most specific.
+If multiple policies have the same label, the selection is undefined. This is
+a configuration error.
 
 
 Dynamic component reconfiguration at runtime
@@ -1384,7 +1390,7 @@ application-specific policy to all session requests originating from the
 untrusted code. However, the tailoring of the execution environment by
 the parent can even go a step further by providing the all-encompassing
 virtualization of all services used by the child, including core's services
-such as RAM, RM, and CPU.
+such as RAM, PD, and CPU.
 This way, the parent can not just tailor the execution environment of a child
 but completely define all aspects of the child's execution. This clears
 the way for introducing custom operating-system interfaces at any position
@@ -1401,7 +1407,7 @@ By implementing all session interfaces normally provided by core, a runtime
 environment becomes able to handle all low-level interactions of the
 child with core. This includes the allocation of memory using the RAM service,
 the spawning and controlling of threads using the CPU service, and the
-management of the child's address space using the RM service.
+management of the child's address space using the PD service.
 
 The noux runtime illustrated in Figure [img/noux] is the canonical example of
 this approach.
@@ -1428,7 +1434,7 @@ children of the noux instance.
 Since noux handles all the children's interaction with the RAM service, it can
 hand out memory allocations from a pool of memory shared among all children.
 Finally, because noux observes all the interactions of each child with the
-RM service, it is able to replay the address-space layout of an existing
+PD service, it is able to replay the address-space layout of an existing
 process to a new process when fork is called.
 
 
@@ -1445,7 +1451,7 @@ failsafe monitoring or for user-level debugging.
 
 As described in Section [Component creation], any Genode component is
 created out of low-level resources in the form of sessions provided by core.
-Those sessions include at least a RAM session, a CPU session, and an RM session
+Those sessions include at least a RAM session, a CPU session, and a PD session
 as depicted in Figure [img/no_gdb]. In addition to those low-level sessions,
 the component may interact with sessions provided by other components.
 
@@ -1524,14 +1530,15 @@ violation of the minimalism principle.
 
 The nitpicker GUI server is not the only service challenged by feature
 requests. The problem is present even at the lowest-level services provided
-by core. Core's RM service is used to manage the virtual address spaces of
-components. When a dataspace is attached to an RM session, the RM service
+by core. Core's region-map mechanism is used to manage the virtual address spaces of
+components via their respective PD sessions. When a dataspace is attached to a
+region map, the region map
 picks a suitable virtual address range where the dataspace will be made
 visible in the virtual address space.
 The allocation strategy depends on several factors such as alignment constraints
 and the address range that fits best. But eventually, it is deterministic.
 This contradicts the common wisdom that address spaces shall be
-randomized. Hence core's RM service is challenged with the request for adding
+randomized. Hence core's PD service is challenged with the request for adding
 address-space randomization as a feature. Unfortunately, the addition of
 such a feature into core raises two issues.
 First, core would need to have a source of good random numbers. But core
@@ -1565,8 +1572,8 @@ into effect only for those applications that use it.
 
 The same approach can be applied to the address-space randomization problem.
 A component with access to good random numbers may provide a randomized
-version of core's RM service. Outward-facing components can benefit from the
-security feature by having their RM session requests routed to this component
+version of core's PD service. Outward-facing components can benefit from this
+security feature by having their PD session requests routed to this component
 instead of core.
 
 

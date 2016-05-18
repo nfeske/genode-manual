@@ -4,7 +4,7 @@
 
 	\labeledcompoundnode{core}{creationcomponent}{Core}{
 
-		\rpcobjectrnode{corermsession}{minimum width=0ex}{}{RM session}
+		\rpcobjectrnode{corermsession}{minimum width=0ex}{}{Region map}
 		\rpcobjectrnode{coreramsession}{minimum width=0ex,
 		                               below=1ex of corermsession, xshift=4ex}{}{RAM session}
 
@@ -43,7 +43,7 @@
 	\path (corermsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (envrmsessioncap) {};
 	\draw[dashed] (corermsessioncap) -- (envrmsessioncap);
 
-	% association of the parent's RM session with the parent's virtual memory
+	% association of the parent's region map with the parent's virtual memory
 	\draw[dashed] (corermsessionobj.west)
 	              .. controls +(-8ex,0) and +(-1ex,2ex) ..
 	              (parentvmbase.west);

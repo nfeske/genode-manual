@@ -27,7 +27,7 @@
     \configlevel{fill=black!12}{
     $<$config$>$\\
       \nestinglevel{
-      $<$launcher name="L4Linux"$>$\\
+      $<$launcher name="Virtualbox"$>$\\
         \nestinglevel{
         $<$binary name="init"/$>$\\
         \configlevel{fill=black!7}{

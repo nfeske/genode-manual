@@ -16,7 +16,7 @@
 	
 		\path (timelineanchor)+(10,0) node (timelineanchor) {};
 		\newtimeline{corecap}
-		\path (corecap) node[above=2pt, align=center] (corecaplabel) {\normalsize Core\\CAP};
+		\path (corecap) node[above=2pt, align=center] (corecaplabel) {\normalsize Core\\PD};
 
 		\activate{servermain}
 		\activate{client}

@@ -636,7 +636,7 @@ proc function_has_modifier { func_token modifier } {
 proc function_is_blacklisted { func_token } {
 
 	foreach part [mlcomment_parts $func_token] {
-		if {[regexp {\\noapi} $part]} { return 1 }
+		if {[regexp {\\((noapi)|(deprecated))} $part]} { return 1 }
 	}
 	return 0;
 }
