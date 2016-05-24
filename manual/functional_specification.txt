@@ -1556,8 +1556,8 @@ information found in the annotations of the 'Session' interface.
 
 To make an instance of an RPC object invokable via RPC, it must be associated
 with an RPC entrypoint. By passing an RPC object to the 'Entrypoint::manage'
-method, a new capability for the RPC object is created. The capability tagged
-with the type of the RPC object.
+method, a new capability for the RPC object is created. The capability is
+tagged with the type of the RPC object.
 
 
 Client side

@@ -798,7 +798,7 @@ To load the binary and the associated shared libraries, the linker does not
 directly attach dataspaces to its address space. Instead, it manages a dedicated
 part of the component's virtual address space called _linker area_ manually.
 The linker area is a region map that is created as part of a PD session.
-The dynamic linker ttaches the linker area as a managed dataspace to its
+The dynamic linker attaches the linker area as a managed dataspace to its
 address space. This way, the linker can precisely
 control the layout within the virtual-address range covered by the managed
 dataspace. This control is needed because the loading of an ELF object does
@@ -1749,7 +1749,7 @@ following problems:
   We enhanced the kernel to also support 64-bit guests.
 
 :Resource quotas for kernel resources:
-  The NOVA kernel lacks a ability to adopt the kernel memory pool to the
+  The NOVA kernel lacks the ability to adopt the kernel memory pool to the
   behavior of the userland. The kernel memory pool has a fixed size, which
   cannot be changed at runtime. Even though we have not removed this
   principal limitation, we extended the kernel with the ability to

@@ -1188,7 +1188,7 @@ It also has the option to attach a mere window of the dataspace to the region
 map. Furthermore, the client can specify whether the content of the
 dataspace should be executable or not.
 
-The counter part of the _attach_ operation is the _detach_ operation, which
+The counterpart of the _attach_ operation is the _detach_ operation, which
 enables the region-map client to remove
 dataspaces from the region map by specifying a virtual address. Under the
 hood, this operation flushes the MMU mappings of the corresponding virtual
@@ -1647,7 +1647,7 @@ PD session.
 Now that the child's PD is equipped with an initial thread and a communication
 channel to its parent,
 is the right time to kick off the execution of the
-thread invoking the start operation on the thread capability. The start
+thread by invoking the start operation on the thread capability. The start
 operation takes the initial program counter as argument,
 which corresponds to the program's entry-point
 address as found in the ELF header of the child's executable binary.
@@ -1791,7 +1791,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   The response is returned to the caller as new content of the receive
   buffer.
 
-  At the server side of the communication channel, en entrypoint thread
+  At the server side of the communication channel, an entrypoint thread
   executes the _IPC reply_ and _IPC reply-and-wait_ operations to interact
   with potentially many clients.
   Analogously to the client, it uses two message buffers, a receive buffer
@@ -2088,7 +2088,7 @@ signal-context capability by the signal producer.
 # At the time when the signal producer submitted the first signals, the
   signal handler is not yet ready to handle them. It is still busy with other
   things.
-  Once the signal producer becomes ready to receive a new signal, the
+  Once the signal handler becomes ready to receive a new signal, the
   pending signal is delivered, which triggers the execution of the
   corresponding signal-handler method.
   Note that signals are not buffered. If signals are triggered at a high
