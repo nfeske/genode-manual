@@ -1388,7 +1388,8 @@ the same meaning in both contexts. A Genode capability refers to an RPC
 object or a signal context. In the context of NOVA, a capability refers to
 a NOVA kernel object. To avoid confusing both meanings of the term,
 Genode refers to NOVA's term as "capability selector", or simply
-"selector".
+"selector". A Genode signal context capability corresponds to a NOVA semaphore,
+all other Genode capabilities correspond to NOVA portals.
 
 
 PD service
@@ -1396,10 +1397,10 @@ PD service
 
 A PD session corresponds to a NOVA PD.
 
-A Genode capability corresponds to a NOVA portal. Each NOVA portal has a
+A Genode capability being a NOVA portal has a
 defined IP and an associated local EC (the Genode entrypoint). The invocation
-of a Genode capability is an IDC call to a portal. A Genode capability is
-delegated by passing its corresponding portal selector as IDC argument.
+of a such a Genode capability is an IDC call to a portal. A Genode capability is
+delegated by passing its corresponding portal or semaphore selector as IDC argument.
 
 Page faults are handled as explained in Section
 [Page-fault handling on NOVA]. Each memory mapping installed in a component
@@ -1432,20 +1433,26 @@ ROM service
 -----------
 
 Core's ROM service provides all boot modules as ROM modules. Additionally,
-NOVA's HIP is provided as a ROM module named "hypervisor_info_page".
+a copy of NOVA's HIP is provided as a ROM module named "hypervisor_info_page".
 
 
 IRQ service
 -----------
 
-NOVA represents each interrupt as a semaphore. Within core, there is one
-entrypoint per IRQ session. When 'wait_for_irq' is called, the called IRQ
-entrypoint blocks on its corresponding IRQ semaphore. In the kernel, this
-semaphore-down operation implicitly unmasks the interrupt at the CPU.
+NOVA represents each interrupt as a semaphore created by the kernel. By
+registration of a Genode signal context capability via the sigh method of the
+Irq_session interface, the semaphore of the signal context capability is
+bound to the interrupt semaphore. Genode signals and NOVA semaphores are
+handled as described in [Asynchronous notifications on NOVA].
 
-When the interrupt occurs, the kernel masks the interrupt at the CPU and
-performs the semaphore-up operation on the IRQ's semaphore. Thereby, it wakes
-up the IRQ entrypoint, which replies to the 'wait_for_irq' RPC call.
+Upon the initial IRQ session's _ack_irq_ call, a NOVA semaphore-down operation
+is issued within core on the interrupt semaphore, which implicitly unmasks the
+interrupt at the CPU. When the interrupt occurs, the kernel masks the interrupt
+at the CPU and performs the semaphore-up operation on the IRQ's semaphore.
+Thereby, the chained semaphore, which is the beforehand registered Genode
+signal context, is triggered and the interrupt is delivered as
+Genode signal. The interrupt gets acknowledged and unmasked by calling the
+IRQ session's _ack_irq_ method.
 
 
 Page-fault handling on NOVA
@@ -1501,21 +1508,32 @@ mappings that originated from the revoked node.
 Asynchronous notifications on NOVA
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The NOVA base platform generally follows the mechanism described in Section
-[Asynchronous notification mechanism].
-However, in contrast to traditional L4 kernels, NOVA's kernel interface does
-not support the out-of-order processing of RPC requests.
+To support asynchronous notifications as described in Section
+[Asynchronous notifications], we extended the NOVA kernel semaphores to
+support signalling via chained NOVA semaphores. This extension enables the
+creation of kernel semaphores with a per-semaphore value, which can be bound to
+another kernel semaphore. Each bound semaphore corresponds to a Genode signal
+context. The per-semaphore value is used to distinguish different sources of
+signals.
+
 On this base platform, the blocking of the signal thread at the signal
 source is realized by using a kernel semaphore shared by the PD session
-and the PD client. When first issuing a _wait-for-signal_ operation
-at the signal source,
-the client requests a capability selector for the shared semaphore
-_(repos/base-nova/include/signal_session/source_client.h)_. It then performs
-a _down_ operation on this semaphore to block. Core issues an _up_ operation
-on the semaphore each time a signal of the PD session becomes pending.
-When unblocked from the semaphore's down operation, the client requests the
-signal's imprint and counter using a non-blocking _wait-for-signal_ RPC call
-from the signal source.
+and the PD client. All chained semaphores (Signal contexts) are bound to this
+semaphore. When first issuing a _wait-for-signal_ operation
+at the signal source, the client requests a capability selector for the shared
+semaphore _(repos/base-nova/include/signal_session/source_client.h)_. It then
+performs a _down_ operation on this semaphore to block.
+
+If a signal sender issues a submit operation on a Genode signal
+capability, then a regular NOVA kernel semaphore-up syscall is used. If the
+kernel detects that the used semaphore is chained to another semaphore, the up
+operation is delegated to the one received during the initial _wait-for-signal_
+operation of the signal receiving thread.
+
+In contrast to other base platforms, Genode's signal API is supported by the
+kernel so that the propagation of signals does not require any interaction with
+core's PD service. However, the creation of signal contexts is arbitrated by
+the PD service.
 
 
 IOMMU support
@@ -1540,10 +1558,14 @@ configuration space of the device is mapped in the specified PD.
 Only if a user-level device driver has access to the extended PCI
 configuration space of the device, is it able to get the assignment in place.
 
-To make NOVA's IOMMU support available to Genode components,
-the ACPI driver has the ability to hand out the extended PCI configuration
-space of a device, and a NOVA-specific extension (_assign_pci_) to the PD session
-interface can be used to associate a PCI device with a protection domain.
+To make NOVA's IOMMU support available to Genode,
+the ACPI driver has the ability to lookup the extended PCI configuration
+space region for all devices and reports it via a Genode ROM. The platform
+driver on x86 evaluates the reported ROM and uses the information to obtain
+transparently for platform clients (device drivers) the extended PCI
+configuration space per device. The platform driver uses a NOVA-specific
+extension (_assign_pci_) to the PD session interface to associate a PCI device
+with a protection domain.
 
 ; XXX [image img/iommu_aware 63%]
 ;   NOVAs management of the IOMMU address spaces facilities the use of
@@ -1565,19 +1587,17 @@ _device PD_. Its sole purpose
 is to hold mappings of DMA buffers that are accessible by the associated
 device. By using one-to-one physical-to-virtual mappings for those buffers
 within the device PD, each device PD contains a subset of the physical address
-space. The ACPI driver performs the assignment of device PDs to PCI
+space. The platform driver performs the assignment of device PDs to PCI
 devices. If a device driver intends to use DMA, it allocates a new DMA buffer
-for a specific PCI device at the ACPI driver.
-The ACPI driver responds to such a request by allocating a RAM dataspace at core,
+for a specific PCI device at the platform driver.
+The platform driver responds to such a request by allocating a RAM dataspace at core,
 attaching it to the device PD using the dataspace's physical address as virtual
 address, and by handing out the dataspace capability to the client. If the driver
 requests the physical address of the dataspace, the address returned will be a
 valid virtual address in the associated device PD.
 This design implies that a device driver must allocate DMA buffers at the
-ACPI server (specifying the PCI device the buffer is intended for) instead of
-using core's RAM service to allocate buffers anonymously. Note that the
-current implementation of the ACPI server assigns all PCI devices to only one
-device PD.
+platform driver (specifying the PCI device the buffer is intended for) instead
+of using core's RAM service to allocate buffers anonymously.
 
 ; XXX Maybe mention this in the limitations section?
 
@@ -1760,6 +1780,36 @@ following problems:
   system by exhausting the kernel memory. The reach of damage is limited to
   the respective PD.
 
+:Asynchronous notification mechanism:
+  We extended the NOVA kernel semaphores to support signalling via chained
+  NOVA semaphores. This extension enables the creation of kernel semaphores
+  with a per-semaphore value, which can be bound to another kernel semaphore.
+  Each bound semaphore corresponds to a Genode signal context. The
+  per-semaphore value is used to distinguish different sources of signals. Now,
+  a signal sender issues a submit operation on a Genode signal capability via a
+  regular NOVA semaphore-up syscall. If the kernel detects that the used
+  semaphore is chained to another semaphore, the up operation is delegated to
+  the chained one. If a thread is blocked, it gets woken up directly and the
+  per-semaphore value of the bound semaphore gets delivered. In case no thread
+  is currently blocked, the signal is stored and delivered as soon as a thread
+  issues the next semaphore-down operation.
+
+  Chaining semaphores is an operation that is limited to a single level, which
+  avoids attacks targeting endless loops in the kernel. The creation of such
+  signals can solely be performed if the issuer has a NOVA PD capability with
+  the semaphore-create permission set. On Genode, this effectively reserves the
+  operation to core. Furthermore, our solution preserves the invariant of the
+  original NOVA kernel that a thread may be blocked in only one semaphore at
+  a time.
+
+:Interrupt delivery
+  We applied the same principle of the asynchronous notification extension
+  to the delivery of interrupts by the NOVA kernel. Interrupts are delivered
+  as ordinary Genode signals, which alleviate of the need for one thread per
+  interrupt as required by the original NOVA kernel. The
+  interrupt gets directly delivered to the address space of the driver
+  in case of a Message Signalled Interrupt (MSI), or in case of a shared
+  interrupt, to the x86 platform driver.
 
 Known limitations of NOVA
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1771,53 +1821,18 @@ core.
   NOVA allocates kernel objects out of a memory pool of a fixed size. The pool
   is dimensioned in the kernel's linker script
   _nova/src/hypervisor.ld_ (at the symbol '_mempool_f').
-  The existence of a fixed pool implies that any component that is able to
-  trigger allocations in the kernel is able to indirectly consume kernel
-  resources. A misbehaving component in possession of its own PD capability
-  selector may even forcefully trigger the
-  exhaustion of the entire pool and thereby make the kernel unavailable. I.e.,
-  the kernel panics when running out of memory. The kernel provides no
-  mechanism to mitigate such a resource-exhaustion-based denial-of-service
-  attack.
-
-  On Genode, only core explicitly allocates kernel objects, which relieves
-  the problem but does not solve it. In order to create a kernel
-  object, a PD capability selector must be specified to the respective
-  system call. Since PD capability selectors are never delegated to the
-  outside of core, kernel objects cannot be directly created by arbitrary
-  components. The creation of kernel objects is rather a side effect of the
-  use of core's services. Thereby, core is principally in the position to
-  restrict the use of kernel memory per client. However, such an accounting
-  for kernel memory is not performed by the NOVA version of core.
-
-  In addition to the explicit creation of kernel objects, kernel memory is
-  implicitly allocated when mapping nodes are inserted into the kernel's
-  mapping database. Thereby, kernel memory is consumed as a side effect of IDC
-  calls that carry map items. Since ECs of the same PD can perform IDC calls
-  between one another, the allocation of mapping nodes can be artificially
-  stressed by delegating a large number of mappings within the same PD via
-  successive IDC calls.
-
-  Therefore, components are principally able to launch denial-of-service
-  attacks on the kernel. In the event of an exhaustion of kernel memory,
-  the kernel stops the system. Hence, even though the lack of proper
-  management of kernel memory is an availability risk, it cannot be
-  exploited as a covert storage channel.
 
 :Bounded number of object capabilities within core:
-  For each capability created via core's PD service, core allocates the
-  corresponding NOVA portal and maintains the portal's capability selector
+  For each capability created via core's PD service,
+  core allocates the corresponding NOVA portal or NOVA semaphore and maintains
+  the capability selector
   during the lifetime of the associated object identity. Each allocation of
   a capability via core's PD service consumes one entry in core's capability
-  space. Because the space is bounded, clients of the PD service could misuse
+  space. Because the space is bounded, clients of the service could misuse
   core's capability space as covert storage channel.
 
-:Non-executable (NX) bit on 32-bit machines:
-
-  NOVA supports the NX bit on 64-bit machines. In the x86 32-bit architecture,
-  however, there exists no NX bit unless the x86 Physical Address Extension
-  (PAE) is enabled. Because NOVA does not support PAE, the NX bit
-  remains unsupported when using NOVA on 32-bit machines.
+:Non-executable (NX) bit:
+  NOVA does not support the NX bit.
 
 ; XXX further possible topics
 ; * Locking
