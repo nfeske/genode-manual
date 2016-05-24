@@ -143,7 +143,7 @@ provided by core's RAM, IO_MEM, or ROM services. Each dataspace is referenced
 by a capability that can be passed among components.
 Each component with the capability to a dataspace can access the
 dataspace's content by attaching the dataspace to the region map of its PD session.
-In addition to be used as arguments for region-map operations,
+In addition to the use as arguments for region-map operations,
 dataspaces provide the following interface.
 
 ; XXX Genode::Dataspace_client
@@ -220,7 +220,7 @@ method.
 The 'Entrypoint::manage' and 'Entrypoint::dissolve' methods are used to
 associate respectively disassociate signal handlers and RPC objects with the
 entrypoint. Under the hood, those operations interact with the component's PD
-session to bind the component's signal handlers and RPC objects to capabilities.
+session in order to bind the component's signal handlers and RPC objects to capabilities.
 
 _Note that the current version of the 'Entrypoint' utilizes the former_
 _'Rpc_entrypoint' and 'Signal_receiver' APIs. The entrypoint is designated_
@@ -239,7 +239,7 @@ Region-map interface
 A region map represents a (portion of) a virtual memory address space (Section
 [Region maps]). By attaching dataspaces to a region map, the content of those
 dataspaces becomes visible in the component's virtual address space.
-Furthermore, a region map can be used as a dataspace. Thereby the nesting of
+Furthermore, a region map can be used as a dataspace. Thereby, the nesting of
 region maps becomes possible. This allows a component to manage portions of
 its own virtual address space manually as done for the stack area and linker
 area (Section [PD session interface]). The use of region maps as so-called
@@ -311,7 +311,7 @@ the client in the form of a dataspace (Section [Dataspaces]).
 [raw spec/classes/genode/rom_connection/description]
 
 
-Attached RAM dataspace
+Attached ROM dataspace
 ----------------------
 
 By instantiating an 'Attached_rom_dataspace' object, a ROM module is requested
@@ -324,8 +324,8 @@ a publisher-subscriber scenario [Publishing and subscribing], the
 as an XML node via the 'xml' method.
 The method always returns a valid 'Xml_node' even in the event where the
 dataspace is invalid or contains no XML. In such cases, the returned XML node
-is '<empty/>'. This relieves the caller from handling the exceptions that
-may occur during the XML parsing.
+is '<empty/>'. This relieves the caller from handling exceptions that
+may occur during XML parsing.
 
 ; Genode::Attached_rom_dataspace
 [raw spec/classes/genode/attached_rom_dataspace/description]
@@ -343,7 +343,7 @@ three region maps, one representing the PD's virtual address space, one
 for the component's stack area, and one for the component's linker area
 designated for shared objects. Of those region maps, only the virtual address
 space is needed by application code directly. The stack area and linker area
-are used by the framework internally only. The PD service is rarely
+are used by the framework internally. The PD service is rarely
 needed by applications directly but it is internally.
 
 Besides representing the component's virtual address space, a PD session also
@@ -356,7 +356,7 @@ object or a signal handler. It can be passed to another protection domain via
 an RPC call whereby the receiving protection domain obtains the right to send
 messages to the associated object or to trigger the associated signal handler
 respectively. The capability-management operations are not used directly by
-components at the API level but used indirectly via the RPC mechanism
+components at the API level but are used indirectly via the RPC mechanism
 described in Section [Remote procedure calls] and the signalling API described
 in Section [Signalling].
 
@@ -376,7 +376,7 @@ RM session interface
 
 The region-map (RM) service (Section [Region-map management (RM)]) allows for
 the manual creation of region maps that represent (portions of) virtual
-address spaces. Components can use it to manage the virtual memory layout of
+address spaces. Components can use this service to manage the virtual memory layout of
 so-called managed dataspaces manually. For example, it allows a dataspace
 provider to populate the content of dataspaces on demand, depending on the
 access patterns produced by the dataspace user.
@@ -1282,8 +1282,8 @@ simple tokenizing support is provided via the 'Token' class.
 Diagnostic output
 ~~~~~~~~~~~~~~~~~
 
-To let components produce diagnostic output like errors, warnings, and
-log messages, Genode provides a simple 'Output' interface for sequentially
+To enable components to produce diagnostic output like errors, warnings, and
+log messages, Genode offers a simple 'Output' interface for sequentially
 writing single characters or character sequences.
 
 ; Genode::Output
@@ -1302,7 +1302,7 @@ to incorporate private state into the output.
 
 The component's execution environment provides an implementation of the
 'Output' interface that targets a LOG session. This output back end is
-provided to the component in the form of the 'log', 'warning', and 'error'
+offered to the component in the form of the 'log', 'warning', and 'error'
 functions that accept an arbitrary number of arguments that are printed
 in a concatenated fashion. Each messages is implicitly finalized with a
 newline character.
@@ -1414,15 +1414,15 @@ description of the mechanism for the delivery of asynchronous notifications
 The API defines interfaces for signal transmitters and for the association
 of signal handlers with entrypoints.
 An entrypoint can be associated with many signal handlers where each
-handler usually corresponds to a different source of signals.
-Each signal handler is addressable via a distinct capability, Those so-called
+handler usually corresponds to a different signal source.
+Each signal handler is addressable via a distinct capability. Those so-called
 signal-context capabilities can be delegated across component boundaries
 in the same way as RPC-object capabilities.
 If a component is in possession of a signal-context capability, it can
 trigger the corresponding signal handler by using a so-called signal
 transmitter.
-The signal transmitter provides fire-and-forget semantics for submitting
-signals.
+The signal transmitter provides fire-and-forget semantics for signal
+submission.
 Signals serve as mere notifications and cannot carry any payload.
 
 ; Genode::Signal
@@ -1442,9 +1442,9 @@ Signals serve as mere notifications and cannot carry any payload.
 ; XXX Genode::Signal_rpc_member<>
 
 A 'Signal_handler' object is meant to be hosted as a member of the class that
-also contains a member function to be executed on the arrival of a signal.
-Its constructor takes the entrypoint, the signal-handling object and a
-pointer to the handling function as argument. The following example
+also contains a member function to be executed upon the arrival of a signal.
+Its constructor takes the entrypoint, the signal-handling object, and a
+pointer to the handling function as arguments. The following example
 illustrates the common pattern of using a 'Signal_handler'.
 
 ! class Main

@@ -1572,7 +1572,7 @@ into effect only for those applications that use it.
 
 The same approach can be applied to the address-space randomization problem.
 A component with access to good random numbers may provide a randomized
-version of core's PD service. Outward-facing components can benefit from the
+version of core's PD service. Outward-facing components can benefit from this
 security feature by having their PD session requests routed to this component
 instead of core.
 

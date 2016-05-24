@@ -1289,14 +1289,12 @@ as described in Section [Capability-based security]. On kernels with support
 for kernel-protected object capabilities, the PD session interface allows
 components to create and manage kernel-protected capabilities.
 Initially, the PD's capability space is empty. However, the PD client can
-populate the capability space with a single capability, which is the
-parent capability of the component within the PD. The assignment of the
-parent capability is done at the creation time of the component by its
-parent.
+install a single capability - the parent capability - using the _assign-parent_
+operation at the creation time of the PD.
 
 [1] Interface specification in Section [PD session interface]
 
-Core's PD service also plays the role of a broker of asynchronous notifications
+Core's PD service also plays the role of a broker for asynchronous notifications
 on kernels that lack the semantics of Genode's signalling API. The service
 is not used directly by components at the framework's API level but is merely
 an implementation artifact.
@@ -1332,8 +1330,8 @@ shared libraries into.
 
 The second use of managed dataspaces is the provision of on-demand-populated
 dataspaces. A server may hand out dataspace capabilities that are backed by
-region maps to its clients. Once the client has attached this dataspace to its
-address space and touches the content, the client triggers a page fault. Core
+region maps to its clients. Once the client has attached such a dataspace to its
+address space and touches it's  content, the client triggers a page fault. Core
 responds to this page fault by blocking the client thread and delivering a
 notification to the server that created the managed dataspace along with
 the information about the fault address within the region map. The server can
@@ -1515,7 +1513,7 @@ one provided by core (Section [Access to boot modules (ROM)]). With the
 ROM session created, the parent can make the dataspace with the executable
 binary (i.e., an ELF binary) visible within its virtual address space by
 attaching the dataspace to its PD's region map. After this step, the parent is
-able to inspect the ELF header to determine the memory required for the
+able to inspect the ELF header to determine the memory requirements for the
 binary's DATA and BSS segments.
 
 The next step is the creation of the child's designated
@@ -1631,7 +1629,7 @@ parent's priority constraints.
 Once constructed, the CPU session can be used to create new threads by
 invoking the session's create-thread operation with the thread's designated
 PD as argument.
-Based on this association of the thread with its PD, core knows how to respond to
+Based on this association of the thread with its PD, core is able to respond to
 page faults triggered by the thread.
 The invocation of this operation results in a thread capability, which can be
 used to control the execution of the thread.
@@ -1640,14 +1638,14 @@ In order to be executable, it first needs to be configured.
 
 As described in Section [Component ownership], each PD has
 initially a single capability installed, which allows the child to communicate
-to its parent.
+with its parent.
 Right after the creation of the PD for a new child, the parent can register
 a capability to a locally implemented RPC object as parent capability for the
 PD session.
 Now that the child's PD is equipped with an initial thread and a communication
 channel to its parent,
-is the right time to kick off the execution of the
-thread by invoking the start operation on the thread capability. The start
+it is the right time to kick off the execution of the
+thread by invoking the start operation on its thread capability. The start
 operation takes the initial program counter as argument,
 which corresponds to the program's entry-point
 address as found in the ELF header of the child's executable binary.
@@ -1655,7 +1653,7 @@ Figure [img/creation_thread] illustrates the relationship between the
 PD session, the CPU session, and the parent capability. Note that neither the
 ROM dataspace containing the ELF binary nor the RAM dataspaces
 allocated during the ELF loading are visible in the parent's
-virtual address space any longer. After initially loading the ELF binary,
+virtual address space any longer. After the initial loading of the ELF binary,
 the parent has detached those dataspaces from its own region map.
 
 The child starts its execution at the virtual address defined by the ELF
@@ -1802,7 +1800,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   and can be combined with an IPC client object to perform calls to the
   server.
   The _IPC reply-and-wait_ operation delivers the content of the reply buffer
-  to the last caller and blocks for a new request using a platform-specific
+  to the last caller and then waits for a new request using a platform-specific
   kernel operation. Once unblocked by the kernel, it returns the arguments
   for the new request in the request buffer.
   The server does not obtain any form of client identification along with
@@ -1829,7 +1827,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   language barrier when designing RPC interfaces and alleviates the need for
   code-generating tools in addition to the compiler.
 
-  The client-side stub code translates C++ method calls to the IPC-library
+  The client-side stub code translates C++ method calls to IPC-library
   operations. Each RPC function of an
   RPC interface has an associated opcode (according to the order of RPC
   functions). This opcode along with the method arguments are inserted
@@ -2053,7 +2051,7 @@ signal handler to become able to receive asynchronous notifications.
 
 # Each Genode component is equipped with at least one initial entrypoint that
   responds to incoming RPC requests as well as asynchronous notifications.
-  Similar to how it can handle requests for arbitrary number of RPC objects,
+  Similar to how it can handle requests for an arbitrary number of RPC objects,
   it can receive signals from many different sources.
   Within the signal-handler component,
   each source is represented as a so-called _signal context_. A component
@@ -2085,7 +2083,7 @@ signal-context capability by the signal producer.
   a remote procedure call, the submission of a signal is a fire-and-forget
   operation.
 
-# At the time when the signal producer submitted the first signals, the
+# At the time when the signal producer submitted the first signal, the
   signal handler is not yet ready to handle them. It is still busy with other
   things.
   Once the signal handler becomes ready to receive a new signal, the
@@ -2097,7 +2095,7 @@ signal-context capability by the signal producer.
   of events from the number of signal-handler invocations. In situations
   where such information is needed, the signal handler must retrieve it
   via another mechanism such as an RPC call to query the most current
-  status of the server that produces the signals.
+  status of the server that produced the signals.
 
 # After handling the first batch of signals, the signal handler component
   blocks and becomes ready for another signal or RPC request.
