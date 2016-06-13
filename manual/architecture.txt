@@ -1477,7 +1477,7 @@ Component creation
 ; XXX note that Linux plays a special role (here the Linux kernel loads
 ; the binary)
 
-Each Genode component is made out of five basic ingredients:
+Each Genode component is made out of four basic ingredients:
 :RAM: session for allocating the memory for the program's BSS segment and heap
 :ROM: session with the executable binary
 :CPU: session for creating the initial thread of the component
