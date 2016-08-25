@@ -1,0 +1,92 @@
+\begin{tikzpicture}
+
+	\definecolor{servercolor}      {rgb}{0.6,0.7,0.9}
+	\definecolor{appcolor}         {rgb}{0.9,0.7,0.6}
+	\definecolor{cpusamplercolor}  {rgb}{1.0,1.0,0.7}
+	\definecolor{topshellcolor}    {rgb}{0.8,0.8,0.8}
+	\definecolor{bottomshellcolor} {rgb}{0.6,0.6,0.6}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex,
+	                        minimum height=5ex]
+
+	\tikzstyle{servernode}     = [treenode]
+	\tikzstyle{cpusamplernode} = [servernode, bottom color=cpusamplercolor]
+	\tikzstyle{appnode}        = [treenode,   bottom color=appcolor]
+	\tikzstyle{shellnode}      = [treenode]
+
+	%
+	% Components
+	%
+
+	% static part of the system, directly started by init
+	\node[servernode]                               (subinit)    {Init};
+	\node[cpusamplernode, right=2ex of subinit]     (cpusampler) {CPU Sampler};
+	\node[servernode,     right=2ex of cpusampler]  (fslog)      {FS LOG};
+	\node[servernode,     right=2ex of fslog]       (ramfs)      {RAM FS};
+	\node[servernode,     right=2ex of ramfs]       (noux)       {Noux\\Runtime};
+
+	% init
+	\node[fit=(subinit) (noux)] (allservers) {};
+	\node[treenode, below=8ex of allservers] (init) {Init};
+
+	% interactive shell
+	\node[appnode, above=5ex of noux, shellnode] (shell) {Interactive\\Shell};
+
+	% profiled subsystem
+	\node[appnode, above=5ex of subinit, inner xsep=4ex, inner ysep=2ex]
+	      (testedsystem) {Subsystem\\under\\Test};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init)    -- (subinit.south);
+	\path[treechildarrow] (init)    -- (cpusampler.south);
+	\path[treechildarrow] (init)    -- (fslog.south);
+	\path[treechildarrow] (init)    -- (ramfs.south);
+	\path[treechildarrow] (init)    -- (noux.south);
+	\path[treechildarrow] (noux)    -- (shell.south);
+	\path[treechildarrow] (subinit) -- (testedsystem.south);
+
+	%
+	% Session relationship
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed, sloped=false]
+
+	% CPU session of profiled subsystem
+	\path[treesessionarrow] (testedsystem.290)
+		.. controls +(0ex,-14ex) and +(-1ex,-3ex)
+		.. node[below, align=center, pos=0.6] {CPU} (cpusampler.210);
+
+	% CPU session wrapper within CPU sampler
+	\path[treesessionarrow, thin] (cpusampler.210)
+		.. controls +(0ex,2ex) and +(0ex,2ex) .. (cpusampler.230);
+
+	% CPU session from CPU session through init to core
+	\path[treesessionarrow] (cpusampler.230)
+		.. controls +(0ex,-4ex) and +(0ex,4ex)
+		.. node[below, align=center, pos=0.3] {CPU} (init.155)
+		-- (init.205) -- +(0, -2ex);
+
+	% multiple LOG connections from CPU sampler to FS LOG
+	\path[treesessionarrow] (cpusampler.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex)
+		.. node[below, align=center, pos=0.6] {LOG} (fslog.220);
+	\path[treesessionarrow, thin] (cpusampler.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex) .. (fslog.213);
+	\path[treesessionarrow, thin] (cpusampler.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex) .. (fslog.230);
+
+	% FS LOG to RAM FS
+	\path[treesessionarrow] (fslog.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex) .. node[below, align=center] {file\\system} (ramfs.220);
+
+	% Noux to RAM FS
+	\path[treesessionarrow] (noux.220)
+		.. controls +(-1ex,-3ex) and +(1ex,-3ex) .. node[below, align=center] {file\\system} (ramfs.330);
+
+\end{tikzpicture}
