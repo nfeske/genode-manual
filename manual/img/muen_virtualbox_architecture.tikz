@@ -1,0 +1,99 @@
+\begin{tikzpicture}
+
+	\tikzstyle{commonnode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=14ex,
+	                        minimum height=5ex]
+
+	\definecolor{usercolor}   {rgb}{0.6,0.7,0.9}
+	\definecolor{kernelcolor} {rgb}{0.9,0.7,0.6}
+	\definecolor{guestcolor}  {rgb}{0.7,0.9,0.6}
+
+	% Kernel
+	\node[commonnode, bottom color=kernelcolor] (kernel) {Muen Separation Kernel};
+
+	% Subjects
+	\tikzstyle{vmmnode} = [commonnode, minimum height=15ex, bottom color=guestcolor]
+
+	\node[vmmnode, above=6ex of kernel] (guestvm) {};
+	\path (guestvm.north) node[anchor=north] {Guest VM};
+
+	\node[vmmnode, left=5ex of guestvm] (genodevm) {};
+	\path (genodevm.north) node[anchor=north] {Genode VM};
+
+	\node[vmmnode, right=5ex of guestvm] (nativesubject) {};
+	\path (nativesubject) node[align=center] {Native\\Subject};
+
+	% Run guest VM
+	\path (genodevm) edge[->, bend right] node [above] {\tiny Run} (guestvm);
+	% Trap to Virtualbox
+	\path (genodevm) edge[<-, bend left] node [below] {\tiny Trap} (guestvm);
+
+	% Guest kernels
+	\tikzstyle{guestkernelnode} = [commonnode, minimum height=3ex, anchor=south,
+	                               minimum width=12ex, outer sep=0.5ex, bottom color=guestcolor]
+	\path (genodevm.south) node[guestkernelnode] (basehwkernel) {\scriptsize base-hw kernel};
+	\path (guestvm.south) node[guestkernelnode] (guestkernel) {\scriptsize Windows};
+
+	% User land
+	\tikzstyle{usernode} = [commonnode, minimum width=7ex, minimum height=4ex, bottom color=usercolor]
+
+	% Genode components
+	\path (basehwkernel)+(0,6ex) coordinate (genodecomponents);
+	\path (genodecomponents) node[usernode, xshift=1ex,  yshift=1ex]  {};
+	\path (genodecomponents) node[usernode, xshift=0ex,  yshift=0ex]  {};
+	\path (genodecomponents) node[usernode, xshift=-1ex, yshift=-1ex] {\tiny Virtualbox};
+
+	% Guest VM processes
+	\path (guestkernel)+(0,6ex) coordinate (guestapps);
+	\path (guestapps) node[usernode, xshift=1ex,  yshift=1ex]  {};
+	\path (guestapps) node[usernode, xshift=0ex,  yshift=0ex]  {};
+	\path (guestapps) node[usernode, xshift=-1ex, yshift=-1ex] {};
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\tikzstyle{outline} = [inner sep=1ex]
+
+		% helper outline nodes
+		\node[outline, fit=(kernel)] (kerneloutline) {};
+		\node[outline, fit=(guestvm) (genodevm) (nativesubject)] (nonrootoutline) {};
+		\node[fit=(kerneloutline) (nonrootoutline) (nonrootoutline)] (alloutline) {};
+
+		% midpoint between kernel and subjects
+		\path (kernel) -- coordinate (midhostguest) (guestvm);
+
+		% kernel land
+		\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=5]
+		\path[land, opacity=0.4, outer color=kernelcolor]
+			(alloutline.west |- midhostguest) {[sharp corners] --
+			(alloutline.east |- midhostguest)} --
+			(alloutline.east |- kerneloutline.south) --
+			(alloutline.west |- kerneloutline.south) [sharp corners] --cycle;
+
+		% non-root land
+		\path[land, opacity=0.4, outer color=guestcolor]
+			(alloutline.west |- nonrootoutline.north) --
+			(alloutline.east |- nonrootoutline.north) {[sharp corners] --
+			(alloutline.east |- midhostguest) --
+			(alloutline.west |- midhostguest)} --cycle;
+
+		\path (alloutline.east |- midhostguest) node[above, xshift=-8ex, opacity=0.5] {non-root mode};
+		\path (alloutline.east |- midhostguest) node[below, xshift=-6.2ex, opacity=0.8, text=\kernelred] {root mode};
+
+		% kernel-user boundary
+		\draw[dashed, very thick, color=\kernelred]
+			(alloutline.west |- midhostguest) -- (alloutline.east |- midhostguest);
+
+		% boundaries between subjects
+		\path (guestvm) -- coordinate (midguestgenode) (genodevm);
+		\path (guestvm) -- coordinate (midguestnativesubject) (nativesubject);
+
+		\draw[dashed, very thick, opacity=0.3]
+			(midguestgenode |- nonrootoutline.north) -- (midguestgenode |- midhostguest);
+
+		\draw[dashed, very thick, opacity=0.3]
+			(midguestnativesubject |- nonrootoutline.north) -- (midguestnativesubject |- midhostguest);
+
+	\end{scope}
+
+\end{tikzpicture}
