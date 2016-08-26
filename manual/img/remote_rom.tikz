@@ -1,0 +1,154 @@
+\begin{tikzpicture}
+
+	\definecolor{topniccolor}        {rgb}{0.7,0.7,0.7}
+	\definecolor{bottomniccolor}     {rgb}{0.6,0.6,0.6}
+	\definecolor{proxycolor}         {rgb}{1.0,1.0,0.7}
+	\definecolor{outerhardwarecolor} {rgb}{0.0,0.0,0.0}
+	\definecolor{innerhardwarecolor} {rgb}{0.2,0.2,0.2}
+
+	\tikzstyle{treenode}  = [component, path fading=flow fade, align=center,
+	                         rounded corners=1, minimum width=12ex,
+	                         minimum height=5ex]
+	\tikzstyle{nic}       = [treenode, minimum width=5ex,
+	                         top color=topniccolor, bottom color=bottomniccolor]
+	\tikzstyle{proxynode} = [treenode, bottom color=proxycolor]
+
+	%
+	% Components
+	%
+
+	% user-space components
+	\node[treenode]                             (app)         {Application};
+	\node[proxynode, right=2ex  of app]         (clientproxy) {ROM\\Client Proxy};
+	\node[treenode,  right=2ex  of clientproxy] (nicdrivera)  {NIC\\Driver};
+	\node[treenode,  right=12ex of nicdrivera]  (nicdriverb)  {NIC\\Driver};
+	\node[proxynode, right=2ex  of nicdriverb]  (serverproxy) {ROM\\Server Proxy};
+	\node[treenode,  right=2ex  of serverproxy] (romservice)  {ROM\\Service};
+
+	% init components
+	\node[fit=(app) (nicdrivera)] (componentsa) {};
+	\node[treenode, below=6ex of componentsa] (inita) {Init};
+
+	\node[fit=(nicdriverb) (romservice)] (componentsb) {};
+	\node[treenode, below=6ex of componentsb] (initb) {Init};
+
+	% NICs
+	\coordinate[below=18ex of nicdrivera] (nicypos);
+	\path (nicdrivera.east |- nicypos) node[anchor=east, nic] (nica) {NIC};
+	\path (nicdriverb.west |- nicypos) node[anchor=west, nic] (nicb) {NIC};
+
+	% host labels
+	\tikzstyle{hostlabel} = [scale=1.5, opacity=0.5]
+	\path (app.west        |- nica) node[hostlabel, anchor=west] {Host A};
+	\path (romservice.east |- nicb) node[hostlabel, anchor=east] {Host B};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (inita) -- (app.south);
+	\path[treechildarrow] (inita) -- (clientproxy.south);
+	\path[treechildarrow] (inita) -- (nicdrivera.south);
+	\path[treechildarrow] (initb) -- (nicdriverb.south);
+	\path[treechildarrow] (initb) -- (serverproxy.south);
+	\path[treechildarrow] (initb) -- (romservice.south);
+
+	%
+	% Session relationship
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed, sloped=false]
+
+	% application -> ROM client proxy
+	\path[treesessionarrow] (app.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex)
+		.. node[below, align=center] {ROM} (clientproxy.220);
+
+	% ROM client proxy -> NIC driver A
+	\path[treesessionarrow] (clientproxy.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex)
+		.. node[below, align=center] {NIC} (nicdrivera.220);
+
+	% ROM server proxy -> NIC driver B
+	\path[treesessionarrow] (serverproxy.220)
+		.. controls +(-1ex,-3ex) and +(1ex,-3ex)
+		.. node[below, align=center] {NIC} (nicdriverb.330);
+
+	% ROM server proxy -> ROM service
+	\path[treesessionarrow] (serverproxy.330)
+		.. controls +(1ex,-3ex) and +(-1ex,-3ex)
+		.. node[below, align=center] {ROM} (romservice.220);
+
+	%
+	% Network traffic
+	%
+	\tikzstyle{nettraffic} = [<->, >=angle 60, densely dotted, very thick, opacity=0.5]
+
+	\path (nica.south)+(0,-5ex) coordinate (netypos);
+
+	\draw[nettraffic] (nica |- nicdrivera.south) -- (nica);
+	\draw[nettraffic] (nicb |- nicdriverb.south) -- (nicb);
+
+	\draw[nettraffic] (nica) -- (nica |- netypos) -- node[below] {Network} (nicb |- netypos) -- (nicb);
+
+	%
+	% Background
+	%
+
+	\begin{scope}[on background layer]
+
+		%
+		% Command for drawing a box around a host
+		%
+		% The command uses the coordinates provide by the genodeoutline and
+		% nicoutline nodes, and the color definitions innerhardwarecolor,
+		% outerhardwarecolor, and softwarecolor.
+		%
+		\newcommand\hostbox{
+
+			\node[fit=(genodeoutline) (nicoutline)] (hostoutline) {};
+
+			% midpoint between hardware and software
+			\path (nicoutline.north) coordinate (midsofthard);
+
+			% hardware
+			\tikzstyle{land} = [fill, inner color=innerhardwarecolor,
+			                    path fading=flow fade, rounded corners=5]
+			\path[land, opacity=0.4, outer color=outerhardwarecolor]
+				(hostoutline.west |- midsofthard) {[sharp corners] --
+				(hostoutline.east |- midsofthard)} --
+				(hostoutline.east |- nicoutline.south) --
+				(hostoutline.west |- nicoutline.south) [sharp corners] --cycle;
+
+			% software
+			\path[land, opacity=0.4, outer color=softwarecolor]
+				(hostoutline.west |- genodeoutline.north) --
+				(hostoutline.east |- genodeoutline.north) {[sharp corners] --
+				(hostoutline.east |- midsofthard) --
+				(hostoutline.west |- midsofthard)} --cycle;
+
+			% hardware-software boundary
+			\draw[thin, opacity=0.5, color=black]
+				(hostoutline.west |- midsofthard) -- (hostoutline.east |- midsofthard);
+		}
+
+		% helper for coordinate calculation
+		\tikzstyle{outline} = [inner sep=1ex]
+
+		% host A
+		\node[outline, fit=(componentsa) (inita)] (genodeoutline) {};
+		\node[outline, fit=(nica)]                (nicoutline)    {};
+		\definecolor{softwarecolor} {rgb}{0.9,0.7,0.6}
+		\hostbox
+
+		% host B
+		\node[outline, fit=(componentsb) (initb)] (genodeoutline) {};
+		\node[outline, fit=(nicb)]                (nicoutline)    {};
+		\definecolor{softwarecolor} {rgb}{0.6,0.7,0.9}
+		\hostbox
+
+	\end{scope}
+
+\end{tikzpicture}
