@@ -174,7 +174,7 @@ resolved by a combination of the following key techniques:
   high-complexity parts. The latter no longer need to be considered
   as part of the trusted computing base.
 
-:Virtualization: can bridge the cap between applications that expect
+:Virtualization: can bridge the gap between applications that expect
   current-generation OSes and a new operating-system design.
 
 :The management of budgets: within hierarchical organizations shows how
