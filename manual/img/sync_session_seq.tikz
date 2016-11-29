@@ -1,0 +1,51 @@
+\begin{tikzpicture}
+
+	\begin{timelinediagram}
+
+		\renewcommand{\timestepvector}{0,-0.8}
+
+		% initial timelines
+
+		\path (0,0) node (timelineanchor) {};
+		\newtimeline{server}
+		\path (server) node[above, align=center] (serverlabel) {\normalsize Server\\};
+
+		\path (timelineanchor)+(3.5,0) node (timelineanchor) {};
+		\newtimeline{parent}
+		\path (parent) node[above, align=center] (parentlabel) {\normalsize Parent\\};
+
+		\path (timelineanchor)+(3.5,0) node (timelineanchor) {};
+		\newtimeline{client}
+		\path (client) node[above, align=center] (clientlabel) {\normalsize Client\\};
+
+		\activate{client}
+		\timestep
+
+		% session request
+
+		\transition{client}{parent}{}
+		\node[align=center] at (transitionlabel) {$cap_{parent}$ \\ session(name, args)};
+		\timestep
+
+		\transition{parent}{server}{}
+		\node[align=center] at (transitionlabel) {$cap_{root}$ \\ session(args)};
+		\timestep
+
+		\transition{server}{parent}{}
+		\node[align=center] at (transitionlabel) {\\ return $cap_{session}$};
+		\timestep
+
+		\transition{parent}{client}{}
+		\node[align=center] at (transitionlabel) {\\ return $cap_{session}$};
+
+		\timestep
+
+	\end{timelinediagram}
+
+	\begin{scope}[on background layer]
+	\node[timelinegroup, fit=(serverlabel)  (server)] {};
+	\node[timelinegroup, fit=(parentlabel)  (parent)] {};
+	\node[timelinegroup, fit=(clientlabel)  (client)] {};
+	\end{scope}
+
+\end{tikzpicture}
