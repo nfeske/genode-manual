@@ -1,0 +1,137 @@
+\begin{tikzpicture}
+
+	% Colors
+	\definecolor {component-blue}   {rgb}{0.6,0.7,0.9}
+	\definecolor {component-yellow} {rgb}{0.9,0.9,0.6}
+
+	% Styles
+	\tikzstyle {nettraffic} = [draw=black!80, ->, >=angle 60, densely dotted,
+	                           very thick, opacity=0.5]
+	\tikzstyle {nettraffic1} = [draw=black!80, -, >=angle 60, densely dotted,
+	                            very thick, opacity=0.5]
+
+	% Virtnet A
+	\node [draw=black, densely dotted, minimum width=18ex, minimum height=15ex,
+	       rounded corners=1ex, top color=gray!50!white,
+	       bottom color=gray!10!white] (virtnet-a) { };
+	\node [below=0ex of virtnet-a.north, text=white] { Virtnet A };
+	\node [above=-0.7ex of virtnet-a.north, text=black!60!white]
+	      { \tiny 192.168.1.0/24 };
+
+	% HTTP server
+	\node [component, path fading=flow fade, align=center,
+	       rounded corners=0.5ex, minimum width=12ex,
+	       minimum height=5ex, above=4.5ex of virtnet-a.south,
+	       bottom color=component-blue, opacity=0.5] (comp-a1) { };
+	\node [below=0.5ex of comp-a1.north, opacity=0.5] { \scriptsize HTTP Server };
+	\node [above=0ex of comp-a1.south, opacity=0.4] {\tiny 192.168.1.2 };
+
+	% Virtnet B
+	\node [draw=black, densely dotted, minimum width=18ex, minimum height=15ex,
+	       rounded corners=1ex, top color=gray!50!white,
+	       bottom color=gray!10!white, right=2ex of virtnet-a] (virtnet-b) { };
+	\node [below=0ex of virtnet-b.north, text=white] { Virtnet B };
+	\node [above=-0.7ex of virtnet-b.north, text=black!60!white]
+	      { \tiny 192.168.2.0/24 };
+
+	% NTP server
+	\node [component, path fading=flow fade, align=center,
+	       rounded corners=0.5ex, minimum width=12ex,
+	       minimum height=5ex, above=4.5ex of virtnet-b.south,
+	       bottom color=component-blue, opacity=0.5] (comp-b1) { };
+	\node [above=0ex of comp-b1.south, opacity=0.4] {\tiny 192.168.2.2 };
+
+	% Client
+	\path (virtnet-b.south) + (1ex, 6ex) coordinate (y1);
+	\node [component, path fading=flow fade, align=center,
+	       rounded corners=0.5ex, minimum width=12ex,
+	       minimum height=5ex, above=0ex of y1,
+	       bottom color=component-blue] (comp-b2) { };
+	\node [below=0.5ex of comp-b2.north] { \scriptsize Client };
+	\node [above=0ex of comp-b2.south, opacity=0.8] {\tiny 192.168.2.3 };
+
+	% Home network
+	\node [draw=black, densely dotted, minimum width=18ex, minimum height=25ex,
+	       rounded corners=1ex, bottom color=gray!50!white,
+	       top color=gray!10!white, below=3ex of virtnet-b] (home) { };
+	\node [above=0ex of home.south, text=white] { Home Network };
+	\node [below=-0.5ex of home.south, text=black!60!white]
+	      { \tiny 10.0.2.0/24 };
+
+	% NIC driver and NIC
+	\node [component, path fading=flow fade, align=center,
+	       rounded corners=0.5ex, minimum width=12ex,
+	       minimum height=5.5ex, below=4.5ex of home.north,
+	       bottom color=component-blue] (nic-driver) { };
+	\node [below=0.5ex of nic-driver.north] {NIC driver};
+	\node [draw=black!80, fill=white, above=0ex of nic-driver.south,
+	       minimum width=9ex, opacity=0.8, inner sep=0.4ex]
+	      (nic) {\tiny NIC};
+
+	% Router and internet
+	\path (home.south west) + (0ex, 6ex) coordinate (router-center);
+	\path (router-center) + (-5ex, 0ex) coordinate (internet-east);
+	\path [draw=black, thick, densely dotted] (router-center) --
+	      (internet-east);
+	\node [above=4ex of home.south west] (router)
+	      {\includegraphics[scale=0.04]{router.png}};
+	\node [below=-1.3ex of router.south, opacity=0.8] (x) {\tiny 10.0.2.1 };
+	\node [draw, dropshadow, fill=white, cloud, cloud puffs=9,
+	       minimum width=12ex, minimum height=8ex, left=0ex
+	       of internet-east] (internet) { };
+	\node [below=2.5ex of internet.north] {\it\sffamily Internet};
+
+	% Laptop
+	\node [right=6ex of x, opacity=0.8] (y) {\tiny 10.0.2.3 };
+	\node [above=-1.6ex of y] (laptop)
+	      {\includegraphics[scale=0.04]{laptop.png}};
+
+	% NIC router
+	\path (virtnet-a.south west)+(2ex, -1.5ex) coordinate (nic-router-west);
+	\node [component, path fading=flow fade, align=center,
+	       rounded corners=0.5ex, minimum width=34ex, minimum height=8ex,
+	       right=0ex of nic-router-west, bottom color=component-yellow]
+	      (nic-router) { };
+	\node [above right=0.5ex of nic-router.south west] {NIC router};
+	\node [above=0.4ex of virtnet-a.south, opacity=0.8] {\tiny 192.168.1.1 };
+	\node [above=0.4ex of virtnet-b.south, opacity=0.8] {\tiny 192.168.2.1 };
+	\node [below=0.4ex of home.north,      opacity=0.8] {\tiny 10.0.2.55 };
+
+	% Genode machine border
+	\path (virtnet-a.south west) + (-1ex, -15.5ex) coordinate (line-west);
+	\path (virtnet-b.south east) + ( 1ex, -15.5ex) coordinate (line-east);
+	\path [densely dashed, draw=black, opacity=0.7] (line-west) -- (line-east);
+	\node [above right=0ex of line-west, opacity=0.5] { \scriptsize Genode machine };
+
+	% Net traffic
+	\path (nic.south) + (1ex, 0ex) coordinate (z1);
+	\path (nic.south) + (-2ex, 0ex) coordinate (z2);
+	\node [below left=0ex of z2] { \it \tiny \sffamily TCP 172.0.1.1:443 };
+	\node [below right=0ex of z1] { \it \tiny \sffamily UDP 10.0.2.3:69 };
+	\path (laptop.north)+(-2.1ex,-0.4ex) coordinate (x1);
+	\path (laptop.north)+(-0.5ex,-0.4ex) coordinate (x2);
+	\path [nettraffic1, <-] (laptop.north)+(-1ex,-1.6ex) .. controls +(0ex,3.5ex) and +(0ex,-3.5ex) ..
+	                        (z1);
+	\path [nettraffic1, <-] (internet-east)+(0ex,-2ex) .. controls +(5ex,-4ex) and +(-2ex,-14ex) ..
+	                        (z2);
+	\path (comp-b2.south)+(0ex, 0ex) coordinate (q1);
+	\path [nettraffic1] (nic-driver.north)+(-1.5ex, 0ex) .. controls +(1ex,7ex) and +(-0.5ex,-7ex) ..
+	                    (q1);
+	\path (comp-b2.south)+(1ex, 0ex) coordinate (q2);
+	\path [nettraffic1] (nic-driver.north)+(1ex, 0ex) .. controls +(0ex,7ex) and +(0ex,-7ex) ..
+	                    (q2);
+	\path (comp-b2.south)+(-1ex, 0ex) coordinate (q2);
+	\path (q2)+(-4ex, -8ex) coordinate (a1);
+	\path [nettraffic1] (a1) .. controls +(2ex,5ex) and +(-0.5ex,-5ex) ..
+	                    (q2);
+	\node [left=0.5ex of a1] { \it \tiny \sffamily TCP 172.0.1.1:80 };
+
+	% Red cross through bad net traffic attempt
+	\path (a1)+(-1ex,0.5ex)  coordinate (cross1);
+	\path (a1)+(1ex,-0.5ex)  coordinate (cross2);
+	\path (a1)+(1ex,0.5ex)   coordinate (cross3);
+	\path (a1)+(-1ex,-0.5ex) coordinate (cross4);
+	\path [very thick, draw=red] (cross1) -- (cross2);
+	\path [very thick, draw=red] (cross3) -- (cross4);
+
+\end{tikzpicture}
