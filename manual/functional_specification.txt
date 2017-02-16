@@ -212,7 +212,7 @@ by 'Env::parent()'.
 Entrypoint
 ==========
 
-An entrypoint is a thread that is able respond to RPC requests and signals.
+An entrypoint is a thread that is able to respond to RPC requests and signals.
 Each component has at least one initial entrypoint that is created as
 part of the component's environment. It can be accessed via the 'Env::ep()'
 method.
@@ -1542,7 +1542,7 @@ The implementation of the RPC interface inherits the 'Rpc_object' class
 template with the interface type as argument and implements the abstract
 RPC interface class.
 
-;The server-side RPC dispatching is performed by the compile-time-generated
+The server-side RPC dispatching is performed by the compile-time-generated
 'dispatch' method of the 'Rpc_object' class template, according to the type
 information found in the annotations of the 'Session' interface.
 
@@ -1746,7 +1746,7 @@ to create and destroy sessions.
 [raw spec/classes/genode/root/description]
 
 ; Genode::Typed_root<>
-[raw spec/classes/genode/root/description]
+[raw spec/classes/genode/typed_root/description]
 
 ; XXX Genode::Root_client
 
