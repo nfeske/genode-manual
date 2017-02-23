@@ -1,0 +1,109 @@
+\begin{tikzpicture}
+
+	% colors
+	\definecolor {funnelColorA} {rgb} {0.9,0.7,0.6}
+	\definecolor {funnelColorB} {rgb} {0.7,0.8,0.65}
+	\definecolor {appColor}     {rgb} {0.8,0.9,1.0}
+
+	% styles
+	\tikzstyle {appStyle} = [
+		dropshadow, draw=black!50, align=center, path fading=flow fade, thin,
+		top color=black!5, path fading=flow fade, rounded corners=0.5ex, bottom
+		color=appColor]
+
+	%
+	% generates a 3d funnel with label
+	%
+	% \env funnelOrigin  north western base coordinate
+	% \env funnelWidth   width scale
+	% \env funnelHeight  height scale
+	% \env funnelColorA  first filling color
+	% \env funnelColorB  second filling color
+	%
+	% \arg 1  node name
+	% \arg 2  label
+	%
+	\newcommand\funnel[2]
+	{
+		\path \funnelOrigin coordinate (funnelOrigin);
+		\path (funnelOrigin)+(\funnelWidth*3ex,0ex) coordinate (#1North);
+		\path (funnelOrigin)+(\funnelWidth*3ex,\funnelHeight*-3.3ex) coordinate (#1South);
+		\path (#1South)+(\funnelWidth*1ex,\funnelHeight*1ex) coordinate (labelOrigin);
+		\node [dropshadow, right=0ex of labelOrigin, right color=white, left color=black!10!white, rotate=-20, inner sep=0.3ex] { #2 };
+		\path [left color=\funnelColorB, dropshadow, right color=\funnelColorA, draw=black!50, thin]
+			(funnelOrigin)
+			.. controls ++(0ex,0.5ex) and ++(0ex,0.5ex) .. ++(\funnelWidth*6ex,0ex)
+			-- ++(\funnelWidth*-2ex,\funnelHeight*-2ex)
+			-- ++(0ex,\funnelHeight*-1ex)
+			.. controls ++(0ex,-0.5ex) and ++(0ex,-0.5ex) .. ++(\funnelWidth*-2ex,0ex)
+			-- ++(0ex,\funnelHeight*1ex)
+			-- cycle;
+		\path [fill=black, opacity=0.1]
+			(funnelOrigin)
+			.. controls ++(0ex,0.5ex) and ++(0ex,0.5ex) .. ++(\funnelWidth*6ex,0ex)
+			-- ++(\funnelWidth*-2ex,\funnelHeight*-2ex)
+			-- ++(0ex,\funnelHeight*-1ex)
+			.. controls ++(0ex,-0.5ex) and ++(0ex,-0.5ex) .. ++(\funnelWidth*-2ex,0ex)
+			-- ++(0ex,\funnelHeight*1ex)
+			-- cycle;
+		\path [left color=\funnelColorA, right color=\funnelColorB, draw=black!50, thin]
+			(funnelOrigin)
+			.. controls ++(0ex,-0.5ex) and ++(0ex,-0.5ex) .. ++(\funnelWidth*6ex,0ex)
+			-- ++(\funnelWidth*-2ex,\funnelHeight*-2ex)
+			-- ++(0ex,\funnelHeight*-1ex)
+			.. controls ++(0ex,-0.5ex) and ++(0ex,-0.5ex) .. ++(\funnelWidth*-2ex,0ex)
+			-- ++(0ex,\funnelHeight*1ex)
+			-- cycle;
+	}
+
+	% input filter
+	\node [appStyle, minimum height=30ex, minimum width=30ex] (app) { };
+	\node [below right=0ex of app.north west, opacity=0.8] { Input Filter };
+
+	% input filter funnels
+	\def\funnelWidth{1}
+	\def\funnelHeight{1}
+	\def\funnelColorA{white}
+	\def\funnelColorB{funnelColorA}
+	\def\funnelOrigin{(app.north)+(-1ex,1ex)}  \funnel{leftIn}{\tiny Input}
+	\def\funnelOrigin{(app.north)+(7ex,1ex)}   \funnel{rightIn}{\tiny Input}
+	\def\funnelOrigin{(app.south)+(-3ex,2ex)}  \funnel{out}{\tiny Output}
+	\def\funnelWidth{2}
+	\def\funnelHeight{1.7}
+	\def\funnelColorB{funnelColorB}
+	\def\funnelOrigin{(app.south)+(-6ex,10ex)} \funnel{merger}{\tiny Merger}
+	\def\funnelWidth{1.3}
+	\def\funnelHeight{1.3}
+	\def\funnelOrigin{(app.south)+(-0ex,16ex)} \funnel{chargen}{\tiny Char Generator}
+	\def\funnelWidth{1}
+	\def\funnelHeight{1}
+	\def\funnelOrigin{(app.south)+(-7ex,16ex)} \funnel{leftRemap}{\tiny Remap}
+	\def\funnelOrigin{(app.south)+(0ex,22ex)}  \funnel{rightRemap}{\tiny Remap}
+
+	% event paths through the funnels
+	\path [draw=black, opacity=0.5, semithick, densely dotted] (leftInSouth) .. controls ++(0ex,-6ex) and ++(0ex,10ex) .. (leftRemapNorth);
+	\path [draw=black, opacity=0.5, semithick, densely dotted] (rightInSouth) .. controls ++(0ex,-4ex) and ++(0ex,4ex) .. (rightRemapNorth);
+	\path [draw=black, opacity=0.5, semithick, densely dotted] (leftRemapSouth) -- (leftRemapSouth |- mergerNorth);
+	\path [draw=black, opacity=0.5, semithick, densely dotted] (rightRemapSouth) -- (rightRemapSouth |- chargenNorth);
+	\path [draw=black, opacity=0.5, semithick, densely dotted] (chargenSouth) -- (chargenSouth |- mergerNorth);
+	\path [draw=black, opacity=0.5, semithick, densely dotted] (mergerSouth) -- (mergerSouth |- outNorth);
+
+	% ps2 driver
+	\path (app.north east)+(2ex,0ex) coordinate (xxx);
+	\node [appStyle, below right=0ex of xxx, minimum height=5ex, minimum width=6ex] (appx) { };
+	\node [below=0.3ex of appx.north, opacity=0.8] { \scriptsize PS2 };
+	\path [arrow] (appx.north) .. controls ++(0ex,4ex) and ++(0ex,3ex) .. (rightInNorth);
+
+	% usb hid driver
+	\path (app.north east)+(10ex,0ex) coordinate (xxx);
+	\node [appStyle, below right=0ex of xxx, minimum height=5ex, minimum width=6ex] (appx) { };
+	\node [below=0.3ex of appx.north, opacity=0.8] { \begin{varwidth}{5ex} \scriptsize USB \\ HID \end{varwidth}};
+	\path [arrow] (appx.north) .. controls ++(0ex,5ex) and ++(0ex,4ex) .. (leftInNorth);
+
+	% nitpicker
+	\path (app.south west)+(-2ex,0ex) coordinate (xxx);
+	\node [appStyle, above left=0ex of xxx, minimum height=5ex, minimum width=8ex] (appx) { };
+	\node [below=0.3ex of appx.north, opacity=0.8] { \scriptsize GUI server};
+	\path [arrow] (outSouth) .. controls ++(0ex,-3ex) and ++(0ex,-4ex) .. (appx.south);
+
+\end{tikzpicture}
