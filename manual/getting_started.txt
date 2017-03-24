@@ -522,6 +522,10 @@ _<genode-dir>/repos/lab/run/hello.run_ with the following content:
 ! <config>
 !   <parent-provides>
 !     <service name="LOG"/>
+!     <service name="PD"/>
+!     <service name="CPU"/>
+!     <service name="ROM"/>
+!     <service name="RAM"/>
 !   </parent-provides>
 !   <default-route>
 !     <any-service> <parent/> </any-service>
