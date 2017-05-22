@@ -2,48 +2,48 @@
 
 	\labeledcompoundnode{client}{component}{Client}{
 		
-		\node[capability] (clientramcap) {};
+		\node[capability] (clientpdcap) {};
 	}
 
 	\labeledcompoundnode{child}{component, below of=client, xshift=-10ex}{Child}{
 		
-		\node[capability] (childramcap) {};
-		\node[capability, right of=childramcap] (childclientramcap) {};
+		\node[capability] (childpdcap) {};
+		\node[capability, right of=childpdcap] (childclientpdcap) {};
 	}
 
 	\labeledcompoundnode{server}{component, left of=child, xshift=-18ex}{Server}{
 		
-		\node[capability] (serverramcap) {};
-		\node[capability, right of=serverramcap] (serverclientramcap) {};
+		\node[capability] (serverpdcap) {};
+		\node[capability, right of=serverpdcap] (serverclientpdcap) {};
 	}
 
 	\labeledcompoundnode{init}{component, node distance=10ex, below of=child, xshift=-15ex}{Init}{
 		
-%		\node[capability] (initramcap) {2};
-%		\downwardthreadnode{initthread}{inner sep=0, node distance=0ex, left=4ex of initramcap}
-%		\node[capability, right of=initramcap] (initchildramcap) {3};
+%		\node[capability] (initpdcap) {2};
+%		\downwardthreadnode{initthread}{inner sep=0, node distance=0ex, left=4ex of initpdcap}
+%		\node[capability, right of=initpdcap] (initchildpdcap) {3};
 	}
 
 	\labeledcompoundnode{core}{component, node distance=10ex, below of=init}{Core}{
 
-		\rpcobjectrnode{ramserver}{}{}{RAM session}
+		\rpcobjectrnode{pdserver}{}{}{PD session}
 
-		\rpcobjectrnode{ramchild}{node distance=25ex, right of=ramserver}{}{RAM session}
+		\rpcobjectrnode{pdchild}{node distance=25ex, right of=pdserver}{}{PD session}
 
-		\rpcobjectrnode{ramclient}{node distance=25ex, right of=ramchild}{}{RAM session}
+		\rpcobjectrnode{pdclient}{node distance=25ex, right of=pdchild}{}{PD session}
 	}
 
 	% capability associations
-	\path [draw, dashed] (ramservercap) -- (serverramcap);
-	\path [draw, dashed] (ramchildcap) -- (childramcap);
-	\path [draw, dashed] (ramclientcap) -- (childclientramcap);
-	\path [draw, dashed] (childclientramcap) -- (clientramcap);
-	\path [draw, dashed] (clientramcap) -- (serverclientramcap);
+	\path [draw, dashed] (pdservercap) -- (serverpdcap);
+	\path [draw, dashed] (pdchildcap) -- (childpdcap);
+	\path [draw, dashed] (pdclientcap) -- (childclientpdcap);
+	\path [draw, dashed] (childclientpdcap) -- (clientpdcap);
+	\path [draw, dashed] (clientpdcap) -- (serverclientpdcap);
 
-	% delegation of the client's RAM session to the server
-	\delegationpath (clientramcap)
+	% delegation of the client's PD session to the server
+	\delegationpath (clientpdcap)
 	      .. controls +(-1,0) and +(0,1) ..
-	      node[sloped, above] {delegate} (serverclientramcap);
+	      node[sloped, above] {delegate} (serverclientpdcap);
 
 	\newcommand\transferpath{
 		\path [color=green!50!black!70, text=black,
@@ -51,8 +51,8 @@
 		                   mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
 		       postaction={decorate}]}
 
-	\transferpath (ramchildobj) .. controls +(0,1) and +(0,1) .. (ramclientobj);
-	\transferpath (ramclientobj) .. controls +(0,-1) and +(0,-1) .. (ramserverobj);
+	\transferpath (pdchildobj) .. controls +(0,1) and +(0,1) .. (pdclientobj);
+	\transferpath (pdclientobj) .. controls +(0,-1) and +(0,-1) .. (pdserverobj);
 
 
 \end{tikzpicture}

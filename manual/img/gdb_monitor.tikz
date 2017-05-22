@@ -16,8 +16,8 @@
 	\node[treenode, bottom color=corecolor, minimum width=30ex, minimum height=6ex] (core) {};
 	\path (core.east) node[left=1ex] {Core};
 
-	\path (core.west)    node[right=1ex, subsystem] (coreram) {RAM};
-	\path (coreram.east) node[right=1ex, subsystem] (corepd)  {PD};
+	\path (core.west)    node[right=1ex, subsystem] (corerom) {ROM};
+	\path (corerom.east) node[right=1ex, subsystem] (corepd)  {PD};
 	\path (corepd.east)  node[right=1ex, subsystem] (corecpu) {CPU};
 
 	%
@@ -27,8 +27,8 @@
 	      minimum height=6ex, above=6ex of core] (gdbmon) {};
 	\path (gdbmon.east) node[left=1ex, align=right] {GDB\\Monitor};
 
-	\path (gdbmon.west)    node[right=1ex, subsystem] (gdbmonram) {RAM};
-	\path (gdbmonram.east) node[right=1ex, subsystem] (gdbmonpd)  {PD};
+	\path (gdbmon.west)    node[right=1ex, subsystem] (gdbmonrom) {ROM};
+	\path (gdbmonrom.east) node[right=1ex, subsystem] (gdbmonpd)  {PD};
 	\path (gdbmonpd.east)  node[right=1ex, subsystem] (gdbmoncpu) {CPU};
 
 	%
@@ -37,16 +37,16 @@
 	\node[treenode, minimum width=30ex, minimum height=6ex, above=4ex of gdbmon] (target) {};
 	\path (target.center) node[align=center] {Component\\as Debugging Target};
 
-	\coordinate (componentram) at (coreram |- target.south);
+	\coordinate (componentrom) at (corerom |- target.south);
 	\coordinate (componentpd)  at (corepd  |- target.south);
 	\coordinate (componentcpu) at (corecpu |- target.south);
 
-	\path (coreram) -- coordinate (midram) (componentram);
+	\path (corerom) -- coordinate (midrom) (componentrom);
 	\path (corepd)  -- coordinate (midpd)  (componentpd);
 	\path (corecpu) -- coordinate (midcpu) (componentcpu);
 
-	\draw[arrow] (componentram) -- (gdbmonram);
-	\draw[arrow, densely dashed] (gdbmonram) -- (coreram);
+	\draw[arrow] (componentrom) -- (gdbmonrom);
+	\draw[arrow, densely dashed] (gdbmonrom) -- (corerom);
 
 	\draw[arrow] (componentpd) -- (gdbmonpd);
 	\draw[arrow, densely dashed] (gdbmonpd) -- (corepd);

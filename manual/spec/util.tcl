@@ -53,7 +53,18 @@ proc get_cmd_arg { arg_name default_value } {
 #
 # XXX evaluate command-line argument
 #
-proc code_url { } { return "https://github.com/genodelabs/genode/blob/16.05/" }
+proc code_url { } { return "https://github.com/genodelabs/genode/blob/17.05/" }
+
+
+##
+# Turn the first letter of a given string to upper case
+#
+# In contrast to Tcl's built-in 'string totitle' function, this function
+# leaves the remaining characters untouched.
+#
+proc to_title {str} {
+	return [string replace $str 0 0 [string toupper [string index $str 0]]]
+}
 
 
 ##
@@ -732,7 +743,7 @@ proc function_argument_description { function_token arg_name } {
 	foreach part [function_comment $function_token] {
 		if {[regexp {^\\param\s+([^ ]+)\s+(.*)$} $part dummy name desc]} {
 			if {$name == $arg_name} {
-				return [string totitle $desc]
+				return [to_title $desc]
 			}
 		}
 	}
@@ -852,7 +863,7 @@ proc function_return_description { func_token } {
 	# look for \return annotation in the multi-line comment
 	foreach part [function_comment $func_token] {
 		if {[regexp {^\\return\s+(.*)$} $part dummy desc]} {
-			set ret_desc [string totitle $desc] } }
+			set ret_desc [to_title $desc] } }
 
 	#
 	# If not \return annotation was found, look if the brief description
@@ -865,7 +876,7 @@ proc function_return_description { func_token } {
 			set first_mlcomment_part [concat [lindex $mlcomment_parts 0]]
 
 			if {[regexp {^Returns?\s+(.*)} $first_mlcomment_part dummy brief]} {
-				set ret_desc [string totitle $brief]
+				set ret_desc [to_title $brief]
 			}
 		}
 	}

@@ -627,9 +627,9 @@ Resource trading
 As introduced in Section [Component ownership], child components are created
 out of the resources of their respective parent components. This section
 describes the underlying mechanism. It first introduces the concept of
-RAM sessions in Section [Resource assignment].
+PD sessions as resource accounts in Section [Resource assignment].
 Section [Trading memory between clients and servers]
-explains how RAM sessions are used to trade resources between components.
+explains how PD sessions are used to trade resources between components.
 The resource-trading mechanism ultimately allows servers to become resilient
 against client-driven resource-exhaustion attacks. However, such servers need
 to take special precautions that are explained in Section
@@ -703,28 +703,25 @@ disk driver. For each application, whether or not it ever touches the disk,
 the in-kernel disk driver is part of its trusted computing base.
 
 
-RAM sessions and balances
--------------------------
+PD sessions and balances
+------------------------
 
 Genode does not abstract from physical resources. Instead, it solely
 arbitrates the access to such resources and provides means to delegate the
 authority over resources between components.
-Each low-level physical resource is represented as a dedicated service
+Low-level physical resources are represented as services
 provided by the core component at the root of the component tree.
 The core component is described in detail in Section
 [Core - the root of the component tree].
 The following description focuses on memory as the most prominent low-level
-resource managed by the operating system. Conceptually, the approach could
-be applied to other physical resources such as processing time, network
-bandwidth, disk space, or even power. However, at the time of writing,
-Genode employs the mechanism for memory only. Processing time is subject
+resource managed by the operating system. Processing time is subject
 to the kernel's scheduling policy whereas the management of the higher-level
 resources such as disk space is left to the respective servers that provide
 those resources.
 
-Physical memory is represented by the RAM service of core. The best way to
-describe the idea is to draw an analogy between the RAM service and a bank.
-Each RAM session corresponds to a bank account. Initially, when opening
+Physical memory is handed out and accounted by the PD service of core. The best
+way to describe the idea is to draw an analogy between the PD service and a bank.
+Each PD session corresponds to a bank account. Initially, when opening
 a new account, there is no balance. However, by having the authority over
 an existing bank account with a balance, one can transfer funds from the
 existing account to the new account.
@@ -738,8 +735,8 @@ goods while withdrawing the costs from the account.
 Such a withdrawal will naturally decrease the balance on the account. If the
 account is depleted, the bank denies the purchase attempt.
 Analogously to purchasing physical goods by withdrawing balances from a bank
-account, physical memory can be allocated from a RAM session. The balance
-of the RAM session is the RAM session's quota.
+account, physical memory can be allocated from a PD session. The balance
+of the PD session is the PD session's quota.
 A piece of allocated physical memory is represented by a so-called dataspace
 (see Section [Dataspaces] for more details). A RAM dataspace is a container
 of physical memory that can be used for storing data.
@@ -749,35 +746,35 @@ Subdivision of budgets
 ----------------------
 
 Similar to a person with a bank account, each component of a Genode system
-has a session at core's RAM service.
-At boot time, the core component creates an initial RAM session with the balance
-set to the amount of available physical memory. This RAM session is designated
+has a session at core's PD service.
+At boot time, the core component creates an initial PD session with the balance
+set to the amount of available physical memory. This PD session is designated
 for the init component, which is the first and only child of core.
-On request by init, core delegates the capability for this initial RAM session
+On request by init, core delegates the capability for this initial PD session
 to the init component.
 
 [tikz img/memory_assignment]
   Init assigns a portion of its memory to a child.
-  In addition to its own RAM session (2), init has created a second RAM
+  In addition to its own PD session (2), init has created a second PD
   session (3) designated for its child.
 
 For each child component spawned by the init component, init creates a new
-RAM session at core. Figure [img/memory_assignment] exemplifies this
+PD session at core. Figure [img/memory_assignment] exemplifies this
 step for one child. As the result from the session creation, it obtains the
-capability for the new RAM session. Because it has the authority over both
-its own and the child's designated RAM session, it can transfer a certain
+capability for the new PD session. Because it has the authority over both
+its own and the child's designated PD session, it can transfer a certain
 amount of RAM quota from its own account to the child's account by invoking
-its own RAM-session capability and specifying the beneficiary's RAM-session
+its own PD-session capability and specifying the beneficiary's PD-session
 capability as argument. Core responds to the request by atomically adjusting
-the quotas of both RAM sessions by the specified amount.
+the quotas of both PD sessions by the specified amount.
 In the case of init, the amount depends on init's
 configuration. Thereby, init explicitly splits its
 own RAM budget among its child components. Each child created by init can
-obtain the capability for its own RAM session from init via the parent
+obtain the capability for its own PD session from init via the parent
 interface and thereby gains the authority over the memory budget that was
 assigned to it.
-Note however, that no child has the authority over init's RAM session nor
-the RAM sessions of any siblings. The mechanism for distributing a given
+Note however, that no child has the authority over init's PD session nor
+the PD sessions of any siblings. The mechanism for distributing a given
 budget among multiple children works recursively. The children of init
 can follow the same procedure to further subdivide their budgets for
 spawning grandchildren.
@@ -800,30 +797,30 @@ steal memory from the child. The client was created by the child and
 received a portion of the child's memory budget. The client requested
 a session for a service that was eventually routed to the server.
 The client-server relationship allows the client to delegate capabilities
-to the server. Therefore, it is able to delegate its own RAM session
+to the server. Therefore, it is able to delegate its own PD session
 capability to the server.
-The server, now in possession of the client's and its own RAM session
-capabilities, can transfer memory from the client's to its own RAM session.
+The server, now in possession of the client's and its own PD session
+capabilities, can transfer memory from the client's to its own PD session.
 After this transaction,
 the child has no way to regain its memory resources because it has no
-authority over the server's RAM session.
+authority over the server's PD session.
 
-To prevent such resource-stealing scenarios, Genode restricts the
-transfer between arbitrary RAM sessions. Each RAM session must have a
-reference RAM session, which can be defined only once. Transfers are
-permitted only between a RAM session and its reference RAM session.
-When creating the RAM session of a child component, the parent registers
-its own RAM session as the child's reference RAM session. This way, the
+To prevent such resource-stealing scenarios, Genode restricts the quota
+transfer between arbitrary PD sessions. Each PD session must have a
+reference PD session, which can be defined only once. Transfers are
+permitted only between a PD session and its reference PD session.
+When creating the PD session of a child component, the parent registers
+its own PD session as the child's reference PD session. This way, the
 parent becomes able to transfer budgets between its own and
-the child's RAM session.
+the child's PD session.
 
 
-RAM session destruction
------------------------
+PD session destruction
+----------------------
 
-When a RAM session is closed, core destroys all dataspaces that were
-allocated from the RAM session and transfers the RAM session's final budget
-to the corresponding reference RAM session.
+When a PD session is closed, core destroys all dataspaces that were
+allocated from the PD session and transfers the PD session's final budget
+to the corresponding reference PD session.
 
 
 Trading memory between clients and servers
@@ -855,9 +852,9 @@ Session quotas
 
 As described in the previous section, at the creation time of a child, the
 parent assigns a part of its own memory quota to the new child. Since the
-parent retains the RAM-session capabilities of all its children, it can issue
-further quota transfers back and forth between the children's RAM sessions
-and its own RAM session, which represents the reference account for all children.
+parent retains the PD-session capabilities of all its children, it can issue
+further quota transfers back and forth between the children's PD sessions
+and its own PD session, which represents the reference account for all children.
 When a child requests a session at the parent interface, it can attach a
 fraction of its quota to the new session by specifying an amount of memory to
 be donated to the server as a session argument. This amount is called
@@ -872,21 +869,21 @@ cases depending on its session-routing decision as described in Section
 :Parent provides the service:
   If the parent provides the requested service by itself, it first checks
   whether the session quota meets its need for providing the service. If so,
-  it transfers the session quota from the requesting child's RAM session to
-  its own RAM session. This step may fail if the child offered a session quota
-  larger than the available quota in the child's RAM session.
+  it transfers the session quota from the requesting child's PD session to
+  its own PD session. This step may fail if the child offered a session quota
+  larger than the available quota in the child's PD session.
 
 :Server is another child:
   If the parent decides to route the session request to another child, it
-  transfers the session quota from the client's RAM session to the server's
-  RAM session. Because the RAM sessions are not related to each other as
-  both have the parent's RAM session as reference account, this transfer
+  transfers the session quota from the client's PD session to the server's
+  PD session. Because the PD sessions are not related to each other as
+  both have the parent's PD session as reference account, this transfer
   from the client to the server consists of two steps. First, the parent
-  transfers the session quota to its own RAM session. If this step succeeded,
-  it transfers the session quota from its own RAM session to the server's RAM
+  transfers the session quota to its own PD session. If this step succeeded,
+  it transfers the session quota from its own PD session to the server's PD
   session. The parent keeps track of the session quota for each session so
   that the quota transfers can be reverted later when closing the session. Not
-  before the transfer of the session quota to the server's RAM session
+  before the transfer of the session quota to the server's PD session
   succeeded, the parent issues the actual session request at the server's root
   interface along with the information about the transferred session quota.
 
@@ -896,7 +893,7 @@ cases depending on its session-routing decision as described in Section
   grandparent neither knows nor cares about the actual origin of the request
   and will simply decrease the memory quota of the parent. For this reason,
   the parent transfers the session quota from the requesting child to its own
-  RAM session before issuing the session request at the grandparent.
+  PD session before issuing the session request at the grandparent.
 
 Quota transfers may fail if there is not enough budget on the originating
 account. In this case, the parent aborts the session creation and reflects
@@ -938,9 +935,9 @@ allocated from the session quota. The release of resources should revert
 all allocations the server has performed on behalf its client. Stressing the
 analogy with the bank account, the server has to sell the physical goods
 (i.e., RAM dataspaces) it purchased from the client's session quota to restore
-the balance on its RAM session.
+the balance on its PD session.
 After the server has reverted all session-specific allocations, the server's
-RAM session is expected to have at least as much available budget as the
+PD session is expected to have at least as much available budget as the
 session quota of the to-be-closed session. As a result, the session quota can
 be transferred back to the client.
 
@@ -949,7 +946,7 @@ or because of a bug. For example, the server may be unable to free a dataspace
 because it mistakenly used the dataspace for another client's data.
 Another example would be a memory leak in the server.
 Such misbehavior is detected on the attempt to withdraw the session
-quota from the server's RAM session. If the server's available RAM quota after
+quota from the server's PD session. If the server's available RAM quota after
 closing a session remains lower than the session quota, the server apparently
 peculated memory.
 If the misbehaving server was locally provided by the
@@ -957,7 +954,7 @@ parent, it has the full authority to not hand back the session quota to its
 child. If the misbehaving service was provided by the grandparent, the parent
 (and its whole subsystem) has to subordinate. If, however, the server was
 provided by another child and the child refuses to release resources, the
-parent's attempt to withdraw the session quota from the server's RAM session
+parent's attempt to withdraw the session quota from the server's PD session
 will fail.
 It is up to the policy of the parent to handle such a failure either by
 punishing the server (e.g., killing the component) or by granting more of its
@@ -993,7 +990,7 @@ Figure [img/anonymous_heap] shows a scenario where a server performs
 anonymous memory allocations on behalf of two session. The memory is allocated
 from the server's heap. Whereas allocations from the heap are of byte
 granularity, the heap's backing store consists of several dataspaces. Those
-dataspaces are allocated from the server's RAM session as needed but at a much
+dataspaces are allocated from the server's PD session as needed but at a much
 larger granularity. As depicted in the figure, allocations from both sessions
 end up in the same dataspaces. This becomes a problem once one session is
 closed. As described in the previous section, the server's parent expects the
@@ -1057,13 +1054,13 @@ under the low resource conditions or it may block and wait for a
 resource-available signal from its parent.
 The parent may respond to this request in different ways. It
 may just ignore the request, possibly stalling the child. Alternatively,
-it may immediately transfer additional quota to the child's RAM session.
+it may immediately transfer additional quota to the child's PD session.
 Or it may take further actions to free up resources to accommodate the child.
 Those actions may involve long-taking operations such as the destruction
 of subsystems or the further propagation of resource request towards the
 root of the component tree.
 Once the parent has freed up enough resources to accommodate the child's
-request, it transfers the new resources to the child's RAM session and
+request, it transfers the new resources to the child's PD session and
 notifies the child by sending a resource-available signal.
 
 
@@ -1081,7 +1078,7 @@ example, an in-memory block cache could write back the cached information and
 release the memory consumed by the cache. Once the child has succeeded in
 freeing up resources, it reports to the parent by issuing a so-called yield
 response via a remote procedure call to the parent. The parent may respond to
-a yield response by withdrawing resources from the child's RAM session.
+a yield response by withdrawing resources from the child's PD session.
 
 ; XXX
 ;
@@ -1097,9 +1094,9 @@ kernel. It thereby represents the root of the component tree.
 It has access to the raw physical resources such as memory, CPUs,
 memory-mapped devices, interrupts, I/O ports, and boot modules.
 Core exposes those low-level resources as services so that they
-can be used by other components. For each type of resource, there exists
-a service in core. For example, memory resources are represented by the
-RAM service, interrupts are represented by the IRQ service, and CPUs are
+can be used by other components. For example, physical memory is made
+available as so-called RAM dataspaces allocated from core's PD service,
+interrupts are represented by the IRQ service, and CPUs are
 represented by the CPU service. In order to access a resource, a component
 has to establish a session to the corresponding service. Thereby the
 access to physical resources is subjected to the routing of session requests
@@ -1114,7 +1111,7 @@ These prerequisites comprise services for creating protection domains,
 for managing address-space layouts, and for creating object identities.
 
 Core is almost free from policy. There are no configuration options.
-The only policy of core is the startup of the init process, to which core
+The only policy of core is the startup of the init component, to which core
 grants all available resources. Init, in turn, uses those resources to
 spawn further components according to its configuration.
 
@@ -1124,7 +1121,7 @@ services described in the subsequent sections.
 The section is followed by the introduction of each individual service
 provided by core. In the following, a component that has established a
 session to such a service is called _client_. For example, a component that
-obtained a session to core's RAM service is a RAM client.
+obtained a session to core's CPU service is a CPU client.
 
 
 Dataspaces
@@ -1200,46 +1197,6 @@ case, each attach operation populates a distinct region of the virtual
 address space.
 
 
-Physical memory allocation (RAM)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-A RAM session[1] is a quota-bounded allocator of physical memory.
-At session-creation time, its quota is zero.
-To make the RAM session functional, it must first receive quota from
-another already existing RAM session, which is called the _reference account_.
-Once the reference account is defined, quota can be transferred back and
-forth between the reference account and the new RAM session.
-
-[1] Interface specification in Section [RAM session interface]
-
-Provided that the RAM session is equipped with sufficient quota, the RAM
-client can allocate RAM dataspaces from the RAM session. The size of
-each RAM dataspace is defined by the client at the time of allocation.
-The location of the dataspace in physical memory is defined by core.
-
-Each RAM dataspace is physically
-contiguous and can thereby be used as DMA buffer by a user-level device
-driver. In order to set up DMA transactions, such a device driver can request
-the physical address of a RAM dataspace by invoking the dataspace capability.
-
-Closing a RAM session destroys all dataspaces allocated from
-the RAM session and restores the original quota. This implies that these
-dataspaces disappear in all components. The quota of a closed RAM session
-is transferred to the reference account.
-
-The book keeping of quotas and the creation of dataspace RPC objects consumes
-memory within core. Core's RAM service allocates such memory from the session
-quota supplied by its clients. Note that this session quota is unrelated
-to the quota managed by the RAM session. For this reason, an allocation may
-fail for two different reasons. The account represented by the RAM session
-may be depleted. So the allocation cannot be performed unless additional quota
-is transferred to the account. But also, the RAM session's session quota may
-be depleted so that core is not able to create a new dataspace RPC object for
-the allocated memory. The latter condition can be resolved by upgrading the
-existing RAM session as detailed in
-Section [Trading memory between clients and servers].
-
-
 Access to boot modules (ROM)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1268,9 +1225,41 @@ Protection domains (PD)
 
 A protection domain (PD) corresponds to a unit of protection within the Genode
 system. Typically, there is a one-to-one relationship between a component and
-a PD session[1]. Each PD consists of a virtual memory address space and
+a PD session[1]. Each PD consists of a virtual memory address space,
 a capability space
-(Section [Capability spaces, object identities, and RPC objects]).
+(Section [Capability spaces, object identities, and RPC objects]), and a
+budget of physical memory and capabilities.
+Core's PD service also plays the role of a broker for asynchronous notifications
+on kernels that lack the semantics of Genode's signalling API.
+
+[1] Interface specification in Section [PD session interface]
+
+Physical memory and capability allocation
+-----------------------------------------
+
+Each PD session contains quota-bounded allocators for physical memory and
+capabilities. At session-creation time, its quota is zero. To make an
+allocator functional, it must first receive quota from another already
+existing PD session, which is called the _reference account_. Once the
+reference account is defined, quota can be transferred back and forth between
+the reference account and the new PD session.
+
+Provided that the PD session is equipped with sufficient quota, the PD
+client can allocate RAM dataspaces from the PD session. The size of
+each RAM dataspace is defined by the client at the time of allocation.
+The location of the dataspace in physical memory is defined by core.
+Each RAM dataspace is physically
+contiguous and can thereby be used as DMA buffer by a user-level device
+driver. In order to set up DMA transactions, such a device driver can request
+the physical address of a RAM dataspace by invoking the dataspace capability.
+
+Closing a PD session destroys all dataspaces allocated from
+the PD session and restores the original quota. This implies that these
+dataspaces disappear in all components. The quota of a closed PD session
+is transferred to the reference account.
+
+Virtual memory and capability space
+-----------------------------------
 
 At the hardware-level, the CPU isolates different virtual memory address
 spaces via a memory-management unit. Each domain is represented by a different
@@ -1291,13 +1280,6 @@ components to create and manage kernel-protected capabilities.
 Initially, the PD's capability space is empty. However, the PD client can
 install a single capability - the parent capability - using the _assign-parent_
 operation at the creation time of the PD.
-
-[1] Interface specification in Section [PD session interface]
-
-Core's PD service also plays the role of a broker for asynchronous notifications
-on kernels that lack the semantics of Genode's signalling API. The service
-is not used directly by components at the framework's API level but is merely
-an implementation artifact.
 
 
 Region-map management (RM)
@@ -1440,8 +1422,8 @@ interface provides an operation to wait for the next interrupt.
 Only while the IRQ client is waiting for an interrupt, core unmasks the
 interrupt at the interrupt controller.
 Once the interrupt occurs, core wakes up the IRQ client and masks the
-interrupt at the interrupt controller until the driver has completed the IRQ
-handling and waits for the next interrupt.
+interrupt at the interrupt controller until the driver has acknowledged the
+completion of the IRQ handling and waits for the next interrupt.
 
 [1] Interface specification in Section [IRQ session interface]
 
@@ -1477,11 +1459,10 @@ Component creation
 ; XXX note that Linux plays a special role (here the Linux kernel loads
 ; the binary)
 
-Each Genode component is made out of four basic ingredients:
-:RAM: session for allocating the memory for the program's BSS segment and heap
+Each Genode component is made out of three basic ingredients:
+:PD: session representing the component's protection domain
 :ROM: session with the executable binary
 :CPU: session for creating the initial thread of the component
-:PD: session representing the component's protection domain
 
 ; Initial situation
 
@@ -1492,11 +1473,11 @@ It is the responsibility of the new component's parent to obtain those
 sessions. The initial situation of the parent is depicted in Figure
 [img/creation_initial].
 The parent's memory budget is represented by the
-parent's RAM (Section [Physical memory allocation (RAM)]) session.
+parent's PD (Section [Protection Domains (PD)]) session.
 The parent's virtual address space is represented by the region map contained
-in the parent's PD session (Section [Protection domains (PD)]).
-Both sessions were originally created at the parent's construction time.
-Along with the parent's CPU session, those sessions form
+in the parent's PD session.
+The parent's PD session was originally created at the parent's construction time.
+Along with the parent's CPU session, it forms
 the parent's so-called _environment_. The address space is populated
 with the parent's code (shown as red), the so-called
 stack area that hosts the stacks (shown as blue), and
@@ -1504,8 +1485,8 @@ presumably several RAM dataspaces for the heap, the DATA segment,
 and the BSS segment. Those are shown as yellow.
 
 
-Obtaining the child's ROM and RAM sessions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Obtaining the child's ROM and PD sessions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The first step for creating a child component is obtaining the component's
 executable binary, e.g., by creating a session to a ROM service such as the
@@ -1516,30 +1497,28 @@ attaching the dataspace to its PD's region map. After this step, the parent is
 able to inspect the ELF header to determine the memory requirements for the
 binary's DATA and BSS segments.
 
-The next step is the creation of the child's designated
-RAM session, which represents the memory budget the child will have at its disposal.
-The freshly created RAM session has no budget though. In order to make the
-RAM session usable, the parent has to transfer a portion of its own RAM quota
-to the child's RAM session. As explained in Section [Resource assignment],
-the parent registers its own RAM session as the reference account for the
-child's RAM session in order to become able to transfer quota back and forth
-between both RAM sessions. Figure [img/creation_rom_ram] shows the situation.
+The next step is the creation of the child's designated PD session, which
+holds the memory and capability budgets the child will have at its disposal.
+The freshly created PD session has no budget though. In order to make the PD
+session usable, the parent has to transfer a portion of its own RAM quota to
+the child's PD session. As explained in Section [Resource assignment], the
+parent registers its own PD session as the reference account for the child's
+PD session in order to become able to transfer quota back and forth
+between both PD sessions. Figure [img/creation_rom_pd] shows the situation.
 
-[tikz img/creation_rom_ram]
-  The parent creates the RAM session of the new child and obtains the
+[tikz img/creation_rom_pd]
+  The parent creates the PD session of the new child and obtains the
   child's executable
 
 
 Constructing the child's address space
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-With the child's RAM session equipped with memory, the parent can construct
+With the child's PD session equipped with a memory, the parent can construct
 the address space for the new child and populate it with memory allocated
-from the child's budget.
+from the child's budget (Figure [img/creation_pdsession]).
 The address-space layout is represented as a region map that is part of each
 PD session (Section [Protection domains (PD)]).
-Hence, as illustrated in Figure [img/creation_pdsession], the parent has to
-create an PD session designated for the child.
 The first page of the address space is excluded such that
 any attempt by the child to de-reference a null pointer will cause a
 fault instead of silently corrupting memory. After its creation time, the
@@ -1550,7 +1529,7 @@ in the ELF executable's header:
 
 [tikz img/creation_pdsession]
   The parent creates and populates the virtual address space of the child
-  using a new PD session (the parent's PD and RAM sessions are not depicted
+  using a new PD session (the parent's PD session is not depicted
   for brevity)
 
 :Read-only segments:
@@ -1574,18 +1553,18 @@ in the ELF executable's header:
   In contrast to read-only segments, read-writable segments cannot be shared
   between components. Hence, each read-writable segment must be backed with
   a distinct copy of the segment data. The parent allocates the backing store
-  for the copy from the child's RAM session and thereby accounts the memory
+  for the copy from the child's PD session and thereby accounts the memory
   consumption on behalf of the child to the child's budget. For each
   segment, the parent performs the following steps:
 
-  # Allocation of a RAM dataspace from the child's RAM session. The size of the
+  # Allocation of a RAM dataspace from the child's PD session. The size of the
     dataspace corresponds to the segment's memory size. The memory size
     may be higher than the size of the segment in the ELF binary (named
     file size). In particular, if the segment contains a DATA section
     followed by a BSS section, the file size corresponds to the size of the
     DATA section whereby the memory size corresponds to the sum of both
-    sections. Core's RAM service ensures that each freshly allocated RAM
-    dataspace is guaranteed to contain zeros. Core's RAM service returns
+    sections. Core's PD service ensures that each freshly allocated RAM
+    dataspace is guaranteed to contain zeros. Core's PD service returns
     a RAM dataspace capability as the result of the allocation operation.
 
   # Attachment of the RAM dataspace to the parent's virtual address space
@@ -1618,8 +1597,8 @@ Creating the initial thread
   Creation of the child's initial thread
 
 With the virtual address space of the child configured, it is time to
-create the component's initial thread. Analogously to the child's RAM and PD
-sessions, the parent creates a CPU session
+create the component's initial thread. Analogously to the child's PD
+session, the parent creates a CPU session
 (Section [Processing-time allocation (CPU)]) for the child.
 The parent may use session arguments to constrain the scheduling parameters
 (i.e., the priority) and the CPU affinity of the new child.
@@ -1657,11 +1636,11 @@ virtual address space any longer. After the initial loading of the ELF binary,
 the parent has detached those dataspaces from its own region map.
 
 The child starts its execution at the virtual address defined by the ELF
-entrypoint. For regular Genode components, it points to a short assembly
+entrypoint. It points to a short assembly
 routine that sets up the initial stack and calls the low-level C++ startup
 code. This code, in turn, initializes the C++ runtime (such as the exception
 handling) along with the component's local Genode environment. The environment
-is constructed by successively requesting the component's RAM, CPU, and PD
+is constructed by successively requesting the component's CPU and PD
 sessions from its parent. With the Genode environment in place, the startup
 code initializes the stack area, sets up the real stack for the initial
 thread within the stack area, and returns to the assembly startup
@@ -2123,7 +2102,7 @@ Shared memory
 
 [tikz img/shared_memory_seq]
   Establishing shared memory between client and server.
-  The server interacts with core's RAM service. Both client and server
+  The server interacts with core's PD service. Both client and server
   interact with the region maps of their respective PD sessions at core.
 
 By sharing memory between components, large amounts of information can be
@@ -2148,8 +2127,8 @@ mechanism.
 When establishing shared memory between components, the component's roles as
 client and server must be clearly defined.
 
-# The server interacts with core's RAM service to allocate a new RAM dataspace.
-  Because the server uses its own RAM session for that allocation, the
+# The server interacts with core's PD service to allocate a new RAM dataspace.
+  Because the server uses its own PD session for that allocation, the
   dataspace is paid for by the server. At first glance, this seems contradictory
   to the principle that clients should have to pay for using
   services as discussed in
@@ -2165,7 +2144,7 @@ client and server must be clearly defined.
   dataspace. Hence, the lifetime of the dataspace is controlled by the
   server.
 
-  Core's RAM service returns a dataspace capability as the result of the
+  Core's PD service returns a dataspace capability as the result of the
   allocation.
 
 # The server makes the content of the dataspace visible in its virtual
@@ -2202,13 +2181,13 @@ client and server must be clearly defined.
 In contrast to the server, the client is not in control over the lifetime of
 the dataspace.
 In principle, the server, as the owner of the dataspace, could free the
-dataspace at its RAM session at any time and thereby revoke the corresponding
+dataspace at its PD session at any time and thereby revoke the corresponding
 memory mappings in all components that attached the dataspace.
 The client has to trust the server with respect to its liveliness, which
 is consistent with the discussion in Section [Client-server relationship].
 A well-behaving server should tie the lifetime of a shared-memory dataspace
 to the lifetime of the client session. When the server frees the dataspace
-at its RAM session, core implicitly detaches the dataspace from all
+at its PD session, core implicitly detaches the dataspace from all
 region maps. Thereby the dataspace will become inaccessible to the client.
 
 

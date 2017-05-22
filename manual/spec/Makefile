@@ -19,7 +19,7 @@ VERBOSE ?= @
 #
 
 GENODE_GIT_URL := https://github.com/genodelabs/genode.git
-GENODE_GIT_REV := 16.05
+GENODE_GIT_REV := ca2243c03da732a999db149593281a7a732bb335
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
@@ -208,6 +208,8 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
 
 FILE_OVERVIEWS := $(addsuffix .overview.tex,$(FILE_OVERVIEW_HEADERS))
 
+$(FILE_OVERVIEWS) : $(FILE_OVERVIEW_HEADERS)
+
 file_overviews: $(FILE_OVERVIEWS)
 
 %.h.overview.tex: %.h.tokens
@@ -224,4 +226,10 @@ clean:
 	rm -rf repos
 	rm -f class_index.mk
 
+ALL_CLASS_NAMES = $(foreach C,$(CLASSES),${CLASS_NAME($C)})
+
+check_spec_complete: class_index.mk
+	@$(foreach C,$(ALL_CLASS_NAMES),\
+	    (grep "$C" ../functional_specification.txt > /dev/null || \
+	     echo "missing class description for '$C'");)
 

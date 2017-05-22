@@ -151,16 +151,18 @@ The recommended way for creating a build directory is the use of the
 _create_builddir_ tool located at _<genode-dir>/tool/_.
 The tool prints usage information along with a list of supported base
 platforms when started without arguments.
-For creating a new
-build directory, one of the listed target platforms must be specified.
-Furthermore, the location of the new build directory can optionally be
-specified via the 'BUILD_DIR=' argument. For example:
+For creating a new build directory, one of the listed target platforms must be
+specified. By default, the new build directory is created at
+_<genode-dir>/build/<platform>/_ where _<platform>_ corresponds to the
+specified argument.
+Alternatively, the default location can be overridden via the optional
+'BUILD_DIR=' argument. For example:
 
 ! cd <genode-dir>
-! ./tool/create_builddir linux_x86 BUILD_DIR=/tmp/build.linux_x86
+! ./tool/create_builddir x86_64 BUILD_DIR=/tmp/build.x86_64
 
-This command creates a new build directory for the Linux/x86 platform
-at _/tmp/build.linux_x86/_.
+This command creates a new build directory for the 64-bit x86 platform
+at _/tmp/build.x86_64/_.
 For the basic operations available from within the build directory, please
 refer to Section [Using the build system].
 
@@ -345,12 +347,11 @@ The *system integrator* defines the platform the software will be
 built for by specifying the targeted platform in the SPECS declaration in the
 build directory's _etc/specs.conf_ file.
 In addition to the (optional) _etc/specs.conf_
-file within the build directory, the build system incorporates the first
-_etc/specs.conf_ file found in the enabled repositories. For example, for
-a 'linux_x86' build directory, the
-_base-linux/etc/specs.conf_ file is used by default. The build directory's
-'specs.conf' file can still be used to extend the SPECS declarations, for
-example to enable special features.
+file within the build directory, the build system incorporates all
+_etc/specs.conf_ files found in the enabled repositories. For example, when
+using the Linux kernel as a platform, the _base-linux/etc/specs.conf_ file is
+picked up automatically. The build directory's 'specs.conf' file can still be
+used to extend the SPECS declarations, for example to enable special features.
 
 Each _<spec>_ in the SPECS variable instructs the build system to
 
@@ -495,7 +496,7 @@ configuration. The following types of modules exist:
   to pass on the components. For example, loading from TFTP or via JTAG is handled
   by the modules of this category.
 
-  _(the available modules are: tftp, jtag, fastboot)_
+  _(the available modules are: tftp, jtag, fastboot, ipxe)_
 
 :log modules:
   These modules handle how the output of a currently executed run script
@@ -507,13 +508,11 @@ configuration. The following types of modules exist:
   These modules are used for bringing the target system into a defined
   state, e.g., by starting or rebooting the system.
 
-  _(the available modules are: qemu, linux, softreset, powerplug, amt)_
+  _(the available modules are: qemu, linux, softreset, amt, netio)_
 
 :power_off modules:
   These modules are used for turning the target system off after the
   execution of a run script.
-
-  _(the available modules are: powerplug)_
 
 Each module has the form of a script snippet located under the
 _tool/run/<step>/_
@@ -581,21 +580,21 @@ Executing base-hw on a Raspberry Pi
 -----------------------------------
 
 The following example boots a system scenario based on the base-hw kernel on
-a Raspberry Pi that is powered via a USB-controllable power plug. The
-Raspberry Pi is connected to a JTAG debugger, which is used
-to load the system image onto the device.
+a Raspberry Pi that is powered via a network-controllable power plug (netio).
+The Raspberry Pi is connected to a JTAG debugger, which is used to load the
+system image onto the device.
 
 !RUN_OPT = --include boot_dir/hw \
-!          --include power_on/powerplug \
-!                  --power-on-powerplug-ip 10.23.42.5 \
-!                  --power-on-powerplug-user admin \
-!                  --power-on-powerplug-password secret \
-!                  --power-on-powerplug-port 1 \
-!          --include power_off/powerplug \
-!                  --power-off-powerplug-ip 10.23.42.5 \
-!                  --power-off-powerplug-user admin \
-!                  --power-off-powerplug-password secret \
-!                  --power-off-powerplug-port 1 \
+!          --include power_on/netio \
+!                  --power-on-netio-ip 10.23.42.5 \
+!                  --power-on-netio-user admin \
+!                  --power-on-netio-password secret \
+!                  --power-on-netio-port 1 \
+!          --include power_off/netio \
+!                  --power-off-netio-ip 10.23.42.5 \
+!                  --power-off-netio-user admin \
+!                  --power-off-netio-password secret \
+!                  --power-off-netio-port 1 \
 !          --include load/jtag \
 !          --load-jtag-debugger \
 !              /usr/share/openocd/scripts/interface/flyswatter2.cfg \
@@ -610,9 +609,10 @@ Meaningful default behaviour
 
 The 'create_builddir' tool introduced in Section [Using the build system]
 equips a freshly created build directory with a meaningful
-default configuration that depends on the selected platform. For example, when
-creating a build directory for the Linux base platform, RUN_OPT
-is initially defined as
+default configuration that depends on the selected platform and the used
+kernel. For example, when creating a build directory for the x86_64 base
+platform and building a scenario with 'KERNEL=linux', 'RUN_OPT' is
+automatically defined as
 
 ! RUN_OPT = --include boot_dir/linux \
 !           --include power_on/linux --include log/linux
@@ -677,7 +677,7 @@ message "Run script execution successful.".
 
 Note that the _hello.run_ script does not contain kernel-specific information.
 Therefore it can be executed from the build directory of any base platform
-via the command 'make run/hello'.
+via the command 'make run/hello KERNEL=<kernel>'.
 When invoking 'make' with an argument of the form 'run/<run-script>', the
 build system searches all repositories for a run script with the specified name.
 The run script must be located in one of the repositories' _run/_ subdirectories
@@ -736,8 +736,8 @@ the _load/tftp_ module can be checked by calling 'have_include' with the
 argument '"load/tftp"'.
 
 
-Using run scripts to implement test cases
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Using run scripts to implement integration tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Because run scripts are actually expect scripts, the whole arsenal of
 language features of the Tcl scripting language is available to them. This
@@ -836,7 +836,7 @@ Release version
 
 The version number of a Genode release refers to the release date. The
 two-digit major number corresponds to the last two digits of the year and
-the two-digit minor number corresponds to the month. For example, "15.02".
+the two-digit minor number corresponds to the month. For example, "17.02".
 
 Each Genode release represents a snapshot of the master branch taken at
 release time. It is complemented by the following commits:

@@ -16,14 +16,9 @@
 		                                     xshift=4ex,
 		                                    }{}{CPU session}
 
-		\rpcobjectrnode{corechildramsession}{minimum width=0ex,
-		                               right=6ex of corechildpdsession,
-		                                     align=center}{}{RAM session}
-
-
-		\rpcobjectrnode{corechildrmsession}{minimum width=0ex,
-		                                    below=1ex of corechildramsession,
-		                                    xshift=5ex}{}{Region map}
+		\rpcobjectrnode{corechildregionmap}{minimum width=0ex,
+		                                    right=6ex of corechildpdsession,
+		                                    align=center}{}{Region map}
 	}
 
 	\labeledcompoundnode{parent}{creationcomponent, above=2ex of core}{Parent}{
@@ -86,11 +81,11 @@
 
 	\path (child.south)+(0,3ex) coordinate (childcapanchor) {};
 
-	\path (corechildramsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childramsessioncap) {};
-	\draw[dashed] (corechildramsessioncap) -- (childramsessioncap);
+	\path (corechildpdsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childpdsessioncap) {};
+	\draw[dashed] (corechildpdsessioncap) -- (childpdsessioncap);
 
-	\path (corechildrmsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childrmsessioncap) {};
-	\draw[dashed] (corechildrmsessioncap) -- (childrmsessioncap);
+	\path (corechildregionmapcap |- parentcapanchor) node[capability, minimum size=2.3ex] (childregionmapcap) {};
+	\draw[dashed] (corechildregionmapcap) -- (childregionmapcap);
 
 	\path (corechildcpusessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childcpusessioncap) {};
 	\draw[dashed] (corechildcpusessioncap) -- (childcpusessioncap);

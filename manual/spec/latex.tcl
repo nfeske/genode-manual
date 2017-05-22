@@ -147,7 +147,7 @@ proc generate_function_info_sections { func_token } {
 		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
 		foreach exception $exceptions {
 			set exc_type [lindex $exception 0]
-			set exc_desc [string totitle [lindex $exception 1]]
+			set exc_desc [to_title [lindex $exception 1]]
 			puts "    \\texttt{\\textbf{[out_latex $exc_type]}} & [out_latex "$exc_desc"]\\\\"
 		}
 		puts "  \\end{tabularx}"
@@ -165,16 +165,15 @@ proc generate_function_info_sections { func_token } {
 		puts "  \\end{tabularx}"
 		puts "}"
 	}
+}
 
-	# detailed description
+
+proc generate_function_detail_section { func_token } {
+
 	set detailed_description [function_detailed_description $func_token]
 	if {[llength $detailed_description] > 0} {
-		puts "\\apisection{Details}{0.95,0.95,0.95}"
-		puts "\\apiboxcontent{"
-		puts "  \\begin{minipage}{0.96\\textwidth}"
-		puts "    [out_latex [join $detailed_description {\\}]]"
-		puts "  \\end{minipage}"
-		puts "}"
+		puts -nonewline "[out_latex [join $detailed_description {\\}]]"
+		puts "\n"
 	}
 }
 

@@ -1,4 +1,4 @@
-TARGET_EPUB := genode-foundations-16.05.epub
+TARGET_EPUB := genode-foundations-17.05.epub
 
 SHELL := bash
 

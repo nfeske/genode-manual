@@ -6,7 +6,7 @@
 
 		\rpcobjectrnode{corermsession}{minimum width=0ex}{}{Region map}
 		\rpcobjectrnode{coreramsession}{minimum width=0ex,
-		                               below=1ex of corermsession, xshift=4ex}{}{RAM session}
+		                               below=1ex of corermsession, xshift=4ex}{}{PD session}
 
 		% horizontal space
 		\node[right=25ex of corermsession, minimum size=0] {};

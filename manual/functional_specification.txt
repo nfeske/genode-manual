@@ -139,7 +139,7 @@ Dataspace interface
 
 The dataspace abstraction described in Section [Dataspaces] is the
 fundamental API primitive for representing a container of memory as
-provided by core's RAM, IO_MEM, or ROM services. Each dataspace is referenced
+provided by core's PD, IO_MEM, or ROM services. Each dataspace is referenced
 by a capability that can be passed among components.
 Each component with the capability to a dataspace can access the
 dataspace's content by attaching the dataspace to the region map of its PD session.
@@ -150,8 +150,6 @@ dataspaces provide the following interface.
 
 ; Genode::Dataspace
 [raw spec/classes/genode/dataspace/description]
-
-[raw spec/clearpage]
 
 
 Attached dataspace
@@ -181,8 +179,8 @@ Interface to the component's environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 As described in Section [Component creation],
-each component is a composition of a protection domain (PD session), a
-memory budget (RAM session),
+each component consists of a protection domain (PD session), a LOG session,
+a ROM session with the component's executable binary,
 and a CPU session, from which the main thread is created. These
 sessions form the _environment_ of the component, which is represented
 by the 'Env' interface class. The environment is provided to the component
@@ -246,6 +244,8 @@ area (Section [PD session interface]). The use of region maps as so-called
 managed dataspaces makes it even possible to manage portions of the virtual
 address space of other components (Section [RM session interface]).
 
+[raw spec/nopagebreak]
+
 ; Genode::Region_map
 [raw spec/classes/genode/region_map/description]
 
@@ -255,32 +255,50 @@ address space of other components (Section [RM session interface]).
 Session interfaces of the base API
 ==================================
 
-RAM session interface
-~~~~~~~~~~~~~~~~~~~~~
+PD session interface
+~~~~~~~~~~~~~~~~~~~~
 
-The RAM service (Section [Physical memory allocation (RAM)]) provides
-access to physical memory. Each RAM
-session corresponds to a memory budget with a bounded quota. From this
-budget, the RAM-session client can allocate memory blocks in the form
-of dataspaces.
+The protection-domain (PD) service (Section [Protection domains (PD)]) enables
+the creation of address spaces that are isolated from each other. Each PD
+session corresponds to a protection domain. Each PD session is equipped with
+three region maps, one representing the PD's virtual address space, one
+for the component's stack area, and one for the component's linker area
+designated for shared objects. Of those region maps, only the virtual address
+space is needed by application code directly. The stack area and linker area
+are used by the framework internally. The PD service is rarely
+needed by applications directly but it is internally.
 
-; XXX Genode::Ram_session_client
+The PD session also represents a resource partition with a budget of
+physical memory and capabilities. Within the bounds of its RAM budget, it
+allows the client to allocate physical memory in the form of dataspaces.
 
-; Genode::Ram_dataspace
-[raw spec/repos/base/include/ram_session/ram_session.h.overview]
+Analogously, within the bounds of its capability budget, capabilities can be
+allocated and associated with a local object or a signal handler. Such a
+capability can be passed to another protection domain via an RPC call whereby
+the receiving protection domain obtains the right to send messages to the
+associated object or to trigger the associated signal handler respectively.
+The capability-management operations are not used directly by components at
+the API level but are used indirectly via the RPC mechanism described in
+Section [Remote procedure calls] and the signalling API described in Section
+[Signalling].
 
-; Genode::Ram_session
-[raw spec/classes/genode/ram_session/description]
+; XXX Genode::Pd_session_client
 
-; Genode::Ram_connection
-[raw spec/classes/genode/ram_connection/description]
+; Genode::Pd_session
+[raw spec/classes/genode/pd_session/description]
+
+; Genode::Pd_connection
+[raw spec/classes/genode/pd_connection/description]
+
+
+[raw spec/clearpage]
 
 
 Attached RAM dataspace
 ----------------------
 
 The instantiation of an 'Attached_ram_dataspace' object subsumes the tasks of
-allocating a dataspaces from the component's RAM session and attaching the
+allocating a dataspaces from the component's PD session and attaching the
 dataspace to the component's region map. Furthermore, the reverse operations
 are performed during the destruction of an 'Attached_ram_dataspace' object.
 
@@ -329,44 +347,6 @@ may occur during XML parsing.
 
 ; Genode::Attached_rom_dataspace
 [raw spec/classes/genode/attached_rom_dataspace/description]
-
-
-[raw spec/clearpage]
-
-PD session interface
-~~~~~~~~~~~~~~~~~~~~
-
-The protection-domain (PD) service (Section [Protection domains (PD)]) enables
-the creation of address spaces that are isolated from each other. Each PD
-session corresponds to a protection domain. Each PD session is equipped with
-three region maps, one representing the PD's virtual address space, one
-for the component's stack area, and one for the component's linker area
-designated for shared objects. Of those region maps, only the virtual address
-space is needed by application code directly. The stack area and linker area
-are used by the framework internally. The PD service is rarely
-needed by applications directly but it is internally.
-
-Besides representing the component's virtual address space, a PD session also
-entails the component's capability space. It thereby enables the component to
-create globally unique RPC-object capabilities and signal-context
-capabilities.
-
-Once allocated from a PD session, a capability can be associated with a local
-object or a signal handler. It can be passed to another protection domain via
-an RPC call whereby the receiving protection domain obtains the right to send
-messages to the associated object or to trigger the associated signal handler
-respectively. The capability-management operations are not used directly by
-components at the API level but are used indirectly via the RPC mechanism
-described in Section [Remote procedure calls] and the signalling API described
-in Section [Signalling].
-
-; XXX Genode::Pd_session_client
-
-; Genode::Pd_session
-[raw spec/classes/genode/pd_session/description]
-
-; Genode::Pd_connection
-[raw spec/classes/genode/pd_connection/description]
 
 
 [raw spec/clearpage]
@@ -725,6 +705,12 @@ Timer session interface
 ; Timer::Connection
 [raw spec/classes/timer/connection/description]
 
+; XXX Genode::Microseconds
+; XXX Genode::Milliseconds
+; XXX Genode::Duration
+; XXX Genode::Periodic_timeout
+; XXX Genode::One_shot_timeout
+
 
 [raw spec/clearpage]
 
@@ -736,7 +722,7 @@ NIC session interface
 ; XXX Nic::Session_client
 
 ; Nic::Mac_address
-[raw spec/classes/nic/mac_address/description]
+;[raw spec/classes/net/mac_address/description]
 
 ; Nic::Session
 [raw spec/classes/nic/session/description]
@@ -943,8 +929,8 @@ designed under the following considerations:
 
 [raw spec/clearpage]
 
-List
-~~~~
+List and registry
+~~~~~~~~~~~~~~~~~
 
 Most book-keeping tasks in Genode rely on single-connected lists,
 which use the 'List' template.
@@ -954,6 +940,42 @@ which use the 'List' template.
 
 ; Genode::List_element<>
 [raw spec/classes/genode/list_element/description]
+
+
+Registry
+--------
+
+Most commonly, lists are used as containers that solely remembers dynamically
+created objects. In this use case, the lifetime of the remembered object is
+tightly coupled with its presence in the list. The 'Registry' class
+template represents a safe wrapper around the raw list that ensures this
+presumption and thereby eliminates classes of list-related bugs by
+design, e.g., double insertion, missing removal.
+
+An object type to be remembered in a 'Registry' inherits the
+'Registry::Element' base class, which takes its registry and a reference to
+the object itself as arguments. Thereby the relationship of the object with
+its corresponding registry is fixed at the object's construction time. Once
+constructed, it is implicitly part of the registry. The registry provides a
+'for_each' method to iterate over its elements. Unlike the traversal of a raw
+list, this 'for_each' operation is thread safe. It also supports the safe
+destruction of the currently visited object.
+
+; Genode::Registry_base
+; Genode::Registry
+[raw spec/classes/genode/registry/description]
+
+As an alternative to the use of the 'Registry::Element' base class, the
+'Registered' and 'Registered_no_delete' helper templates supplement arbitrary
+object types with the ability to become registry elements. They wrap a given
+object type in a new type whereby the original type remains untainted by the
+fact that its objects are kept in a registry.
+
+; Genode::Registered
+[raw spec/classes/genode/registered/description]
+
+; Genode::Registered_no_delete
+[raw spec/classes/genode/registered_no_delete/description]
 
 
 [raw spec/clearpage]
@@ -1006,6 +1028,23 @@ AVL tree hosts only one type of elements.
 
 [raw spec/clearpage]
 
+
+ID space
+~~~~~~~~
+
+Similar to how the 'Registry' provides a safe wrapper around list's most
+common use case, the 'Id_space' covers a prominent use case for AVL trees
+in a safeguarded fashion, namely the association of objects with IDs.
+Internally, IDs are kept in an AVL tree but implementation detail remains
+hidden from the API. In contrast to a bit allocator, the ID space can be
+sparsely populated and does not need to be dimensioned. The lifetime of an ID
+is bound to an 'Element' object, which relieves the programmer from manually
+allocating/deallocating IDs for objects.
+
+; Genode::Id_space
+[raw spec/classes/genode/id_space/description]
+
+
 Bit array
 ~~~~~~~~~
 
@@ -1023,6 +1062,8 @@ and hosts the memory buffer for storing the bits within the object.
 
 
 [raw spec/clearpage]
+
+
 
 ;Ring buffer
 ;~~~~~~~~~~~
@@ -1113,8 +1154,9 @@ invalidated. So it is save to destruct and free the object.
 
 [raw spec/clearpage]
 
-Volatile objects
-~~~~~~~~~~~~~~~~
+
+Late and repeated object construction
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 'construct_at' utility allows for the
 manual placement of objects without the need to have a global placement new
@@ -1131,26 +1173,55 @@ This functional programming style leads to robust programs but it poses a
 problem for programs that are expected to adopt their behaviour at runtime.
 A way to selectively replace an aggregated object by a
 new version with updated constructor arguments is desired. The
-'Volatile_object' utility solves this problem by wrapping an object of the
+'Reconstructible' utility solves this problem by wrapping an object of the
 type specified as template argument.
-In contrast of a regular object, a 'Volatile_object' can be re-constructed any
-number of times by calling 'construct' with the constructor arguments. It is
-accompanied with a so-called 'Lazy_volatile_object', which remains
-unconstructed until 'construct' is called the first time.
+In contrast of a regular object, a 'Reconstructible' object can be
+re-constructed any number of times by calling 'construct' with the constructor
+arguments. It is accompanied with a so-called 'Constructible' utility, which
+leaves the wrapped object unconstructed until 'construct' is called the first
+time.
 
-; Genode::Volatile_object<>
-[raw spec/classes/genode/volatile_object/description]
+; Genode::Reconstructible<>
+[raw spec/classes/genode/reconstructible/description]
 
-; Genode::Lazy_volatile_object<>
-[raw spec/classes/genode/lazy_volatile_object/description]
+; Genode::Constructible<>
+[raw spec/classes/genode/constructible/description]
 
 
-Allocators
-==========
+Physical memory allocation
+==========================
 
-All allocators implement the generic 'Deallocator' and 'Allocator' interfaces.
-Allocators that operate on address ranges supplement the plain 'Allocator'
-by implementing the more specific 'Range_allocator' interface.
+Throughout Genode, physical memory is allocated in the form of RAM dataspaces
+by using the 'Ram_allocator' interface. This interface is implemented by
+the PD session and thereby allows a component to use its RAM budget.
+The RAM dataspaces allocated from the 'Ram_allocator' interface may serve
+as backing store for fine-grained component-local allocators such as the 'Heap'
+(Section [Component-local allocators]).
+
+; Genode::Ram_allocator
+[raw spec/classes/genode/ram_allocator/description]
+
+Constraining RAM allocations
+----------------------------
+
+The operations of 'Ram_allocator' interface are the basis for Genode's RAM
+accounting. In cases where a server needs to allocate RAM on behalf of
+its clients, the interface provides a natural hook to track and constrain
+the client-specific RAM usage. The 'Constrained_ram_allocator' implements
+the interface by forwarding all operations to another 'Ram_allocator'
+instance while restricting allocations to a quota limit. Exceeding the
+limit results in an 'Out_of_ram' exception.
+
+; Genode::Constrained_ram_allocator
+[raw spec/classes/genode/constrained_ram_allocator/description]
+
+
+Component-local allocators
+==========================
+
+Component-local allocators implement the generic 'Deallocator' and 'Allocator'
+interfaces. Allocators that operate on address ranges supplement the plain
+'Allocator' by implementing the more specific 'Range_allocator' interface.
 
 ; Genode::Deallocator
 [raw spec/classes/genode/deallocator/description]
@@ -1161,20 +1232,7 @@ by implementing the more specific 'Range_allocator' interface.
 ; Genode::Range_allocator
 [raw spec/classes/genode/range_allocator/description]
 
-
-[raw spec/clearpage]
-
-Allocator guard
-~~~~~~~~~~~~~~~
-
-To protect the quantum of allocated memory from exceeding a predefined limit,
-an allocator guard can be used. It is typically used by server implementations
-that subdivide their heap into client-specific partitions dimensioned
-according to the session quota provided by the respective client.
-
-; Genode::Allocator_guard
-[raw spec/classes/genode/allocator_guard/description]
-
+; Genode::Allocator_guard (deprecated)
 
 [raw spec/clearpage]
 
@@ -1248,10 +1306,11 @@ Basic string operations
 There exists a small set of string-manipulation operations as global functions
 in the 'Genode' namespace.
 
+[raw spec/nopagebreak]
+
 [raw spec/repos/base/include/util/string.h.overview]
 
 ; XXX ascii_to
-; XXX Genode::Number_of_bytes
 ;[raw spec/classes/genode/number_of_bytes/description]
 
 [raw spec/clearpage]
@@ -1259,8 +1318,32 @@ To cover the common case of embedding a string buffer as a member variable in
 a class, there exists the 'String' class template, which alleviates the
 need for C-style arrays in such situations.
 
+The 'String' constructor takes any number of arguments, which will appear
+concatenated in the constructed 'String'. Each argument must be printable
+as explained in Section [Diagnostic output].
+
 ; Genode::String<>
 [raw spec/classes/genode/string/description]
+
+There exist a number of printable helper classes that cover typical
+use cases for producing formatted text output.
+
+; Genode::Number_of_bytes
+; Genode::Cstring
+
+:'Number_of_bytes': wraps an integer value and produces an output
+  suffixed with 'K', 'M', or 'G' whenever the value is a multiple
+  of a kilobyte, megabyte, or gigabyte.
+
+:'Cstring': wraps a plain C character array to make it printable. There
+  exist two constructors. The constructor with one argument expects a
+  null-terminated character array. The other constructor takes the
+  number of to-be-printed characters as arguments.
+
+:'Hex': wraps an integer value and produces hexadecimal output.
+
+:'Char': produces a character corresponding to the ASCII value the
+  wrapped integer argument.
 
 
 [raw spec/clearpage]
@@ -1278,6 +1361,7 @@ simple tokenizing support is provided via the 'Token' class.
 
 
 [raw spec/clearpage]
+
 
 Diagnostic output
 ~~~~~~~~~~~~~~~~~
@@ -1559,6 +1643,15 @@ with an RPC entrypoint. By passing an RPC object to the 'Entrypoint::manage'
 method, a new capability for the RPC object is created. The capability is
 tagged with the type of the RPC object.
 
+Most server-side RPC interfaces are session interfaces. In contrast to
+plain RPC objects (like a 'Region_map'), all sessions carry a client-provided
+budget of RAM and capabilities, and are associated with a client-specific
+label. The 'Session_object' class template captures these commonalities of
+this kind of RPC objects.
+
+; Genode::Session_object
+[raw spec/classes/genode/session_object/description]
+
 
 Client side
 -----------
@@ -1581,26 +1674,24 @@ interface looks as follows.
 
 ! #include <hello_session/hello_session.h>
 ! #include <base/rpc_client.h>
-! #include <base/printf.h>
 !
-! namespace Hello {
+! namespace Hello { struct Session_client; }
 !
-!   struct Session_client : Genode::Rpc_client<Session>
+! struct Hello::Session_client : Genode::Rpc_client<Session>
+! {
+!   Session_client(Genode::Capability<Session> cap)
+!   : Genode::Rpc_client<Session>(cap) { }
+!
+!   void say_hello()
 !   {
-!     Session_client(Genode::Capability<Session> cap)
-!     : Genode::Rpc_client<Session>(cap) { }
+!     call<Rpc_say_hello>();
+!   }
 !
-!     void say_hello()
-!     {
-!       call<Rpc_say_hello>();
-!     }
-!
-!     int add(int a, int b)
-!     {
-!       return call<Rpc_add>(a, b);
-!     }
-!   };
-! }
+!   int add(int a, int b)
+!   {
+!     return call<Rpc_add>(a, b);
+!   }
+! };
 
 For passing RPC arguments and results, the regular C++ type-conversion rules
 are in effect. If there is no valid type conversion, or if the number of
@@ -1650,9 +1741,6 @@ function call. But there are some notable differences:
   Pointers and const pointers are handled similar to references. The pointed-to
   argument gets transferred and the server-side function is called with a
   pointer to the local copy.
-
-All types specified at RPC arguments or as return value must have a default
-constructor.
 
 By default, all RPC arguments are input arguments, which are transferred to the
 server. The return type of the RPC function, if present, is an output-only
@@ -1975,7 +2063,7 @@ is represented by an instance of the 'Child' class.
 This instance contains the policy to be applied to the child (for
 example how session requests are routed to services)
 and contains the child's execution environment including the
-RAM session holding the child's memory quota.
+PD session holding the child's RAM and capability quota.
 
 ; Genode::Child_policy
 [raw spec/classes/genode/child_policy/description]
@@ -1983,8 +2071,9 @@ RAM session holding the child's memory quota.
 ; Genode::Child
 [raw spec/classes/genode/child/description]
 
-; XXX Genode::Slave_policy
-; XXX Genode::Slave
+; XXX Genode::Slave::Policy
+; XXX Genode::Slave::Connection_base
+; XXX Genode::Slave::Connection
 
 
 [raw spec/clearpage]
@@ -2003,6 +2092,7 @@ RAM session holding the child's memory quota.
 ; XXX Genode::Service
 ; XXX Genode::Local_service
 ; XXX Genode::Parent_service
+; XXX Genode::Async_service
 ; XXX Genode::Child_service
 ; XXX Genode::Service_registry
 
@@ -2232,3 +2322,50 @@ verbatim description of how the device is used. For example:
 ; Genode::Pixel_rgba<>
 ; Genode::Surface<>
 ; Component-local VFS
+; Genode::Raw
+; Genode::String_console
+; Genode::Trace::Execution_time
+; Genode::Synced_allocator
+; Genode::Console
+; Genode::Msgbuf_base
+; Genode::Msgbuf
+; Genode::Local_connection_base
+; Genode::Local_connection
+; Genode::Io_signal_handler
+; Genode::Connection_base
+; Genode::Session_state
+; Genode::Session_state::Factory
+; Genode::Blocking_canceled
+; Genode::Rpc_entrypoint
+; Genode::Thread_deprecated
+; Genode::Cpu_session::Quota
+; Genode::Cpu_thread_client
+; Genode::Region_map_client
+; Genode::Mmio_plain_access
+; Genode::Arg
+; Genode::Arg_string
+; Genode::Register_set_plain_access
+; Genode::Register_set
+; File_system::Connection_base
+; Genode::Xml_node_label_score
+; Dither_painter
+; Genode::Dynamic_rom_session
+; Genode::Timeout_scheduler
+; Genode::Alarm_timeout_scheduler
+; Genode::Static_parent_services
+; Genode::Session_requester
+; Genode::Time_source
+; Genode::Single_session_service
+; Genode::Ram_session_guard
+; Genode::Config
+; Platform::Abstract_device
+; Platform::Client
+; Genode::Dither_matrix
+; Genode::Color
+; Genode::Timer_time_source
+; Genode::Timer
+; Genode::Quota_guard_untyped
+; Genode::Quota_guard
+; Genode::Rpc_object::Capability_guard
+; Genode::Quota_transfer
+

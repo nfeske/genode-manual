@@ -18,10 +18,10 @@
   $<$parent-provides$>$ ... $<$/parent-provides$>$\\
   $<$default-route$>$ ... $<$/default-route$>$\\
   ...\\
-  $<$start name="nitpicker"$>$\\
+  $<$start name="nitpicker" caps="100"$>$\\
     \nestinglevel{...}\\
   $<$/start$>$\\
-  $<$start name="launchpad"$>$\\
+  $<$start name="launchpad" caps="2000"$>$\\
     \nestinglevel{
     ...\\
     \configlevel{fill=black!12}{
@@ -39,7 +39,7 @@
             $<$any-service$>$ $<$any-child/$>$ $<$parent/$>$ $<$/any-service$>$
             }\\
           $<$/default-route$>$\\
-          $<$start name="nit\_fb"$>$\\
+          $<$start name="nit\_fb" caps="100"$>$\\
             \nestinglevel{
             $<$resource name="RAM" quantum="6M"/$>$\\
             \configlevel{fill=black!2}{
@@ -53,7 +53,7 @@
             $<$/provides$>$
             }\\
           $<$/start$>$\\
-          $<$start name="virtualbox"$>$\\
+          $<$start name="virtualbox" caps="1000"$>$\\
             \nestinglevel{
             $<$resource name="RAM" quantum="1G"/$>$\\
             \configlevel{fill=black!2}{

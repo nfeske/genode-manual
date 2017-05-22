@@ -2,31 +2,31 @@
 
 	\labeledcompoundnode{child}{component}{Child}{
 		
-		\node[capability] (childramcap) {};
+		\node[capability] (childpdcap) {};
 	}
 
 	\labeledcompoundnode{init}{component, below of=child, xshift=-7ex}{Init}{
 		
-		\node[capability] (initramcap) {2};
-		\downwardthreadnode{initthread}{inner sep=0, node distance=0ex, left=4ex of initramcap}
-		\node[capability, right of=initramcap] (initchildramcap) {3};
+		\node[capability] (initpdcap) {2};
+		\downwardthreadnode{initthread}{inner sep=0, node distance=0ex, left=4ex of initpdcap}
+		\node[capability, right of=initpdcap] (initchildpdcap) {3};
 	}
 
 	\labeledcompoundnode{core}{component, below of=init, xshift=-10ex}{Core}{
 
-		\rpcobjectrnode{raminit}{}{}{RAM session}
+		\rpcobjectrnode{pdinit}{}{}{PD session}
 
-		\rpcobjectrnode{ramchild}{node distance=25ex, right of=raminit}{}{RAM session}
+		\rpcobjectrnode{pdchild}{node distance=27.5ex, right of=pdinit}{}{PD session}
 	}
 
 	% capability associations
-	\path [draw, dashed] (raminitcap) -- (initramcap);
-	\path [draw, dashed] (ramchildcap) -- (initchildramcap);
-	\path [draw, dashed] (initchildramcap) -- (childramcap);
+	\path [draw, dashed] (pdinitcap) -- (initpdcap);
+	\path [draw, dashed] (pdchildcap) -- (initchildpdcap);
+	\path [draw, dashed] (initchildpdcap) -- (childpdcap);
 
 	% transfer quota
 	\path [arrow, sloped=false] (initthread)
 	      .. controls +(-1,0) and +(0,1) ..
-	      node[pos=0.8] {$transfer$(amount, 3)} (raminitobj);
+	      node[pos=0.8] {$transfer$(amount, 3)} (pdinitobj);
 
 \end{tikzpicture}

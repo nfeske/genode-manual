@@ -35,8 +35,9 @@ proc generate_function_description { namespace_name func_token } {
 
 	set link "$namespace_name\::$function_name"
 
+	puts "{ \\noindent \\raggedleft"
 	puts -nonewline "\\hypertarget{$link}{\\hspace{0cm}}"
-	puts {\begin{tikzpicture}}
+	puts {\begin{tikzpicture}[inner sep=0]}
 	puts { \tikzstyle{every node} = [font=\small] }
 	puts { \begin{apibox}{1.0,0.85,0.6}}
 
@@ -50,6 +51,9 @@ proc generate_function_description { namespace_name func_token } {
 
 	puts { \end{apibox}}
 	puts "\\end{tikzpicture} \\linebreak"
+	puts "}"
+
+	generate_function_detail_section $func_token
 }
 
 
@@ -124,8 +128,8 @@ set global_typedefs [global_types]
 
 if {[llength $global_typedefs] > 0} {
 
-	puts "{ \\noindent \\raggedleft"
-	puts {\begin{tikzpicture}}
+	puts -nonewline "{ \\noindent \\raggedleft"
+	puts {\begin{tikzpicture}[inner sep=0]}
 	puts { \tikzstyle{every node} = [font=\small] }
 	puts { \begin{apibox}{1.0,0.95,0.78}}
 
@@ -151,8 +155,8 @@ if {[llength $global_typedefs] > 0} {
 
 foreach namespace_name [namespaces_in_header] {
 
-	puts "{ \\noindent \\raggedleft"
-	puts {\begin{tikzpicture}}
+	puts -nonewline "{ \\noindent \\raggedleft"
+	puts {\begin{tikzpicture}[inner sep=0]}
 	puts { \tikzstyle{every node} = [font=\small] }
 	puts { \begin{apibox}{1.0,0.95,0.78}}
 
@@ -199,9 +203,9 @@ foreach namespace_name [namespaces_in_header] {
 
 	puts { \end{apibox}}
 	puts "\\end{tikzpicture}"
+	puts "}"
 
 	generate_namespace_functions $namespace_name
 
-	puts "}"
 	puts ""
 }

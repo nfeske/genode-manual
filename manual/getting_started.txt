@@ -125,10 +125,18 @@ repositories.
 
   :_hw_:
 
-    The hw platform allows the execution of Genode on bare ARM hardware
+    The hw platform allows the execution of Genode on bare hardware
     without the need for a separate kernel. The kernel functionality is
-    included in the core component. More information about the hw platform
-    can be found in Section [Execution on bare hardware (base-hw)].
+    included in the core component. It supports the ARM, 64-bit x86,
+    and RISC-V CPU architectures. The hw platform is also used as the
+    basis for executing Genode on top of the Muen separation kernel.
+    More information about the hw platform can be found in Section
+    [Execution on bare hardware (base-hw)].
+
+  :_sel4_:
+
+    The seL4 microkernel developed by NICTA in Sydney. The support for this
+    kernel is highly experimental.
 
   :_foc_:
 
@@ -147,11 +155,6 @@ repositories.
   :_fiasco_:
 
     L4/Fiasco kernel originally developed at Technische Universität Dresden.
-
-  :_sel4_:
-
-    The seL4 microkernel developed by NICTA in Sydney. The support for this
-    kernel is highly experimental.
 
 :_os/_:
 
@@ -200,13 +203,6 @@ repositories.
 
   Ports of 3rd-party applications.
 
-:_ports-<platform>/_:
-
-  These platform-specific source-code repositories contain software that
-  capitalizes special features of the respective kernel platform.
-  For the Fiasco.OC platform, 'ports-foc' hosts a port of the L4Linux
-  kernel.
-
 :_gems/_:
 
   Components that use
@@ -234,10 +230,13 @@ build directory yet. For a quick start, let us create one using the following
 command:
 
 ! cd <genode-dir>
-! ./tool/create_builddir linux_x86
+! ./tool/create_builddir x86_64
 
-The command creates a new build directory at 'build/linux_x86'. The build
-directory is readily configured for using GNU/Linux as base platform.
+_To follow the subsequent steps of test driving the Linux version of Genode,_
+_the specified platform argument should match your host OS installation. If_
+_you are using a 32-bit installation, specify 'x86_32' instead of 'x86_64'._
+
+The command creates a new build directory at 'build/x86_64'.
 
 
 Build configuration
@@ -245,7 +244,7 @@ Build configuration
 
 Before using the build directory, it is recommended to revisit and
 possibly adjust the build configuration, which is located in the
-_etc/_ subdirectory of the build directory, e.g., _build/linux_x86/etc/_.
+_etc/_ subdirectory of the build directory, e.g., _build/x86_64/etc/_.
 The _build.conf_ file contains global build parameters, in particular
 the selection of source-code repositories to be incorporated. It is also
 a suitable place for adding global build options. For example, for
@@ -310,17 +309,21 @@ Genode comes with a ready-to-use run script showcasing simple graphical demo
 scenario. It is located at _<genode-dir>/repos/os/run/demo.run_ and can
 be executed from within the build directory via:
 
-! make run/demo
+! make run/demo KERNEL=linux
 
-The command will lookup a run script called _demo.run_ in all repositories
+In contrast to the building of individual components as described above,
+the integration of a complete system scenario requires us to select a
+particular OS kernel to use. The command instructs the build system to
+integrate and start the "run/demo" scenario on the Linux kernel.
+It will lookup a run script called _demo.run_ in all repositories
 listed in _etc/build.conf_. It will eventually find the run script within
 the _os/_ repository. After completing the build of all components needed,
 the command will then automatically start the scenario.
-Because the build directory was created for the _linux_x86_ platform, the
-scenario
-will be executed directly on the host system where each Genode component
-resides in a distinct Linux process. To explore the scenario, follow the
-instructions given by the graphical tutorial browser.
+Because the build directory was created for the _x86_64_ platform and we
+specified "linux" as 'KERNEL', the scenario will be executed directly on the
+host system where each Genode component resides in a distinct Linux process.
+To explore the scenario, follow the instructions given by the graphical
+tutorial browser.
 
 The terminal where the 'make run/demo' command was issued displays the log
 output of the Genode system. To cancel the execution,
@@ -342,7 +345,7 @@ microhypervisor, the following preparatory steps are needed:
   ! <genode-dir>/tool/ports/prepare_port nova
 
   The _prepare_port_ tool downloads the source code of NOVA to a
-  subdirectory at _<genode-dir>/contrib/nova-<hash>/_ where _<hash_
+  subdirectory at _<genode-dir>/contrib/nova-<hash>/_ where _<hash>_
   uniquely refers to the prepared version of NOVA.
 
 # On real hardware, the scenario needs a framebuffer driver. The VESA
@@ -353,14 +356,9 @@ microhypervisor, the following preparatory steps are needed:
 
   The source code will be downloaded to _<genode-dir>/contrib/x86emu-<hash>/_.
 
-# Create a build directory for the _nova_x86_64_ platform:
-  ! <genode-dir>/tool/create_builddir nova_x86_64
-
-  This step creates a new build directory at _<genode-dir>/build/nova_x86_64_.
-
-# Adjust the build configuration by editing the file _etc/build.conf_
-  within the just-created build directory.
-  Apart from enabling the parallelization of the build process as
+# Since NOVA supports the x86_64 architecture of our build directory, we
+  can keep using the existing build directory that we just used for Linux.
+  However, apart from enabling the parallelization of the build process as
   mentioned in Section [Using the build system], we need to incorporate
   the _libports_ source-code repository into the build process by uncommenting
   the corresponding line in the configuration. Otherwise the build system
@@ -369,8 +367,7 @@ microhypervisor, the following preparatory steps are needed:
 With those preparations in place, issue the execution of the demo run
 script from within the build directory:
 
-! cd <genode-dir>/build/nova_x86_64
-! make run/demo
+! make run/demo KERNEL=nova
 
 This time, an instance of Qemu will be started to execute the demo scenario.
 The Qemu command-line arguments appear in the log output. As suggested
@@ -417,7 +414,7 @@ single component as well as a run script for executing the component within
 Genode. Component source code reside in a _src/_ subdirectory. By convention,
 the _src/_ directory contains further subdirectories for hosting different
 types of components, in particular _server_ (services and protocol stacks),
-_driver_ (hardware-device drivers), and _app_ (applications). For the
+_drivers_ (hardware-device drivers), and _app_ (applications). For the
 hello-world component, an appropriate location would be _src/app/hello/_:
 
 ! mkdir -p repos/lab/src/app/hello
@@ -434,29 +431,18 @@ the _repos/lab/src/app/hello/main.cc_ file with the following content:
 ! #include <base/component.h>
 ! #include <base/log.h>
 !
-! Genode::size_t Component::stack_size() { return 64*1024; }
-!
 ! void Component::construct(Genode::Env &)
 ! {
 !   Genode::log("Hello world");
 ! }
 
 The _base/component.h_ header contains the interface each component must
-implement. The interface consists of two functions. The 'stack_size'
-function dimensions the stack of the component's initial entrypoint thread.
-The function allows the component developer to adjust the memory usage
-by taking knowledge about the component's behavior into account.
-Whereas a stack of 64 KiB is more than enough for most components, a higher
-value is sensible for components that rely on deeply recursive functions or
-that are known to host large objects as local variables on the stack.
-
+implement.
 The 'construct' function is called by the component's execution environment
 to initialize the component. The interface to the execution environment is
 passed as argument. This interface allows the application code to interact
-with the outside world. Normally, the implementation of the 'construct'
-function creates an object representing the application as a 'static' local
-variable. But the simple example above merely produces a log message. The
-'log' function is defined in the _base/log.h_ header.
+with the outside world. The simple example above merely produces a log
+message. The 'log' function is defined in the _base/log.h_ header.
 
 The component does not exit after the 'construct' function returns. Instead,
 it becomes ready to respond to requests or signals originating from other
@@ -485,7 +471,7 @@ Building the component
 ~~~~~~~~~~~~~~~~~~~~~~
 
 With the build-description file in place, it is time to build the new
-component, for example from within the _linux_x86_ build directory as
+component, for example from within the _x86_64_ build directory as
 created in Section [A simple system scenario]. To aid the build system
 to find the component, we have to extend the build
 configuration _<build-dir>/etc/build.conf_ by appending the following line:
@@ -497,7 +483,7 @@ repository. To build the component, issue the following command:
 
 ! make app/hello
 
-This step builds the base libraries of the framework, compiles the _main.cc_
+This step compiles the _main.cc_
 file and links the executable ELF binary called "hello". The result can be
 found in the _<build-dir>/app/hello/_ subdirectory.
 
@@ -525,17 +511,17 @@ _<genode-dir>/repos/lab/run/hello.run_ with the following content:
 !     <service name="PD"/>
 !     <service name="CPU"/>
 !     <service name="ROM"/>
-!     <service name="RAM"/>
 !   </parent-provides>
 !   <default-route>
 !     <any-service> <parent/> </any-service>
 !   </default-route>
+!   <default caps="100"/>
 !   <start name="hello">
 !     <resource name="RAM" quantum="10M"/>
 !   </start>
 ! </config>
 !}
-!build_boot_image "core init hello"
+!build_boot_image "core ld.lib.so init hello"
 !append qemu_args "-nographic -m 64"
 !run_genode_until {Hello world.*\n} 10
 
@@ -551,11 +537,12 @@ This run script performs the following steps:
 # It creates a configuration for the init component. The configuration
   starts the hello component as the only child of init. Session
   requests originating from the hello component will always be directed
-  towards the parent of init, which is core.
+  towards the parent of init, which is core. The '<default>' node declares
+  that each component may consume up to 100 capabilities.
 
 # It assembles a boot image with the executable ELF binaries core,
-  init, and hello. The binaries are picked up from the _<build-dir>/bin/_
-  subdirectory.
+  ld.lib.so (the dynamic linker), init, and hello. The binaries are picked up
+  from the _<build-dir>/bin/_ subdirectory.
 
 # It instructs Qemu (if used) to disable the graphical output.
 
@@ -579,4 +566,156 @@ The label within the brackets at the start of each line identifies the
 component where the message originated from. The final line is printed by the
 run tool after it successfully matched the log output against the regular
 expression specified to the 'run_genode_until' command.
+
+
+[raw spec/clearpage]
+
+Responding to external events
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Most non-trivial components respond to external events such as user input,
+timer events, device interrupts, the arrival of new data, or RPC requests
+issued by other components.
+
+The following example presents the typical skeleton of such a component.
+The 'construct' function merely creates an object representing the application
+as a 'static' local variable. The actual component code lives inside the
+'Main' class.
+
+! #include <base/component.h>
+! #include <base/log.h>
+! #include <timer_session/connection.h>
+!
+! namespace Hello { struct Main; }
+!
+! struct Hello::Main
+! {
+!   Genode::Env &_env;
+!
+!   Timer::Connection _timer { _env };
+!
+!   void _handle_timeout()
+!   {
+!     log("woke up at ", _timer.elapsed_ms(), " ms");
+!   }
+!
+!   Genode::Signal_handler<Main> _timeout_handler {
+!     _env.ep(), *this, &Main::_handle_timeout };
+!
+!   Main(Genode::Env &env) : _env(env)
+!   {
+!     _timer.sigh(_timeout_handler);
+!     _timer.trigger_periodic(1000*1000);
+!     Genode::log("component constructed");
+!   }
+! };
+!
+! void Component::construct(Genode::Env &env)
+! {
+!   static Hello::Main main(env);
+! }
+
+First, note the 'Hello' namespace. As a good practice, component code
+typically lives in a namespace. The component-specific namespace may
+incorporate other namespaces - in particular the 'Genode' namespace - without
+polluting the global scope.
+
+The constructor of the 'Main' object takes the Genode environment as argument
+and stores it as the reference member variable '_env'. The member variable is
+prefixed with an underscore to highlight the fact that it is
+private to the 'Main' class. In principle, 'Main' could be a 'class' with '_env'
+being part of the 'private' section, but as 'Main' is the top-level class of
+the component that is not accessed by any other parts of the program, we use a
+'struct' for brevity while still maintaining the convention to prefix private
+members with an underscore character. When spotting the use of such a prefixed
+variable in the code, we immediately see that it is part of the code's object
+context, not being an argument or a local variable.
+
+By aggregating a 'Timer::Connection' as a member variable, the 'Main' object
+requests a session to a timer service at construction time. As this session
+request requires an interaction with the outside world, the '_env' needs to
+be passed to the '_timer' constructor.
+
+To respond to events from the timer, the 'Main' class hosts a
+'_timeout_handler' object. Its constructor arguments refer to the object and
+method to be executed whenever an event occurs. The timeout handler object is
+registered at the '_timer' as the recipient of timeout events via the 'sigh'
+method. Finally, the timer is instructed to trigger timeout events at a rate
+of 1 second.
+
+The following remarks are worth noting:
+
+* The programming style expresses what the component _is_ rather than what
+  the component _does_.
+
+* The component does not perform any dynamic memory allocation.
+
+* When called, the '_handle_timeout' method has its context (the 'Main' object)
+  readily available, which makes the application of internal state changes as
+  response to external events very natural.
+
+* Both the 'construct' function as well as the 'Main::_handle_timeout' method
+  do not block for external events.
+
+* The component does not receive any indication about the number of occurred
+  events, just the fact that at least one event occurred. The
+  '_handle_timeout' code explicitly requests the current time from the
+  timer driver via the synchronous RPC call 'elapsed_ms'.
+
+To execute the new version of the component, we need to slightly modify the
+run script.
+
+!build "core init drivers/timer app/hello"
+!create_boot_directory
+!install_config {
+! <config>
+!   <parent-provides>
+!     <service name="LOG"/>
+!     <service name="PD"/>
+!     <service name="CPU"/>
+!     <service name="ROM"/>
+!   </parent-provides>
+!   <default-route>
+!     <any-service> <parent/> <any-child/> </any-service>
+!   </default-route>
+!   <default caps="100"/>
+!   <start name="timer">
+!     <resource name="RAM" quantum="1M"/>
+!     <provides> <service name="Timer"/> </provides>
+!   </start>
+!   <start name="hello">
+!     <resource name="RAM" quantum="10M"/>
+!   </start>
+! </config>
+!}
+!build_boot_image "core ld.lib.so init timer hello"
+!append qemu_args "-nographic -m 64"
+!run_genode_until forever
+
+The modifications are as follows:
+
+* Since the hello component now relies on a timer service, we need to
+  build and integrate a timer driver into the scenario by extending
+  the 'build' and 'build_boot_image' steps accordingly.
+
+* We instruct init to spawn the timer driver as an additional component
+  by adding a '<start>' node in init's configuration. Within this node,
+  we declare that the component provides a service of type "Timer".
+
+* To enable the hello component to open a "Timer" session at the timer
+  driver, the default route is modified to consider any children as
+  servers whenever the requested service is not provided by the parent.
+
+* This time, we let the scenario run forever so that we can watch the
+  messages printed at periodic intervals.
+
+When starting the run script, we can observe the periodic activation
+of the component in the log output:
+
+![init] child "timer" announces service "Timer"
+![init -> hello] component constructed
+![init -> hello] woke up at 12 ms
+![init -> hello] woke up at 1008 ms
+![init -> hello] woke up at 2005 ms
+!...
 

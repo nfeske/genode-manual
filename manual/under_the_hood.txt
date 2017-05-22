@@ -193,17 +193,17 @@ component's virtual address space, the function needs to overcome two
 principle problems:
 
 * It needs to obtain the backing store used for the stack, i.e.,
-  allocating a dataspace from the component's RAM session as initialized
+  allocating a dataspace from the component's PD session as initialized
   by the parent.
 
 * It needs to preserve a portion of its virtual address space for placing
   the stack and make the allocated memory visible within this portion.
 
-In order to solve both problems, the function needs to obtain capabilities
-for its RAM session and PD session from its parent. This comes down to
-the need to perform RPC calls. First, for requesting the PD and RAM
-session capabilities from the parent, and second, for invoking the session
-capabilities to perform the RAM allocation and region-map attach operations.
+In order to solve both problems, the function needs to obtain the capability
+for its PD session from its parent. This comes down to
+the need to perform RPC calls. First, for requesting the PD
+session capability from the parent, and second, for invoking the session
+capability to perform the RAM allocation and region-map attach operations.
 
 The RPC mechanism is based on C++. In particular, the mechanism supports
 the propagation of C++ exceptions across RPC interfaces. Hence,
@@ -216,10 +216,10 @@ entire Genode environment as a side effect of initializing the real stack of
 the program.
 
 During the construction of the Genode environment, the program requests its
-own RAM, CPU, and PD sessions from its parent.
+own CPU, PD, and LOG sessions from its parent.
 
 With the environment constructed, the program is able to interact
-with its own PD and RAM sessions and can principally realize the
+with its own PD session and can principally realize the
 initialization of the real stack. However, instead of merely allocating
 a new RAM dataspace and attaching the dataspace to the address space of the
 PD session, a so-called stack area is used. The stack area
@@ -722,6 +722,54 @@ submits the signal to the signal-receiver object. This, in turn, unblocks the
 'Signal_receiver::block_for_signal' function at the API level.
 
 
+Parent-child interaction in detail
+==================================
+
+On a conceptual level, the session-creation procedure as described in
+Section [Services and sessions] appears as a synchronous interaction
+between the parent and its child components. The interaction serves three
+purposes. First, it is used to communicate information between different
+protection domains, in this case the parent, the client, and the server.
+Second, it implicitly dictates the flow of control between the involved
+parties because the caller blocks until the callee replies.
+Third, the interplay delegates authority (in particular authority to
+access the server's session object) between protection domains. The latter is
+realized with the kernel's ability to carry capabilities as IPC message
+payload.
+
+[tikz img/async_session_seq]
+  Parent-child interplay during the creation of a new session.
+  The dotted lines are asynchronous notifications, which have fire-and-forget
+  semantics. A component that triggers a signal does not block.
+
+On the surface, the interaction looks like a sequence of synchronous RPC
+calls. However, under the hood, the interplay between the parent and its
+children is based on a combination of asynchronous notifications from
+the parent the children and synchronous RPC from the children to the
+parent. The protocol is designed such that the parent's liveliness remains
+independent from the behavior of its children, which must generally be
+regarded as untrusted from the parent's perspective. The sequence of creating
+a session is depicted in Figure [img/async_session_seq].
+The following points are worth noting:
+
+* Sessions are identified via IDs, which are plain numbers as opposed to
+  capabilities. The IDs as seen by the client and server belong to different
+  ID name spaces.
+  IDs of sessions requested by the client are allocated by the client. IDs
+  of sessions requested at the server are allocated by the parent.
+* The parent does not issue RPC calls to any of its children.
+* Each activation of the parent merely applies a state change of the session's
+  meta data structures maintained at the parent, which capture the entire
+  state of session requests.
+* The information about pending session requests is communicated from the
+  parent to the server via a ROM session. At startup, the server requests
+  a ROM session for the ROM module "session_requests" from its parent. The
+  parent implements this ROM session locally. Since ROM sessions support
+  versions, the parent can post version updates of the "session_requests"
+  ROM with the regular mechanisms already present in Genode.
+* The involved parties can potentially run in parallel.
+
+
 Dynamic linker
 ==============
 
@@ -735,16 +783,13 @@ Building dynamically-linked programs
 The build system automatically decides whether a program is linked statically
 or dynamically depending on the use of shared libraries. If the target
 is linked against at least one shared library, the resulting ELF image
-is a dynamically-linked program. Each dynamically-linked program is
-implicitly linked against the dynamic linker. Because the dynamic linker
-contains all the base libraries and the C++ runtime, the program itself
-must be void of those symbols. Otherwise two ambiguous versions of the base
-libraries would be present on program startup. This invariant is
-enforced by the build system by stripping all base libraries from the linking
-step of a dynamically-linked program. The base libraries are defined in
-_repos/base/mk/base-libs.mk_.
+is a dynamically-linked program. Almost all Genode components are linked
+against the Genode application binary interface (ABI), which is a shared
+library. Therefore, components are dynamically-linked programs unless a
+kernel-specific base library is used explicitly.
 
-The entrypoint of a dynamically-linked program is the 'main' function.
+The entrypoint of a dynamically-linked program is the 'Component::construct'
+function.
 
 
 Startup of dynamically-linked programs
@@ -785,10 +830,11 @@ dynamically-linked program, it loads the program and all required shared
 libraries. The dynamic linker requests each shared library as a ROM
 session from its parent.
 
-After completing the loading of all ELF objects, the dynamic linker calls
-the entrypoint of the loaded binary, which is the program's
-'main' function. Note that the symbol 'main' remains ambiguous as both
-the dynamic linker and the loaded program have a main function.
+After completing the loading of all ELF objects, the dynamic linker determines
+the entry point of the loaded binary by looking up the 'Component::construct'
+symbol and calls it as a function. Note that this particular symbol is
+ambiguous as both the dynamic linker and the loaded program have such a
+function. Hence, the lookup is performed explicitly on the loaded program.
 
 
 Address-space management
@@ -1427,8 +1473,8 @@ Core distinguishes both cases based on the instruction-pointer (IP) argument
 of the CPU session's start function. For a local EC, the IP is set to zero.
 
 
-RAM and IO_MEM services
------------------------
+IO_MEM services
+---------------
 
 Core's RAM and IO_MEM allocators are initialized based on the information found
 in NOVA's HIP.
@@ -1477,21 +1523,17 @@ The operation of pager ECs
 
 When an EC triggers a page fault, the faulting EC implicitly performs an
 IDC call to its pager. The IDC message contains the fault information.
-On NOVA, there is a one-to-one relationship between a pager EC and Genode's
-pager object. For resolving the page fault, core follows the procedure
+For resolving the page fault, core follows the procedure
 described in [Page-fault handling]. If the lookup for a dataspace within
 the faulter's region map succeeds, core establishes
-a memory mapping into the EC's PD by sending a so-called map item as reply to
-the page fault message. In the case where the region lookup
-within the thread's corresponding region map fails, the pager EC blocks
-on a semaphore. Because the page-fault message remains unanswered, the
-faulting thread is effectively put on halt.
-In the event that the fault is resolved by a region-map client
+a memory mapping into the EC's PD by invoking the asynchronous map operation
+of the kernel and replies to the IDC message. In the case where the region lookup
+within the thread's corresponding region map fails, the faulted thread
+is retained in a blocked state via a kernel semaphore.
+In the event that the fault is later resolved by a region-map client
 as described in the paragraph "Region is empty" of Section
-[Page-fault handling], the blocking on the
-semaphore gets released and the pager EC is able to reply to the original
-page-fault message. However, the reply does not immediately establish a memory
-mapping. Instead, the faulter will immediately trigger another fault at the
+[Page-fault handling], the semaphore gets released, resuming the execution of
+the faulted thread. The faulter will immediately trigger another fault at the
 same address. This time, however, the region lookup succeeds.
 
 
@@ -1602,7 +1644,7 @@ requests the physical address of the dataspace, the address returned will be a
 valid virtual address in the associated device PD.
 This design implies that a device driver must allocate DMA buffers at the
 platform driver (specifying the PCI device the buffer is intended for) instead
-of using core's RAM service to allocate buffers anonymously.
+of using core's PD service to allocate buffers anonymously.
 
 ; XXX Maybe mention this in the limitations section?
 

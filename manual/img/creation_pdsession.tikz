@@ -26,11 +26,11 @@
 		\rpcobjectrnode{corechildramsession}{minimum width=0ex,
 		                               right=1ex of coreromsession,
 		                                     align=center}{}{
-			RAM session\\\\
+			PD session\\\\
 			\begin{tikzpicture}[minimum width=0, minimum height=0]
 				\node[dataspace, minimum width=3ex, minimum height=7ex,
 				      rounded corners=0, align=center, inner sep=0] {
-					\scriptsize Dataspace \\
+					\scriptsize RAM Dataspace \\
 					\begin{memrange}
 						\alloc{7ex}{memdata} \remembersouthwest{database}
 						                     \remembersoutheast{dataend}

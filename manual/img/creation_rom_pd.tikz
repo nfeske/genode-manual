@@ -5,11 +5,11 @@
 	\labeledcompoundnode{core}{creationcomponent, inner sep=2ex}{Core}{
 
 		\rpcobjectrnode{corermsession}{minimum width=0ex}{}{Region map}
-		\rpcobjectrnode{coreramsession}{minimum width=0ex,
-		                               below=1ex of corermsession, xshift=4ex}{}{RAM session}
+		\rpcobjectrnode{corepdsession}{minimum width=0ex,
+		                               below=1ex of corermsession, xshift=4ex}{}{PD session}
 
 		\rpcobjectrnode{coreromsession}{minimum size=0ex, align=center,
-		                                right=3ex of coreramsession}{}{
+		                                right=3ex of corepdsession}{}{
 			ROM session\\\\
 			\begin{tikzpicture}[minimum width=0, minimum height=0]
 				\node[dataspace, minimum width=3ex, minimum height=7ex,
@@ -24,9 +24,9 @@
 			\end{tikzpicture}
 		}
 
-		\rpcobjectrnode{corechildramsession}{minimum width=0ex,
-		                                     right=1ex of coreromsession
-		                                     }{}{RAM session}
+		\rpcobjectrnode{corechildpdsession}{minimum width=0ex,
+		                                    right=1ex of coreromsession
+		                                    }{}{PD session}
 	}
 
 	\labeledcompoundnode{parent}{creationcomponent, above=2ex of core}{Parent}{
@@ -62,8 +62,8 @@
 
 	\path (parent.south)+(0,3ex) coordinate (parentcapanchor) {};
 
-	\path (coreramsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (envramsessioncap) {};
-	\draw[dashed] (coreramsessioncap) -- (envramsessioncap);
+	\path (corepdsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (envpdsessioncap) {};
+	\draw[dashed] (corepdsessioncap) -- (envpdsessioncap);
 
 	\path (corermsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (envrmsessioncap) {};
 	\draw[dashed] (corermsessioncap) -- (envrmsessioncap);
@@ -71,15 +71,15 @@
 	\path (coreromsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (elfromsessioncap) {};
 	\draw[dashed] (coreromsessioncap) -- (elfromsessioncap);
 
-	\path (corechildramsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childramsessioncap) {};
-	\draw[dashed] (corechildramsessioncap) -- (childramsessioncap);
+	\path (corechildpdsessioncap |- parentcapanchor) node[capability, minimum size=2.3ex] (childpdsessioncap) {};
+	\draw[dashed] (corechildpdsessioncap) -- (childpdsessioncap);
 
 	% association of the dataspace with the parent's virtual address space
 	\draw[densely dotted] (rombase) -- (parentrombase);
 	\draw[densely dotted] (romend) -- (parentromend);
 
 	% parent environment
-	\node[fit=(envrmsessioncap) (envramsessioncap) (corermsession) (coreramsession),
+	\node[fit=(envrmsessioncap) (envpdsessioncap) (corermsession) (corepdsession),
 	      opacity=0.3, draw, rounded corners=5] (env) {};
 
 	\tikzstyle{quotatransfer} = [opacity=0.4,
@@ -87,9 +87,9 @@
 	                         mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
 	                         postaction={decorate}]
 
-	\path [quotatransfer] (coreramsessionobj)
+	\path [quotatransfer] (corepdsessionobj)
 		.. controls +(0,-10ex) and +(1ex,-8ex) ..
-		(corechildramsessionobj);
+		(corechildpdsessionobj);
 
 	\path[arrow, sloped=false] (parentthread.south)
 		.. controls +(4ex,0) and +(0,4ex) ..
@@ -97,7 +97,7 @@
 
 	\path[arrow, sloped=false] (parentthread.south)
 		.. controls +(4ex,0) and +(0,4ex) ..
-		node[above, pos=0.7] {\scriptsize ref account, transfer quota} (envramsessioncap);
+		node[above, pos=0.7] {\scriptsize ref account, transfer quota} (envpdsessioncap);
 
 
 \end{tikzpicture}

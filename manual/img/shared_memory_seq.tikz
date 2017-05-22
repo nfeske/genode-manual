@@ -18,8 +18,8 @@
 		\path (corerm) node {PD};
 
 		\path (corelabel)+(10ex,-3ex) node (timelineanchor) {};
-		\newtimeline{coreram}
-		\path (coreram) node {RAM};
+		\newtimeline{corepd}
+		\path (corepd) node {PD};
 
 		\path (serverlabel)+(3ex,-3ex) node (timelineanchor) {};
 		\newtimeline{server}
@@ -29,13 +29,13 @@
 
 		% allocate dataspace
 
-		\transition{server}{coreram}{allocate dataspace}
+		\transition{server}{corepd}{allocate dataspace}
 		\renewcommand{\timestepvector}{0,-0.3}
 		\timestep
 		\node[dataspace, below=1.3 of corelabel] (physdataspace) {Data \\space};
-		\draw[timelinemessage, dashed, above] (coreram) -- node {$create$} (physdataspace);
+		\draw[timelinemessage, dashed, above] (corepd) -- node {$create$} (physdataspace);
 		\timestep
-		\transition{coreram}{server}{}
+		\transition{corepd}{server}{}
 		\node[align=center] at (transitionlabel) {return \\ capability \textbf{$cap_{ds}$}};
 		\renewcommand{\timestepvector}{0,-1.4}
 		\timestep
@@ -93,7 +93,7 @@
 
 	\begin{scope}[on background layer]
 	\node[timelinegroup, fit=(clientlabel) (clientdataspace) (client)] {};
-	\node[timelinegroup, fit=(corelabel)   (corerm) (coreram)] {};
+	\node[timelinegroup, fit=(corelabel)   (corerm) (corepd)] {};
 	\node[timelinegroup, fit=(serverlabel) (serverdataspace) (server)] {};
 	\end{scope}
 

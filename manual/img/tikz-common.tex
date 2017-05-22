@@ -549,7 +549,7 @@
 % Tikz style definitions used in the API spec
 %
 \tikzstyle{apioutline}    = [draw=black!15]
-\tikzstyle{apititlelabel} = [shape=signal, draw,
+\tikzstyle{apititlelabel} = [shape=signal, draw, inner sep=0.5ex,
                              minimum height=3ex, top color=white,
                              draw opacity=0.3,
                              signal to=east]
@@ -570,12 +570,12 @@
 %
 \newenvironment{apibox}[1] {
 
-	\path (0,0.5ex) node {}; % enforce a bit of spacing above the box
+	\path (0,1ex) node {}; % enforce a bit of spacing above the box
 
 	\path (0,0)        coordinate (leftanchor);
 	\path (leftanchor) coordinate (origleftanchor);
 
-	\path (0.98\textwidth,0) coordinate (righttop);
+	\path (1.0\textwidth,0) coordinate (righttop);
 
 	\definecolor{apibg} {rgb}{#1}
 
