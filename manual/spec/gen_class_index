@@ -10,6 +10,12 @@ proc output_class_info { class_token } {
 	set name_token [sub_token $class_token identifier]
 	set name [unfold_token $name_token]
 
+	#
+	# Strip template arguments from class names so that they won't appear as
+	# part of 'class_path' (needed for e.g., 'Rpc_object::Capability_guard').
+	#
+	regsub -all {<[^>]*>} $name "" name
+
 	regsub -all {::} "[string tolower $name]" {/} class_path
 	regsub -all {.} $class_path " " pad
 

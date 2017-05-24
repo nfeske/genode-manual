@@ -179,7 +179,15 @@ proc class_name { token } {
 
 	if {[tok_type $token] == "struct" || [tok_type $token] == "class"} {
 		set name_token [sub_token $token identifier]
-		return [unfold_token $name_token]
+		set result [unfold_token $name_token]
+
+		#
+		# Strip template arguments from class name. This is needed for
+		# classed defined within the scope of a class template, i.e.,
+		# the 'Rpc_object::Capability_guard'.
+		#
+		regsub -all {<[^>]*>} $result "" result
+		return $result
 	}
 
 	if {[tok_type $token] == "tplstruct"} {
