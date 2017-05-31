@@ -767,7 +767,7 @@ The following points are worth noting:
   parent implements this ROM session locally. Since ROM sessions support
   versions, the parent can post version updates of the "session_requests"
   ROM with the regular mechanisms already present in Genode.
-* The involved parties can potentially run in parallel.
+* The parties involved can potentially run in parallel.
 
 
 Dynamic linker
@@ -786,7 +786,7 @@ is linked against at least one shared library, the resulting ELF image
 is a dynamically-linked program. Almost all Genode components are linked
 against the Genode application binary interface (ABI), which is a shared
 library. Therefore, components are dynamically-linked programs unless a
-kernel-specific base library is used explicitly.
+kernel-specific base library is explicitly used.
 
 The entrypoint of a dynamically-linked program is the 'Component::construct'
 function.
@@ -1532,7 +1532,7 @@ within the thread's corresponding region map fails, the faulted thread
 is retained in a blocked state via a kernel semaphore.
 In the event that the fault is later resolved by a region-map client
 as described in the paragraph "Region is empty" of Section
-[Page-fault handling], the semaphore gets released, resuming the execution of
+[Page-fault handling], the semaphore gets released, thus resuming the execution of
 the faulted thread. The faulter will immediately trigger another fault at the
 same address. This time, however, the region lookup succeeds.
 

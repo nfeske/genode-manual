@@ -636,9 +636,9 @@ requests a session to a timer service at construction time. As this session
 request requires an interaction with the outside world, the '_env' needs to
 be passed to the '_timer' constructor.
 
-To respond to events from the timer, the 'Main' class hosts a
+In order to respond to events from the timer, the 'Main' class hosts a
 '_timeout_handler' object. Its constructor arguments refer to the object and
-method to be executed whenever an event occurs. The timeout handler object is
+a method to be executed whenever an event occurs. The timeout handler object is
 registered at the '_timer' as the recipient of timeout events via the 'sigh'
 method. Finally, the timer is instructed to trigger timeout events at a rate
 of 1 second.
@@ -699,7 +699,7 @@ The modifications are as follows:
   the 'build' and 'build_boot_image' steps accordingly.
 
 * We instruct init to spawn the timer driver as an additional component
-  by adding a '<start>' node in init's configuration. Within this node,
+  by adding a '<start>' node to init's configuration. Within this node,
   we declare that the component provides a service of type "Timer".
 
 * To enable the hello component to open a "Timer" session at the timer

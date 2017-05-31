@@ -954,7 +954,7 @@ design, e.g., double insertion, missing removal.
 
 An object type to be remembered in a 'Registry' inherits the
 'Registry::Element' base class, which takes its registry and a reference to
-the object itself as arguments. Thereby the relationship of the object with
+the object itself as arguments. Thereby, the relationship of the object with
 its corresponding registry is fixed at the object's construction time. Once
 constructed, it is implicitly part of the registry. The registry provides a
 'for_each' method to iterate over its elements. Unlike the traversal of a raw
@@ -1646,7 +1646,7 @@ tagged with the type of the RPC object.
 Most server-side RPC interfaces are session interfaces. In contrast to
 plain RPC objects (like a 'Region_map'), all sessions carry a client-provided
 budget of RAM and capabilities, and are associated with a client-specific
-label. The 'Session_object' class template captures these commonalities of
+label. The 'Session_object' class template captures commonalities of
 this kind of RPC objects.
 
 ; Genode::Session_object
@@ -2061,7 +2061,7 @@ Child management
 For components that manage a number of child components, each child
 is represented by an instance of the 'Child' class.
 This instance contains the policy to be applied to the child (for
-example how session requests are routed to services)
+example, how session requests are routed to services)
 and contains the child's execution environment including the
 PD session holding the child's RAM and capability quota.
 
