@@ -648,7 +648,7 @@ The exit value specified by the exiting child is forwarded to init's parent.
 State reporting
 ~~~~~~~~~~~~~~~
 
-When used in a nested fashion, init can be configured report its internal
+When used in a nested fashion, init can be configured to report its internal
 state in the form of a "state" report by placing a '<report>' node into init's
 configuration. The report node accepts the following arguments (with their
 default values shown):

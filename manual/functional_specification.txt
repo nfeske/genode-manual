@@ -945,7 +945,7 @@ which use the 'List' template.
 Registry
 --------
 
-Most commonly, lists are used as containers that solely remembers dynamically
+Most commonly, lists are used as containers that solely remember dynamically
 created objects. In this use case, the lifetime of the remembered object is
 tightly coupled with its presence in the list. The 'Registry' class
 template represents a safe wrapper around the raw list that ensures this
@@ -1035,7 +1035,7 @@ ID space
 Similar to how the 'Registry' provides a safe wrapper around list's most
 common use case, the 'Id_space' covers a prominent use case for AVL trees
 in a safeguarded fashion, namely the association of objects with IDs.
-Internally, IDs are kept in an AVL tree but implementation detail remains
+Internally, IDs are kept in an AVL tree but that implementation detail remains
 hidden from the API. In contrast to a bit allocator, the ID space can be
 sparsely populated and does not need to be dimensioned. The lifetime of an ID
 is bound to an 'Element' object, which relieves the programmer from manually
@@ -1204,7 +1204,7 @@ as backing store for fine-grained component-local allocators such as the 'Heap'
 Constraining RAM allocations
 ----------------------------
 
-The operations of 'Ram_allocator' interface are the basis for Genode's RAM
+The operations of the 'Ram_allocator' interface are the basis for Genode's RAM
 accounting. In cases where a server needs to allocate RAM on behalf of
 its clients, the interface provides a natural hook to track and constrain
 the client-specific RAM usage. The 'Constrained_ram_allocator' implements

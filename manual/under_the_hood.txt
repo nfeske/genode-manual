@@ -745,7 +745,7 @@ payload.
 On the surface, the interaction looks like a sequence of synchronous RPC
 calls. However, under the hood, the interplay between the parent and its
 children is based on a combination of asynchronous notifications from
-the parent the children and synchronous RPC from the children to the
+the parent to the children and synchronous RPC from the children to the
 parent. The protocol is designed such that the parent's liveliness remains
 independent from the behavior of its children, which must generally be
 regarded as untrusted from the parent's perspective. The sequence of creating

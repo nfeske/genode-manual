@@ -270,7 +270,8 @@ stacks.
 
 :CPU architectures:
 
-  Genode supports the x86 (32 and 64 bit), ARM, and RISC-V CPU architectures.
+  Genode supports the x86 (32 and 64 bit), ARM (32 bit), and RISC-V (64 bit)
+  CPU architectures.
   On x86, modern architectural features such as IOMMUs and
   hardware virtualization can be utilized.
   On ARM, Genode is able to take advantage of TrustZone and virtualization
