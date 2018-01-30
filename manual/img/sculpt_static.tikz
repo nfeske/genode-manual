@@ -1,0 +1,129 @@
+
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=2ex,
+	                        minimum height=4ex]
+
+	\tikzstyle{treesessionarrow} = [arrow]
+	
+	\definecolor{lzcolor}          {rgb}{0.9,0.55,0.6}
+	\definecolor{staticcolor}      {rgb}{0.5,0.4,0.5}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	\node[treenode] (nitpicker) {Nitpicker\\GUI Server};
+	\node[treenode, right=5ex of nitpicker] (report) {Report};
+	\node[treenode, below=5ex of report] (reportfs) {Report FS};
+	\node[treenode, right=5ex of report] (configrom) {ROM};
+	\node[treenode, below=5ex of configrom] (configfs) {Config FS};
+	\node[treenode, right=5ex of configrom] (globalpolicy) {Global\\Policy};
+
+	\node[fit=(nitpicker) (globalpolicy)] (staticoutline) { };
+
+	\tikzstyle{label} = [outer sep=0, opacity=0.7, minimum height=6ex, minimum width=20ex]
+	\node[label, above=10ex of staticoutline] (lzlabel) {Leitzentrale};
+	\node[label, left=0ex  of lzlabel] (driverslabel) {Drivers};
+	\node[label, right=0ex of lzlabel] (runtimelabel) {Runtime};
+
+	% runtime -> nitpicker
+	\path[treesessionarrow] (runtimelabel.220)
+		.. controls +(0,-5ex) and +(0,5ex) .. (nitpicker.50);
+
+	% leitzentrale -> nitpicker
+	\path[treesessionarrow] (lzlabel)
+		.. controls +(0,-5ex) and +(0,5ex) .. (nitpicker.75);
+
+	% nitpicker -> drivers
+	\path[treesessionarrow] (nitpicker.100)
+		.. controls +(0,5ex) and +(0,-5ex) .. (driverslabel.250);
+
+	\tikzstyle{infoflow} = [opacity=0.7,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	% drivers -> report
+	\path[infoflow] (driverslabel.290)
+		.. controls +(0,-5ex) and +(0,5ex) .. (report.100);
+
+	% runtime -> configrom
+	\path[treesessionarrow] (driverslabel.310)
+		.. controls +(0,-5ex) and +(0,5ex) .. (configrom.120);
+
+	% runtime -> report
+	\path[infoflow] (runtimelabel.270)
+		.. controls +(0,-5ex) and +(0,5ex) .. (report.80);
+
+	% runtime -> configrom
+	\path[treesessionarrow] (runtimelabel.310)
+		.. controls +(0,-5ex) and +(0,5ex) .. (configrom.60);
+
+	% leitzentale -> config fs
+	\path[treesessionarrow] (lzlabel.310)
+		.. controls +(0,-15ex) and +(0,5ex) .. (configfs.150);
+
+	% leitzentale -> report fs
+	\path[treesessionarrow] (lzlabel.300)
+		.. controls +(0,-15ex) and +(0,5ex) .. (reportfs.28);
+
+	% report -> reportfs
+	\path[treesessionarrow] (report) -- (reportfs);
+
+	% configrom -> configfs
+	\path[treesessionarrow] (configrom) -- (configfs);
+
+	% initial config -> config fs
+	\path[infoflow, opacity=0.5] (configfs)+(0,-10ex) -- node[pos=0.3, right] {initial config} (configfs);
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\node[fit=(driverslabel) (runtimelabel) (configfs)] (alloutline) {};
+
+		% midpoint between kernel and static user land
+		\path (configfs.south)+(0,-3ex) coordinate (midkerneluser) {};
+
+		% midpoint between static and dynamic user land
+		\path (lzlabel.south) coordinate (midstaticdynamic) {};
+
+		% midpoint between drivers and leitzentrale
+		\path (driverslabel) -- coordinate (middriverslz) (lzlabel);
+
+		% midpoint between leitzentrale and runtime
+		\path (lzlabel) -- coordinate (midlzruntime) (runtimelabel);
+
+		% kernel land
+		\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=5]
+
+		% static user land
+		\path[land, opacity=0.5, outer color=staticcolor, sharp corners]
+			(alloutline.west |- midstaticdynamic) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.east |- midkerneluser) --
+			(alloutline.west |- midkerneluser) --cycle;
+
+		% drivers
+		\path[land, opacity=0.4, outer color=driverscolor]
+			(alloutline.west |- alloutline.north) {[sharp corners] --
+			(middriverslz    |- alloutline.north) --
+			(middriverslz    |- midstaticdynamic) --
+			(alloutline.west |- midstaticdynamic)} --cycle;
+
+		% leitzentrale
+		\path[land, sharp corners, opacity=0.4, outer color=lzcolor]
+			(middriverslz |- alloutline.north) --
+			(midlzruntime |- alloutline.north) --
+			(midlzruntime |- midstaticdynamic) --
+			(middriverslz |- midstaticdynamic) --cycle;
+
+		% runtime
+		\path[land, opacity=0.4, outer color=runtimecolor]
+			(alloutline.east |- alloutline.north) {[sharp corners] --
+			(alloutline.east |- midstaticdynamic) --
+			(midlzruntime    |- midstaticdynamic) --
+			(midlzruntime    |- alloutline.north)} --cycle;
+
+	\end{scope}
+
+\end{tikzpicture}
