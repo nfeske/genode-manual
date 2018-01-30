@@ -1,0 +1,121 @@
+
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=2ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	
+	\definecolor{lzcolor}          {rgb}{0.9,0.55,0.6}
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	% kernel
+	\node[treenode, bottom color=kernelcolor, opacity=0.2] (kernel) {Microkernel / Core};
+
+	\tikzstyle{staticnode} = [treenode, bottom color=staticcolor, opacity=0.2]
+	\node[staticnode, above=3ex of kernel, opacity=0.9] (init) {Init};
+
+	\node[staticnode, above=10ex of init]               (lzinit)      {Init};
+	\node[staticnode, above=10ex of init, xshift=-20ex] (driversinit) {Init};
+	\node[staticnode, above=10ex of init, xshift=20ex]  (runtimeinit) {Init};
+
+	\tikzstyle{label} = [opacity=0.2]
+
+	\node[label, above=10ex of driversinit] (driverslabel)     {\large Drivers};
+	\node[label, above=10ex of lzinit] (lzlabel)               {\large Leitzentrale};
+	\node[label, above=10ex of runtimeinit] (runtimelabel)     {\large Runtime};
+	\node[opacity=0.5, right=10ex of init, yshift=3ex] (staticlabel) {\large static system};
+
+	\newcommand{\childofinit}[3]{
+		\path (#1)+(#2)   node[#3] (c) {};
+		\path[treechildarrow] (#1) -- (c);
+	}
+
+	\newcommand{\severalchildren}[2]{
+		\childofinit{#1}{20:8ex}{#2}
+		\childofinit{#1}{50:8ex}{#2}
+		\childofinit{#1}{75:8ex}{#2}
+		\childofinit{#1}{105:8ex}{#2}
+		\childofinit{#1}{130:8ex}{#2}
+		\childofinit{#1}{160:8ex}{#2}
+	}
+
+	\severalchildren{init}{staticnode, opacity=0.9}
+
+	\path[treechildarrow] (init) -- (driversinit);
+	\path[treechildarrow] (init) -- (lzinit);
+	\path[treechildarrow] (init) -- (runtimeinit);
+
+	\severalchildren{driversinit}{staticnode}
+	\severalchildren{lzinit}{staticnode}
+	\severalchildren{runtimeinit}{staticnode}
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\tikzstyle{outline} = [inner sep=1ex]
+
+		% helper outline nodes
+		\node[outline, fit=(kernel)] (kerneloutline) {};
+
+		\node[inner sep=8ex, fit=(driversinit)] (driversoutline) {};
+		\node[inner sep=8ex, fit=(runtimeinit)] (runtimeoutline) {};
+
+		\node[fit=(driversoutline) (runtimeoutline) (kerneloutline) (lzlabel)] (alloutline) {};
+
+		% midpoint between kernel and static user land
+		\path (kernel) -- coordinate (midkerneluser) (init);
+
+		% midpoint between static and dynamic user land
+		\path (init) -- coordinate[pos=0.85] (midstaticdynamic) (lzinit);
+
+		% midpoint between drivers and leitzentrale
+		\path (driversinit) -- coordinate (middriverslz) (lzinit);
+
+		% midpoint between leitzentrale and runtime
+		\path (lzinit) -- coordinate (midlzruntime) (runtimeinit);
+
+		% kernel land
+		\tikzstyle{land} = [fill, opacity=0.2, inner color=white, path fading=flow fade, rounded corners=5]
+		\path[land, outer color=kernelcolor]
+			(alloutline.west |- midkerneluser) {[sharp corners] --
+			(alloutline.east |- midkerneluser)} --
+			(alloutline.east |- kerneloutline.south) --
+			(alloutline.west |- kerneloutline.south) [sharp corners] --cycle;
+
+		% static user land
+		\path[land, opacity=0.4, inner color=innerstaticcolor, outer color=staticcolor, sharp corners]
+			(alloutline.west |- midstaticdynamic) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.east |- midkerneluser) --
+			(alloutline.west |- midkerneluser) --cycle;
+
+		% drivers
+		\path[land, outer color=driverscolor]
+			(alloutline.west |- alloutline.north) {[sharp corners] --
+			(middriverslz    |- alloutline.north) --
+			(middriverslz    |- midstaticdynamic) --
+			(alloutline.west |- midstaticdynamic)} --cycle;
+
+		% leitzentrale
+		\path[land, sharp corners, outer color=lzcolor]
+			(middriverslz |- alloutline.north) --
+			(midlzruntime |- alloutline.north) --
+			(midlzruntime |- midstaticdynamic) --
+			(middriverslz |- midstaticdynamic) --cycle;
+
+		% runtime
+		\path[land, outer color=runtimecolor]
+			(alloutline.east |- alloutline.north) {[sharp corners] --
+			(alloutline.east |- midstaticdynamic) --
+			(midlzruntime    |- midstaticdynamic) --
+			(midlzruntime    |- alloutline.north)} --cycle;
+
+	\end{scope}
+
+\end{tikzpicture}
