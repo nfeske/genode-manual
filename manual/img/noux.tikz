@@ -9,7 +9,7 @@
 	                             align=center,
 	                             draw=black!80, fill=white, fill opacity=0.6]
 
-	\node[treenode] (core) {Core};
+	\node[minimum width=12ex, minimum height=5ex] (core) {};
 
 	%
 	% Init and terminal
@@ -95,7 +95,6 @@
 
 	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
 
-	\path[treechildarrow] (core) -- (init);
 	\path[treechildarrow] (init) -- (terminal.south);
 	\path[treechildarrow] (init) -- (noux.south);
 
