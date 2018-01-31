@@ -1,0 +1,44 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+
+	\definecolor{managercolor} {rgb}{0.94,0.88,0.7}
+	\definecolor{stepcolor}    {rgb}{0.6,0.7,0.9}
+
+	\node[treenode, align=center, shape border rotate=10,
+	      regular polygon, regular polygon sides=5,
+	      inner sep=0,
+	      inner color=white, outer color=managercolor] (dm) {Download\\Manager};
+
+	\tikzstyle{downloadstep} = [treenode, inner sep=4ex, single arrow,
+	                            single arrow head extend=3ex,
+	                            single arrow head indent=1ex,
+	                            inner color=white]
+
+	%%
+	% arg 1 is angle
+	% arg 2 is node name
+	% arg 3 is style
+	% arg 4 is node content
+	%
+	\newcommand{\downloadstep}[4]{
+		\path (dm)+(#1:15ex) node[downloadstep, rotate=270+#1, #3] (#2) {};
+		\path (#2) node[align=center] {#4};
+	}
+
+	\downloadstep{140}{querydeps}{outer color=stepcolor!0}{What's\\ missing?}
+	\downloadstep{140-72}{queryuser}{outer color=stepcolor!25}{Get\\ download\\ info}
+	\downloadstep{140-2*72}{fetch}{outer color=stepcolor!50}{Fetch}
+	\downloadstep{140-3*72}{verify}{outer color=stepcolor!75}{Verify}
+	\downloadstep{140-4*72}{extract}{outer color=stepcolor!100}{Extract}
+
+	\tikzstyle{stepdone} = [align=center, scale=0.8, opacity=0.6]
+	\path[stepdone] (dm)+(95:22ex) node {archive\\ list};
+	\path[stepdone] (dm)+(95-72:22ex) node {download URL,\\ public key};
+	\path[stepdone] (dm)+(95+5-2*72:22ex) node {archives,\\ signatures};
+	\path[stepdone] (dm)+(95+5-3*72:22ex) node {good or\\ bad};
+	\path[stepdone] (dm)+(95+5-4*72:22ex) node {archive\\ content};
+
+\end{tikzpicture}
