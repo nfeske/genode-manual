@@ -1,0 +1,40 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	\tikzstyle{runtimenode} = [treenode, bottom color=runtimecolor]
+
+	\node[treenode, minimum width=15ex, minimum height=13ex] (fetchurl) {};
+	\node[at=(fetchurl.north), anchor=north, inner sep=1ex, align=center] {fetchurl};
+
+	\node[umlinfo, at=(fetchurl), scale=0.7, align=left, yshift=-1ex] (fetchurlinfo) {
+		TCP/IP stack \\
+		libcurl \\
+		libssl
+	};
+
+	\node[runtimenode, left=7ex of fetchurl] (chroot) {chroot\\ \texttt{/download}};
+	\node[runtimenode, left=7ex of chroot] (defaultfs) {Default\\ FS};
+	\node[runtimenode, left=7ex of defaultfs] (defaultnoux) {Default\\ Noux};
+	\node[runtimenode, right=7ex of fetchurl] (defaultnic) {Default\\ NIC};
+
+	\path[treesessionarrow] (fetchurl)    -- node[align=center] {File\\ system} (chroot);
+	\path[treesessionarrow] (chroot)      -- node[align=center] {File\\ system} (defaultfs);
+	\path[treesessionarrow] (defaultnoux) -- node[align=center] {File\\ system} (defaultfs);
+	\path[treesessionarrow] (fetchurl)    -- node {NIC} (defaultnic);
+	\path[treesessionarrow] (defaultfs.south)   -- +(0,-8ex) node[below] {Block};
+	\path[treesessionarrow] (defaultnic.south)  -- +(0,-8ex) node[below] {Platform};
+	\path[treesessionarrow] (defaultnoux.south) -- +(0,-8ex) node[below] {Nitpicker};
+
+\end{tikzpicture}
