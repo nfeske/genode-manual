@@ -1,0 +1,151 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=2ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+
+	\tikzstyle{drivernode} = [treenode, bottom color=driverscolor]
+
+	\node[drivernode] (dynamic) {Dynamic\\ Init};
+	\node[treenode, left=4ex of dynamic] (manager) {Driver\\ Manager};
+	\node[drivernode, left=4ex of manager] (usb) {USB\\ Driver};
+	\node[drivernode, left=2ex of usb, yshift=-3ex] (ps2) {PS2\\ Driver};
+	\node[drivernode, left=2ex of ps2, yshift=3ex] (platform) {Platform\\ Driver};
+	\node[drivernode, left=2ex of platform] (acpi) {ACPI\\ Discovery};
+
+	% dynamically started drivers
+	\node[drivernode, above=10ex of dynamic, xshift=-5ex] (fb)   {Framebuffer\\ Driver};
+	\node[drivernode, above=10ex of dynamic, xshift=5ex] (block) {Block\\ Driver};
+	\path[treechildarrow] (dynamic) -- (fb);
+	\path[treechildarrow] (dynamic) -- (block);
+
+	% input filter
+	\node[fit=(ps2) (usb)] (inputdriversoutline) {};
+	\node[drivernode, below=3ex of inputdriversoutline] (inputfilter) {Input\\ Filter};
+	\path[treesessionarrow] (inputfilter.120)
+		.. controls +(0,2ex) and +(0,-2ex) .. (ps2.south);
+	\path[treesessionarrow] (inputfilter.60)
+		.. controls +(0,2ex) and +(0,-2ex) .. (usb.250);
+
+	% services provided by the drivers subsystem
+	\tikzstyle{servicenode} = [trapezium, scale=0.8, align=center,
+	                           inner color=white,
+	                           opacity=0.8, flowborder, path fading=flow fade]
+	\node[servicenode, below=5ex of inputfilter] (platformservice) {platform};
+	\node[servicenode, right=2ex of platformservice] (inputservice) {input};
+	\node[servicenode, right=2ex of inputservice] (usbservice) {usb};
+	\node[servicenode, right=2ex of usbservice] (fbservice) {framebuffer};
+	\node[servicenode, right=2ex of fbservice] (blockservice) {block};
+
+	% sessions between components
+	\path[treesessionarrow] (ps2.157)
+		.. controls +(-1ex,0ex) and +(1ex,0ex) .. (platform.340);
+	\path[treesessionarrow] (usb.180)
+		.. controls +(-1ex,0ex) and +(1ex,0ex) .. (platform.0);
+	\path[treesessionarrow] (block.220)
+		.. controls +(-1ex,-5ex) and +(1ex,6ex) .. (platform.80);
+	\path[treesessionarrow] (fb.270)
+		.. controls +(-1ex,-4ex) and +(1ex,7ex) .. (platform.100);
+
+	% config / state information flow
+	\tikzstyle{infoflow} = [opacity=0.3,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	\path[infoflow] (manager.320)
+		.. controls +(2ex,-2ex) and +(-2ex,-2ex) .. node[below] {config} (dynamic.south);
+	\path[infoflow] (manager.220)
+		.. controls +(-2ex,-2ex) and +(2ex,-2ex) .. node[below] {config} (usb.south);
+	\path[infoflow] (dynamic.120)
+		.. controls +(-2ex,2ex) and +(2ex,2ex) .. node[above] {state} (manager.60);
+	\path[infoflow] (usb.60)
+		.. controls +(2ex,2ex) and +(-2ex,2ex) .. (manager.120);
+	\path[infoflow] (platform.north east)
+		.. controls +(0ex,4ex) and +(0ex,5ex) .. node[below] {device info} (manager.90);
+	\path[infoflow] (acpi.60)
+		.. controls +(2ex,2ex) and +(-2ex,2ex) .. (platform.120);
+
+	% core I/O service
+	\node[align=center, below=26ex of acpi] (iomem) {I/O\\ MEM};
+	\node[align=center, right=2ex of iomem] (ioport) {I/O\\ PORT};
+	\node[align=center, right=2ex of ioport] (irq) {IRQ};
+
+	\path[treesessionarrow] (platform.250)
+		.. controls +(0,-20ex) and +(0,5ex) .. (iomem.70);
+	\path[treesessionarrow] (acpi.south)
+		.. controls +(0,-20ex) and +(0,5ex) .. (iomem.110);
+	\path[treesessionarrow] (platform.270)
+		.. controls +(0,-20ex) and +(0,5ex) .. (ioport.north);
+	\path[treesessionarrow] (platform.290)
+		.. controls +(0,-20ex) and +(0,5ex) .. (irq.north);
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\tikzstyle{outline} = [inner sep=1ex]
+		\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=5]
+
+		\node[left=2ex of acpi] (leftmost) {};
+		\node[above=1ex of block] (topmost) {};
+		\node[right=2ex of block] (rightmost) {};
+
+		% helper outline nodes
+		\node[fit=(leftmost) (topmost) (rightmost) (blockservice)] (driversoutline) {};
+		\node[outline, fit=(driversoutline) (ioport)] (alloutline) {};
+
+		% midpoint between static and dynamic user land
+		\path (blockservice.south) coordinate (midstaticdynamic);
+
+		% midpoint between kernel and static user land
+		\path (ioport.north) coordinate (midkerneluser);
+
+		% kernel land
+		\path[land, opacity=0.4, outer color=kernelcolor]
+			(alloutline.west |- midkerneluser) {[sharp corners] --
+			(alloutline.east |- midkerneluser)} --
+			(alloutline.east |- alloutline.south) --
+			(alloutline.west |- alloutline.south) [sharp corners] --cycle;
+
+		% static user land
+		\path[land, inner color=innerstaticcolor, opacity=0.4, outer color=staticcolor, sharp corners]
+			(alloutline.west |- midstaticdynamic) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.east |- midkerneluser.south) --
+			(alloutline.west |- midkerneluser.south) --cycle;
+
+		% drivers
+		\path[land, opacity=0.4, outer color=driverscolor]
+			(alloutline.west |- alloutline.north) --
+			(alloutline.east |- alloutline.north) {[sharp corners] --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.west |- midstaticdynamic)} --cycle;
+
+		% relation of provided services with the respective components
+		\tikzstyle{serviceforwarding} = [draw, densely dashed, white, opacity=0.8, thick]
+		\path[serviceforwarding] (block.300)
+			.. controls +(-8ex,-10ex) and +(0ex,5ex) .. (blockservice);
+		\path[serviceforwarding] (fb.300)
+			.. controls +(7ex,-10ex) and +(0,5ex) .. (fbservice);
+		\path[serviceforwarding] (usb.270)
+			.. controls +(0ex,-5ex) and +(0ex,5ex) .. (usbservice);
+		\path[serviceforwarding] (inputfilter.south)
+			.. controls +(0ex,-3ex) and +(0ex,3ex) .. (inputservice);
+		\path[serviceforwarding] (platform.310)
+			.. controls +(0ex,-15ex) and +(0ex,5ex) .. (platformservice);
+
+		\node[label, inner sep=2ex, at=(alloutline.south east), opacity=0.8, anchor=south east] {\large Microkernel / Core};
+
+		\node[label, inner sep=2ex, at=(alloutline.north), opacity=0.8, anchor=north] {\Large Drivers};
+
+	\end{scope}
+
+\end{tikzpicture}
