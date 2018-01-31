@@ -1,0 +1,151 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{lzcolor}          {rgb}{0.9,0.55,0.6}
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	\tikzstyle{runtimenode}     = [treenode, bottom color=runtimecolor]
+	\tikzstyle{vfsentry}   = [align=left, text opacity=0.5]
+	\tikzstyle{nouxnode}   = [treenode, minimum width=15ex, minimum height=9ex]
+
+	\node[nouxnode] (noux) {};
+	\node[at=(noux), yshift=2ex, align=center] {Noux};
+	\node[at=(noux), yshift=-1.5ex, vfsentry] (nouxdevblock) {\texttt{/dev/block}};
+
+	\node[umlinfo, scale=0.7, right=2ex of noux, align=left] (nouxinfo) {
+		bash \\
+		coreutils \\
+		e2fsprogs
+	};
+	\draw[densely dashed] (noux) -- (nouxinfo);
+
+	\node[runtimenode, below=3ex of noux] (terminal) {Terminal};
+	\node[runtimenode, below=3ex of terminal] (nitfb) {Nit FB};
+	\path[treesessionarrow] (noux)         -- (terminal);
+	\path[treesessionarrow] (terminal.250) -- (nitfb.110);
+	\path[treesessionarrow] (terminal.290) -- (nitfb.70);
+
+	\node[runtimenode, below=3ex of nitfb, minimum width=15ex] (init) {Init};
+	\path[treechildarrow] (init) -- (nitfb);
+
+	\tikzstyle{label} = [outer sep=0, opacity=0.6, minimum height=4ex, minimum width=20ex]
+
+	\node[label, above=0ex of noux, minimum width=35ex] (runtimelabel) {\large Runtime};
+
+	\node[label, left=0ex of runtimelabel, minimum width=35ex] (driverslabel) {\large Drivers};
+
+	%\node[right=3ex of nitpicker, label] {\large static system};
+
+	\tikzstyle{outline} = [inner sep=1ex]
+
+	% midpoint between static and dynamic user land
+	\path (init)+(0,-4ex) coordinate (midstaticdynamic);
+
+	% midpoint between drivers and runtime
+	\path (driverslabel.east) coordinate (middriversruntime);
+
+	% midpoint between static and dynamic user land
+	\path (middriversruntime |- midstaticdynamic) coordinate (mid);
+
+	\node[treenode, below=5ex of mid] (nitpicker) {Nitpicker};
+
+	\path (mid)+(0,-3ex) coordinate (midblockroute) {};
+
+	% helper outline nodes
+	\node[outline, fit=(driverslabel) (runtimelabel) (nitpicker)] (alloutline) {};
+
+	\path[treesessionarrow] (nitfb.230)
+		.. controls +(0,-9ex) and +(5ex,0ex) .. (nitpicker.east);
+
+	% services provided by the drivers subsystem
+	\tikzstyle{servicenode} = [trapezium, scale=0.8, align=center,
+	                           inner color=white,
+	                           opacity=0.8, flowborder, path fading=flow fade]
+	\node[servicenode, at=(driverslabel |- midstaticdynamic), anchor=south] (fbservice) {framebuffer};
+	\node[servicenode, right=2ex of fbservice] (blockservice) {block};
+	\node[servicenode, left=2ex of fbservice] (inputservice) {input};
+
+
+	% noux /dev/block mount point -> block service
+	\path[treesessionarrow] (nouxdevblock.180)
+		.. controls +(-8ex,0ex) and +(0,10ex) .. +(0ex,-18ex)
+		.. controls +(0ex,-8ex) and +(2ex,0ex) .. (midblockroute)
+		.. controls +(-3ex,0) and +(0,-3ex) .. (blockservice.south);
+
+	\tikzstyle{policy} = [rectangle callout, fill=red!50!black,
+	                      callout relative pointer={(5ex,-3ex)},
+	                      rounded corners=3, text=white, scale=0.7]
+
+	% nitpicker back end
+	\path[treesessionarrow] (nitpicker.170)
+		.. controls +(-8ex,0ex) and +(0,-3ex) .. (fbservice.south);
+	\path[treesessionarrow] (nitpicker.190)
+		.. controls +(-12ex,0ex) and +(0,-3ex) .. (inputservice.south);
+
+	% dynamically started drivers
+	\tikzstyle{drivernode} = [treenode, bottom color=driverscolor]
+	\node[drivernode, at=(driverslabel), yshift=-18ex] (dynamic) {Dynamic \\ Init};
+	\node[drivernode, above=5ex of dynamic, xshift=-6ex] (fb)   {Framebuffer\\ Driver};
+	\node[drivernode, above=5ex of dynamic, xshift=6ex] (block) {Block\\ Driver};
+	\path[treechildarrow] (dynamic) -- (fb);
+	\path[treechildarrow] (dynamic) -- (block);
+
+	% annotate policy
+	\node[policy, at=(init), xshift=-15.5ex, yshift=4ex] {runtime policy};
+	\node[policy, at=(midblockroute), xshift=17ex, yshift=-2.8ex,
+	      callout relative pointer={(-5ex,3ex)}] {global policy};
+	\node[policy, at=(dynamic.east), xshift=8ex, yshift=3ex, align=center,
+	      callout relative pointer={(-5ex,-3ex)}] {driver-manager\\ policy};
+
+	\node[drivernode, left=4ex of dynamic] (inputfilter) {Input\\ Filter};
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=5]
+
+		% static user land
+		\path[land, inner color=innerstaticcolor, opacity=0.4, outer color=staticcolor, sharp corners]
+			(alloutline.west |- midstaticdynamic) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.east |- alloutline.south) --
+			(alloutline.west |- alloutline.south) --cycle;
+
+		% runtime
+		\path[land, sharp corners, opacity=0.4, outer color=runtimecolor]
+			(middriversruntime |- alloutline.north) --
+			(alloutline.east   |- alloutline.north) --
+			(alloutline.east   |- midstaticdynamic) --
+			(middriversruntime |- midstaticdynamic) --cycle;
+
+		% drivers
+		\path[land, sharp corners, opacity=0.4, outer color=driverscolor]
+			(alloutline.west   |- alloutline.north) --
+			(middriversruntime |- alloutline.north) --
+			(middriversruntime |- midstaticdynamic) --
+			(alloutline.west   |- midstaticdynamic) --cycle;
+
+		\path[treesessionarrow] (blockservice.north)
+			.. controls +(0ex,5ex) and +(-8ex,-10ex) .. (block.south);
+
+		\path[treesessionarrow] (fbservice.north)
+			.. controls +(0ex,5ex) and +(4ex,-7ex) .. (fb.south);
+
+		\path[treesessionarrow] (inputservice.north)
+			.. controls +(0ex,5ex) and +(0ex,-3ex) .. (inputfilter.south);
+
+		\node[label, inner sep=2ex, at=(alloutline.south east), opacity=0.8, anchor=south east] {\large static system};
+
+	\end{scope}
+
+\end{tikzpicture}
