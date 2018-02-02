@@ -1,0 +1,28 @@
+\begin{tikzpicture}
+
+	\tikzstyle{cmd} = [anchor=north west, align=left]
+	\node[cmd] (cp1) {\texttt{cp /config/<customized>.config \ \ \ \ \ \ \ \ /rw/config/}};
+	\node[cmd, at=(cp1.south west)] (cp2) {\texttt{cp /config/runtime/<customized>.config /rw/config/runtime/}};
+	\node[cmd, at=(cp2.south west)] (cp3) {\texttt{cp /config/subinit/<customized>.config /rw/config/subinit/}};
+
+	\node[fit=(cp1) (cp2) (cp3)] (cmds) {};
+
+	\path (cmds.north west)+(12.5ex,0) coordinate (configfsstart);
+	\path (configfsstart)+(27ex,0) coordinate (configfsend);
+	\path (configfsend)+(4.5ex,0) coordinate (defaultfsstart);
+	\path (defaultfsstart)+(16ex,0) coordinate (defaultfsend);
+
+	\draw[densely dashed, rounded corners=1ex, fill=black,
+	      opacity=0.1, draw opacity=0.5]
+		(configfsstart |- cmds.north) -- (configfsend |- cmds.north) --
+		(configfsend |- cmds.south) -- node (configfsmid) {} (configfsstart |- cmds.south) --cycle;
+
+	\draw[densely dashed, rounded corners=1ex, fill=black,
+	      opacity=0.1, draw opacity=0.5]
+		(defaultfsstart |- cmds.north) -- (defaultfsend |- cmds.north) --
+		(defaultfsend |- cmds.south) -- node (defaultfsmid) {} (defaultfsstart |- cmds.south) --cycle;
+
+	\node[below=0 of configfsmid,  scale=0.8, opacity=0.6] {Config FS};
+	\node[below=0 of defaultfsmid, scale=0.8, opacity=0.6] {Default FS};
+
+\end{tikzpicture}
