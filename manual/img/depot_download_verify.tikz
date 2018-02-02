@@ -1,0 +1,90 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+	\tikzstyle{treechildarrow}   = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{managercolor}     {rgb}{0.94,0.88,0.7}
+	\definecolor{stepcolor}        {rgb}{0.6,0.7,0.9}
+
+	\tikzstyle{downloadstep} = [treenode, inner sep=3.5ex, single arrow,
+	                            single arrow head extend=2.5ex,
+	                            single arrow head indent=1ex,
+	                            inner color=white]
+	%%
+	% arg 1 is node name
+	% arg 2 is shape style
+	% arg 3 is conent style
+	% arg 4 is node content
+	%
+	\newcommand{\downloadstep}[4]{
+		\path (pos) node[anchor=west, downloadstep, #2] (#1) {};
+		\path (#1)+(1ex,0) node[align=center, #3] {#4};
+		\path (#1.0)+(4ex,0) coordinate (pos) {};
+	}
+
+	\tikzstyle{dimmed} = [opacity=0.2, draw opacity=0.2]
+
+	\coordinate (pos);
+	\coordinate (pos)+(-4ex,0);
+	\downloadstep{querydeps}{outer color=stepcolor!0}         {      }{What's\\ missing?}
+	\downloadstep{queryuser}{outer color=stepcolor!25}        {      }{Get\\ download\\ info}
+	\downloadstep{fetch}    {outer color=stepcolor!50}        {      }{Fetch}
+	\downloadstep{verify}   {outer color=stepcolor!75}        {      }{Verify}
+	\downloadstep{extract}  {outer color=stepcolor!100,dimmed}{dimmed}{Extract}
+
+	\node[fit=(querydeps) (extract)] (stepsoutine) {};
+
+	\node[treenode, below=23ex of stepsoutine,
+	      minimum width=10ex, minimum height=7ex] (dynamic) {Dynamic\\ Init};
+
+	\node[treenode, left=4ex of dynamic,
+	      minimum width=10ex, minimum height=7ex,
+	      inner color=white, outer color=managercolor] (dm) {Download\\ Manager};
+
+	\node[treenode, above=7ex of dynamic, minimum width=10ex] (verify) {verify\\ \\ \\ };
+
+	\node[umlinfo, at=(verify), scale=0.65, align=left, yshift=-1.5ex] {
+		GnuPG \\
+		libgcrypt
+	};
+
+	\path[treechildarrow] (dynamic) -- (verify);
+
+	% config / state information flow
+	\tikzstyle{infoflow} = [opacity=0.3,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	\path[infoflow] (dm.320)
+		.. controls +(2ex,-2ex) and +(-2ex,-2ex) .. node[below] {config} (dynamic.south);
+	\path[infoflow] (dynamic.120)
+		.. controls +(-2ex,2ex) and +(2ex,2ex) .. node[above] {state} (dm.60);
+	\path[infoflow] (verify.180)
+		.. controls +(-5ex,0) and +(0,5ex)
+		.. node[above=1ex, left, align=center, opacity=0.8] {good /\\ bad} (dm.90);
+
+	\node[below=10ex of dynamic] (public) {file system};
+	\node[left=4ex of public]    (net)    {network};
+	\node[right=4ex of public]   (depot)  {file system};
+	\node[below=0ex of public] (publiclabel) {\texttt{/public}};
+	\node[below=0ex of depot]                {\texttt{/depot}};
+
+	\tikzstyle{risky} = [color=red!80!black]
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\path[treesessionarrow] (verify.290)
+			.. controls +(0ex, -15ex) and +(0ex, 8ex)
+			.. node[right, pos=0.7]{read-only} (public);
+
+		\draw[risky, thick] (net.south west) -- (net.north east);
+		\draw[risky, thick] (net.north west) -- (net.south east);
+
+	\end{scope}
+
+\end{tikzpicture}
