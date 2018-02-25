@@ -1,0 +1,71 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	\tikzstyle{runtimenode} = [treenode, bottom color=runtimecolor]
+
+	\node[runtimenode] (depotquery) {Depot\\ Query};
+
+	\node[runtimenode, above=6ex of depotquery] (fsrom) {FS\\ ROM};
+	\node[runtimenode, left=7ex of depotquery, yshift=6ex] (chroot) {chroot\\ \texttt{/depot}};
+	\node[runtimenode, left=7ex of chroot] (defaultfs) {Default\\ FS};
+
+	\node[runtimenode, right=7ex of depotquery] (depotdeploy) {Depot\\ Deploy};
+	\node[runtimenode, above=6ex of depotdeploy] (dynamic) {Dynamic\\ Init};
+
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\tikzstyle{staticnode} = [component, path fading=flow fade, align=center,
+	                          rounded corners=1, minimum width=2ex,
+	                          minimum height=2ex,
+	                          bottom color=staticcolor]
+
+	\newcommand{\childofinit}[2]{
+		\path (#1)+(#2)   node[staticnode] (c) {};
+		\path[treechildarrow] (#1) -- (c);
+	}
+
+	\newcommand{\severalchildren}[1]{
+		\childofinit{#1}{20:8ex}
+		\childofinit{#1}{50:8ex}
+		\childofinit{#1}{75:8ex}
+		\childofinit{#1}{105:8ex}
+		\childofinit{#1}{130:8ex}
+		\childofinit{#1}{160:8ex}
+	}
+
+	\severalchildren{dynamic.north}
+
+	\path[treesessionarrow] (depotquery)      -- node[align=center] {File\\ system} (chroot);
+	\path[treesessionarrow] (fsrom)           -- node[align=center] {}              (chroot);
+	\path[treesessionarrow] (dynamic)         -- node[align=center] {ROM}           (fsrom);
+	\path[treesessionarrow] (chroot)          -- node[align=center] {File\\ system} (defaultfs);
+	\path[treesessionarrow] (defaultfs.south) -- +(0,-14ex) node[below] {Block};
+	\path[treesessionarrow] (depotdeploy.south) -- +(0,-6ex) node[below, align=center] {ROM\\ \texttt{/config/deploy/config}};
+
+	% config / state information flow
+	\tikzstyle{infoflow} = [opacity=0.3,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	\path[infoflow] (depotquery.320)
+		.. controls +(2ex,-2ex) and +(-2ex,-2ex) .. node[below] {blueprint} (depotdeploy.240);
+
+	\path[infoflow] (depotdeploy.120)
+		.. controls +(-2ex,2ex) and +(2ex,2ex) .. node[above] {query} (depotquery.50);
+
+	\path[infoflow] (depotdeploy.0)
+		.. controls +(4ex,2ex) and +(4ex,-2ex) .. node[left] {config} (dynamic.0);
+
+\end{tikzpicture}

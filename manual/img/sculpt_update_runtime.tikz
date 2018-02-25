@@ -1,0 +1,45 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	\tikzstyle{runtimenode} = [treenode, bottom color=runtimecolor]
+
+	\node[treenode, minimum width=15ex, minimum height=13ex] (depotdownload) {};
+	\node[at=(depotdownload.north), anchor=north, inner sep=1ex, align=center] {Depot Download};
+
+	\node[umlinfo, at=(depotdownload), scale=0.7, align=left, yshift=-1ex] (depotdownloadinfo) {
+		query \\
+		fetchurl \\
+		verify \\
+		extract
+	};
+
+	\node[runtimenode, left=7ex of depotdownload, yshift=6ex] (chrootpublic) {chroot\\ \texttt{/public}};
+	\node[runtimenode, left=7ex of depotdownload, yshift=-6ex] (chrootdepot) {chroot\\ \texttt{/depot}};
+	\node[runtimenode, left=7ex of chrootpublic, yshift=-6ex] (defaultfs) {Default\\ FS};
+	\node[runtimenode, left=7ex of defaultfs] (defaultnoux) {Default\\ Noux};
+	\node[runtimenode, right=7ex of depotdownload] (defaultnic) {Default\\ NIC};
+
+	\path[treesessionarrow] (depotdownload)     -- node[align=center] {} (chrootpublic);
+	\path[treesessionarrow] (depotdownload)     -- node[align=center, above=1ex] {File\\ system} (chrootdepot);
+	\path[treesessionarrow] (chrootpublic)      -- node[align=center] {} (defaultfs);
+	\path[treesessionarrow] (chrootdepot)       -- node[align=center, above=0.5ex] {File\\ system} (defaultfs);
+	\path[treesessionarrow] (defaultnoux)       -- node[align=center] {File\\ system} (defaultfs);
+	\path[treesessionarrow] (depotdownload)     -- node {NIC} (defaultnic);
+	\path[treesessionarrow] (defaultfs.south)   -- +(0,-12ex) node[below] {Block};
+	\path[treesessionarrow] (defaultnic.south)  -- +(0,-12ex) node[below] {Platform};
+	\path[treesessionarrow] (defaultnoux.south) -- +(0,-12ex) node[below] {Nitpicker};
+	\path[treesessionarrow] (depotdownload.south) -- +(0,-6ex) node[below, align=center] {ROM\\ \texttt{/config/installation}};
+
+\end{tikzpicture}
