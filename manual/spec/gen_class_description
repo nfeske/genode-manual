@@ -226,8 +226,12 @@ proc method_prefix { method_token } {
 		set impl_token [sub_token $method_token funcimpl]
 		if {$impl_token == ""} {
 			set impl_token [sub_token $method_token constimpl] }
-		set prefix [method_prefix $impl_token]
-		return "$prefix template"
+
+		if {$impl_token != ""} {
+			set prefix [method_prefix $impl_token]
+			return "$prefix template"
+		}
+		set prefix "method template"
 	}
 
 	set method_types {{funcdecl  method}

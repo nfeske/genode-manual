@@ -552,6 +552,22 @@ report connection to propagate XML-formed data.
 ; Genode::Reporter
 [raw spec/classes/genode/reporter/description]
 
+The 'Expanding_reporter' further streamlines the generation of reports by
+eliminating the burden of handling 'Buffer_exceeded' exceptions as thrown by
+the 'Xml_generator' from components that generate reports. Such exceptions are
+easy to miss because reports are often small at testing time but become larger
+in complex scenarios. Whenever the report exceeds the current buffer size, the
+expanding reporter automatically upgrades the report session as needed. Note
+that such an upgrade consumes RAM quota. For components that strictly account
+RAM consumption to clients, the regular 'Reporter' is preferable. However, in
+most cases - where reports are not accounted per client but to the component
+itself - the 'Expanding_reporter' should better be used. Besides the builtin
+support for growing the report buffer, the expanding reporter alleviates the
+need to explicitly enable reports. In contrast to the 'Reporter', it is
+implicitly enabled at construction time.
+
+; Genode::Expanding_reporter
+[raw spec/classes/genode/expanding_reporter/description]
 
 [raw spec/clearpage]
 
@@ -708,8 +724,16 @@ Timer session interface
 ; XXX Genode::Microseconds
 ; XXX Genode::Milliseconds
 ; XXX Genode::Duration
-; XXX Genode::Periodic_timeout
-; XXX Genode::One_shot_timeout
+
+The 'Periodic_timeout' and 'One_shot_timeout' classes provide a convenient
+API for implementing timeout handlers, following the same pattern as used for
+signal handlers (Section [Signalling]).
+
+; Timer::Periodic_timeout
+[raw spec/classes/timer/periodic_timeout/description]
+
+; Timer::One_shot_timeout
+[raw spec/classes/timer/one_shot_timeout/description]
 
 
 [raw spec/clearpage]
@@ -766,12 +790,6 @@ whereas the actual read and write operations are performed asynchronously
 using a packet stream.
 
 ; XXX File_system::Session_client
-
-A node handle refers to an open directory node, which can be a file, a
-directory, or a symlink. It is a number local to the file-system session.
-
-; File_system::Node_handle
-[raw spec/classes/file_system/node_handle/description]
 
 ; File_system::File_handle
 ; File_system::Dir_handle
@@ -1393,7 +1411,6 @@ newline character.
 
 [raw spec/repos/base/include/base/log.h.overview]
 
-
 [raw spec/clearpage]
 
 ;; not important
@@ -1403,6 +1420,26 @@ newline character.
 ;
 ;; Genode::Alarm
 ;; Genode::Alarm_scheduler
+
+
+Unicode handling
+~~~~~~~~~~~~~~~~
+
+The string-handling utilities described in Section [Basic string operations]
+operate on ASCII-encoded character strings where each character is encoded as
+one byte. It goes without saying that ASCII is unsuitable for user-facing
+components that are ultimately expected to support the display of
+international characters. The 'Utf8_ptr' utility accommodates such components
+with an easy way to extract a sequence of Unicode codepoints from an
+UTF-8-encoded string.
+
+; Genode::Codepoint (XXX public member is not visible in the generate description)
+;[raw spec/classes/genode/codepoint/description]
+
+; Genode::Utf8_ptr
+[raw spec/classes/genode/utf8_ptr/description]
+
+[raw spec/clearpage]
 
 
 Multi-threading and synchronization
@@ -1522,6 +1559,7 @@ Signals serve as mere notifications and cannot carry any payload.
 ; XXX Genode::Signal_dispatcher_base
 ; XXX Genode::Signal_rpc_dispatcher_base
 ; XXX Genode::Signal_dispatcher<>
+; XXX Genode::Io_signal_dispatcher<>
 ; XXX Genode::Signal_rpc_functor<>
 ; XXX Genode::Signal_rpc_member<>
 
@@ -1975,6 +2013,13 @@ As for the 'Xml_node' the 'Xml_generator' does not use any internal
 intermediate representation of the XML data. No dynamic memory allocations
 are needed while generating XML-formatted output.
 
+A typical component import parts of its internal state from XML input, most
+prominently its configuration. This import is not a one-off operation but may
+occur multiple times during the lifetime of the component. Hence, the
+component is faced with the challenge of updating its internal data model from
+potentially changing XML input. The 'List_model' provides a convenient and
+robust formalism to implement such partial model updates.
+
 
 XML parsing
 ~~~~~~~~~~~
@@ -2027,6 +2072,35 @@ XML generation
 ; Genode::Xml_generator
 [raw spec/classes/genode/xml_generator/description]
 
+
+[raw spec/clearpage]
+
+XML-based data models
+~~~~~~~~~~~~~~~~~~~~~
+
+The 'List_model' utility eases the implementation of component-internal data
+models created and updated from XML. The transformation is defined by the
+implementation of the 'Update_policy' interface. As a low-level mechanism,
+the list model is not thread safe.
+
+; Genode::List_model
+[raw spec/classes/genode/list_model/description]
+
+; Genode::List_model::Update_policy
+[raw spec/classes/genode/list_model/update_policy/description]
+
+In some situations, it is convenient to keep a verbatim copy of XML input as
+part of the internal data model. As the 'Xml_node' is merely a light-weight
+pointer into XML data, it cannot be stored when the underlying XML data is
+updated dynamically. Instead, the XML input must be copied into the internal
+data model. The 'Buffered_xml' utility takes care of the backing-store
+allocation and copying of an existing 'Xml_node'.
+
+; Genode::Buffered_xml
+[raw spec/classes/genode/buffered_xml/description]
+
+
+[raw spec/clearpage]
 
 Component management
 ====================

@@ -19,7 +19,8 @@ VERBOSE ?= @
 #
 
 GENODE_GIT_URL := https://github.com/genodelabs/genode.git
-GENODE_GIT_REV := 17.05
+GENODE_GIT_REV := 3b7d6394d722089aafc2b66fd4e434e52b021d7f
+#GENODE_GIT_REV := 17.05
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
@@ -203,7 +204,6 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/ram_session/ram_session.h \
                          repos/base/include/rom_session/rom_session.h \
                          repos/base/include/io_mem_session/io_mem_session.h \
-                         repos/os/include/os/config.h \
                          repos/os/include/file_system_session/file_system_session.h
 
 FILE_OVERVIEWS := $(addsuffix .overview.tex,$(FILE_OVERVIEW_HEADERS))

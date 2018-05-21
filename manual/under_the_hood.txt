@@ -378,16 +378,9 @@ valuable assets, which is its low complexity.
 To enable the use of C++ exceptions and runtime type information but
 avoid the incorporation of an entire C library into the trusted computing
 base, Genode comes with a customized C++ runtime that does not depend on
-a C library. The C++ runtime libraries are provided by the tool chain.
-To build those libraries without a C library, a libc emulation header
-(_tool/libgcc_libc_stub.h_) is used instead of the interface of a real
-C library. The emulation header contains only those definitions and
-declarations needed by the C++ runtime. The resulting libraries contain
-references to (some of) the symbols present in the emulation header.
-Those symbols are provided by Genode's C++ support code
-(_repos/base/src/lib/cxx_). The implementation of those functions is
-specifically tied to the usage patterns of the C++ runtime.
-Several of the functions are mere dummies.
+a C library. The C++ runtime libraries are provided by the tool chain,
+which interface with the symbols provided by Genode's C++ support code
+(_repos/base/src/lib/cxx_).
 
 Unfortunately, the interface used by the C++ runtime does not reside
 in a specific namespace but it is rather a subset of the POSIX API. When
@@ -1877,9 +1870,6 @@ core.
   a capability via core's PD service consumes one entry in core's capability
   space. Because the space is bounded, clients of the service could misuse
   core's capability space as covert storage channel.
-
-:Non-executable (NX) bit:
-  NOVA does not support the NX bit.
 
 ; XXX further possible topics
 ; * Locking
