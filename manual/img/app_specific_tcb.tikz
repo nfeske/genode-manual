@@ -70,7 +70,7 @@
 	% Outline around the TCB of the appnode
 	%
 
-	\tikzstyle{outline} = [inner sep=0.7ex]
+	\tikzstyle{outline} = [inner sep=0ex]
 
 	\node[outline, fit=(init)]  (oinit) {};
 	\node[outline, fit=(a1)]    (o1)    {};
@@ -81,7 +81,7 @@
 
 	\begin{scope}[on background layer]
 
-		\tikzstyle{tcb} = [fill=tcbred, opacity=0.4, rounded corners=7, draw]
+		\tikzstyle{tcb} = [fill=tcbred, opacity=0.4, rounded corners=5, draw]
 
 		\path[tcb] (oinit.south west)
 		        -- (oinit.north west)

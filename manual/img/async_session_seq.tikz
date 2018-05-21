@@ -47,7 +47,7 @@
 
 		% parent generates "session_requests"
 
-		\path (parent)+(-10ex,0) node [umlinfo, anchor=east] (requestsrom) {\tiny
+		\path (parent)+(-10ex,0) node [inner ysep=0, inner sep=0, umlinfo, anchor=east] (requestsrom) {\tiny
 \begin{lstlisting}
 <session_requests>
   <create name=...
@@ -58,7 +58,7 @@
 
 		\draw[arrow, densely dashed] (parent) -- node {generate} (requestsrom);
 		\timestep
-		\renewcommand{\timestepvector}{0,-0.8}
+		\renewcommand{\timestepvector}{0,-1}
 
 		\transition{parent}{server}{return}
 
