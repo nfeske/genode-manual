@@ -264,7 +264,7 @@ routing of session requests into account.
 :'label_prefix="<string>"': The first part of the label must match the
   specified string.
 
-:'label_suffix="<string>"': The last part of the label must match the
+:'label_suffix="<string>"': The end of the label must match the
   specified string.
 
 :'unscoped_label="<string>"': The session label including the child's name
@@ -272,6 +272,11 @@ routing of session requests into account.
   'label' attribute, which refers to the child-defined label, the 'unscoped_label'
   can refer to the child's environment sessions, which have no client-defined
   label because they are initiated by init itself.
+
+:'label_last="<string>"': The part after the last "->" delimiter must match the
+  specified string. This part usually refers to a requested resource such as
+  the name of a ROM module. If no delimiter is present, the label must be an
+  exact match.
 
 If no attributes are present, the route matches. The attributes can be
 combined. If any of the specified attributes mismatch, the route is

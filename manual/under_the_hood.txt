@@ -378,16 +378,9 @@ valuable assets, which is its low complexity.
 To enable the use of C++ exceptions and runtime type information but
 avoid the incorporation of an entire C library into the trusted computing
 base, Genode comes with a customized C++ runtime that does not depend on
-a C library. The C++ runtime libraries are provided by the tool chain.
-To build those libraries without a C library, a libc emulation header
-(_tool/libgcc_libc_stub.h_) is used instead of the interface of a real
-C library. The emulation header contains only those definitions and
-declarations needed by the C++ runtime. The resulting libraries contain
-references to (some of) the symbols present in the emulation header.
-Those symbols are provided by Genode's C++ support code
-(_repos/base/src/lib/cxx_). The implementation of those functions is
-specifically tied to the usage patterns of the C++ runtime.
-Several of the functions are mere dummies.
+a C library. The C++ runtime libraries are provided by the tool chain,
+which interface with the symbols provided by Genode's C++ support code
+(_repos/base/src/lib/cxx_).
 
 Unfortunately, the interface used by the C++ runtime does not reside
 in a specific namespace but it is rather a subset of the POSIX API. When
@@ -425,6 +418,64 @@ into detail about this interplay.
 The description tries to be general across the various kernels supported
 by Genode. Note, however, that a particular kernel may deviate from the
 general description.
+
+
+System-image assembly
+~~~~~~~~~~~~~~~~~~~~~
+
+A Genode-based system consists of potentially many boot modules. But boot
+loaders - in particular on ARM platforms - usually support the loading of a
+single system image only. To unify the boot procedure across kernels and CPU
+architectures, On all kernels except Linux, Genode merges boot modules
+together with the core component into a single image.
+
+The core component is actually built as a library. The library
+description file is specific for each platform and located at
+_lib/mk/spec/<pf>/core.mk_ where _<pf>_ corresponds to the
+hardware platform used. It includes the platform-agnostic _lib/mk/core.inc_ file.
+The library contains everything core needs (including the C++ runtime and
+the core code) except for the following symbols:
+
+:'_boot_modules_headers_begin' and '_boot_modules_headers_end':
+  Between those symbols, core expects an array of boot-module header
+  structures. A boot-module header contains the name, core-local
+  address, and size of a boot module. This meta data is used by
+  core's initialization code in _src/core/platform.cc_ to populate the ROM
+  service with modules.
+
+:'_boot_modules_binaries_begin' and '_boot_modules_binaries_end':
+  Between those symbols, core expects the actual module data.
+  This range is outside the core image (beyond '_prog_img_end').
+  In contrast to the boot-module headers, the modules reside in a
+  separate section that remains unmapped within core's virtual address
+  space. Only when access to a boot module is required by core (i.e., the
+  ELF binary of init during the creation of the init component), core
+  makes the module visible within its virtual address space.
+
+  Making the boot modules invisible to core has two benefits. The
+  integrity of the boot modules does not depend on core. Even in the
+  presence of a bug in core, the boot modules cannot be accidentally
+  overwritten. Second, there are no page-table entries needed to map
+  the modules into the virtual address space of core. This is particularly
+  beneficial when using large boot modules such as a complete disk image.
+  If incorporated into the core image, page-table
+  entries for the entire disk image would need to be allocated at
+  the initialization time of core.
+
+These symbols are defined in an assembly file called _boot_modules.s_.
+If building core stand-alone, the final linking stage combines the
+core library with the dummy _boot_modules.s_ file located at
+_src/core/boot_modules.s_.
+But when using the run tool (Section [Run tool]) to integrate a
+bootable system image, the run tool dynamically generates a version of
+_boot_modules.s_ depending on the boot modules listed in the run script
+and repeats the final linking
+stage of core by combining the core library with the generated
+_boot_modules.s_ file.
+The generated file is placed at _<build-dir>/var/run/<scenario>/_
+and incorporates the boot modules using the assembler's '.incbin' directive.
+The result of the final linking stage is an executable ELF binary that
+contains both core and the boot modules.
 
 
 Bootstrapping and allocator setup
@@ -866,14 +917,13 @@ stated otherwise, all paths are relative to this directory.
 In contrast to classical L4 microkernels where Genode's core process runs as
 user-level roottask on top of the kernel, base-hw executes Genode's core
 directly on the hardware with no distinct kernel underneath. Core and the
-kernel are melted into one hybrid kernel/userland program. Only a few
-code paths are executed in privileged mode but most code runs in user mode.
-This design has several benefits. First, the kernel part becomes much simpler.
-For example, there are no allocators needed in the kernel part because
-allocators are managed by the user-level part of core. Second, base-hw
-side-steps long-standing hard kernel-level problems, in particular the
-management of kernel resources. For the allocation of kernel objects, the
-hybrid core/kernel can
+kernel are melted into one hybrid component. Although all threads of core are
+running in privileged processor mode, they call a kernel library to synchronize
+hardware interaction. However most work is done outside of that library. This
+design has several benefits. First, the kernel part becomes much simpler. For
+example, there are no allocators needed in it. Second, base-hw side-steps
+long-standing hard kernel-level problems, in particular the management of kernel
+resources. For the allocation of kernel objects, the hybrid core/kernel can
 employ Genode's user-level resource trading concepts as described in Section
 [Resource trading]. Finally and most
 importantly, merging the kernel with roottask removes a lot of
@@ -892,63 +942,18 @@ to become a self-sufficient base platform for Genode.
 Bootstrapping of base-hw
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-A Genode-based system consists of potentially many boot modules. But
-boot loaders on ARM platforms usually merely support the loading of a
-single system image. Hence, base-hw requires a concept for merging
-boot modules together with the core/kernel into a single image.
-
-System-image assembly
----------------------
-
-In contrast to other base platforms where core is a self-sufficient program,
-on the base-hw platform, core is actually built as a library. The library
-description file is specific for each platform and located at
-_lib/mk/spec/<pf>/core.mk_ where _<pf>_ corresponds to the
-hardware platform used. It includes the platform-agnostic _lib/mk/core.inc_ file.
-The library contains everything core needs (including the C++ runtime,
-the kernel code, and the user-level core code) except for the
-following symbols:
-
-:'_boot_modules_headers_begin' and '_boot_modules_headers_end':
-  Between those symbols, core expects an array of boot-module header
-  structures. A boot-module header contains the name, core-local
-  address, and size of a boot module. This meta data is used by
-  core's initialization code in _src/core/platform.cc_ to populate the ROM
-  service with modules.
-
-:'_boot_modules_binaries_begin' and '_boot_modules_binaries_end':
-  Between those symbols, core expects the actual module data.
-  This range is outside the core image (beyond '_prog_img_end').
-  In contrast to the boot-module headers, the modules reside in a
-  separate section that remains unmapped within core's virtual address
-  space. Only when access to a boot module is required by core (i.e., the
-  ELF binary of init during the creation of the init component), core
-  makes the module visible within its virtual address space.
-
-  Making the boot modules invisible to core has two benefits. The
-  integrity of the boot modules does not depend on core. Even in the
-  presence of a bug in core, the boot modules cannot be accidentally
-  overwritten. Second, there are no page-table entries needed to map
-  the modules into the virtual address space of core. This is particularly
-  beneficial when using large boot modules such as a complete disk image.
-  If base-hw incorporated such a large module into the core image, page-table
-  entries for the entire disk image would need to be allocated at
-  the initialization time of core.
-
-These symbols are defined in an assembly file called _boot_modules.s_.
-If building core stand-alone, the final linking stage combines the
-core library with the dummy _boot_modules.s_ file located at
-_src/core/boot_modules.s_.
-But when using the run tool (Section [Run tool]) to integrate a
-bootable system image, the run tool dynamically generates a version of
-_boot_modules.s_ depending on the boot modules listed in the run script
-and repeats the final linking
-stage of core by combining the core library with the generated
-_boot_modules.s_ file.
-The generated file is placed at _<build-dir>/var/run/<scenario>/_
-and incorporates the boot modules using the assembler's '.incbin' directive.
-The result of the final linking stage is an executable ELF binary that
-contains both core and the boot modules.
+;Further topic: The bootstrap component
+;               -----------------------
+;
+; * solves the problem of different code linkage before/after MMU enablement
+; * starts with disabled MMU, collects all platform information
+; * provides platform information including all available mappings like
+;   kernel devices and binary in a unified fashion via: _Hw::Boot_info_
+; * initializes all kernel-related hardware
+; * may lock protection related hardware like MMU, TrustZone,
+;   virtualization-specific registers if provided
+; * security-sensitive initialization code is not available to kernel/core
+;   afterwards
 
 
 Startup of the base-hw kernel
@@ -956,16 +961,15 @@ Startup of the base-hw kernel
 
 Core on base-hw uses Genode's regular linker script. Like any
 regular Genode component, its execution starts at the '_start' symbol.
-But unlike a regular component, core is started by the boot loader as a kernel
-in privileged mode. Instead of directly following the startup procedure
-described in Section [Startup code], base-hw uses custom startup code
-that initializes the kernel part of core first. The startup code is located at
-_src/core/spec/arm/crt0.s_.
-It eventually calls the kernel initialization code in
-_src/core/kernel/kernel.cc_.
+But unlike a regular component, core is started by the bootstrap component as
+a kernel running in privileged mode. Instead of directly following the startup
+procedure described in Section [Startup code], base-hw uses custom startup code
+that initializes the kernel part of core first. For example, the startup code
+for the ARM architecture is located at _src/core/spec/arm/crt0.s_.
+It calls the kernel initialization code in _src/core/kernel/init.cc_.
 Core's regular C++ startup code (the '_main' function) is executed by the first
-user-level thread created by the kernel (see the thread setup in the
-'init_kernel_mp_primary' function).
+thread created by the kernel (see the thread setup in the
+'Core_thread::Core_thread()' constructor).
 
 
 Kernel entry and exit
@@ -975,22 +979,21 @@ The execution model of the kernel can be roughly characterized as a
 single-stack kernel. In contrast to traditional L4 kernels that maintain one
 kernel thread per user thread, the base-hw kernel is a mere state machine
 that never blocks in the kernel. State transitions are triggered by
-user-level threads that enter the kernel via a system call, by device
+core or user-level threads that enter the kernel via a system call, by device
 interrupts, or by a CPU exception. Once entered, the kernel applies the state
 change depending on the event that caused the kernel entry, and leaves the
-kernel to the user land. The transition between user and kernel mode depends
-on the revision of the ARM architecture. For ARMv7, the corresponding code is
-located at _src/core/spec/arm_v7/mode_transition.s_.
+kernel again. The transition between normal threads and kernel execution
+depends on the concrete architecture. For ARM, the corresponding code is located
+at _src/core/spec/arm/exception_vector.s_.
 
 
 Interrupt handling and preemptive multi-threading
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to respond to interrupts, base-hw has to contain a driver for
-the interrupt controller. ARM-based SoCs greatly differ with respect
-to the used interrupt controllers. The interrupt-controller driver for
-a particular SoC can be found at _src/core/include/spec/<spec>/pic.h_
-and the corresponding _src/core/spec/<spec>/pic.cc_ where _<spec>_
+the interrupt controller. The interrupt-controller driver for
+a particular hardware platform can be found at _src/core/spec/<spec>/pic.h_
+and the corresponding _src/core/spec/<spec>/pic.cc_. Whereby _<spec>_
 refers to a particular platform (e.g., imx53) or an IP block that is
 is used across different platforms (e.g., arm_gic for ARM's generic
 interrupt controller).
@@ -1000,16 +1003,16 @@ Section [Build system] to incorporate the single driver needed for the
 targeted SoC.
 
 To support preemptive multi-threading, base-hw requires a hardware timer.
-The timer is programmed with the timeslice length of the currently
-executed thread. Once the programed timeout elapses, the timer device
+The timer is programmed with the time slice length of the currently
+executed thread. Once the programmed timeout elapses, the timer device
 generates an interrupt that is handled by the kernel. Similarly to
 interrupt controllers, there exist a variety of different timer devices
-on ARM-based SoCs. Therefore, base-hw contains different timer drivers.
-The timer drivers are located at _src/core/include/spec/<spec>/timer.h_
+for different CPUs. Therefore, base-hw contains different timer drivers.
+The timer drivers are located at _src/core/spec/<spec>/timer.h_
 where _<spec>_ refers to the timer variant.
 
 The in-kernel handler of the timer interrupt invokes the thread scheduler
-(_src/core/include/kernel/cpu_scheduler.h_).
+(_src/core/kernel/cpu_scheduler.h_).
 The scheduler maintains a list of so-called scheduling contexts where each
 context refers to a thread. Each time the kernel is entered, the scheduler
 is updated with the passed duration. When updated, it takes a scheduling
@@ -1024,11 +1027,11 @@ Split kernel interface
 The system-call interface of the base-hw kernel is split into two parts.
 One part is usable by all components and solely contains system calls for
 inter-component communication and thread synchronization. The definition
-of this interface is located at _include/kernel/thread.h_. The second
+of this interface is located at _include/kernel/interface.h_. The second
 part is exposed only to core. It supplements the public interface with
 operations for the creation, the management, and the destruction of kernel
 objects. The definition of the core-private interface is located at
-_src/core/include/kernel/core_interface.h_.
+_src/core/kernel/core_interface.h_.
 
 The distinction between both parts of the kernel interface is enforced
 by the function 'Thread::_call' in _src/core/kernel/thread.cc_.
@@ -1052,24 +1055,23 @@ simplified procedure of transferring a message is as follows. (In reality, the
 state space is more complex because the receiver may not be in a blocking state
 when the sender issues the message)
 
-# The user-level sender marshals its payload into its UTCB and invokes the
-  kernel,
+# The sender marshals its payload into its UTCB and invokes the kernel,
 # The kernel transfers the payload from the sender's UTCB to the receiver's
   UTCB and schedules the receiver,
 # The receiver retrieves the incoming message from its UTCB.
 
 Because all UTCBs are always mapped in the kernel, no page faults can occur
 during the second step. This way, the flow of execution within the kernel
-becomes predictable and always returns to the user land.
+becomes predictable and no kernel exception handling code is needed.
 
 In addition to IPC, threads interact via the synchronization primitives
 provided by the Genode API. To implement these portions of the API, the kernel
 provides system calls for managing the execution control of threads
-(_pause_current_thread_, _resume_local_thread_, _yield_thread_).
+(_stop_thread_, _restart_thread_, _yield_thread_).
 
 To support asynchronous notifications as described in Section
 [Asynchronous notifications], the kernel provides system calls for the
-submission and reception of signals (_await_signal_, _signal_pending_,
+submission and reception of signals (_await_signal_, _cancel_next_await_signal_,
 _submit_signal_, and _ack_signal_) as well as the life-time management
 of signal contexts (_kill_signal_context_). In contrast to other
 base platforms, Genode's signal API is directly supported by the kernel
@@ -1080,23 +1082,23 @@ This way, the kernel objects needed for the signalling mechanism are
 accounted to the corresponding clients of the PD service.
 
 The kernel provides an interface to make the kernel's scheduling timer
-available as time source to the userland. Using this interface,
-user-level components can bind signal contexts to timeouts (_timeout_) and
+available as time source to the user land. Using this interface,
+components can bind signal contexts to timeouts (_timeout_) and
 follow the progress of time (_timeout_age_us_ and _timeout_max_us_).
 
 
 Core-private part of the kernel interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The core-private part of the kernel interface allows the user-level part
-of core to perform privileged operations. Note that even though the
-kernel and core are executed in different CPU modes (privileged mode and
-user mode), both parts share a single address space and ultimately trust
+The core-private part of the kernel interface allows core to perform
+privileged operations. Note that even though the kernel and core provide
+different interfaces, both are executed in privileged CPU mode, share
+the same address space and ultimately trust
 each other. The kernel is regarded a mere support library of core that
-executes those functions that can only be executed in the privileged
-CPU mode. In particular, the kernel does not perform any allocation.
-Instead, the allocation of kernel objects is performed as an interplay
-of core and the kernel.
+executes those functions that shall be synchronized between different
+CPU cores and core's threads. In particular, the kernel does not perform
+any allocation. Instead, the allocation of kernel objects is performed as
+an interplay of core and the kernel.
 
 # Core allocates physical memory from its physical-memory allocator.
   Most kernel-object allocations are performed in the context of one
@@ -1120,14 +1122,16 @@ The core-private kernel interface consists of the following operations:
   (_new_pd_, _update_pd_, _delete_pd_), invoked by the PD service
 * The creation, manipulation, and destruction of threads
   (_new_thread_, _start_thread_, _resume_thread_, _thread_quota_,
-  _pause_thread_, _delete_thread_,
-  _access_thread_regs_, and _route_thread_event_), used by the CPU service
+  _pause_thread_, _delete_thread_, _thread_pager, and _cancel_thread_blocking_),
+  used by the CPU service
   and the core-specific back end of the 'Genode::Thread' API
 * The creation and destruction of signal receivers and signal contexts
   (_new_signal_receiver_, _delete_signal_receiver_, _new_signal_context_, and
   _delete_signal_context_), invoked by the PD service
 * The creation and destruction of kernel-protected object identities
   (_new_obj_, _delete_obj_)
+* The creation, manipulation, and destruction of interrupt kernel objects
+  (_new_irq_, _ack_irq_, and _delete_irq_)
 
 
 Scheduler of the base-hw kernel
@@ -1190,7 +1194,7 @@ its own virtual memory space. This way, the virtual address space of core
 stays clean from any data of other components. Even in the presence of a bug
 in core (e.g., a dangling pointer), information cannot accidentally leak
 between different protection domains because the virtual memory of the other
-components is not visible to core.
+components is not necessarily visible to core.
 
 
 Multi-processor support of base-hw
@@ -1207,7 +1211,7 @@ simplifies the code compared to traditional L4 microkernels. Given
 that the kernel is a simple state machine providing lightweight non-blocking
 operations, there is little contention for the global kernel
 lock. Even though this claim may not hold up when scaling to a large number of
-cores, current ARM-based platforms can be accommodated well.
+cores, current platforms can be accommodated well.
 
 
 Cross-CPU inter-component communication
@@ -1242,7 +1246,7 @@ necessity of TLB maintenance work, an IPI is sent to all other cores. Once all
 cores have completed the cleaning, the thread that invoked the TLB invalidation
 resumes its execution.
 
-; Futher possible topics
+; Further possible topics
 ; * TrustZone
 ; * kernel bootstrap
 
@@ -1255,7 +1259,7 @@ signal contexts as first-class kernel objects. Core's
 PD service is merely used to arbitrate the creation and destruction of
 those kernel objects but it does not play the role of a signal-delivery proxy.
 Instead, signals are communicated directly by using the public kernel
-operations _await_signal_, _signal_pending_, _submit_signal_, and
+operations _await_signal_, _cancel_next_await_signal_, _submit_signal_, and
 _ack_signal_.
 
 
@@ -1877,9 +1881,6 @@ core.
   a capability via core's PD service consumes one entry in core's capability
   space. Because the space is bounded, clients of the service could misuse
   core's capability space as covert storage channel.
-
-:Non-executable (NX) bit:
-  NOVA does not support the NX bit.
 
 ; XXX further possible topics
 ; * Locking

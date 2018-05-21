@@ -22,8 +22,8 @@ installation satisfies the following requirements:
 * GNU Make version 3.81 (or newer) needed by the build system,
 * _libSDL-dev_ needed to run system scenarios directly on Linux,
 * _tclsh_ and _expect_ needed by test-automation and work-flow tools,
-* _qemu_ and _genisoimage_ needed for testing system scenarios on non-Linux
-  platforms via the Qemu emulator.
+* _qemu_, _xorriso_, _parted_, _gdisk_, and _e2tools_ needed for running
+  system scenarios on non-Linux platforms via the Qemu emulator.
 
 For using the entire collection of ported 3rd-party software, the following
 packages should be installed additionally:
@@ -355,6 +355,14 @@ microhypervisor, the following preparatory steps are needed:
   ! <genode-dir>/tool/ports/prepare_port x86emu
 
   The source code will be downloaded to _<genode-dir>/contrib/x86emu-<hash>/_.
+
+# To boot the scenario as an operating system on a PC, a boot loader is
+  needed. The build process produces a readily bootable disk or ISO image
+  that includes the GRUB2 boot loader as well as a working boot-loader
+  configuration. Download the boot loader as ingredient for the image-creation
+  step.
+
+  ! <genode-dir>/tool/ports/prepare_port grub2
 
 # Since NOVA supports the x86_64 architecture of our build directory, we
   can keep using the existing build directory that we just used for Linux.
