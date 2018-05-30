@@ -455,7 +455,7 @@ the core code) except the following symbols:
   Making the boot modules invisible to core has two benefits. The
   integrity of the boot modules does not depend on core. Even in the
   presence of a bug in core, the boot modules cannot be accidentally
-  overwritten. Second, there are no page-table entries needed to map
+  overwritten. Second, no page-table entries are needed to map
   the modules into the virtual address space of core. This is particularly
   beneficial when using large boot modules such as a complete disk image.
   If incorporated into the core image, page-table
@@ -922,7 +922,7 @@ running in privileged processor mode, they call a kernel library to synchronize
 hardware interaction. However, most work is done outside of that library. This
 design has several benefits. First, the kernel part becomes much simpler. For
 example, there are no allocators needed within the kernel. Second, base-hw side-steps
-long-standing hard kernel-level problems, in particular the management of kernel
+long-standing difficult kernel-level problems, in particular the management of kernel
 resources. For the allocation of kernel objects, the hybrid core/kernel can
 employ Genode's user-level resource trading concepts as described in Section
 [Resource trading]. Finally and most
