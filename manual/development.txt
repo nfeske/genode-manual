@@ -787,13 +787,13 @@ run tool succeeds in overcoming the challenges that come with Genode's
 diversity of kernels and supported hardware platforms, its scalability is
 somewhat limited to appliance-like system scenarios: The result of the
 integration process is a system image with a certain feature set. Whenever
-requirements change, the system image is replaced with a new created image
+requirements change, the system image is replaced with a freshly created image
 that takes those requirements into account. In practice, there are two
 limitations of this system-integration approach:
 
 First, since the run tool implicitly builds all components required for a
 system scenario, the system integrator has to compile all components from
-source. E.g., if a system includes a component based on Qt5, one needs to
+source. For example, if a system includes a component based on Qt5, one needs to
 compile the entire Qt5 application framework, which induces significant
 overhead to the actual system-integration tasks of composing and configuring
 components.
@@ -805,7 +805,7 @@ used device drivers and system preferences. A system based on the run tool's
 work flow would require the user to customize the run script of the system for
 each tweak. To stay up to date, the user would need to re-create the
 system image from time to time while manually maintaining any customizations.
-In practice, this is a burden, very few end users are willing to endure.
+In practice this is a burden very few end users are willing to endure.
 
 The primary goal of Genode's package management is to overcome these
 scalability limitations, in particular:
@@ -867,7 +867,7 @@ A raw-data archive contains arbitrary data that is - in contrast to executable
 binaries - independent from the processor architecture. Examples are
 configuration data, game assets, images, or fonts. The content of raw-data
 archives is expected to be consumed by components at runtime. It is not
-relevant for the build process for executable binaries. Each raw-data
+relevant for the build process of executable binaries. Each raw-data
 archive contains merely a collection of data files. There is no meta data.
 
 
@@ -994,11 +994,11 @@ subdirectory. Within this directory, there is a 'pubkey' file with the
 user's public key that is used to verify the integrity of archives downloaded
 from the user. The file 'download' specifies the download location as an URL.
 
-Subsuming archives in a subdirectory that correspond to their the origin
+Subsuming archives in a subdirectory that correspond to their origin
 (user) serves two purposes. First, it provides a user-local name space for
 versioning archives. E.g., there might be two versions of a
 'nitpicker/2017-04-15' source archive, one by "genodelabs" and one by
-"nfeske". However, since each version resides under its origin's subdirectory,
+"nfeske". However, since each version resides in its origin's subdirectory,
 version-naming conflicts between different origins cannot happen. Second, by
 allowing multiple archive origins in the depot side-by-side, package archives
 may incorporate archives of different origins, which fosters the goal of a
@@ -1055,8 +1055,8 @@ dependencies. For example, as the zlib depends on the libc API, the libc API
 archive is downloaded as well. All archive types are accepted as arguments
 including binary and package archives. Furthermore, it is possible to download
 all binary archives referenced by a package archive. For example, the
-following command downloads the window-manager (wm) package archive including
-all binary archives for the 32-bit x86 architecture. Downloaded binary
+following command downloads the window-manager (wm) package archive, including
+all binary archives, for the 32-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
@@ -1121,7 +1121,7 @@ As a precondition, the tool requires you to possess the private key that
 matches the _depot/<you>/pubkey_ file within your depot. The key pair should
 be present in the key ring of your GNU privacy guard.
 
-To publish archives, one needs to specify the specific version to publish.
+To publish archives, one needs to provide the specific version to publish.
 For example:
 
 ! ./tool/depot/publish <you>/pkg/x86_64/wm/2018-02-26
@@ -1129,7 +1129,7 @@ For example:
 The command checks that the specified archive and all dependencies are present
 in the depot. It then proceeds with the archiving and signing operations. For
 the latter, the pass phrase for your private key will be requested. The
-publish tool prints the information about the processed archives, e.g.:
+publish tool outputs the information about the processed archives, e.g.:
 
 ! publish /.../public/<you>/api/base/2018-02-26.tar.xz
 ! publish /.../public/<you>/api/framebuffer_session/2017-05-31.tar.xz
@@ -1193,14 +1193,14 @@ API, source, and raw-data archive recipes
 -----------------------------------------
 
 Recipe directories for API, source, or raw-data archives contain a
-_content.mk_ file that defines the archive content in the form of make
+_content.mk_ file that defines the archive's content in the form of make
 rules. The content.mk file is executed from the archive's location within
 the depot. Hence, the contained rules can refer to archive-relative files as
 targets. The first (default) rule of the content.mk file is executed with a
 customized make environment:
 
-:GENODE_DIR: A variable that holds the path to root of the Genode source tree,
-:REP_DIR: A variable with the path to source code repository where the recipe
+:GENODE_DIR: A variable that holds the path to the root of the Genode source tree,
+:REP_DIR: A variable with the path to the source code repository where the recipe
   is located
 :port_dir: A make function that returns the directory of a port within the
   _contrib/_ directory. The function expects the location of the
@@ -1247,10 +1247,10 @@ archives must be increased, which would be a labour-intensive task otherwise.
 If the depot already contains an archive of the current version, the create
 tools won't re-create the depot archive by default. Local modifications of
 the source code in the repository do not automatically result in a new archive.
-To ensure that the depot archive is current, one can specify 'FORCE=1' to
-the create tool. With this argument, existing depot archives are replaced by
+To ensure that the depot archive is current, one can specify 'FORCE=1' when
+executing the create tool. With this argument, existing depot archives are replaced by
 freshly extracted ones and version updates are detected. When specified for
-creating binary archives, 'FORCE=1' normally implies 'REBUILD=1'. To prevent
+binary archives, 'FORCE=1' normally implies 'REBUILD=1'. To prevent
 the superfluous rebuild of binary archives whose source versions remain
 unchanged, 'FORCE=1' can be combined with the argument 'REBUILD='.
 
@@ -1301,7 +1301,7 @@ Since, the _pkg/terminal_ package is imported from the depot, the scenario
 obtains all ingredients needed to spawn a graphical terminal such as font and
 configuration data. The package also contains the 'terminal' binary. However,
 as we want to use our freshly compiled binary instead, we override the
-'terminal' by our customized version by specifying the binary name in the
+'terminal' with our customized version by specifying the binary name in the
 'build_boot_image' step.
 
 The same approach is convenient for instrumenting low-level parts of the
