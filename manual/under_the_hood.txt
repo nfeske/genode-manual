@@ -426,7 +426,7 @@ System-image assembly
 A Genode-based system consists of potentially many boot modules. But boot
 loaders - in particular on ARM platforms - usually support the loading of a
 single system image only. To unify the boot procedure across kernels and CPU
-architectures, On all kernels except Linux, Genode merges boot modules
+architectures, on all kernels except Linux, Genode merges boot modules
 together with the core component into a single image.
 
 The core component is actually built as a library. The library
@@ -434,7 +434,7 @@ description file is specific for each platform and located at
 _lib/mk/spec/<pf>/core.mk_ where _<pf>_ corresponds to the
 hardware platform used. It includes the platform-agnostic _lib/mk/core.inc_ file.
 The library contains everything core needs (including the C++ runtime and
-the core code) except for the following symbols:
+the core code) except the following symbols:
 
 :'_boot_modules_headers_begin' and '_boot_modules_headers_end':
   Between those symbols, core expects an array of boot-module header
@@ -463,7 +463,7 @@ the core code) except for the following symbols:
   the initialization time of core.
 
 These symbols are defined in an assembly file called _boot_modules.s_.
-If building core stand-alone, the final linking stage combines the
+When building core stand-alone, the final linking stage combines the
 core library with the dummy _boot_modules.s_ file located at
 _src/core/boot_modules.s_.
 But when using the run tool (Section [Run tool]) to integrate a
@@ -919,9 +919,9 @@ user-level roottask on top of the kernel, base-hw executes Genode's core
 directly on the hardware with no distinct kernel underneath. Core and the
 kernel are melted into one hybrid component. Although all threads of core are
 running in privileged processor mode, they call a kernel library to synchronize
-hardware interaction. However most work is done outside of that library. This
+hardware interaction. However, most work is done outside of that library. This
 design has several benefits. First, the kernel part becomes much simpler. For
-example, there are no allocators needed in it. Second, base-hw side-steps
+example, there are no allocators needed within the kernel. Second, base-hw side-steps
 long-standing hard kernel-level problems, in particular the management of kernel
 resources. For the allocation of kernel objects, the hybrid core/kernel can
 employ Genode's user-level resource trading concepts as described in Section

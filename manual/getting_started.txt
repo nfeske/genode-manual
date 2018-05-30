@@ -357,7 +357,7 @@ microhypervisor, the following preparatory steps are needed:
   The source code will be downloaded to _<genode-dir>/contrib/x86emu-<hash>/_.
 
 # To boot the scenario as an operating system on a PC, a boot loader is
-  needed. The build process produces a readily bootable disk or ISO image
+  needed. The build process produces a bootable disk or ISO image
   that includes the GRUB2 boot loader as well as a working boot-loader
   configuration. Download the boot loader as ingredient for the image-creation
   step.

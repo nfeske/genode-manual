@@ -1999,21 +1999,21 @@ XML processing
 The configuration concept (Chapter [System configuration] and Section
 [Component configuration]) of the framework relies on XML syntax. Hence,
 there is the need to process XML-formed data. For parsing XML data, the
-'Xml_node' and the accompanied 'Xml_attribute' utilities are provided.
-Those utilities operate directly on a text buffer that contains the XML
-data. There is no conversion step into an internal representation. This
+'Xml_node' and the accompanying 'Xml_attribute' utilities are provided.
+Those utilities operate directly on a text buffer that contains XML
+data. There is no conversion step into an internal representation. This approach
 alleviates the need for allocating any meta data while extracting information
 from XML data. The XML parser is stateless.
 
 Vice versa, the 'Xml_generator' serves as a utility for generating XML
 formatted data. The scope of an XML node is represented by a lamda function.
 Hence, nested XML nodes can be created by nested lamda functions, which makes
-the structure of the XML data immediately apparent at the C++ source code.
+the structure of the XML data immediately apparent in the C++ source code.
 As for the 'Xml_node' the 'Xml_generator' does not use any internal
 intermediate representation of the XML data. No dynamic memory allocations
 are needed while generating XML-formatted output.
 
-A typical component import parts of its internal state from XML input, most
+A typical component imports parts of its internal state from XML input, most
 prominently its configuration. This import is not a one-off operation but may
 occur multiple times during the lifetime of the component. Hence, the
 component is faced with the challenge of updating its internal data model from
