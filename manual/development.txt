@@ -860,8 +860,8 @@ scheme is the use of the release date as version suffix, e.g.,
 'report_rom/2017-05-14'.
 
 
-Raw-data archives
------------------
+Raw-data archive
+----------------
 
 A raw-data archive contains arbitrary data that is - in contrast to executable
 binaries - independent from the processor architecture. Examples are
@@ -929,7 +929,7 @@ Binary archive
 
 A binary archive contains the build result of the equally-named source archive
 when built for a particular architecture. That is, all files that would appear
-at the _<build-dir>/bin/_ subdirectory when building all targets present in
+in the _<build-dir>/bin/_ subdirectory when building all targets present in
 the source archive. There is no meta data present in a binary archive.
 
 A binary archive is created out of the content of its corresponding source
@@ -1056,7 +1056,7 @@ archive is downloaded as well. All archive types are accepted as arguments
 including binary and package archives. Furthermore, it is possible to download
 all binary archives referenced by a package archive. For example, the
 following command downloads the window-manager (wm) package archive, including
-all binary archives, for the 32-bit x86 architecture. Downloaded binary
+all binary archives, for the 64-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
@@ -1074,7 +1074,7 @@ The compressed archives are not extracted before their signature is checked
 against the public key defined at _depot/<user>/pubkey_. If however the
 signature is valid, the archive content is imported to the target destination
 within the depot. This procedure ensures that depot content - whenever
-downloaded - is blessed by a cryptographic signature of its creator.
+downloaded - is blessed by the cryptographic signature of its creator.
 
 
 Building binary archives from source archives
