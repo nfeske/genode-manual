@@ -1,0 +1,131 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	\tikzstyle{runtimenode} = [treenode, bottom color=runtimecolor]
+	\tikzstyle{vfsentry}    = [align=left, text opacity=0.5]
+	\tikzstyle{nouxnode}    = [treenode, minimum width=17ex, minimum height=8ex]
+
+	\node (defaultfs) {};
+	\node[right=15ex of defaultfs, minimum width=10ex] (defaultnoux) {};
+
+	\node[runtimenode, above=3ex of defaultnoux, xshift=12ex] (nouxnitfb) {Nit FB};
+	\node[runtimenode, above=3ex of nouxnitfb] (nouxterminal) {Terminal};
+	\node[nouxnode, above=3ex of nouxterminal] (noux) {};
+	\node[inner sep=1ex, at=(noux.north), anchor=north] {Inspect Noux};
+	\path (noux.south west)+(2ex,0) node[inner sep=0.3ex, anchor=south west] (configmount) {\texttt{/config}};
+	\path (configmount.north west)  node[inner sep=0.3ex, anchor=south west] (targetmount) {\texttt{/ahci-0}};
+
+	\node[fit=(defaultnoux) (defaultfs) (noux)] (runtimeoutline) {};
+	\node[runtimenode, below=3ex of runtimeoutline, xshift=-6ex] (init) {Init};
+
+	%%
+	% Create rugged path
+	%
+	% argument 1:  number of saw tooths
+	% argument 2:  size of saw tooth
+	%
+	\newcommand{\ruggedpath}[2]{\foreach \i in {1,2,...,#1} {
+		-- ++(#2,#2) -- ++(2*#2,-2*#2) -- ++(#2,#2)}}
+
+	\node[above=5ex of defaultfs, minimum width=10ex, minimum height=7ex, xshift=-2ex] (vfs) {VFS};
+
+	\path[runtimenode] (vfs.north west) -- ++(1ex,0) {[sharp corners] -- ++(0,-2ex)
+		\ruggedpath{8}{0.25ex} } -- ++(0,2ex) -- ++(1ex,0)
+		-- ++(0,-7ex) -- (vfs.south west)
+		--cycle;
+
+	\node[at=(vfs.south), anchor=south, align=center] {VFS\\ Server};
+
+	\node[at=(vfs.south), anchor=south, yshift=8ex, minimum width=20ex, minimum height=10ex] (rump) {};
+
+	\path[treenode] (rump.south west)
+		-- ++(6ex,0) {[sharp corners] -- ++(0,-2ex)
+		\ruggedpath{8}{0.25ex} } -- ++(0,2ex) -- ++(6ex,0)
+		-- (rump.north east) -- (rump.north west) --cycle;
+
+	\node[at=(rump.north), anchor=north, align=center, inner sep=1ex]
+		{NetBSD Rump kernel\\ \\ VFS plugin};
+
+	\tikzstyle{group} = [inner sep=1ex]
+
+	\tikzstyle{pathname} = [opacity=0.7, scale=0.8]
+
+	\node[group, fit=(rump) (defaultfs)]   (rumpgroup) {};
+	\node[group, fit=(noux) (defaultnoux)] (nouxgroup) {};
+
+	\tikzstyle{label} = [outer sep=0, opacity=0.6, minimum height=4ex, minimum width=20ex]
+
+	\node[fit=(rumpgroup) (nouxgroup)] (groups) {};
+	\node[label, above=0ex of groups, minimum width=35ex] (runtimelabel) {\large Runtime};
+
+	% midpoint between static and dynamic user land
+	\coordinate[below=2ex of init] (midstaticdynamic) {};
+
+	% sessions
+	\path[treesessionarrow] (nouxterminal |- noux.south) -- (nouxterminal);
+	\path[treesessionarrow] (nouxterminal.250 |- nouxterminal.south)
+		-- (nouxterminal.250 |- nouxnitfb.north);
+	\path[treesessionarrow] (nouxterminal.290 |- nouxterminal.south)
+		-- (nouxterminal.290 |- nouxnitfb.north);
+
+	\path[treesessionarrow] (nouxnitfb.south)
+		.. controls +(0ex,-5ex) and +(0ex,5ex) .. (init.330)
+		-- +(0,-3ex) node[anchor=north, xshift=3ex] {Nitpicker};
+
+	\path (init.north)+(-2ex,-0.5ex) coordinate (targetfsmidroute) {};
+
+	\path[treesessionarrow] (targetmount.west)
+		.. controls +(-2ex,0ex) and +(0ex,2ex) .. +(-3ex,-3ex)
+		.. controls +(0,-18ex) and +(5ex,0) ..
+		(targetfsmidroute)
+		.. controls +(-2ex,0) and +(0,-8ex) .. (vfs.300);
+
+	\path[treesessionarrow] (configmount.west)
+		.. controls +(-1ex,0ex) and +(0ex,1ex) .. +(-2ex,-2ex)
+		.. controls +(0,-23ex) and +(0ex,4ex) .. (init.270)
+		-- +(0,-5ex) node[anchor=north, xshift=3ex] {Config FS};
+
+	\path[treesessionarrow] (vfs.240)
+		.. controls +(0ex,-11ex) and +(0ex,3ex) .. (init.210)
+		-- +(0,-7ex) node[anchor=north, xshift=1ex] (block) {Block};
+
+	% helper outline nodes
+	\tikzstyle{outline} = [inner sep=1ex]
+	\node[outline, fit=(init) (nouxgroup) (rumpgroup) (runtimelabel) (block)] (alloutline) {};
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=5]
+
+		% static user land
+		\path[land, inner color=innerstaticcolor, opacity=0.4, outer color=staticcolor, sharp corners]
+			(alloutline.west |- midstaticdynamic) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.east |- alloutline.south) --
+			(alloutline.west |- alloutline.south) --cycle;
+
+		% runtime
+		\path[land, sharp corners, opacity=0.4, outer color=runtimecolor]
+			(alloutline.west |- alloutline.north) --
+			(alloutline.east |- alloutline.north) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.west |- midstaticdynamic) --cycle;
+
+		\node[label, inner sep=2ex, at=(alloutline.south east), opacity=0.8, anchor=south east] {\large static system};
+
+	\end{scope}
+
+\end{tikzpicture}

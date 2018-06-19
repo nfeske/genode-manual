@@ -1,0 +1,135 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{lzcolor}          {rgb}{0.9,0.55,0.6}
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	\tikzstyle{runtimenode} = [treenode, bottom color=runtimecolor]
+	\tikzstyle{vfsentry}    = [align=left, text opacity=0.5]
+
+	\node[treenode, minimum width=15ex, minimum height=13ex] (wifi) {};
+	\node[at=(wifi.north), anchor=north, inner sep=1ex, align=center] {Wifi Driver};
+
+	\node[umlinfo, at=(wifi), scale=0.7, align=left, yshift=-1ex] (wifiinfo) {
+		Intel Wireless stack \\
+		WPA supplicant \\
+		libcrypto
+	};
+
+	\node[runtimenode, below=8ex of wifi, minimum width=10ex] (init) {Init};
+
+	\path[treechildarrow] (init) -- (wifi);
+
+	\tikzstyle{group} = [inner sep=1ex]
+
+	\tikzstyle{pathname} = [opacity=0.7, scale=0.8]
+
+	\node[group, fit=(wifi)] (wifigroup) {};
+
+	\tikzstyle{label} = [outer sep=0, opacity=0.6, minimum height=4ex, minimum width=20ex]
+
+	\node[label, above=0ex of wifigroup, minimum width=35ex] (runtimelabel) {\large Runtime};
+
+	\node[label, left=0ex of runtimelabel, minimum width=35ex] (driverslabel) {\large Drivers};
+
+	\tikzstyle{outline} = [inner sep=1ex]
+
+	% midpoint between static and dynamic user land
+	\path (init)+(0,-4ex) coordinate (midstaticdynamic);
+
+	% midpoint between drivers and runtime
+	\path (driverslabel.east) coordinate (middriversruntime);
+
+	% crosspoint of static user land, drivers, and runtime
+	\path (middriversruntime |- midstaticdynamic) coordinate (mid);
+	\node[below=3ex of mid] (midstatic) {};
+
+	\path (mid)+(0,-3ex) coordinate (midblockroute) {};
+	\path (midstaticdynamic)+(0,-6ex) coordinate (bottom) {};
+
+	% helper outline nodes
+	\node[outline, fit=(driverslabel) (runtimelabel) (bottom)] (alloutline) {};
+
+	% services provided by the drivers subsystem
+	\tikzstyle{servicenode} = [trapezium, scale=0.8, align=center,
+	                           inner color=white,
+	                           opacity=0.8, flowborder, path fading=flow fade]
+	\node[servicenode, at=(driverslabel |- midstaticdynamic), anchor=south] (platformservice) {platform};
+
+	% platform driver
+	\tikzstyle{drivernode} = [treenode, bottom color=driverscolor]
+	\node[drivernode, at=(driverslabel), minimum width=12ex, minimum height=10ex,
+	      yshift=-18ex] (platformdriver) {Platform\\ Driver};
+
+	\tikzstyle{devicepd} = [draw, densely dashed, align=center, draw opacity=0.8];
+	\node[devicepd, above=3ex of platformdriver] (devicepd2) {Device\\ PD};
+	\node[devicepd, left=2ex of devicepd2, fill=white, opacity=0.4, text opacity=0.8, draw opacity=0.8] (devicepd1) {Device\\ PD};
+	\node[devicepd, right=2ex of devicepd2] (devicepd3) {Device\\ PD};
+
+	\path[treechildarrow] (platformdriver) -- (devicepd1);
+	\path[treechildarrow] (platformdriver) -- (devicepd2);
+	\path[treechildarrow] (platformdriver) -- (devicepd3);
+
+	\path[draw, draw opacity=0.7, densely dashed] (platformdriver.south)
+		.. controls +(0,3ex) and +(0,-8ex) .. (devicepd1.south);
+
+	% wifi platform session
+	\path[treesessionarrow] (wifi.245)
+		.. controls +(0ex,-16ex) and +(8ex,0ex) .. (midstatic.center)
+		.. controls +(-14ex,0) and +(0,-3ex) .. (platformservice.south);
+
+	\path[treesessionarrow] (platformservice) -- (platformdriver);
+
+	% wlan-accesspoints report
+	\tikzstyle{infoflow} = [opacity=0.7,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=5]
+
+		% static user land
+		\path[land, inner color=innerstaticcolor, opacity=0.4, outer color=staticcolor, sharp corners]
+			(alloutline.west |- midstaticdynamic) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.east |- alloutline.south) --
+			(alloutline.west |- alloutline.south) --cycle;
+
+		% runtime
+		\path[land, sharp corners, opacity=0.4, outer color=runtimecolor]
+			(middriversruntime |- alloutline.north) --
+			(alloutline.east   |- alloutline.north) --
+			(alloutline.east   |- midstaticdynamic) --
+			(middriversruntime |- midstaticdynamic) --cycle;
+
+		% drivers
+		\path[land, sharp corners, opacity=0.4, outer color=driverscolor]
+			(alloutline.west   |- alloutline.north) --
+			(middriversruntime |- alloutline.north) --
+			(middriversruntime |- midstaticdynamic) --
+			(alloutline.west   |- midstaticdynamic) --cycle;
+
+		\path[infoflow, text opacity=1] (wifi.290) -- +(0,-16ex)
+			node[below, align=left, scale=0.7, xshift=9ex] {Report FS\\ \texttt{wlan\_accesspoints}};
+
+		\path[treesessionarrow, text opacity=1] (wifi.250) -- +(0,-16ex)
+			node[below, align=right, scale=0.7, xshift=-3ex] {Config ROM\\ \texttt{/config/wlan}};
+
+		%\node[label, inner sep=2ex, at=(alloutline.south east), opacity=0.8, anchor=south east] {\large static system};
+
+	\end{scope}
+
+\end{tikzpicture}
