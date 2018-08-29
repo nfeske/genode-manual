@@ -1,0 +1,166 @@
+
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1,
+	                        minimum width=12ex, minimum height=5ex]
+
+	%
+	% IP state
+	%
+	\tikzstyle{ipstate} = [minimum width=16ex, minimum height=3ex,
+	                             align=center,
+	                             draw=black!80, fill=white, fill opacity=0.6]
+
+	%
+	% Nic router
+	%
+	\node[treenode, minimum width=18ex, minimum height=20ex, yshift=4ex] (nic_router) {};
+
+	\path (nic_router.north) node[below=1ex] {\normalsize Nic Router};
+
+	\path (nic_router.north) node[ipstate, below=4ex] (lwip_ip) {10.0.1.1/24};
+
+	\node[draw, path fading=flow fade, shape=single arrow,
+	      draw opacity=0.75, rotate=45, xshift=3.5ex,
+	      double arrow head extend=0.5ex,
+	      inner xsep=2ex, inner ysep=0.5ex]
+	      (arrown) { };
+
+	\node[draw, path fading=flow fade, shape=single arrow,
+	      draw opacity=0.75, rotate=135, xshift=-4ex,
+	      double arrow head extend=0.5ex,
+	      inner xsep=2ex, inner ysep=0.5ex]
+	      (arrown) { };
+
+	\node[draw, path fading=flow fade, shape=single arrow,
+	      draw opacity=0.75, rotate=225, xshift=3.5ex,
+	      double arrow head extend=0.5ex,
+	      inner xsep=2ex, inner ysep=0.5ex]
+	      (arrown) { };
+
+	\node[draw, path fading=flow fade, shape=single arrow,
+	      draw opacity=0.75, rotate=315, xshift=-4ex,
+	      double arrow head extend=0.5ex,
+	      inner xsep=2ex, inner ysep=0.5ex]
+	      (arrown) { };
+
+	\definecolor{appcolor} {rgb}{1,0.7,0.7}
+
+	%
+	% Networked application
+	%
+	\node[yshift=35ex, xshift=-14ex] {
+		\begin{tikzpicture}[inner sep=0, outer sep=0]
+
+			%%
+			% Create rugged path
+			%
+			% argument 1:  number of saw tooths
+			% argument 2:  size of saw tooth
+			%
+			\newcommand{\ruggedpath}[2]{\foreach \i in {1,2,...,#1} {
+				-- ++(#2,#2) -- ++(2*#2,-2*#2) -- ++(#2,#2)}}
+
+			\tikzstyle{puzzle} = [component, path fading=flow fade, align=center,
+			                      dropshadow, rounded corners=2]
+
+			\path[puzzle, bottom color=appcolor]
+				(0,0) -- ++(29ex,0) {[sharp corners]
+				      -- ++(0,-7ex) -- ++(-29ex,0)} --cycle;
+
+			\path (14.5ex,-4ex) node {Application};
+
+			% VFS
+			\path[puzzle] (2.5ex, 2ex - 15ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0.5ex,0) -- ++(0,-6ex) -- ++(2ex,0)
+				{[sharp corners] -- ++(0,12ex) -- ++(-6*4ex - 5ex,0) }
+				-- ++(0,-12ex) -- ++(2ex,0) -- ++(0,5ex) --cycle;
+
+			\definecolor{lxipcolor} {rgb}{0.5,1,0.5}
+
+			\path (14.5ex,-10ex) node {Libc / VFS};
+
+			% VFS plugin
+			\path[puzzle, bottom color=lxipcolor] (2.5ex, -14ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0,-14ex) -- coordinate (libcplugin) ++(-6*4ex,0) --cycle;
+
+			\path (14.5ex,-20ex) node (lxip) {Lxip};
+
+			\path (14.5ex,-25ex) node[ipstate] (lxip_ip) {10.0.1.2/24};
+
+		\end{tikzpicture}
+	};
+
+	%
+	% Networked application
+	%
+	\node[yshift=36.5ex, xshift=14ex] {
+		\begin{tikzpicture}[inner sep=0, outer sep=0]
+
+			%%
+			% Create rugged path
+			%
+			% argument 1:  number of saw tooths
+			% argument 2:  size of saw tooth
+			%
+			\newcommand{\ruggedpath}[2]{\foreach \i in {1,2,...,#1} {
+				-- ++(#2,#2) -- ++(2*#2,-2*#2) -- ++(#2,#2)}}
+
+			\definecolor{nouxprgcolor} {rgb}{1,1,0.7}
+
+			\tikzstyle{puzzle} = [component, path fading=flow fade, align=center,
+			                      dropshadow, rounded corners=2]
+
+			\path[puzzle, bottom color=appcolor]
+				(0,0) -- ++(29ex,0) {[sharp corners]
+				      -- ++(0,-7ex) -- ++(-29ex,0)} --cycle;
+
+			\path (14.5ex,-4ex) node {Application};
+
+			% VFS
+			\path[puzzle] (2.5ex, 2ex - 15ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0.5ex,0) -- ++(0,-6ex) -- ++(2ex,0)
+				{[sharp corners] -- ++(0,12ex) -- ++(-6*4ex - 5ex,0) }
+				-- ++(0,-12ex) -- ++(2ex,0) -- ++(0,5ex) --cycle;
+
+			\path (14.5ex,-10ex) node {Libc / VFS};
+
+			\definecolor{lwipcolor} {rgb}{0.5,0.5,1}
+
+			% VFS plugin
+			\path[puzzle, bottom color=lwipcolor] (2.5ex, -14ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0,-10ex) -- coordinate (libcplugin) ++(-6*4ex,0) --cycle;
+
+			\path (14.5ex,-18ex) node (lwip) {lwIP};
+
+			\path (14.5ex,-21ex) node[ipstate] (lwip_ip) {10.0.1.3/24};
+
+		\end{tikzpicture}
+	};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	%
+	% Session relationships
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% Nic session from VFS to nic_router
+	\path[treesessionarrow] (lxip_ip.south)
+		.. controls +(270:11ex) and +(90:7ex) ..
+		node[align=center, sloped=false, left, pos=0.4] {Nic\\session} (nic_router.120);
+	\path[treesessionarrow] (lwip_ip.south)
+		.. controls +(270:13ex) and +(90:7ex) ..
+		node[align=center, sloped=false, right, pos=0.4] {Nic\\session} (nic_router.60);
+
+\end{tikzpicture}
