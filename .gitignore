@@ -8,6 +8,7 @@
 *.lco
 *.out
 *.toc
+manual/img/*.pdf
 manual/manual.txt
 manual/manual.pdf
 manual/spec/repos
