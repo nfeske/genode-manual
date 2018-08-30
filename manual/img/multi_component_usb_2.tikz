@@ -1,0 +1,416 @@
+\begin {tikzpicture}
+
+	\definecolor{color3} {rgb} {0.9,0.9,0.9}
+	\definecolor{color2} {rgb} {0.8,0.9,0.8}
+	\definecolor{color1} {rgb} {1.0,1.0,1.0}
+
+	\def\peerWidth        {7ex}
+	\def\peerHeight       {3ex}
+
+	\def\usbWidth         {20ex}
+	\def\usbHeight        {20ex}
+
+	\def\linkWidth        {8ex}
+	\def\linkHeight       {2ex}
+	\def\tuxHeight         {4ex}
+
+	\def\compDist         {1ex}
+	\def\compWidth        {14ex}
+	\def\compHeight       {3ex}
+
+	\def\netWidth         {14ex}
+	\def\netHeight        {9ex}
+	\def\netDist          {\compDist*6+\compHeight+\netHeight/2}
+	\def\intfWidth        {1.5ex}
+	\def\intfHeight       {1.5ex}
+	\def\reportWidth      {3ex}
+	\def\reportHeight     {4ex}
+	\def\ruleDist         {0.2ex}
+	\def\ruleWidth        {12ex}
+	\def\ruleHeight       {2ex}
+	\def\ruleNr           {4}
+	\def\domLablHeight    {3.5ex}
+	\def\domWidth         {5ex}
+	\def\domHeight        {2ex}
+	\def\domNr            {3}
+	\def\routerLablHeight {4ex}
+	\def\routerWidth      {56.1ex}
+	\def\routerHeight     {20ex}
+	\def\compRounding     {0.6ex}
+
+	\tikzstyle{compSty} = [
+		component, rounded corners=\compRounding, very thin,
+		draw=black, minimum height=\compHeight,
+		bottom color=color3, minimum width=\compWidth, align=center]
+
+	\tikzstyle{peerSty} = [
+		compSty, text width=\peerWidth, minimum width=\peerWidth, minimum height=\peerHeight, font=\tiny\sffamily
+	]
+
+	\tikzstyle{usbSty} = [
+		compSty, text width=\usbWidth, minimum width=\usbWidth, minimum height=\usbHeight, font=\tiny\sffamily
+	]
+
+	\tikzstyle{compSty1} = [
+		component1, rounded corners=\compRounding, very thin,
+		draw=black, minimum height=\compHeight,
+		bottom color=color3, minimum width=\compWidth]
+
+	\tikzstyle{domSty} = [
+		component, rounded corners=0ex, thin,
+		draw=black!50!white, minimum height=\domHeight,
+		bottom color=color2, minimum width=\domWidth, font=\tiny\sffamily]
+
+	\tikzstyle{domLablSty} = [
+		minimum height=\domLablHeight]
+
+	\tikzstyle{intfConnSty} = [
+		draw=black!40!white, thick, minimum height=\intfHeight,
+		fill=color1, minimum width=\intfWidth, inner sep=0ex, densely dotted]
+
+	\tikzstyle{ruleSty} = [
+		rounded corners=\ruleHeight/2, thin,
+		draw=black!50!white, minimum height=\ruleHeight,
+		fill=color1, opacity=0.7, minimum width=\ruleWidth, inner sep=0ex]
+
+	\tikzstyle{intfSty} = [
+		rounded corners=\intfHeight/3, thin,
+		draw=black!50!white, minimum height=\intfHeight,
+		fill=color1, minimum width=\intfWidth, inner sep=0ex]
+
+	\tikzstyle{intfContactSty} = [
+		intfSty, rounded corners=0ex, minimum width=0.5ex,
+		minimum height=\intfHeight/3]
+
+	\tikzstyle{reportSty} = [
+		draw=black!40!white, thick, fill=color1]
+
+	\tikzstyle{netSty} = [
+		draw=black!50!white, dropshadow, fill=white, cloud, cloud puffs=9,
+		minimum width=\netWidth, minimum height=\netHeight, opacity=1.0]
+
+%	% router
+%	\node[compSty, minimum width=\routerWidth, minimum height=\routerHeight] (c1) { };
+%	\path(c1.east)+(\compDist*3,\reportHeight/2) coordinate (c2);
+%
+%	% router report
+%	\path[reportSty] (c2)
+%		-- ++(\reportWidth-\reportWidth/3,0ex) coordinate (c3)
+%		-- ++(\reportWidth/3,-\reportWidth/3)
+%		-- ++(0ex,-\reportHeight+\reportWidth/3)
+%		-- ++(-\reportWidth/2,0ex) coordinate (c5)
+%		-- ++(-\reportWidth/2,0ex) coordinate (c4)
+%		-- cycle;
+%	\path[reportSty] (c3) -- ++(0ex,-\reportWidth/3) -- ++(\reportWidth/3,0ex);
+%	\path(c2)+(\reportWidth/5,-\reportHeight/5) coordinate (c2);
+%	\path[reportSty](c2) -- ++(\reportWidth*4/5-\reportWidth/3-\reportWidth/5,0ex);
+%	\path(c2)+(0ex,-\reportHeight/5) coordinate (c2);
+%	\path[reportSty](c2) -- ++(\reportWidth*3/5,0ex);
+%	\path(c2)+(0ex,-\reportHeight/5) coordinate (c2);
+%	\path[reportSty](c2) -- ++(\reportWidth*3/5,0ex);
+%	\path(c2)+(0ex,-\reportHeight/5) coordinate (c2);
+%	\path[reportSty](c2) -- ++(\reportWidth*3/5,0ex);
+%	\path[intfConnSty](c1.east) -- (c4 |- c1.east);
+%	\node[below=0ex of c5] {\tiny Report};
+%
+%	% router
+%	\path(c1.south west)+(\compDist,\routerLablHeight) coordinate (c1);
+%	\node[below right=0ex of c1] (c2) { NIC Router };
+%	\path(c1)+(0ex,\compDist) coordinate (c1);
+%	\path(c1)+(\routerWidth-3*\compDist,0ex) coordinate (c4);
+%	\path[intfConnSty] (c1)+(\compDist,0ex) -- (c4);
+%	\path(c1.south west)+(0ex,\compDist*2) coordinate (c1);
+%
+%	% domain 1
+%	\node[domSty, above right=0ex of c1] (c3) { };
+%	\path[intfConnSty] (c3.south) -- (c3.south |- c4);
+%	\path(c3.south west)+(0ex,\domLablHeight) coordinate (c1);
+%	\node[domLablSty, below right=0ex of c1] (c2) { \scriptsize Domain 'A' };
+%	\node[ruleSty, above right=\compDist of c2.north west] (c2) { \tiny DHCP Role };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny NAT Rules };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny Routing Rules };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny IP Config };
+%	\path(c3.north west) coordinate (c1);
+%	\path(c3.north)+(0ex,\netDist) coordinate (c5);
+%
+%	% domain 1 interface plug
+%	\node[intfSty, right=\compDist of c1] (c1) { };
+%	\node[intfContactSty, above right=0ex of c1.south west] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\path[intfConnSty](c1.north) -- (c1.north |- c5);
+%
+%	% domain 1 interface plug
+%	\node[intfSty, right=\compDist of c1] (c1) { };
+%	\node[intfContactSty, above right=0ex of c1.south west] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\path[intfConnSty](c1.north) -- (c1.north |- c5);
+%
+%	% virtual network 2
+%	\node [netSty, above=-\netHeight/2 of c5] (c5) { };
+%	\node [below=2ex of c5.north, opacity=0.7, align=center] {
+%		\scriptsize\it\sffamily Virtual \\ \scriptsize\it\sffamily Subnet 'A'};
+%
+%
+%	% domain 2
+%	\node[domSty, right=\compDist of c3] (c3) { };
+%	\path[intfConnSty] (c3.south) -- (c3.south |- c4);
+%	\path(c3.south west)+(0ex,\domLablHeight) coordinate (c1);
+%	\node[domLablSty, below right=0ex of c1] (c2) { \scriptsize Domain 'B' };
+%	\node[ruleSty, above right=\compDist of c2.north west] (c2) { \tiny DHCP Role };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny NAT Rules };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny Routing Rules };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny IP Config };
+%	\path(c3.north west) coordinate (c1);
+%	\path(c3.north)+(0ex,\netDist) coordinate (c5);
+%
+%	% domain 2 interface plug
+%	\node[intfSty, right=\compDist of c1] (c1) { };
+%	\node[intfContactSty, above right=0ex of c1.south west] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\path[intfConnSty](c1.north) -- (c1.north |- c5);
+%
+%	% domain 2 interface plug
+%	\node[intfSty, right=\compDist of c1] (c1) { };
+%	\node[intfContactSty, above right=0ex of c1.south west] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\path[intfConnSty](c1.north) -- (c1.north |- c5);
+%
+%	% domain 2 interface plug
+%	\node[intfSty, right=\compDist of c1] (c1) { };
+%	\node[intfContactSty, above right=0ex of c1.south west] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\path[intfConnSty](c1.north) -- (c1.north |- c5);
+%
+%	% virtual network 2
+%	\node [netSty, above=-\netHeight/2 of c5] (c5) { };
+%	\node [below=2ex of c5.north, opacity=0.7, align=center] {
+%		\scriptsize\it\sffamily Virtual \\ \scriptsize\it\sffamily Subnet 'B'};
+%
+%	% domain 3
+%	\node[domSty, right=\compDist of c3] (c3) { };
+%	\path[intfConnSty] (c3.south) -- (c3.south |- c4);
+%	\path(c3.south west)+(0ex,\domLablHeight) coordinate (c1);
+%	\node[domLablSty, below right=0ex of c1] (c2) { \scriptsize Domain 'Uplink' };
+%	\node[ruleSty, above right=\compDist of c2.north west] (c2) { \tiny DHCP Role };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny NAT Rules };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny Routing Rules };
+%	\node[ruleSty, above=\ruleDist of c2] (c2) { \tiny IP Config };
+%	\path(c3.north west) coordinate (c1);
+%	\path(c3.north)+(0ex,\netDist) coordinate (c5);
+%
+%	% domain 3 interface plug
+%	\node[intfSty, right=\compDist of c1] (c1) { };
+%	\node[intfContactSty, above right=0ex of c1.south west] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%	\node[intfContactSty, right=-0.1ex of c2] (c2) { };
+%
+%	% nic driver
+%	\node[compSty, above=\compDist*3 of c3] (c2) { \scriptsize NIC Driver };
+%	\path[intfConnSty](c1.north) -- (c1.north |- c2.south);
+%	\path[intfConnSty](c1.north |- c2.north) -- (c1.north |- c5);
+%
+%	% real network
+%	\node [netSty, above=-\netHeight/2 of c5] (c5) { };
+%	\node [below=2ex of c5.north, opacity=0.7, align=center] {
+%		\scriptsize\it\sffamily Physical \\ \scriptsize\it\sffamily Subnet};
+
+
+	\path(0ex, -\peerHeight-\compDist*4-\routerHeight/2) coordinate (c1);
+
+	\path(0ex, 0ex) coordinate (c1);
+	\node[peerSty, right=\compDist of c1] (c1) { VirtualBox  };
+	\path(c1.south west) coordinate (x1);
+%	\path(c4.north)++(1ex, 0ex) coordinate (c5);
+%	\path[arrow, opacity=0.5] (c5) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+	\node[peerSty, right=\compDist of c1] (c1) { Input Filter };
+	\path(c1.south) coordinate (x2);
+%	\path(c4.north)++(-3ex, 0ex) coordinate (c5);
+%	\path[arrow, opacity=0.5] (c5) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+	\node[peerSty, right=\compDist of c1] (c1) { VFS \\ TCP/IP };
+	\path(c1.south) coordinate (x3);
+%	\path(c4.north)++(-1ex, 0ex) coordinate (c5);
+%	\path[arrow, opacity=0.5] (c5) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+	\node[peerSty, right=\compDist of c1] (c1) { VFS \\ Filesystem };
+	\path(c1.south) coordinate (x4);
+%	\path(c4.north)++(3ex, 0ex) coordinate (c5);
+%	\path[arrow, opacity=0.5] (c5) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+	\node[peerSty, right=\compDist of c1] (c1) { Noux  };
+	\path(c1.south) coordinate (x5);
+
+
+%	\path(0ex, -\tuxHeight+1.5ex) coordinate (c2);
+%	\node[right=0.5ex of c2] (c1) {\includegraphics[height=\tuxHeight]{tux.png}};
+%	\node[right=-1.5ex of c1] (c1) {\scriptsize USB Driver};
+
+	\path(1ex, -12ex) coordinate (c1);
+	\node[peerSty, right=0ex of c1, minimum height=\domHeight*2+1.5ex+5ex, text width=\domWidth+7ex] (c8) {};
+	\path(c8.south) coordinate (y1);
+	\path[arrow, opacity=0.5] (c8.north) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (x2);
+	\node[domSty, above=1ex of c8.south] (c7) {HID};
+	\node[domSty, above=\compDist/2 of c7] (c7) {Input};
+	\path(c8.north west)+(1ex,-3ex) coordinate (c7);
+	\node[above right=-2ex of c7] (c7) {\includegraphics[height=\tuxHeight]{tux.png}};
+	\node[right=-1.5ex of c7] (c7) {\tiny USB HID Driver};
+
+
+	\path(c8.south east)+(\compDist*2, 0ex) coordinate (c2);
+	\node[peerSty, above right=0ex of c2, minimum height=\domHeight*2+1.5ex+5ex, text width=\domWidth+7ex] (c6) {};
+	\path(c6.south) coordinate (y2);
+	\path[arrow, opacity=0.5] (c6.north) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (x3);
+	\path(c6.north west)+(1ex,-3ex) coordinate (c7);
+	\node[above right=-2ex of c7] (c7) {\includegraphics[height=\tuxHeight]{tux.png}};
+	\node[right=-1.5ex of c7] (c7) {\tiny USB Net Driver};
+	\node[domSty, minimum height=\domHeight*2+1.5ex, above=1ex of c6.south] (c2) {Net};
+
+	\node[peerSty, right=\compDist*2 of c6] (c3) {USB Block Driver};
+	\path(c3.south) coordinate (y3);
+	\path[arrow, opacity=0.5] (c3.north) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (x4);
+	\node[peerSty, right=\compDist*2 of c3, text width=\peerWidth+1ex] (c3) {USB Terminal \\ (UART)};
+	\path(c3.south) coordinate (y4);
+	\path[arrow, opacity=0.5] (c3.north) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (x5);
+
+	\path(c8.south west)+(0ex, -\compDist*7) coordinate (c2);
+	\node[peerSty, below right=0ex of c2, minimum width=\domWidth*3+1.63ex+ 3.5ex, minimum height=\domHeight*2+1.5ex+5ex] (c6) {};
+
+	\path(c6.north)+(-3ex, 0ex) coordinate (z1);
+	\path[arrow, opacity=0.5] (z1) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (y1);
+
+	\path(c6.north)+(-1ex, 0ex) coordinate (z1);
+	\path[arrow, opacity=0.5] (z1) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (y2);
+
+	\path(c6.north)+(1ex, 0ex) coordinate (z1);
+	\path[arrow, opacity=0.5] (z1) .. controls ++(0ex,2ex) and ++(0ex,-5ex) .. (y3);
+
+	\path(c6.north)+(3ex, 0ex) coordinate (z1);
+	\path[arrow, opacity=0.5] (z1) .. controls ++(0ex,2ex) and ++(0ex,-5ex) .. (y4);
+
+	\path(c6.north west)+(1ex,-3ex) coordinate (c7);
+	\node[above right=-2ex of c7] (c7) {\includegraphics[height=\tuxHeight]{tux.png}};
+	\node[right=-1.5ex of c7] (c7) {\tiny USB Host Driver};
+	\node[domSty, minimum width=\domWidth*3+1.63ex, below=4ex of c6.north] (c2) {USB Core};
+	\node[domSty, minimum width=\domWidth*3+1.63ex, below=\compDist/2 of c2] (c2) {USB Host};
+
+	\path(c6.west)++(0ex, 4ex) coordinate (c5);
+	\path[arrow, opacity=0.5] (c5) .. controls ++(-4ex,4ex) and ++(-4ex,-4ex) .. (x1);
+
+
+%	% router
+%	\node[compSty, minimum width=\routerWidth, minimum height=\routerHeight] (c1) { };
+%	\node[minimum width=\peerWidth, minimum height=\peerHeight*1.2, above=0ex of c1.south] () { \fontsize{6}{6} \selectfont NIC Router };
+%	\path(c1.north west)+(\compDist*1.5,-\compDist*7) coordinate (c2);
+%	\path(c1.north west)+(0ex,\compDist*2) coordinate (c1);
+%
+%	% links
+%
+%	\path[ruleSty] (c2)
+%		-- ++(0ex,\linkHeight)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,\linkHeight) coordinate (c211)}
+%		-- ++(\linkWidth/2,-\linkHeight)
+%		-- ++(0ex,-\linkHeight) coordinate (c213)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c212)
+%		-- cycle;
+%	\node[above=0ex of c212, opacity=0.7] () { \tiny "Wired 1" };
+%	\path (c213)+(\compDist,0ex) coordinate (c213);
+%
+%	\path[ruleSty] (c213)
+%		-- ++(0ex,\linkHeight)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,\linkHeight) coordinate (c221)}
+%		-- ++(\linkWidth/2,-\linkHeight)
+%		-- ++(0ex,-\linkHeight) coordinate (c223)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c222)
+%		-- cycle;
+%	\node[above=0ex of c222, opacity=0.7] () { \tiny "Wired 2" };
+%	\path (c223)+(\compDist,0ex) coordinate (c223);
+%
+%	\path[ruleSty] (c223)
+%		-- ++(0ex,\linkHeight)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,\linkHeight) coordinate (c231)}
+%		-- ++(\linkWidth/2,-\linkHeight)
+%		-- ++(0ex,-\linkHeight) coordinate (c233)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c232)
+%		-- cycle;
+%	\node[above=0ex of c232, opacity=0.7] () { \tiny "Wifi" };
+%	\path (c233)+(\compDist,0ex) coordinate (c233);
+%
+%	\path[ruleSty] (c233)
+%		-- ++(0ex,\linkHeight)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,\linkHeight) coordinate (c241)}
+%		-- ++(\linkWidth/2,-\linkHeight)
+%		-- ++(0ex,-\linkHeight) coordinate (c243)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c242)
+%		-- cycle;
+%	\node[above=0ex of c242, opacity=0.7] () { \tiny "" };
+%	\path (c243)+(\compDist,0ex) coordinate (c243);
+%
+%	\path[ruleSty] (c243)+(0ex,\linkHeight/4) coordinate (c243x);
+%	\path[ruleSty] (c243x)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,-\linkHeight)}
+%		-- ++(\linkWidth/2,\linkHeight)
+%		-- ++(0ex,\linkHeight)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c251)
+%		-- ++(-\linkWidth/2,0ex)
+%		-- ++(0ex,-\linkHeight)
+%		-- cycle;
+%	\path[ruleSty] (c243)+(\linkWidth/2,0ex) coordinate (c252);
+%	\path[ruleSty] (c243)+(\linkWidth+\compDist,0ex)   coordinate (c253);
+%	\node[above=0ex of c252, opacity=0.7] () { \tiny "VirtualBox" };
+%
+%	\path[ruleSty] (c253)+(0ex,\linkHeight/4) coordinate (c253x);
+%	\path[ruleSty] (c253x)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,-\linkHeight)}
+%		-- ++(\linkWidth/2,\linkHeight)
+%		-- ++(0ex,\linkHeight)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c261)
+%		-- ++(-\linkWidth/2,0ex)
+%		-- ++(0ex,-\linkHeight)
+%		-- cycle;
+%	\path[ruleSty] (c253)+(\linkWidth/2,0ex) coordinate (c262);
+%	\node[above=0ex of c262, opacity=0.7] () { \tiny "Arora" };
+%
+%	% peers
+%	\node[compSty, minimum width=\peerWidth, minimum height=\peerHeight, above right=0ex of c1] (c1) { \tiny NIC Driver 1 };
+%	\path[arrow, opacity=0.5] (c211) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+%
+%	\node[compSty, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c1] (c1) { \tiny NIC Driver 2 };
+%	\path[arrow, opacity=0.5] (c221) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+%
+%	\node[compSty, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c1] (c1) { \tiny Wifi Driver };
+%	\path[arrow, opacity=0.5] (c231) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+%
+%	\node[compSty, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c1] (c1) { \tiny NIC Bridge };
+%	\path[arrow, opacity=0.5] (c241) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+%
+%	\path (c1.east)+(0ex,0ex)      coordinate (c31);
+%	\path (c1.east)+(1.2ex,-0.2ex) coordinate (c32);
+%	\path (c1.east)+(2.4ex,-0.4ex) coordinate (c33);
+%	\node[compSty,  opacity=0.4, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c33] (c1) { \tiny VirtualBox 3 };
+%	\node[compSty1, opacity=0.7, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c32] (c2) { \tiny VirtualBox 2 };
+%	\node[compSty1, opacity=1.0, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c31] (c3) { \tiny VirtualBox 1 };
+%	\path (c1.south |- c251)+(1ex,0ex) coordinate (x1);
+%	\path (c2.south |- c251)+(1ex,0ex) coordinate (x2);
+%	\path (c3.south |- c251)+(1ex,0ex) coordinate (x3);
+%	\path[arrow, opacity=0.3] (c1.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x1);
+%	\path[arrow, opacity=0.4] (c2.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x2);
+%	\path[arrow, opacity=0.5] (c3.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x3);
+%	\path (c1.east |- c3.east) coordinate (c1);
+%
+%	\path (c1.east)+(0ex,0ex)      coordinate (c31);
+%	\path (c1.east)+(1.2ex,-0.2ex) coordinate (c32);
+%	\path (c1.east)+(2.4ex,-0.4ex) coordinate (c33);
+%	\node[compSty,  opacity=0.4, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c33] (c1) { \tiny Arora 3 };
+%	\node[compSty1, opacity=0.7, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c32] (c2) { \tiny Arora 2 };
+%	\node[compSty1, opacity=1.0, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c31] (c3) { \tiny Arora 1 };
+%	\path (c1.south |- c261)+(1ex,0ex) coordinate (x1);
+%	\path (c2.south |- c261)+(1ex,0ex) coordinate (x2);
+%	\path (c3.south |- c261)+(1ex,0ex) coordinate (x3);
+%	\path[arrow, opacity=0.3] (c1.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x1);
+%	\path[arrow, opacity=0.4] (c2.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x2);
+%	\path[arrow, opacity=0.5] (c3.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x3);
+
+
+\end {tikzpicture}
