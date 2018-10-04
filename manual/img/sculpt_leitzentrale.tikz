@@ -17,22 +17,24 @@
 
 	\tikzstyle{lznode}     = [treenode, bottom color=lzcolor]
 	\tikzstyle{vfsentry}   = [align=left, text opacity=0.5]
+	\tikzstyle{sculptnode} = [treenode, minimum width=17ex, minimum height=13ex]
 	\tikzstyle{nouxnode}   = [treenode, minimum width=15ex, minimum height=9ex]
 
-	\node[nouxnode] (controlnoux) {};
-	\node[at=(controlnoux), yshift=2ex, align=center] {Control Noux};
-	\node[at=(controlnoux), yshift=-1.5ex, vfsentry] (controlnouxconfigfs) {\texttt{/config}};
-	\node[at=(controlnoux), yshift=-3.25ex, vfsentry] (controlnouxreportfs) {\texttt{/report}};
+	\node[sculptnode] (sculptmanager) {};
+	\node[at=(sculptmanager), yshift=2ex, align=center] {Sulpt Manager};
+	\node[at=(sculptmanager), yshift=-1.5ex, vfsentry] (sculptmanagerconfigmfs) {\texttt{/config/managed}};
+	\node[at=(sculptmanager), yshift=-3.25ex, vfsentry] (sculptmanagerconfigfs) {\texttt{/config}};
+	\node[at=(sculptmanager), yshift=-4.75ex, vfsentry] (sculptmanagerreportfs) {\texttt{/report}};
 
-	\node[lznode, below=3ex of controlnoux] (controlterminal) {Terminal};
-	\node[lznode, below=3ex of controlterminal] (controlnitfb) {Nit FB};
-	\node[lznode, below=3ex of controlnitfb] (controlfader) {Fader};
-	\path[treesessionarrow] (controlnoux)         -- node[right] {terminal} (controlterminal);
-	\path[treesessionarrow] (controlterminal.250) -- node[left]  {framebuffer} (controlnitfb.110);
-	\path[treesessionarrow] (controlterminal.290) -- node[right] {input} (controlnitfb.70);
-	\path[treesessionarrow] (controlnitfb)        -- node[right] {nitpicker} (controlfader);
+	% \node[lznode, below=3ex of sculptmanager] (controlterminal) {Terminal};
+	% \node[lznode, below=3ex of controlterminal] (controlnitfb) {Nit FB};
+	\node[lznode, below=3ex of sculptmanager] (controlfader) {Fader};
+	% \path[treesessionarrow] (sculptmanager)       -- node[right] {terminal} (controlterminal);
+	% \path[treesessionarrow] (controlterminal.250) -- node[left]  {framebuffer} (controlnitfb.110);
+	% \path[treesessionarrow] (controlterminal.290) -- node[right] {input} (controlnitfb.70);
+	\path[treesessionarrow] (sculptmanager)        -- node[right] {nitpicker} (controlfader);
 
-	\node[nouxnode, right=10ex of controlnoux] (lognoux) {};
+	\node[nouxnode, right=10ex of sculptmanager] (lognoux) {};
 	\node[at=(lognoux), yshift=2ex, align=center] {Log Noux};
 	\node[at=(lognoux), yshift=-3.25ex, vfsentry] (lognouxreportfs) {\texttt{/report}};
 	\node[lznode, below=3ex of lognoux] (logterminal) {Terminal};
@@ -45,6 +47,7 @@
 
 	\node[fit=(logfader) (controlfader)] (fadersoutline) {};
 
+	\node[lznode, below=2ex of fadersoutline] (init) {Init};
 	\node[lznode, below=2ex of fadersoutline] (init) {Init};
 	\path[treechildarrow] (init) -- (controlfader);
 	\path[treechildarrow] (init) -- (logfader);
@@ -60,10 +63,13 @@
 		.. controls +(0,-5ex) and +(0,5ex) .. (nitpicker.40);
 
 	% vfs mount points -> fs
-	\path[treesessionarrow] (controlnouxreportfs.180)
+	\path[treesessionarrow] (sculptmanagerconfigmfs.180)
+		.. controls +(-5ex,0ex) and +(0,8ex) .. +(-7ex,-13ex)
+		.. controls +(0ex,-17ex) and +(-2ex,5ex) .. (configfs.150);
+	\path[treesessionarrow] (sculptmanagerreportfs.180)
 		.. controls +(-8ex,0ex) and +(0,10ex) .. +(-8ex,-13ex)
 		.. controls +(0ex,-10ex) and +(-2ex,5ex) .. (reportfs.150);
-	\path[treesessionarrow] (controlnouxconfigfs.180)
+	\path[treesessionarrow] (sculptmanagerconfigfs.180)
 		.. controls +(-8ex,0ex) and +(0,10ex) .. +(-9ex,-15ex)
 		.. controls +(0ex,-15ex) and +(-2ex,5ex) .. (configfs.150);
 	\path[treesessionarrow] (lognouxreportfs.0)
@@ -72,7 +78,7 @@
 
 	% global policy controls faders
 	\tikzstyle{label} = [outer sep=0, opacity=0.6, minimum height=4ex, minimum width=20ex]
-	\node[fit=(controlnoux) (lognoux)] (nouxoutline) {};
+	\node[fit=(sculptmanager) (lognoux)] (nouxoutline) {};
 	\node[label, above=0ex of nouxoutline, minimum width=55ex] (lzlabel) {\large Leitzentrale};
 
 	\node[right=13ex of reportfs, opacity=0.5, align=center] (globalpolicy) {global\\ policy};
