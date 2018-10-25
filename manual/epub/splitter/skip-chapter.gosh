@@ -1,0 +1,4 @@
+#skip chapter headlines
+proc process_chapter_html {txtblock} {
+	handle_txtblock chapter [lrange $txtblock 2 end]
+}

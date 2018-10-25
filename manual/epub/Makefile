@@ -18,6 +18,82 @@ default: $(TARGET_EPUB)
 $(HTML): xrefs
 
 #
+# Rules for generating HTML files sectionwise
+#
+.PHONY: splitted
+
+presuf = $(addprefix $(2),$(addsuffix $(3),$(1)))
+html_files = $(call presuf,$(1),splitted_html/,.html)
+txt_files = $(call presuf,$(1),splitted_txt/,.txt)
+
+chapters := $(basename $(HTML))
+chapter_txt_dirs := $(addprefix splitted_txt/,$(chapters))
+chapter_html_dirs := $(addprefix splitted_html/,$(chapters))
+
+sectionlists := $(call presuf,$(chapters),splitted_txt/,.txt)
+all_sections := $(foreach x,$(chapters), \
+	$(addprefix $(x)/,$(file <splitted_txt/$(x).txt)))
+sections_txt := $(call txt_files,$(all_sections))
+sections_html := $(call html_files,$(all_sections))
+
+chapter_indizes := $(addsuffix /index,$(chapters))
+chapter_indizes_txt := $(call txt_files,$(chapter_indizes))
+chapter_indizes_html := $(call html_files,$(chapter_indizes))
+
+content_sorted := $(foreach x,$(chapters), \
+	$(addprefix $(x)/,index $(file <splitted_txt/$(x).txt)))
+splitted_all := $(sections_html) $(chapter_indizes_html)
+
+define multi_gen_xrefs_splitted =
+docs='$(1)'; \
+for doc in $$docs; do \
+	gosh --style html_xrefs --html-path splitted_html/$$doc.html \
+		splitted_txt/$$doc.txt | grep -v FAKE-CHAPTER >> splitted_xrefs ; \
+done;
+endef
+#$1: gosh doc, $2: html doc, $3: basepath, $4 extra args
+#Note that some sections have special characters in their names. So add single
+#quotes to $1 and $2 when necessary.
+gen_html = gosh --style epub_html --html-xrefs splitted_xrefs \
+	$(4) --basepath $(3) $(1) > $(2)
+
+splitted: $(splitted_all)
+
+$(sections_html): splitted_xrefs | $(chapter_html_dirs)
+	$(call gen_html, \
+		'$(patsubst splitted_html/%.html,splitted_txt/%.txt,$@)', \
+		'$@', \
+		../.., \
+		--style splitter/skip-chapter.gosh)
+
+splitted_html/%/index.html: splitted_txt/%/index.txt splitted_xrefs | splitted_html
+	$(call gen_html,'$<','$@',../..)
+
+#We do not put this xrefs file into the 'splitted_txt' directory because gosh
+#does not allow '--html-xrefs' argument values with slashes.
+splitted_xrefs: splitted_txt/sectionlists_update $(sections_txt) \
+		$(chapter_indizes_txt) | $(chapter_txt_dirs)
+	-rm splitted_xrefs
+	$(call multi_gen_xrefs_splitted,$(content_sorted))
+
+splitted_txt/%.txt: ../%.txt | splitted_txt
+	splitter/filter-sec.sh list < $< > $@
+
+$(sections_txt): splitted_txt/sectionlists_update | $(chapter_txt_dirs)
+	splitter/filter-sec.sh get '$(notdir $(basename $@))' \
+		< ../$(patsubst splitted_txt/%/,%,$(dir $@)).txt \
+		> '$@'
+
+splitted_txt/%/index.txt: ../%.txt | $(chapter_txt_dirs)
+	splitter/filter-sec.sh chapter < $< > $@
+
+$(chapter_txt_dirs): | splitted_txt
+$(chapter_html_dirs): | splitted_html
+splitted_html splitted_txt $(chapter_txt_dirs) $(chapter_html_dirs):
+	mkdir $@
+
+
+#
 # Rules for converting TikZ figures to PNG images, invoked by 'epub_html.gosh'
 #
 
@@ -94,11 +170,34 @@ $(TARGET_EPUB): $(HTML) $(EPUB_SRC) Makefile
 GENERATED_IMGS_LOG := $(wildcard img/*.log)
 GENERATED_IMGS     := $(GENERATED_IMGS_LOG:.log=)
 
+concrete_cleaning_targets := clean_generated_imgs clean_splitted
+
 clean_generated_imgs:
 	rm -f $(foreach suffix,.png .log .tikz .aux,$(addsuffix $(suffix),$(GENERATED_IMGS)))
 
-clean: clean_generated_imgs
+clean_splitted:
+	rm -f -r splitted_html splitted_txt
+	rm -f splitted_xrefs
+
+clean: $(concrete_cleaning_targets)
 	rm -f $(HTML)
 	rm -f $(TARGET_EPUB)
 	rm -f toc.ncx
 
+#
+# Reload Makefile if necessary
+#
+
+#The elements of the generated section lists are used as prerequisites.
+splitted_txt/sectionlists_update: $(sectionlists)
+	touch splitted_txt/sectionlists_update
+
+#avoid generation of Makefiles caused by includes if user just wants to clean
+#TODO: this does not prevent the generation under the following conditions:
+# * User supplies both cleaning and building goals. I do not know the correct
+#   behaviour for such a situation.
+# * User supplies one of the "normal" epub goals.
+cleaning_goals := $(filter $(concrete_cleaning_targets) clean,$(MAKECMDGOALS))
+ifeq ($(cleaning_goals),)
+include splitted_txt/sectionlists_update
+endif

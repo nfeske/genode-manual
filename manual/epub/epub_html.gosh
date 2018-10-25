@@ -1,5 +1,8 @@
 source [get_style_file html]
 
+set basepath ""
+regexp -- {\--basepath\s+([^\s]+)} $argv dummy basepath
+
 
 proc print_html_label {label} {
 	printline "<a id=\"[label_html $label]\"></a>"
@@ -32,6 +35,7 @@ proc generate_png_from_tikz { tikz_name } {
 
 ### TIKZ IMAGE ###
 proc process_tikz_html {txtblock} {
+	global basepath
 
 	regexp {\[(tikz \w+.*)\]} [lindex $txtblock 0] dummy tikz_info
 	if {$tikz_info == ""} return
@@ -53,11 +57,11 @@ proc process_tikz_html {txtblock} {
 	# is provided, we host the image along with its caption in a table.
 	#
 	if {$tikz_cap == ""} {
-		printline "<p><img src=\"$tikz_name.png\" alt=\"$tikz_name\"/></p>"
+		printline "<p><img src=\"$basepath/$tikz_name.png\" alt=\"$tikz_name\"/></p>"
 	} else {
 		printline "<table class=\"captionedimage\"><tr><td>"
 		printline "  <a id=\"[label_html $tikz_name]\"></a>"
-		printline "  <img src=\"$tikz_name.png\" alt=\"$tikz_name\" />"
+		printline "  <img src=\"$basepath/$tikz_name.png\" alt=\"$tikz_name\" />"
 		printline "</td></tr><tr><td>"
 		printline "  <div class=\"caption\">$tikz_cap</div>"
 		printline "</td></tr></table>"
@@ -74,4 +78,10 @@ proc process_rawinclude_html {txtblock} {
 	puts [exec cat $raw_name.html]
 }
 
+#update base path for xref links
+foreach xref $html_xrefs {
+	set ref_name	 [lindex $xref 0]
+	set ref_target [lindex $xref 2]
 
+	set references($ref_name,target) $basepath/$ref_target
+}
