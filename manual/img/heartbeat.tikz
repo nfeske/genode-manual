@@ -1,0 +1,68 @@
+\begin{tikzpicture}
+
+	\definecolor{responsivecolor}   {rgb}{1,1,0.7}
+	\definecolor{unresponsivecolor} {rgb}{0.9,0.5,0.4}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=12ex]
+
+	\tikzstyle{unresponsivenode} = [treenode, minimum height=6ex, bottom color=unresponsivecolor]
+	\tikzstyle{responsivenode}   = [treenode, minimum height=6ex, bottom color=responsivecolor]
+
+	%
+	% Components
+	%
+
+	% init
+	\node[treenode, minimum width=12ex, minimum height=5ex] (init) {Init};
+
+	% monitored components
+	\node[responsivenode,   above=12ex of init]       (responsive2)  {Component};
+	\node[responsivenode,   left=8ex of responsive2]  (responsive1)  {Component};
+	\node[unresponsivenode, right=8ex of responsive2] (unresponsive) {Component};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init.155) -- (responsive1.south);
+	\path[treechildarrow] (init)     -- (responsive2.south);
+	\path[treechildarrow] (init.25)  -- (unresponsive.south);
+
+	%
+	% Heartbeat requests
+	%
+
+	\tikzstyle{requestarrow} = [arrow, densely dashed, sloped=false]
+
+	\path[requestarrow] (init.170)
+		.. controls +(-5ex,2ex) and +(2ex,-5ex) ..
+		   node [xshift=-6ex, pos=0.3, align=center] {How are\\ you?} (responsive1.240);
+
+	\path[requestarrow] (init.120)
+		.. controls +(-2ex,4ex) and +(-2ex,-4ex) ..
+		   node [xshift=-1ex, pos=0.3, align=center] {How are\\ you?} (responsive2.240);
+
+	\path[requestarrow] (init.35)
+		.. controls +(3ex,5ex) and +(-5ex,-2ex) ..
+		node [xshift=4ex, pos=0.2, align=center] {How are\\ you?} (unresponsive.220);
+
+	%
+	% Heartbeat responses
+	%
+
+	\tikzstyle{responsearrow} = [arrow, sloped=false]
+
+	\path[responsearrow] (responsive1.300)
+		.. controls +(5ex,-2ex) and +(-3ex,5ex) ..
+		   node [xshift=-3ex, pos=0.7, align=center] {I'm\\ fine} (init.150);
+
+	\path[responsearrow] (responsive2.300)
+		.. controls +(2ex,-4ex) and +(2ex,4ex) ..
+		   node [xshift=0ex, pos=0.7, align=center] {I'm\\ fine} (init.60);
+
+	\node[below=5ex of unresponsive, xshift=-4ex] (question) {\huge ?};
+
+\end{tikzpicture}
