@@ -1,9 +1,25 @@
 source [get_style_file html]
 
+set web_build [regexp {\--web-build} $argv dummy]
 set basepath ""
 regexp -- {\--basepath\s+([^\s]+)} $argv dummy basepath
 set stylesheet ""
 regexp -- {\--stylesheet\s+([^\s]+)} $argv dummy stylesheet
+set main_index [regexp {\--main-index} $argv dummy]
+
+#'unique-name' must be the name of the xref entry for the current document.
+#
+#The comparison is case-insensitive because we don't extract the exact names of
+#chapters in the makefile. Thus, we abuse the filename structure of the
+#original chapter txt files, whose filenames match their xref entry names when
+#compared case-insensitively and when all spaces are replaced with underscores.
+#So all spaces of a (pseudo) xref entry name must be replaced with underscores
+#before it is passed to argument 'unique-name'.
+#We get 'unique-name' from an argument instead of extracting it from the input
+#filename in order to allow generic filenames or even process substitution.
+set unique_name ""
+regexp -- {\--unique-name\s+([^\s]+)} $argv dummy unique_name
+set unique_name [string tolower $unique_name]
 
 
 proc print_html_label {label} {
@@ -11,9 +27,92 @@ proc print_html_label {label} {
 }
 
 
+#find the first item in the list with the given nesting level
+#If an item with a lower nesting level is found first or if no item with the
+#wanted level is found at all, -1 is returned
+proc first_with_level {list level} {
+	for {set i 0} {$i < [llength $list]} {incr i} {
+		set cur_level [nesting_level [lindex [lindex $list $i] 1]]
+		if {$cur_level == $level} {
+			return $i
+		}
+		if {$cur_level < $level} {
+			break
+		}
+	}
+	return -1
+}
+
+
+proc produce_xrefi_link { index } {
+	global html_xrefs basepath
+	set name [lindex [lindex $html_xrefs $index] 0]
+	set src [lindex [lindex $html_xrefs $index] 2]
+	puts "<a href=\"$basepath/$src\">$name</a>"
+}
+
+
+#return the position of the currect document within $html_xrefs
+proc get_doc_index {} {
+	global unique_name html_xrefs
+
+	set doc_index -1
+	for {set i 0} {$i < [llength $html_xrefs]} {incr i} {
+		set name [lindex [lindex $html_xrefs $i] 0]
+		set name [string map {" " "_"} [string tolower $name]]
+		if {$name == $unique_name} {
+			set doc_index $i
+			break
+		}
+	}
+	if {-1 == $doc_index} {
+		error "couldn't found: $unique_name"
+	}
+	return $doc_index
+}
+
+
+proc produce_navbar {} {
+	global html_xrefs basepath
+
+	set doc_index [get_doc_index]
+	set level [nesting_level [lindex [lindex $html_xrefs $doc_index] 1]]
+
+	puts "<nav class=\"arrow-bar\">"
+
+	set left [lrange $html_xrefs 0 [expr $doc_index - 1]]
+	set left_reversed [lreverse $left]
+	set previous [first_with_level $left_reversed $level]
+	if {-1 != $previous} {
+		puts "<span class=\"previous\">Previous:"
+		produce_xrefi_link [expr $doc_index - $previous - 1]
+		puts "</span>"
+	}
+
+	set right [lrange $html_xrefs [expr $doc_index + 1] end]
+	set next [first_with_level $right $level]
+	if {-1 != $next} {
+		puts "<span class=\"next\">Next:"
+		produce_xrefi_link [expr $doc_index + $next + 1]
+		puts "</span>"
+	}
+
+	set top [first_with_level $left_reversed [expr $level - 1]]
+	puts "<span class=\"top\">Top:"
+	if {-1 != $top} {
+		produce_xrefi_link [expr $doc_index - $top - 1]
+	} else {
+		puts "<a href=\"$basepath/splitted_html/index.html\">Table of Contents</a>"
+	}
+
+	puts </span></nav>
+}
+
+
 ### WRITE HEADER OF HTML FILE ###
 proc produce_head_html {} {
 	global title authors references toc_refs config_html_toc basepath stylesheet
+	global web_build main_index
 
 	printline {<?xml version="1.0" encoding="UTF-8"?>}
 	printline {<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"}
@@ -27,6 +126,92 @@ proc produce_head_html {} {
 	}
 	printline {</head>}
 	printline {<body>}
+	if { $web_build && !$main_index } {
+		produce_navbar
+	}
+}
+
+
+proc produce_tail_html {} {
+	global main_index html_xrefs web_build
+
+	if {!$web_build} {
+	} elseif {0 != $main_index} {
+		printline {<h1>Genode OS Framework Foundations</h1>}
+		printline {<h2>Table of Contents:</h2>}
+
+		produce_xrefs_linklist $html_xrefs "main-toc"
+	} else {
+		set content_list [lrange $html_xrefs [get_doc_index] end]
+		set level [nesting_level [lindex $content_list 0 1]]
+		if {0 eq $level} {
+			set content_list [lrange $content_list 1 end]
+			set last [first_with_level $content_list 0]
+			if {-1 ne $last} {
+				incr last -1
+			} else {
+				#0 is the lowest level. So -1 always implies that it's the last chapter
+				set last end
+			}
+			set content_list [lrange $content_list 0 $last]
+
+			puts "<h2>Content:</h2>"
+			produce_xrefs_linklist $content_list "chapter-toc"
+		}
+	}
+	printline {</body></html>}
+}
+
+
+proc nesting_level { name } {
+	set levels {"chapter" "section" "subsection"}
+	set level [lsearch $levels $name]
+	if { -1 eq $level } {
+		error "invalid level: $name"
+	}
+	return $level
+}
+
+
+proc produce_xrefs_linklist { list class } {
+	global basepath
+
+	set level -1
+	set initial_level -1
+
+	printline "<ol class=\"toc $class\">"
+	foreach xref $list {
+		set ref_name	 [lindex $xref 0]
+		set ref_type	 [lindex $xref 1]
+		set ref_target [lindex $xref 2]
+		set new_level [nesting_level $ref_type]
+		if {-1 == $level} {
+			set level $new_level
+			set initial_level $level
+		}
+
+		close_levels $level $new_level
+
+		if {0 < [expr $new_level - $level]} {
+			error "can't indent twice"
+		}
+		set url "$basepath/$ref_target"
+		printline "<li><a class='$ref_type' href='$url'>$ref_name</a>"
+
+		#To simplify the loop, we always indent after each item so that we don't
+		#have to know if the current item has children.
+		puts "<ol>"
+		set level [expr $new_level + 1]
+	}
+	close_levels $level $initial_level
+	printline "</ol>"
+}
+
+
+proc close_levels {old new} {
+	for {set indent $old} {$indent > $new} {incr indent -1} {
+		puts "</ol></li>"
+	}
 }
 
 

@@ -42,7 +42,8 @@ chapter_indizes_html := $(call html_files,$(chapter_indizes))
 
 content_sorted := $(foreach x,$(chapters), \
 	$(addprefix $(x)/,index $(file <splitted_txt/$(x).txt)))
-splitted_all := $(sections_html) $(chapter_indizes_html)
+splitted_all := $(sections_html) $(chapter_indizes_html) \
+	splitted_html/index.html
 
 define multi_gen_xrefs_splitted =
 docs='$(1)'; \
@@ -54,27 +55,38 @@ endef
 #$1: gosh doc, $2: html doc, $3: basepath, $4 extra args
 #Note that some sections have special characters in their names. So add single
 #quotes to $1 and $2 when necessary.
-gen_html = gosh --style epub_html --html-xrefs splitted_xrefs \
+gen_html = gosh --style epub_html --html-xrefs splitted_xrefs --web-build \
 	--stylesheet style.css $(4) --basepath $(3) $(1) > $(2)
 
 splitted: $(splitted_all)
 
+splitted_html/index.html: splitted_xrefs | splitted_html
+	$(call gen_html,<(echo ''),$@,..,--main-index)
+
+skip_chapter := --style splitter/skip-chapter.gosh
 $(sections_html): splitted_xrefs | $(chapter_html_dirs)
 	$(call gen_html, \
 		'$(patsubst splitted_html/%.html,splitted_txt/%.txt,$@)', \
 		'$@', \
 		../.., \
-		--style splitter/skip-chapter.gosh)
+		$(skip_chapter) --unique-name '$(notdir $(basename $@))')
 
 splitted_html/%/index.html: splitted_txt/%/index.txt splitted_xrefs | splitted_html
-	$(call gen_html,'$<','$@',../..)
+	@#here we make use of the original chapter file naming, see epub_html.gosh
+	$(call gen_html,'$<','$@',../..,--unique-name '$*')
 
 #We do not put this xrefs file into the 'splitted_txt' directory because gosh
 #does not allow '--html-xrefs' argument values with slashes.
 splitted_xrefs: splitted_txt/sectionlists_update $(sections_txt) \
 		$(chapter_indizes_txt) | $(chapter_txt_dirs)
 	-rm splitted_xrefs
+	@#The correct order of the xrefs entries is important for the generation of
+	@#the navigation elements.
 	$(call multi_gen_xrefs_splitted,$(content_sorted))
+	@#Remove anchors from links to the first headline of a document. So the first
+	@#visible element is the navigation bar instead of the headline. This should
+	@#make navigating through the doc's more comfortable.
+	sed -E -i 's/ (chapter|section) ([^ #]+)#[^ ]*$$/ \1 \2/' $@
 
 splitted_txt/%.txt: ../%.txt | splitted_txt
 	splitter/filter-sec.sh list < $< > $@
