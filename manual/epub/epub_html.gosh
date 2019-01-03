@@ -21,6 +21,14 @@ set unique_name ""
 regexp -- {\--unique-name\s+([^\s]+)} $argv dummy unique_name
 set unique_name [string tolower $unique_name]
 
+set repo_url ""
+regexp -- {\--repo-url\s+([^\s]+)} $argv dummy repo_url
+
+#stolen from xrefs code, compare html.gosh
+set code_refs {}
+if {[regexp -- {\--code-refs\s+([^\s]+)} $argv dummy code_refs_file]} {
+	set code_refs [split [exec cat $code_refs_file] "\n"]
+}
 
 proc print_html_label {label} {
 	printline "<a id=\"[label_html $label]\"></a>"
@@ -263,14 +271,38 @@ proc process_tikz_html {txtblock} {
 	}
 }
 
+proc produce_code_ref { name path } {
+	global repo_url
+
+	puts "<p class='code-ref'><a href='$repo_url/$path'>$name</a></p>"
+}
+
 ### RAW INCLUDE ###
 proc process_rawinclude_html {txtblock} {
+	global code_refs
 
 	regexp {\[(raw \w+.*)\]} [lindex $txtblock 0] dummy raw_info
 	if {$raw_info == ""} return
-	set raw_name [lindex $raw_info 1]
+	if {![regexp {^spec/(.*)$} [lindex $raw_info 1] dummy spec_id]} {
+		error "only spec/ raw refs are supported"
+	}
 
-	puts [exec cat $raw_name.html]
+	if {[regexp {^(.*)\.overview$} $spec_id dummy path]} {
+		produce_code_ref $path $path
+		return
+	}
+
+	if {-1 ne [lsearch -exact {"clearpage" "nopagebreak"} $spec_id]} return
+	foreach ref $code_refs {
+		set id   [lindex $ref 0]
+		set path  [lindex $ref 1]
+		set name [lindex $ref 2]
+		if {$spec_id == "classes/$id/description"} {
+			produce_code_ref $name $path
+			return
+		}
+	}
+	error "could not found code ref: $spec_id"
 }
 
 #update base path for xref links

@@ -10,6 +10,8 @@ HTML := introduction.html \
         system_configuration.html \
         under_the_hood.html
 
+REPO_URL := https://github.com/genodelabs/genode/blob/18.05
+
 default: $(TARGET_EPUB)
 
 %.html: ../%.txt
@@ -26,7 +28,7 @@ presuf = $(addprefix $(2),$(addsuffix $(3),$(1)))
 html_files = $(call presuf,$(1),splitted_html/,.html)
 txt_files = $(call presuf,$(1),splitted_txt/,.txt)
 
-chapters := $(basename $(HTML))
+chapters := $(basename $(HTML)) functional_specification
 chapter_txt_dirs := $(addprefix splitted_txt/,$(chapters))
 chapter_html_dirs := $(addprefix splitted_html/,$(chapters))
 
@@ -56,22 +58,26 @@ endef
 #Note that some sections have special characters in their names. So add single
 #quotes to $1 and $2 when necessary.
 gen_html = gosh --style epub_html --html-xrefs splitted_xrefs --web-build \
-	--stylesheet style.css $(4) --basepath $(3) $(1) > $(2)
+	--stylesheet style.css $(4) --basepath $(3) --repo-url $(REPO_URL) \
+	--code-refs splitted_txt/class_index $(1) > $(2)
+
+splitted_html_deps = splitted_xrefs splitted_txt/class_index
 
 splitted: $(splitted_all)
 
-splitted_html/index.html: splitted_xrefs | splitted_html
+splitted_html/index.html: $(splitted_html_deps) | splitted_html
 	$(call gen_html,<(echo ''),$@,..,--main-index)
 
 skip_chapter := --style splitter/skip-chapter.gosh
-$(sections_html): splitted_xrefs | $(chapter_html_dirs)
+$(sections_html): $(splitted_html_deps) | $(chapter_html_dirs)
 	$(call gen_html, \
 		'$(patsubst splitted_html/%.html,splitted_txt/%.txt,$@)', \
 		'$@', \
 		../.., \
 		$(skip_chapter) --unique-name '$(notdir $(basename $@))')
 
-splitted_html/%/index.html: splitted_txt/%/index.txt splitted_xrefs | splitted_html
+splitted_html/%/index.html: splitted_txt/%/index.txt $(splitted_html_deps) \
+		| splitted_html
 	@#here we make use of the original chapter file naming, see epub_html.gosh
 	$(call gen_html,'$<','$@',../..,--unique-name '$*')
 
@@ -98,6 +104,12 @@ $(sections_txt): splitted_txt/sectionlists_update | $(chapter_txt_dirs)
 
 splitted_txt/%/index.txt: ../%.txt | $(chapter_txt_dirs)
 	splitter/filter-sec.sh chapter < $< > $@
+
+splitted_txt/class_index: ../spec/class_index.mk | splitted_txt
+	rm -f $@
+	$(foreach class,$(CLASSES),\
+		echo '$(class) $(CLASS_HEADER($(class))) $(CLASS_NAME($(class)))' >> $@ ; \
+		)
 
 $(chapter_txt_dirs): | splitted_txt
 $(chapter_html_dirs): | splitted_html
@@ -204,6 +216,9 @@ clean: $(concrete_cleaning_targets)
 splitted_txt/sectionlists_update: $(sectionlists)
 	touch splitted_txt/sectionlists_update
 
+../spec/class_index.mk:
+	make -C ../spec class_index.mk
+
 #avoid generation of Makefiles caused by includes if user just wants to clean
 #TODO: this does not prevent the generation under the following conditions:
 # * User supplies both cleaning and building goals. I do not know the correct
@@ -212,4 +227,5 @@ splitted_txt/sectionlists_update: $(sectionlists)
 cleaning_goals := $(filter $(concrete_cleaning_targets) clean,$(MAKECMDGOALS))
 ifeq ($(cleaning_goals),)
 include splitted_txt/sectionlists_update
+include ../spec/class_index.mk
 endif

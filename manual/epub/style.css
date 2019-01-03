@@ -26,6 +26,11 @@ ol.toc a.chapter {
 	font-size: 1.4em;
 	font-weight: bold;
 }
+p.code-ref {
+	background-color: #F0F0F0;
+	border-style: solid;
+	border-width: thin;
+}
 
 /* use the available space by right aligning all figures
  *
