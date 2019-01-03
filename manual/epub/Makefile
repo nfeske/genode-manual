@@ -55,7 +55,7 @@ endef
 #Note that some sections have special characters in their names. So add single
 #quotes to $1 and $2 when necessary.
 gen_html = gosh --style epub_html --html-xrefs splitted_xrefs \
-	$(4) --basepath $(3) $(1) > $(2)
+	--stylesheet style.css $(4) --basepath $(3) $(1) > $(2)
 
 splitted: $(splitted_all)
 
