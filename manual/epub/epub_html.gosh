@@ -235,7 +235,7 @@ proc generate_png_from_tikz { tikz_name } {
 
 ### TIKZ IMAGE ###
 proc process_tikz_html {txtblock} {
-	global basepath
+	global basepath references
 
 	regexp {\[(tikz \w+.*)\]} [lindex $txtblock 0] dummy tikz_info
 	if {$tikz_info == ""} return
@@ -264,7 +264,7 @@ proc process_tikz_html {txtblock} {
 		printline "<p class='direct-img'>$image</p>"
 	} else {
 		printline "  <fieldset class='figure' id='[label_html $tikz_name]'>"
-		printline "    <legend>$tikz_name</legend>"
+		printline "    <legend>Figure $references($tikz_name,index)</legend>"
 		printline "    $image"
 		printline "    <div class='caption'>$tikz_cap</div>"
 		printline "  </fieldset>"
@@ -311,4 +311,14 @@ foreach xref $html_xrefs {
 	set ref_target [lindex $xref 2]
 
 	set references($ref_name,target) $basepath/$ref_target
+}
+
+#By setting the ref type to 'image', the linktext of each tikz ref will be a
+#simple index instead of the path to the PNG file, which improves the
+#readability.
+foreach ref [array names references -regex type$] {
+	if { "tikz" == $references($ref) } {
+		regexp {^([^,]+),} $ref dummy name
+		set references($name,type) image
+	}
 }
