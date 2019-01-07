@@ -120,14 +120,22 @@ proc produce_navbar {} {
 ### WRITE HEADER OF HTML FILE ###
 proc produce_head_html {} {
 	global title authors references toc_refs config_html_toc basepath stylesheet
-	global web_build main_index
+	global web_build main_index html_xrefs
 
 	printline {<?xml version="1.0" encoding="UTF-8"?>}
 	printline {<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"}
 	printline { "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">}
 
 	printline {<html xmlns="http://www.w3.org/1999/xhtml">}
-	printline {<head><title>Genode OS Framework Foundations</title>}
+	set title "Genode OS Framework Foundations"
+	if {$web_build} {
+		set current "Table of contents"
+		if {!$main_index} {
+			set current [lindex $html_xrefs [get_doc_index] 0]
+		}
+		set title "$current - $title"
+	}
+	printline "<head><title>$title</title>"
 	if {"" != $stylesheet} {
 		set path "$basepath/$stylesheet"
 		printline "<link rel=\"stylesheet\" type=\"text/css\" href=\"$path\"/>"
