@@ -110,7 +110,7 @@ proc produce_navbar {} {
 	if {-1 != $top} {
 		produce_xrefi_link [expr $doc_index - $top - 1]
 	} else {
-		puts "<a href=\"$basepath/splitted_html/index.html\">Table of Contents</a>"
+		puts "<a href=\"$basepath/index.html\">Table of Contents</a>"
 	}
 
 	puts </span></nav>

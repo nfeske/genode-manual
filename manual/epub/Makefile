@@ -116,24 +116,7 @@ $(chapter_html_dirs): | splitted_html
 splitted_html splitted_txt $(chapter_txt_dirs) $(chapter_html_dirs):
 	mkdir $@
 
-
-#
-# Rules for converting TikZ figures to PNG images, invoked by 'epub_html.gosh'
-#
-
-img/%.tikz: ../img/%.tikz
-	cd img; ln -s ../../img/$*.tikz
-
-img/%.pdf: img/%.tikz
-	make -C img $*.pdf
-
-GS_DPI := 200
-
-img/%-unscaled.png: img/%.pdf
-	gs -dNOPAUSE -dBATCH -sDEVICE=pngalpha -r$(GS_DPI) -sOutputFile=$@ $<
-
-img/%.png: img/%-unscaled.png
-	convert -filter lanczos -resize 80% $< $@
+include img.mk
 
 #
 # Rules for generating the table of contents
