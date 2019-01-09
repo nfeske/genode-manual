@@ -1,3 +1,16 @@
+body {
+	font: 100% "Lucida Grande", Verdana, Lucida, Helvetica, Arial, sans-serif;
+}
+
+h2 {
+	font: 135% "Lucida Grande", Verdana, Lucida, Helvetica, Arial, sans-serif;
+}
+
+pre {
+	font-family: Monaco, monospace;
+	border-left: 2px solid #bcdceb;
+}
+
 .figure {
 	/* adapt width to content's width */
 	display: inline-block;
@@ -6,6 +19,9 @@
 }
 .figure legend {
 	font-weight: bold;
+}
+p {
+	line-height: 125%;
 }
 p, .caption {
 	max-width: 43em;

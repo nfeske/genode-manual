@@ -34,7 +34,7 @@ ALL_HTML := $(ALL_SECTIONS_HTML) $(ALL_CHAPTERS_INDEX_HTML) html/index.html
 GOSH_DOC_ARGS :=  --style ../epub/epub_html \
                   --web-build \
                   --html-xrefs xrefs \
-                  --stylesheet style.css \
+                  --stylesheet style.css
 
 default: html/style.css $(ALL_HTML)
 
