@@ -13,6 +13,14 @@ CHAPTERS := introduction \
 # return list of sections for given basename of chapter
 sections = $(shell ./splitter/filter-sec.sh list < ../$1.txt)
 
+#
+# Disarm the section-list parsing whenever the Makefile is invoked by
+# epub_html.gosh for creating a png image.
+#
+ifneq ($(filter %.png,$(MAKECMDGOALS)),)
+sections =
+endif
+
 # return Nth path element
 second_elem = $(word 2,$(subst /, ,$1))
 third_elem  = $(word 3,$(subst /, ,$1))
