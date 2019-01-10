@@ -179,9 +179,6 @@ GENERATED_IMGS     := $(GENERATED_IMGS_LOG:.log=)
 
 concrete_cleaning_targets := clean_generated_imgs clean_splitted
 
-clean_generated_imgs:
-	rm -f $(foreach suffix,.png .log .tikz .aux,$(addsuffix $(suffix),$(GENERATED_IMGS)))
-
 clean_splitted:
 	rm -f -r splitted_html splitted_txt
 	rm -f splitted_xrefs
