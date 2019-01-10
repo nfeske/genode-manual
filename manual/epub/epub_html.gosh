@@ -56,7 +56,7 @@ proc produce_xrefi_link { index } {
 	global html_xrefs basepath
 	set name [lindex [lindex $html_xrefs $index] 0]
 	set src [lindex [lindex $html_xrefs $index] 2]
-	puts "<a href=\"$basepath/$src\">$name</a>"
+	puts "<a href=\"$basepath$src\">$name</a>"
 }
 
 
@@ -110,7 +110,8 @@ proc produce_navbar {} {
 	if {-1 != $top} {
 		produce_xrefi_link [expr $doc_index - $top - 1]
 	} else {
-		puts "<a href=\"$basepath/index.html\">Table of Contents</a>"
+		set index "index.html"
+		puts "<a href='$basepath$index'>Table of Contents</a>"
 	}
 
 	puts </span></nav>
@@ -137,7 +138,7 @@ proc produce_head_html {} {
 	}
 	printline "<head><title>$title</title>"
 	if {"" != $stylesheet} {
-		set path "$basepath/$stylesheet"
+		set path "$basepath$stylesheet"
 		printline "<link rel=\"stylesheet\" type=\"text/css\" href=\"$path\"/>"
 	}
 	printline {</head>}
@@ -211,7 +212,7 @@ proc produce_xrefs_linklist { list class } {
 		if {0 < [expr $new_level - $level]} {
 			error "can't indent twice"
 		}
-		set url "$basepath/$ref_target"
+		set url "$basepath$ref_target"
 		printline "<li><a class='$ref_type' href='$url'>$ref_name</a>"
 
 		#To simplify the loop, we always indent after each item so that we don't
@@ -266,7 +267,7 @@ proc process_tikz_html {txtblock} {
 	# fieldset because its legend allows a pretty separation between the name and
 	# the caption of a figure.
 	#
-	set src "$basepath/$tikz_name.png"
+	set src "$basepath$tikz_name.png"
 	set image "<a href='$src'><img src='$src' alt='$tikz_name' /></a>"
 	if {$tikz_cap == ""} {
 		printline "<p class='direct-img'>$image</p>"
@@ -318,7 +319,7 @@ foreach xref $html_xrefs {
 	set ref_name	 [lindex $xref 0]
 	set ref_target [lindex $xref 2]
 
-	set references($ref_name,target) $basepath/$ref_target
+	set references($ref_name,target) $basepath$ref_target
 }
 
 #By setting the ref type to 'image', the linktext of each tikz ref will be a

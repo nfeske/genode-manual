@@ -81,7 +81,7 @@ html/style.css: ../epub/style.css
 
 html/index.html : xrefs
 	mkdir -p $(dir $@)
-	gosh $(GOSH_DOC_ARGS) --basepath "." --main-index <(echo '') > $@
+	gosh $(GOSH_DOC_ARGS) --main-index <(echo '') > $@
 
 #
 # Chapter index.html files
@@ -99,7 +99,7 @@ $(foreach C,$(CHAPTERS),$(eval html/$C/index.html : ../$C.txt))
 $(ALL_CHAPTERS_INDEX_HTML) : xrefs
 	mkdir -p $(dir $@)
 	gosh $(GOSH_DOC_ARGS) \
-	     --basepath ".." --unique-name '$(call second_elem,$@)' \
+	     --basepath "../" --unique-name '$(call second_elem,$@)' \
 	     'chapters/$(call second_elem,$@).txt' > '$@'
 
 #
@@ -127,7 +127,7 @@ $(ALL_SECTIONS_HTML) : xrefs
 	chapter='$(call second_elem,$@)'; \
 	section='$(call third_elem,$(basename $@))'; \
 	gosh $(GOSH_DOC_ARGS) \
-	     --basepath ".." --unique-name "$$section" \
+	     --basepath "../" --unique-name "$$section" \
 	     --style ../epub/splitter/skip-chapter.gosh \
 	     "sections/$$chapter/$$section.txt" > '$@'
 
