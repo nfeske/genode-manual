@@ -77,7 +77,7 @@ p.code-ref {
 		margin: 1em;
 		margin-right: 0;
 		/* Guarantee the minimal text width even in the rare cases where the width
-		 * the image is bigger than usual.
+		 * of an image is bigger than usual.
 		 */
 		max-width: calc(100% - 20em);
 	}
@@ -86,7 +86,8 @@ p.code-ref {
 		margin-right: 0.1em;
 		/* prevent the right-aligned images from being miles away from the text
 		 *
-		 * Including indentations, the text part should not be greater than ~100em.
+		 * Including indentations, the text part should not be wider than ~50em.
+		 * Since images are also <50em in most cases, 95em should be a good value.
 		 */
 		max-width: 95em;
 	}
