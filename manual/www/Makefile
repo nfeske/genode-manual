@@ -11,7 +11,7 @@ CHAPTERS := introduction \
             under_the_hood
 
 # return list of sections for given basename of chapter
-sections = $(shell ../epub/splitter/filter-sec.sh list < ../$1.txt)
+sections = $(shell ./splitter/filter-sec.sh list < ../$1.txt)
 
 # return Nth path element
 second_elem = $(word 2,$(subst /, ,$1))
@@ -60,7 +60,7 @@ xrefs: $(ALL_SECTIONS_TXT) $(ALL_CHAPTERS_TXT)
 	    $(foreach S,${SECTIONS($C)},\
 	      gosh --style html_xrefs --html-path '$C/$S.html' \
 	           'sections/$C/$S.txt' | grep -v FAKE-CHAPTER; )) \
-	)> $@
+	) | sed -E 's/ (chapter|section) ([^ #]+)#[^ ]*$$/ \1 \2/' > $@
 
 # install images generated during the creation of the html documents
 default: html/img
@@ -71,7 +71,7 @@ html/img:
 	cp img/*.png $@
 
 # install CSS file
-html/style.css: ../epub/style.css
+html/style.css: style.css
 	mkdir -p $(dir $@)
 	cp $< $@
 
@@ -90,7 +90,7 @@ html/index.html : xrefs
 # rule to extract only the intro of a chapter
 chapters/%.txt:
 	mkdir -p $(dir $@)
-	../epub/splitter/filter-sec.sh chapter < ../$*.txt > $@
+	./splitter/filter-sec.sh chapter < ../$*.txt > $@
 
 # let each chapter index.html file depend from its corresponding chapter text
 $(foreach C,$(CHAPTERS),$(eval html/$C/index.html : ../$C.txt))
@@ -114,9 +114,9 @@ $(foreach C,$(CHAPTERS),\
 # called with the pattern '<chapter>/<section>'
 sections/%.txt:
 	mkdir -p $(dir $@)
-	../epub/splitter/filter-sec.sh get '$(notdir $*)' \
-	                               < ../$(firstword $(subst /, ,$*)).txt \
-	                               > '$@'
+	./splitter/filter-sec.sh get '$(notdir $*)' \
+	                          < ../$(firstword $(subst /, ,$*)).txt \
+	                          > '$@'
 
 # let each section HTML file depend from its corresponding section text
 $(foreach S,$(ALL_SECTIONS),$(eval html/$S.html : sections/$S.txt))
@@ -128,7 +128,7 @@ $(ALL_SECTIONS_HTML) : xrefs
 	section='$(call third_elem,$(basename $@))'; \
 	gosh $(GOSH_DOC_ARGS) \
 	     --basepath "../" --unique-name "$$section" \
-	     --style ../epub/splitter/skip-chapter.gosh \
+	     --style ./splitter/skip-chapter.gosh \
 	     "sections/$$chapter/$$section.txt" > '$@'
 
 include ../epub/img.mk
