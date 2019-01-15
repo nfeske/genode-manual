@@ -1,0 +1,208 @@
+\begin{tikzpicture}
+
+	\definecolor{Color1} {rgb} {1.0,1.0,1.0}
+	\definecolor{Color2} {rgb} {1,0.9,0.5}
+	\definecolor{Color3} {rgb} {0.9,0.9,0.9}
+	\definecolor{Color4} {rgb} {0.8,0.9,0.9}
+
+	\def\CanvasHeight {41ex}
+	\def\CanvasWidth  {66.5ex}
+
+	\tikzstyle{ComponentStyle} = [
+		component,
+		rounded corners=0.5ex,
+		very thin,
+		draw=black,
+		bottom color=Color2,
+		align=center,
+		minimum height=6ex,
+		minimum width=14ex
+	]
+
+	\tikzstyle{TestStyle} = [
+		component,
+		rounded corners=0.5ex,
+		very thin,
+		draw=black,
+		bottom color=Color3,
+		align=center,
+		minimum height=3ex,
+		minimum width=4ex
+	]
+
+	\tikzstyle{SoftwareStyle} = [
+		component,
+		rounded corners=0ex,
+		very thin,
+		draw=black,
+		bottom color=Color4,
+		fill=Color1,
+		align=center,
+		minimum height=2.8ex,
+		minimum width=13ex
+	]
+
+	\tikzstyle{Software1Style} = [
+		component,
+		rounded corners=0ex,
+		very thin,
+		draw=black,
+		bottom color=Color1,
+		fill=Color1,
+		align=center,
+		minimum height=2.8ex,
+		minimum width=10ex
+	]
+
+	\tikzstyle{ComponentNameStyle} = [
+		opacity=0.5,
+		font=\sffamily\textbf\selectfont
+	]
+
+	\tikzstyle{Software1NameStyle} = [
+		opacity=0.8,
+		font=\sffamily\scriptsize\selectfont
+	]
+
+	\tikzstyle{ArrowStyle} = [
+		arrow
+	]
+
+	\tikzstyle{ParentLineStyle} = [
+		draw=black,
+		opacity=0.2,
+		very thick
+	]
+
+	%
+	% Canvas
+	%
+	\node[minimum height=\CanvasHeight, minimum width=\CanvasWidth] (N0) {};
+
+	%
+	% VFS Server
+	%
+	\path (N0.north west)+(1ex,-14ex) coordinate (C1);
+	\node[ComponentStyle, below right=0ex of C1] (N1) {};
+	\node[ComponentNameStyle, below=0ex of N1.north] () {\scriptsize VFS Server};
+	\node[Software1Style, above=7ex of N1] (N20) {};
+	\node[Software1NameStyle, below=0ex of N20.north] () {depot.tar};
+	\path[ArrowStyle] (N20) -- (N1);
+
+	%
+	% Depot Query
+	%
+	\path (N1.north east)+(2ex,0ex) coordinate (C1);
+	\node[ComponentStyle, below right=0ex of C1] (N2) {};
+	\node[ComponentNameStyle, below=0ex of N2.north] () {\scriptsize Depot Query};
+	\path (N2.south)+(-2ex,0ex) coordinate (C1);
+	\path (N2.south)+(1ex,0ex) coordinate (C2);
+	\path (N1.north)+(4ex,0ex) coordinate (C13);
+	\path (N2.north)+(-4ex,0ex) coordinate (C15);
+	\path[ArrowStyle] (C15) .. controls ++(-1.5ex,3ex) and ++(1.5ex,3ex) .. (C13)
+		node[midway,sloped,above right,inner sep=0.2ex] {\scriptsize\textit{read package}};
+
+	%
+	% Depot Query
+	%
+	\path (N2.north east)+(2ex,0ex) coordinate (C1);
+	\node[ComponentStyle, below right=0ex of C1] (N3) {};
+	\node[ComponentNameStyle, below=0ex of N3.north] () {\scriptsize Depot Autopilot};
+	\path (N3.south)+(-4ex,0ex) coordinate (C1);
+	\path (N3.south)+(-5ex,0ex) coordinate (C9);
+	\path (N3.south)+(3ex,0ex) coordinate (C3);
+	\path (N3.south)+(4ex,0ex) coordinate (C4);
+
+	%
+	% Timer
+	%
+	\path (N1.south west)+(0ex,-2ex) coordinate (C10);
+	\node[ComponentStyle, below right=0ex of C10] (N12) {};
+	\node[ComponentNameStyle, below=0ex of N12.north] () {\scriptsize Timer};
+
+	\path[ArrowStyle] (C9) .. controls ++(-1ex,-5ex) and ++(1ex,-5ex) .. (C2)
+		node[midway,sloped,above] {\scriptsize\textit{query}};
+	\path[ArrowStyle] (N2.south) .. controls ++(1ex,-6.20ex) and ++(-1.4ex,-6.20ex) .. (C1)
+		node[midway,sloped,below] {\scriptsize\textit{blueprint}};
+
+	\path (N12.south east)+(0ex,1ex) coordinate (C14);
+	\path[ArrowStyle] (N3.south) .. controls ++(-2ex,-16ex) and ++(6ex,-2ex) .. (C14)
+		node[midway,sloped,below left] {\scriptsize\textit{test timeouts}};
+
+	\path (C3)+(-1ex,0ex) coordinate (C21);
+	\path (C3)+(-1.5ex,0ex) coordinate (C31);
+	\path (C3)+(-1ex,-13ex) coordinate (C22);
+
+	\path[ArrowStyle](C3) -- ++(0ex,-13ex) coordinate (C6);
+	\path[ArrowStyle](C31)+(0ex,-13ex) -- (C31);
+	\path(C6)+(-0.3ex,2ex) coordinate (C7);
+	\node[above right=0ex of C7] (N11) {\scriptsize\textit{log}};
+	\node[Software1Style, below left=0ex of C22, minimum height=7ex, minimum width=8.5ex] (N23) {};
+	\node[below right=0ex of N23.north west] (N23) {\scriptsize{package}};
+	\path(N23.west)+(0ex,-2ex) coordinate (C23);
+	\node[right=0ex of C23] (N23) {\scriptsize{list}};
+
+
+	\path(C6)+(-0.5ex,0ex) coordinate (C34);
+	\node[Software1Style, below right=0ex of C34, minimum height=7ex, minimum width=8.5ex] (N11) {};
+	\node[below right=0ex of N11.north west] (N11) {\scriptsize{test logs}};
+	\path(N11.west)+(0ex,-2ex) coordinate (C11);
+	\node[right=0ex of C11] (N11) {\scriptsize{result list}};
+	\path(C11)+(0ex,-2ex) coordinate (C11);
+	\node[right=0ex of C11] (N11) {\scriptsize{statistics}};
+
+	%
+	% Dynamic
+	%
+	\path (N3.north east)+(2ex,0ex) coordinate (C1);
+	\node[ComponentStyle, below right=0ex of C1] (N4) {};
+	\node[ComponentNameStyle, below=0ex of N4.north] () {\scriptsize Dynamic (Init)};
+
+	\path[ArrowStyle] (C4) .. controls ++(1ex,-5ex) and ++(-1ex,-5ex) .. (N4.south)
+		node[midway,sloped,below] {\scriptsize\textit{ reconfigure}};
+
+	%
+	% Runtime
+	%
+	\path (N4.north west)+(0.5ex,2ex) coordinate (C1);
+	\node[TestStyle, above right=0ex of C1, minimum width=13ex] (N5) {};
+	\path[ParentLineStyle] (N4) -- (N5);
+	\node[ComponentNameStyle, below=0ex of N5.north] () {\scriptsize Test Runtime};
+
+	%
+	% Test components
+	%
+	\path (N5.north west)+(-0.6ex,1ex) coordinate (C1);
+	\node[TestStyle, above right=0ex of C1] (N6) {};
+	\path[ParentLineStyle] (N5) -- (N6);
+	\node[TestStyle, right=1ex of N6] (N7) {};
+	\path[ParentLineStyle] (N5) -- (N7);
+	\node[TestStyle, right=1ex of N7] (N8) {};
+	\path[ParentLineStyle] (N5) -- (N8);
+	\path (N8.north west)+(-2.5ex,1ex) coordinate (C1);
+	\node[TestStyle, above right=0ex of C1] (N9) {};
+	\path[ParentLineStyle] (N8) -- (N9);
+	\node[TestStyle, right=1ex of N9] (N10) {};
+	\path[ParentLineStyle] (N8) -- (N10);
+
+	\path (N5.south west)+(-2ex,0ex) coordinate (C1);
+	\path (C1)+(0ex,10ex) coordinate (C2);
+	\path (C1)+(-2.5ex,4.5ex) coordinate (C3);
+	\path (C1)+(-2.5ex,5.5ex) coordinate (C4);
+
+	\path (N1.north)+(2ex,0ex) coordinate (C30);
+	\path[ArrowStyle] (C4) .. controls ++(-10ex,0ex) and ++(2ex,9ex) .. (C30)
+		node[midway,above] {\scriptsize\textit{read binaries}};
+
+	\path(N3.north)+(2ex,0ex) coordinate (C7);
+	\path[ArrowStyle] (C3) .. controls ++(-20ex,0ex) and ++(0ex,6ex) .. (C7)
+		node[midway,below] {\scriptsize\textit{logs}};
+
+	\draw [decorate,decoration={brace,amplitude=1.5ex}] (C1) -- (C2);
+
+%	\path(N6.west)+(-10ex,0ex) coordinate (C1)
+%	\path[ArrowStyle] (N9.west) .. controls ++(-5ex,-1ex) and ++(1ex,6ex) .. (N1.south)
+%		node[midway,sloped,below] {\scriptsize\textit{read package}};
+
+
+\end{tikzpicture}

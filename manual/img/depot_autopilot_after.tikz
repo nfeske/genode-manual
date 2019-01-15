@@ -1,0 +1,260 @@
+\begin{tikzpicture}
+
+	\definecolor{Color1} {rgb} {1.0,1.0,1.0}
+	\definecolor{Color2} {rgb} {1,0.9,0.5}
+	\definecolor{Color3} {rgb} {0.9,0.9,0.9}
+
+	\def\CanvasHeight  {70ex}
+	\def\CanvasWidth   {105ex}
+	\def\Padding       {1ex}
+	\def\MachineHeight {\CanvasHeight-2*\Padding}
+
+	\tikzstyle{MachineStyle} = [
+		component,
+		rounded corners=\Padding/2,
+		very thin,
+		draw=black,
+		minimum height=\MachineHeight,
+		bottom color=Color1,
+		align=center
+	]
+
+	\tikzstyle{SoftwareStyle} = [
+		component,
+		rounded corners=0ex,
+		very thin,
+		draw=black,
+		bottom color=Color1,
+		fill=Color1,
+		align=center,
+		minimum height=2.8ex,
+		minimum width=13ex
+	]
+
+	\tikzstyle{ActivityStyle} = [
+		component,
+		rounded corners=0ex,
+		very thin,
+		draw=black,
+		right color=Color2,
+		fill=Color1,
+		align=center,
+		minimum width=1.5ex,
+		minimum height=1.5ex
+	]
+
+	\tikzstyle{LineStyle} = [
+		very thin,
+		draw=black,
+		densely dashed
+	]
+
+	\tikzstyle{ArrowStyle} = [
+		arrow, ->
+	]
+
+	\tikzstyle{OffStyle} = [
+		opacity=0.8,
+		fill=Color1,
+	]
+
+	\tikzstyle{MachineNameStyle} = [
+		opacity=0.5,
+		font=\sffamily\textbf\selectfont
+	]
+
+	\tikzstyle{SoftwareNameStyle} = [
+		opacity=0.8,
+		font=\sffamily\scriptsize\textbf\selectfont
+	]
+
+	%
+	% Canvas
+	%
+	\node[minimum height=\CanvasHeight, minimum width=\CanvasWidth] (N0) {};
+
+	%
+	% Controller Machine
+	%
+	\path (N0.north west)+(\Padding,-\Padding) coordinate (C1);
+	\node[MachineStyle, below right=0ex of C1, minimum width=31.2ex] (N1) {};
+	\node[MachineNameStyle, below=0ex of N1.north] () {Controller Machine};
+
+	%
+	% Target Machine
+	%
+	\path (N0.north east)+(-\Padding,-\Padding) coordinate (C1);
+	\node[MachineStyle, below left=0ex of C1, minimum width=60.2ex] (N2) {};
+	\node[MachineNameStyle, below=0ex of N2.north] () {Target Machine};
+	\path (N2.west) coordinate (L3);
+
+	%
+	% Controller Software
+	%
+	\path (N1.north west)+(\Padding,-5ex-\Padding) coordinate (C1);
+	\node[SoftwareStyle, below right=0ex of C1] (N3) {};
+	\node[SoftwareNameStyle, below=0ex of N3.north] () {Controller};
+	\path (N3.south)+(-0.8ex, 0ex) coordinate (L1L);
+	\path (N3.south) coordinate (L1M);
+	\path (N3.south)+(0.8ex, 0ex) coordinate (L1R);
+	\path[LineStyle] (L1M) -- ++(0ex, -55ex) coordinate (End1);
+	\path[draw=black, thin] (L1L |- End1) -- (L1R |- End1);
+
+	%
+	% Run Script
+	%
+	\path (N3.north east)+(\Padding*3,0ex) coordinate (C1);
+	\node[SoftwareStyle, below right=0ex of C1] (N4) {};
+	\node[SoftwareNameStyle, below=0ex of N4.north] () {Run Script};
+	\path (N4.south)+(-0.8ex, 0ex) coordinate (L2L);
+	\path (N4.south) coordinate (L2M);
+	\path (N4.south)+(0.8ex, 0ex) coordinate (L2R);
+	\path[LineStyle] (L2M) -- ++(0ex, -55ex) coordinate (End2);
+	\path[draw=black, thin] (L2L |- End2) -- (L2R |- End2);
+
+	%
+	% VFS + Depot Query
+	%
+	\path (N2.north west)+(\Padding,-5ex-\Padding) coordinate (C1);
+	\node[SoftwareStyle, below right=0ex of C1] (N5) {};
+	\node[SoftwareNameStyle, below=0.2ex of N5.north] () {\tiny VFS + Depot Query};
+	\path (N5.south)+(-0.8ex, 0ex) coordinate (L4L);
+	\path (N5.south) coordinate (L4M);
+	\path (N5.south)+(0.8ex, 0ex) coordinate (L4R);
+	\path[LineStyle] (L4M) -- ++(0ex, -55ex) coordinate (End4);
+	\path[draw=black, thin] (L4L |- End4) -- (L4R |- End4);
+
+	%
+	% Depot Autopilot
+	%
+	\path (N5.north east)+(\Padding*2,0ex) coordinate (C1);
+	\node[SoftwareStyle, below right=0ex of C1] (N6) {};
+	\node[SoftwareNameStyle, below=0ex of N6.north] () {Depot Autopilot};
+	\path (N6.south)+(-0.8ex, 0ex) coordinate (L5L);
+	\path (N6.south) coordinate (L5M);
+	\path (N6.south)+(0.8ex, 0ex) coordinate (L5R);
+	\path[LineStyle] (L5M) -- ++(0ex, -55ex) coordinate (End5);
+	\path[draw=black, thin] (L5L |- End5) -- (L5R |- End5);
+
+	%
+	% Dynamic (Init)
+	%
+	\path (N6.north east)+(\Padding*2,0ex) coordinate (C1);
+	\node[SoftwareStyle, below right=0ex of C1] (N7) {};
+	\node[SoftwareNameStyle, below=0ex of N7.north] () {Dynamic (Init)};
+	\path (N7.south)+(-0.8ex, 0ex) coordinate (L6L);
+	\path (N7.south) coordinate (L6M);
+	\path (N7.south)+(0.8ex, 0ex) coordinate (L6R);
+	\path[LineStyle] (L6M) -- ++(0ex, -55ex) coordinate (End6);
+	\path[draw=black, thin] (L6L |- End6) -- (L6R |- End6);
+
+	%
+	% Test Scenario 1
+	%
+	\path (N7.north east)+(\Padding*2,0ex) coordinate (C1);
+	\node[SoftwareStyle, below right=0ex of C1] (N8) {};
+	\node[SoftwareNameStyle, below=0ex of N8.north] () {Test Scenario 1};
+	\path (N8.south)+(-0.8ex, 0ex) coordinate (L7L);
+	\path (N8.south) coordinate (L7M);
+	\path (N8.south)+(0.8ex, 0ex) coordinate (L7R);
+	\path[LineStyle] (L7M) -- ++(0ex, -13.6ex) coordinate (End7);
+	\path[draw=black, thin] (L7L |- End7) -- (L7R |- End7);
+
+	%
+	% Test Scenario 2
+	%
+	\node[SoftwareStyle, below=2ex of End7] (N9) {};
+	\node[SoftwareNameStyle, below=0ex of N9.north] () {Test Scenario 2};
+	\path (N9.south)+(-0.8ex, 0ex) coordinate (L8L);
+	\path (N9.south) coordinate (L8M);
+	\path (N9.south)+(0.8ex, 0ex) coordinate (L8R);
+	\path[LineStyle] (L8M) -- ++(0ex, -10ex) coordinate (End8);
+	\path[draw=black, thin] (L8L |- End8) -- (L8R |- End8);
+
+	%
+	% Test Scenario 3
+	%
+	\node[SoftwareStyle, below=7ex of End8] (N10) {};
+	\node[SoftwareNameStyle, below=0ex of N10.north] () {Test Scenario 75};
+	\path (N10.south)+(-0.8ex, 0ex) coordinate (L9L);
+	\path (N10.south) coordinate (L9M);
+	\path (N10.south)+(0.8ex, 0ex) coordinate (L9R);
+	\path[LineStyle] (L9M) -- ++(0ex, -10ex) coordinate (End8);
+	\path[draw=black, thin] (L9L |- End8) -- (L9R |- End8);
+
+	%
+	% Test Sequence 1
+	%
+	\node[ActivityStyle, below=1ex of L1M] (Activity) {};
+	\path[ArrowStyle] (L1R |- Activity.south) -- (L2L |- Activity.south) coordinate (Now);
+	\node[ActivityStyle, below right=0ex of Now] (Activity) {};
+	\path[ArrowStyle] (L2R |- Activity.south) -- (L3 |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{boot}} coordinate (Now);
+	\path (L5L |- Now) coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L5L |- Activity.south) -- (L4R |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{Query}} coordinate (Now);
+	\node[ActivityStyle, below left=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L4R |- Activity.south) -- (L5L |- Activity.south)
+		node[midway,sloped,below] {\scriptsize\textit{Blueprint}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L5R |- Activity.south) -- (L6L |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{reconfigure}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L6R |- Activity.south) -- (L7L |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{start}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now, minimum height=3ex] (Activity) {};
+	\path[ArrowStyle] (L7L |- Activity.south) -- (L5R |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{Result}} coordinate (Now);
+
+	%
+	% Test Sequence 2
+	%
+	\node[ActivityStyle, below left=0ex of Now, minimum height=7.4ex] (Activity) {};
+	\path[ArrowStyle] (L5L |- Activity.south) -- (L4R |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{Query}} coordinate (Now);
+	\node[ActivityStyle, below left=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L4R |- Activity.south) -- (L5L |- Activity.south)
+		node[midway,sloped,below] {\scriptsize\textit{Blueprint}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L5R |- Activity.south) -- (L6L |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{reconfigure}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L6R |- Activity.south) -- (L7L |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{start}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now, minimum height=3ex] (Activity) {};
+	\node[fill=black!4, below=1.5ex of Activity.south, minimum width=3ex, minimum height=4ex] (Cover) {};
+	\path[dotted, very thick, draw=black] (Cover.north)+(0ex, -1ex) -- ++(0ex, -3ex);
+	\path[ArrowStyle] (L7L |- Activity.south) -- (L5R |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{Result}} coordinate (Now);
+
+	%
+	% Test Sequence 3
+	%
+	\node[ActivityStyle, below left=0ex of Now, minimum height=12.4ex] (Activity) {};
+	\node[fill=black!4, below=4ex of Activity.north, minimum width=3ex, minimum height=4ex] (Cover) {};
+	\path[dotted, very thick, draw=black] (Cover.north)+(0ex, -1ex) -- ++(0ex, -3ex);
+	\path[ArrowStyle] (L5L |- Activity.south) -- (L4R |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{Query}} coordinate (Now);
+	\node[ActivityStyle, below left=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L4R |- Activity.south) -- (L5L |- Activity.south)
+		node[midway,sloped,below] {\scriptsize\textit{Blueprint}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L5R |- Activity.south) -- (L6L |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{reconfigure}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now] (Activity) {};
+	\path[ArrowStyle] (L6R |- Activity.south) -- (L7L |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{start}} coordinate (Now);
+	\node[ActivityStyle, below right=0 of Now, minimum height=3ex] (Activity) {};
+	\path[ArrowStyle] (L7L |- Activity.south) -- (L5R |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{Result}} coordinate (Now);
+	\node[ActivityStyle, below left=0 of Now] (Activity) {};
+
+	\path[ArrowStyle] (L5L |- Activity.south) -- (L2R |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{Result List}} coordinate (Now);
+	\node[ActivityStyle, below left=0ex of Now] (Activity) {};
+	\path[ArrowStyle] (L2L |- Activity.south) -- (L1R |- Activity.south)
+		node[midway,sloped,above] {\scriptsize\textit{Result}} coordinate (Now);
+	\node[ActivityStyle, below left=0ex of Now] (Activity) {};
+
+\end{tikzpicture}
