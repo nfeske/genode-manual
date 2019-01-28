@@ -8,7 +8,10 @@ CHAPTERS := introduction \
             components \
             development \
             system_configuration \
-            under_the_hood
+            under_the_hood \
+            functional_specification
+
+REPO_URL := https://github.com/genodelabs/genode/blob/18.05
 
 # return list of sections for given basename of chapter
 sections = $(shell ./splitter/filter-sec.sh list < ../$1.txt)
@@ -42,6 +45,8 @@ ALL_HTML := $(ALL_SECTIONS_HTML) $(ALL_CHAPTERS_INDEX_HTML) html/index.html
 GOSH_DOC_ARGS :=  --style ../epub/epub_html \
                   --web-build \
                   --html-xrefs xrefs \
+                  --code-refs class_index \
+                  --repo-url $(REPO_URL) \
                   --stylesheet style.css
 
 default: html/style.css $(ALL_HTML)
@@ -69,6 +74,18 @@ xrefs: $(ALL_SECTIONS_TXT) $(ALL_CHAPTERS_TXT)
 	      gosh --style html_xrefs --html-path '$C/$S.html' \
 	           'sections/$C/$S.txt' | grep -v FAKE-CHAPTER; )) \
 	) | sed -E 's/ (chapter|section) ([^ #]+)#[^ ]*$$/ \1 \2/' > $@
+
+# generate class index based on the existing ../spec/class_index.mk
+ifeq ($(wildcard ../spec/class_index.mk),)
+$(error please create class index via 'make class_index.mk' in the spec/ directory)
+endif
+
+include ../spec/class_index.mk
+
+class_index: ../spec/class_index.mk
+	@( $(foreach class,$(CLASSES),\
+		echo '$(class) $(CLASS_HEADER($(class))) $(CLASS_NAME($(class)))';) \
+	) > $@
 
 # install images generated during the creation of the html documents
 default: html/img
