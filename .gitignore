@@ -13,3 +13,8 @@ manual/manual.pdf
 manual/spec/repos
 manual/spec/classes
 manual/spec/class_index.mk
+manual/www/chapters/
+manual/www/html/
+manual/www/img/
+manual/www/sections/
+manual/www/xrefs
