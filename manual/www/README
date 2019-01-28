@@ -1,0 +1,39 @@
+Instructions
+============
+
+To build the www version of the manual,
+
+# Generate the spec/class_index.mk file by using the following command from
+  within the manual/spec directory:
+
+  ! make class_index.mk
+
+  This step scans the Genode API for the list of classes. This information
+  is later used to assemble the content of the "Functional Specification"
+  chapter of the book.
+
+# Generate the HTML files for the book by issueing 'make' from within the
+  _www/_-directory.
+
+# The generated HTML files reside at the _www/html/_ directory. The table
+  of contents is located at _www/html/index.html_.
+
+This directory is self-sufficient. It may be copied to a web server as is,
+or you may browse it offline (e.g., via 'firefox html/index.html').
+
+To remove the generated files, use 'make clean' from within the www/
+directory.
+
+
+About the web version
+=====================
+
+This is probably just a prototype. Known bugs / problems / missing features:
+* API references are only simple hyperlinks to the corresponding header files
+  on GitHub.
+* Various hacks are used. Unexpected input might break something.
+* Minor HTML bugs, e.g., broken footnotes
+
+All links across the HTML documents are relative, but they assume a preserved
+directory structure. So you can put all files as a whole into subdirectories as
+long as you don't change the internal file structure.
