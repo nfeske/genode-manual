@@ -13,6 +13,11 @@ invoke_pdflatex = pdflatex -jobname $* \
 	$(invoke_pdflatex)
 	$(invoke_pdflatex)
 
+banner.pdf: banner.tex
+	pdflatex $^
+	pdflatex $^
+	pdflatex $^
+
 #
 # Make each target depend on common included files and the Makefile
 #

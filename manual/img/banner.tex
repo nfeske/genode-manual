@@ -1,0 +1,345 @@
+\documentclass{scrartcl}
+
+%% support for CMYK color model. However, colors become bland when enabled
+%\usepackage[natural]{xcolor}
+%\usepackage[rgb]{pgf-cmykshadings}
+
+\input{tikz-preamble.tex}
+
+\usepackage[paperwidth=87cm, paperheight=242cm]{geometry}
+
+\begin{document}
+
+\input{tikz-common.tex}
+
+\begin{titlepage}
+\thispagestyle{empty}
+
+\begin{tikzpicture}[remember picture,overlay]
+
+	\definecolor{titleblue}   {rgb}{0.75,0.75,1.0}
+
+	\draw [top color=black!70, bottom color=titleblue]
+		(current page.south west) rectangle (current page.north east);
+
+	%%
+	% Calculate coordinates for a single logo stripe
+	%
+	% argument 1: base angle of the stripe
+	% argument 2: fan angle
+	%
+	% In addition to the arguments, the function relies on the prior
+	% definition of the coordinates 'leftbase', 'rightbase', and 'righttop'.
+	%
+	\newcommand\calccoordinates[2]{
+
+		\def\baseangle{#1}
+		\def\steepangle{#2}
+
+		\path (rightbase)+(\baseangle+90:20cm) coordinate (rightfarup);
+
+		\path (lefttop)+(\steepangle+\baseangle+270:200cm) coordinate (tmp);
+		\coordinate (touchpoint) at (intersection of leftbase--rightbase
+		                                         and lefttop--tmp);
+
+		\path (touchpoint)+(\steepangle+\baseangle:200cm) coordinate (tmp);
+		\coordinate (righttop) at (intersection of rightbase--rightfarup
+		                                         and touchpoint--tmp);
+	}
+
+	\tikzstyle{logospike} = [fill, black, opacity=0.9,
+	                         path fading=flow fade]
+
+	\path (current page.south west) -- coordinate[pos=0.61] (midleft)  (current page.north west);
+	\path (current page.south east) -- coordinate[pos=0.61] (midright) (current page.north east);
+
+	\path (midleft)             coordinate (leftbase);
+	\path (midright)+(-3cm,0)   coordinate (rightbase);
+	\path (leftbase)+(90:4*7cm) coordinate (lefttop);
+
+	\def\maxiterations{5}
+	\foreach \i in {0,...,\maxiterations} {
+
+		\calccoordinates{0 + \i*11}{11}
+
+		% draw polygon
+		\ifthenelse{\i = 0} {
+			% let lowest spoke go right to the bottom of the page
+			\path[logospike]
+			                 (current page.south west)
+			              -- (current page.south east)
+			              -- (current page.east |- righttop) -- (touchpoint)
+			              -- (lefttop) --cycle;
+		} {
+			\path[logospike]
+				(leftbase) -- (rightbase) -- (righttop) -- (touchpoint)
+				           -- (lefttop) --cycle;
+		}
+
+		% init coordinates for next iteration
+
+		\def\nextangle{0 + 11 + \i*11}
+		\def\nextspace{4*2cm - \i*4*0.3cm}
+
+		\path (touchpoint) -- ++(\nextangle:\nextspace)
+		                   -- ++(\nextangle + 90:\nextspace)
+		                   coordinate (leftbase);
+
+		\path (righttop) -- ++(\nextangle + 90:\nextspace)
+		                 coordinate (rightbase);
+
+		\path (lefttop) -- ++(\nextangle:\nextspace)
+		                -- ++(\nextangle + 90:0.6*\nextspace)
+		                coordinate (lefttop);
+	}
+
+	\definecolor{titlecol} {rgb}{1,1,1}
+
+	\path (current page.north)
+		node[below=4cm, font=\normalsize \sffamily, color=titlecol, scale=45,
+		     opacity=0.8] (genode) {GENODE};
+
+	\path (genode)
+		node[below=8cm, font=\normalsize \sffamily, color=titlecol,
+		     opacity=0.8, scale=14] (osf) {Operating System Framework};
+
+	\path (current page.south)
+		node[above=55cm, font=\normalsize \sffamily, color=titlecol,
+		     opacity=0.8, scale=14] (footer) {www.genode-labs.com};
+
+	% show margins of printable area
+	\path (current page.south west)+(1cm, 41cm)  coordinate (sw);
+	\path (current page.north east)+(-1cm, -1cm) coordinate (ne);
+	%\draw[white] (sw) -- (sw |- ne) -- (ne) -- (ne |- sw) --cycle;
+
+
+	\path (current page.center) coordinate (anchor);
+
+	\tikzstyle{dropshadow} = [blur shadow={shadow blur steps=5,shadow xshift=.0ex,
+	                                       shadow yshift=-1.3ex,
+	                                       shadow blur radius=2ex}]
+
+	\tikzstyle{component} = [fill, dropshadow, color=white, opacity=0.4,
+	                         path fading=flow fade, scale=3, minimum height=1cm,
+	                         inner sep=0, minimum width=1cm,
+	                         shape=ellipse, rounded corners=0.5cm, text opacity=1]
+
+	\newcommand{\kernelcomponent}[2]{
+		\path (anchor)+(#1:7cm) node[component, fill=componentcolor] (center) {};
+		\node[at=(center), white, scale=3] { #2 };
+	}
+
+	\definecolor{componentcolor} {rgb}{0.6,0.6,0.6}
+
+	\kernelcomponent{0*40}{Linux}
+	\kernelcomponent{1*40}{Muen}
+	\kernelcomponent{2*40}{seL4}
+	\kernelcomponent{3*40}{NOVA}
+	\kernelcomponent{4*40}{Base-HW}
+	\kernelcomponent{5*40}{Pistachio}
+	\kernelcomponent{6*40}{OKL4}
+	\kernelcomponent{7*40}{L4/Fiasco}
+	\kernelcomponent{8*40}{Fiasco.OC}
+
+	\newcommand{\rtlcomponent}[1]{
+		\node[left=1cm of anchor, scale=3, text opacity=0, align=center] (center) {#1};
+		\node[component, fill=componentcolor, scale=0.8, at=(center)] (center) {};
+		\node[at=(center), white, scale=3, align=center] (anchor) {#1};
+	}
+
+	\newcommand{\ltrcomponent}[1]{
+		\node[right=1cm of anchor, scale=3, text opacity=0, align=center] (center) {#1};
+		\node[component, fill=componentcolor, scale=0.8, at=(center)] (center) {};
+		\node[at=(center), white, scale=3, align=center] (anchor) {#1};
+	}
+
+
+	%
+	% Protocol stacks
+	%
+
+	\definecolor{componentcolor} {rgb}{0.7,0.9,0.6}
+	\path (current page.center)+(35cm,23cm) coordinate (anchor);
+
+	\rtlcomponent{lxIP}
+	\rtlcomponent{SSH\\Terminal}
+	\rtlcomponent{NetBSD\\Rump Kernel}
+	\rtlcomponent{lwIP}
+	\rtlcomponent{OpenSSL}
+	\rtlcomponent{Dynamic\\ROM}
+
+	\path (current page.center)+(35cm,19cm) coordinate (anchor);
+
+	\rtlcomponent{Qt5}
+	\rtlcomponent{Mesa}
+	\rtlcomponent{exFAT}
+	\rtlcomponent{Solo5}
+	\rtlcomponent{ROM\\Filter}
+	\rtlcomponent{File\\Terminal}
+
+	\path (current page.center)+(35cm,15cm) coordinate (anchor);
+
+	\rtlcomponent{Window\\Manager}
+	\rtlcomponent{VFS}
+	\rtlcomponent{Clipboard}
+	\rtlcomponent{Package\\Manager}
+
+	\path (current page.center)+(35cm,11cm) coordinate (anchor);
+
+	\rtlcomponent{OpenVPN}
+	\rtlcomponent{Input\\Filter}
+	\rtlcomponent{Trace FS}
+
+	\path (current page.center)+(35cm,7cm) coordinate (anchor);
+
+	\rtlcomponent{Terminal}
+	\rtlcomponent{Report\\ROM}
+
+	\path (current page.center)+(35cm,3cm) coordinate (anchor);
+
+	\rtlcomponent{Terminal\\LOG}
+
+
+	%
+	% Application stacks
+	%
+
+	\definecolor{componentcolor} {rgb}{0.9,0.7,0.6}
+	\path (current page.center)+(-35cm,4cm) coordinate (anchor);
+
+	\ltrcomponent{libcurl}
+	\ltrcomponent{libSDL}
+	\ltrcomponent{Freetype}
+
+	\path (current page.center)+(-35cm,0cm) coordinate (anchor);
+
+	\ltrcomponent{ncurses}
+	\ltrcomponent{GnuPG}
+	\ltrcomponent{Webkit}
+	\ltrcomponent{Lighttpd}
+
+	\path (current page.center)+(-35cm,-4cm) coordinate (anchor);
+
+	\ltrcomponent{OpenJDK}
+	\ltrcomponent{Lua}
+	\ltrcomponent{Python}
+	\ltrcomponent{libarchive}
+
+	\path (current page.center)+(-35cm,-8cm) coordinate (anchor);
+
+	\ltrcomponent{stdc++}
+	\ltrcomponent{muPDF}
+	\ltrcomponent{libav}
+
+	\node[component, fill=componentcolor, right=1cm of anchor, scale=0.7, align=center] (anchor) {};
+	\node[component, fill=componentcolor, right=1cm of anchor, scale=0.4, align=center] (anchor) {};
+	\node[component, fill=componentcolor, right=1cm of anchor, scale=0.2, align=center] (anchor) {};
+
+	%
+	% Resource multiplexers
+	%
+
+	\definecolor{componentcolor} {rgb}{1,0.1,0.0}
+	\path (current page.center)+(-35cm,-16cm) coordinate (anchor);
+
+	\ltrcomponent{Nitpicker\\GUI server}
+	\ltrcomponent{Mixer}
+	\ltrcomponent{Part\\Block}
+	\ltrcomponent{NIC\\Router}
+
+
+	%
+	% Device drivers
+	%
+
+	\definecolor{componentcolor} {rgb}{0.6,0.7,1}
+
+	\path (current page.center)+(35cm,-16cm) coordinate (anchor);
+
+	\rtlcomponent{PCI}
+	\rtlcomponent{VESA}
+	\rtlcomponent{ACPI}
+	\rtlcomponent{i.MX}
+	\rtlcomponent{SD-card}
+	\rtlcomponent{SATA}
+	\rtlcomponent{NVMe}
+	\rtlcomponent{Intel\\wireless}
+	\rtlcomponent{Intel\\graphics}
+
+	\path (current page.center)+(35cm,-12cm) coordinate (anchor);
+
+	\rtlcomponent{Audio}
+	\rtlcomponent{NIC}
+	\rtlcomponent{PS/2}
+	\rtlcomponent{GPIO}
+	\rtlcomponent{USB}
+	\rtlcomponent{Zynq}
+	\rtlcomponent{UART}
+
+	\path (current page.center)+(35cm,-8cm) coordinate (anchor);
+
+	\rtlcomponent{USB\\storage}
+	\rtlcomponent{Rpi}
+	\rtlcomponent{Timer}
+
+	\node[component, fill=componentcolor, left=1cm of anchor, scale=0.7, align=center] (anchor) {};
+	\node[component, fill=componentcolor, left=1cm of anchor, scale=0.4, align=center] (anchor) {};
+	\node[component, fill=componentcolor, left=1cm of anchor, scale=0.2, align=center] (anchor) {};
+
+
+	%
+	% Noux
+	%
+
+	\definecolor{componentcolor} {rgb}{1,0.9,0.7}
+
+	\path (current page.center)+(-25cm,16cm) coordinate (anchor);
+
+	\node[at=(anchor), component, fill=componentcolor] (center) {};
+
+	\newcommand{\nouxcomponent}[2]{
+		\path (anchor)+(#1:3.5cm) node[component, minimum width=5cm, rotate=#1, opacity=0.1, scale=0.2] {};
+		\path (anchor)+(#1:6.5cm) node[component, scale=0.7, fill=componentcolor] (ccenter) {};
+		\node[at=(ccenter), align=center, white, scale=3] {#2};
+	}
+
+	\nouxcomponent{30*0}{bash}
+	\nouxcomponent{30*1}{make}
+	\nouxcomponent{30*2}{binutils}
+	\nouxcomponent{30*3}{GCC}
+	\nouxcomponent{30*4}{Vim}
+	\nouxcomponent{30*5}{e2fs\\progs}
+	\nouxcomponent{30*6}{find}
+	\nouxcomponent{30*7}{grep}
+	\nouxcomponent{30*8}{GDB}
+	\nouxcomponent{30*9}{coreutils}
+	\nouxcomponent{30*10}{sed}
+	\nouxcomponent{30*11}{Tcl}
+
+	\node[at=(center), white, scale=3] { Noux };
+
+
+	%
+	% Runtime environments
+	%
+
+	\definecolor{componentcolor} {rgb}{0.9,0.9,0.9}
+
+	\path (current page.center) coordinate (anchor);
+
+	\newcommand{\runtimecomponent}[2]{
+		\path (anchor)+(#1:15cm) node[component, scale=0.7, fill=componentcolor] (center) {};
+		\node[at=(center), align=center, white, scale=3] {#2};
+	}
+
+	\runtimecomponent{20*1}{ARM\\TrustZone}
+	\runtimecomponent{20*2}{GDB\\Monitor}
+	\runtimecomponent{20*3}{Seoul\\VMM}
+	\runtimecomponent{20*4}{VirtualBox}
+	\runtimecomponent{20*5}{Init}
+
+\end{tikzpicture}
+
+\end{titlepage}
+
+\end{document}
