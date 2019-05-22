@@ -19,8 +19,8 @@ VERBOSE ?= @
 #
 
 GENODE_GIT_URL := https://github.com/genodelabs/genode.git
-#GENODE_GIT_REV := 5444bc5d59fb00266e27b70215df8eee70940f1c
-GENODE_GIT_REV := 18.05
+GENODE_GIT_REV := 64ee151d07a65dd0a77039817cb9a7fa11b53a6e
+#GENODE_GIT_REV := 18.05
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
@@ -69,17 +69,16 @@ define BASE_INCLUDE_DIRS
   log_session
   parent
   pd_session
-  ram_session
   region_map
   rm_session
   rom_session
   root
   session
-  thread
   trace_session
   util
   spec/32bit
   spec/64bit
+  timer_session
 endef
 
 define OS_INCLUDE_DIRS
@@ -90,7 +89,6 @@ define OS_INCLUDE_DIRS
   gpio_session
   init
   input_session
-  loader_session
   nic_session
   nitpicker_session
   os
@@ -103,7 +101,6 @@ define OS_INCLUDE_DIRS
   rtc_session
   spec/x86
   terminal_session
-  timer_session
   uart_session
   usb_session
   util
@@ -193,7 +190,6 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/base/blocking.h \
                          repos/base/include/base/cache.h \
                          repos/base/include/base/component.h \
-                         repos/base/include/base/printf.h \
                          repos/base/include/base/env.h \
                          repos/base/include/base/log.h \
                          repos/base/include/base/output.h \
@@ -201,7 +197,6 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/base/stdint.h \
                          repos/base/include/spec/64bit/base/fixed_stdint.h \
                          repos/base/include/spec/32bit/base/fixed_stdint.h \
-                         repos/base/include/ram_session/ram_session.h \
                          repos/base/include/rom_session/rom_session.h \
                          repos/base/include/io_mem_session/io_mem_session.h \
                          repos/os/include/file_system_session/file_system_session.h

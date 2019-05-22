@@ -22,7 +22,8 @@ installation satisfies the following requirements:
 * GNU Make version 3.81 (or newer) needed by the build system,
 * _libSDL-dev_ needed to run system scenarios directly on Linux,
 * _tclsh_ and _expect_ needed by test-automation and work-flow tools,
-* _qemu_, _xorriso_, _parted_, _gdisk_, and _e2tools_ needed for running
+* _xmllint_ for validating configurations,
+* _qemu_, _xorriso_, _sgdisk_, and _e2tools_ needed for running
   system scenarios on non-Linux platforms via the Qemu emulator.
 
 For using the entire collection of ported 3rd-party software, the following
@@ -40,7 +41,7 @@ users and developers alike. Please feel welcome to join in!
 
 :Mailing Lists:
 
-  [http://genode.org/community/mailing-lists]
+  [https://genode.org/community/mailing-lists]
 
 If you encounter a new bug, ambiguous documentation, or a missing feature,
 please consider opening a corresponding issue at the issue tracker:
@@ -218,7 +219,7 @@ website:
 
 :Tool chain:
 
-  [http://genode.org/download/tool-chain]
+  [https://genode.org/download/tool-chain]
 
 
 Build directory
@@ -246,9 +247,10 @@ Before using the build directory, it is recommended to revisit and
 possibly adjust the build configuration, which is located in the
 _etc/_ subdirectory of the build directory, e.g., _build/x86_64/etc/_.
 The _build.conf_ file contains global build parameters, in particular
-the selection of source-code repositories to be incorporated. It is also
+the selection of source-code repositories to be incorporated, the kernel
+to use ('KERNEL'), and the targeted board ('BOARD'). It is also
 a suitable place for adding global build options. For example, for
-enabling GNU make to use 4 CPU cores, add the following line to the
+enabling GNU make to use 4 CPU cores, use the following line in the
 _build.conf_ file:
 
 ! MAKE += -j4
@@ -463,7 +465,7 @@ of the project, please pay attention to these common guidelines.
 
 :Coding-style guidelines:
 
-  http://genode.org/documentation/developer-resources/coding_style
+  https://genode.org/documentation/developer-resources/coding_style
 
 The source file _main.cc_ is accompanied by a build-description file called
 _target.mk_. It contains the declarations for the source files, the libraries
@@ -561,7 +563,7 @@ This run script performs the following steps:
 The run script can be executed from within the build directory via the
 command:
 
-! make run/hello
+! make run/hello KERNEL=linux
 
 After the boot output of the used kernel, the scenario will produce the
 following output:

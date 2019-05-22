@@ -1008,7 +1008,7 @@ executed thread. Once the programmed timeout elapses, the timer device
 generates an interrupt that is handled by the kernel. Similarly to
 interrupt controllers, there exist a variety of different timer devices
 for different CPUs. Therefore, base-hw contains different timer drivers.
-The timer drivers are located at _src/core/spec/<spec>/timer.h_
+The timer drivers are located at _src/core/spec/<spec>/timer_driver.h_
 where _<spec>_ refers to the timer variant.
 
 The in-kernel handler of the timer interrupt invokes the thread scheduler
@@ -1072,8 +1072,8 @@ provides system calls for managing the execution control of threads
 To support asynchronous notifications as described in Section
 [Asynchronous notifications], the kernel provides system calls for the
 submission and reception of signals (_await_signal_, _cancel_next_await_signal_,
-_submit_signal_, and _ack_signal_) as well as the life-time management
-of signal contexts (_kill_signal_context_). In contrast to other
+_submit_signal_, _pending_signal_, and _ack_signal_) as well as the life-time
+management of signal contexts (_kill_signal_context_). In contrast to other
 base platforms, Genode's signal API is directly supported by the kernel
 so that the propagation of signals does not require any interaction with
 core's PD service.
@@ -1084,7 +1084,7 @@ accounted to the corresponding clients of the PD service.
 The kernel provides an interface to make the kernel's scheduling timer
 available as time source to the user land. Using this interface,
 components can bind signal contexts to timeouts (_timeout_) and
-follow the progress of time (_timeout_age_us_ and _timeout_max_us_).
+follow the progress of time (_time_ and _timeout_max_us_).
 
 
 Core-private part of the kernel interface
@@ -1633,8 +1633,8 @@ driver needs to become IOMMU-aware and distinguish both cases. This is an
 unfortunate consequence of the otherwise elegant mechanism provided by NOVA. To
 relieve the device drivers from worrying about both cases, Genode decouples
 the virtual address space of the device from the virtual address space of the
-driver. The former address space is represented by a Genode component called
-_device PD_. Its sole purpose
+driver. The former address space is represented by a dedicated protection
+domain called _device PD_ independent from the driver. Its sole purpose
 is to hold mappings of DMA buffers that are accessible by the associated
 device. By using one-to-one physical-to-virtual mappings for those buffers
 within the device PD, each device PD contains a subset of the physical address
@@ -1649,8 +1649,6 @@ valid virtual address in the associated device PD.
 This design implies that a device driver must allocate DMA buffers at the
 platform driver (specifying the PCI device the buffer is intended for) instead
 of using core's PD service to allocate buffers anonymously.
-
-; XXX Maybe mention this in the limitations section?
 
 ; XXX [image img/iommu_agnostic 80%]
 ;   By modelling a device address space as a dedicated process (device PD),

@@ -322,7 +322,7 @@ commercial licensing:
 
 :Genode Labs website:
 
-  [http://www.genode-labs.com]
+  [https://www.genode-labs.com]
 
 The framework is available under two flavours of licences: an open-source
 license and commercial licensing.
@@ -340,7 +340,7 @@ text, refer to
 
 :GNU Affero General Public License Version 3:
 
-  [http://genode.org/about/LICENSE]
+  [https://genode.org/about/LICENSE]
 
 Note that the official license text accompanies the AGPLv3 with an additional
 clause that clarifies our consent to link Genode with all commonly established
@@ -408,7 +408,7 @@ That said, feedback from you as the reader of the document is always
 welcome. If you identify points you would like to see improved or
 if you spot grammatical errors, please do not hesitate to contact the
 author by writing to _norman.feske@genode-labs.com_ or to post your feedback
-to the mailing list [http://genode.org/community/mailing-lists].
+to the mailing list [https://genode.org/community/mailing-lists].
 
 
 

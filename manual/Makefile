@@ -1,4 +1,4 @@
-GENODE_VERSION = 18.05
+GENODE_VERSION = 19.05
 FOUNDATIONS_PDF = genode-foundations-$(subst .,-,$(GENODE_VERSION)).pdf
 
 all: $(FOUNDATIONS_PDF)

@@ -53,7 +53,7 @@ proc get_cmd_arg { arg_name default_value } {
 #
 # XXX evaluate command-line argument
 #
-proc code_url { } { return "https://github.com/genodelabs/genode/blob/18.05/" }
+proc code_url { } { return "https://github.com/genodelabs/genode/blob/19.05/" }
 
 
 ##
@@ -917,24 +917,25 @@ proc public_and_protected_class_members { class_token } {
 	set classblock_token [sub_token $class_token classblock]
 
 	set members_sequence {}
-	if {[tok_type $class_token] == "struct"} {
 
-		foreach_sub_token [tok_text $classblock_token] plain { } token {
-			if {[tok_type $token] == "declseq"} {
-				append members_sequence [tok_text $token]
-			}
-		}
-	}
+	foreach_sub_token [tok_text $classblock_token] plain { } prot_token {
 
-	if {[tok_type $class_token] == "class"} {
+		#
+		# Capture members that appear directly in the 'struct' scope
+		# where the default visibility is public
+		#
+		if {[tok_type $class_token] == "struct"} {
+			if {[tok_type $prot_token]  == "declseq"} {
+				append members_sequence [tok_text $prot_token] } }
 
-		foreach_sub_token [tok_text $classblock_token] plain { } prot_token {
-			if {[tok_type $prot_token] == "public" ||
-			    [tok_type $prot_token] == "protected"} {
-				foreach_sub_token [tok_text $prot_token] plain { } token {
-					if {[tok_type $token] == "declseq"} {
-						append members_sequence [tok_text $token]
-					}
+		#
+		# Capture members that appear in public and protected blocks
+		#
+		if {[tok_type $prot_token] == "public" ||
+		    [tok_type $prot_token] == "protected"} {
+			foreach_sub_token [tok_text $prot_token] plain { } token {
+				if {[tok_type $token] == "declseq"} {
+					append members_sequence [tok_text $token]
 				}
 			}
 		}

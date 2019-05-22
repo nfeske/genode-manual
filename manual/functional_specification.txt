@@ -832,19 +832,6 @@ retrieved by reading a directory node is defined by the 'Directory_entry'.
 
 [raw spec/clearpage]
 
-Loader session interface
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-; XXX description, reference to components section
-
-; XXX Loader::Session_client
-
-; Loader::Session
-[raw spec/classes/loader/session/description]
-
-; Loader::Connection
-[raw spec/classes/loader/connection/description]
-
 
 ;GPIO session interface
 ;~~~~~~~~~~~~~~~~~~~~~~
@@ -1410,6 +1397,8 @@ in a concatenated fashion. Each messages is implicitly finalized with a
 newline character.
 
 [raw spec/repos/base/include/base/log.h.overview]
+
+;; Genode::Buffered_output
 
 [raw spec/clearpage]
 

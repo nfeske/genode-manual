@@ -131,7 +131,7 @@ please refer to the porting guide:
 
 :Genode Porting Guide:
 
-  [http://genode.org/documentation/developer-resources/porting]
+  [https://genode.org/documentation/developer-resources/porting]
 
 
 Build system
@@ -1265,7 +1265,7 @@ the regular run-tool work flow can be maintained while attaining a
 productivity boost by fetching content from the depot instead of building it.
 
 Run scripts can use the 'import_from_depot' function to incorporate archive
-content from the depot into a scenario. The function must be called after the
+content from the depot into a scenario. It must be called after the
 'create_boot_directory' function and takes any number of pkg, src, or raw
 archives as arguments. An archive is specified as depot-relative path of the
 form '<user>/<type>/name'. Run scripts may call 'import_from_depot'
@@ -1276,6 +1276,60 @@ just the version-less archive name. In the latter case, the current version
 If a 'src' archive is specified, the run tool integrates the content of
 the corresponding binary archive into the scenario. The binary archives
 are selected according the spec values as defined for the build directory.
+
+The following excerpt of a run script incorporates the content of
+several binary archives into a system scenario. The 'base_src' function
+is provided by the run tool and returns the name of an archive with the
+kernel-specific ingredients. It depends on the 'KERNEL' and 'BOARD'
+definition in the build directory.
+
+! import_from_depot [depot_user]/src/[base_src] \
+!                   [depot_user]/src/report_rom \
+!                   [depot_user]/src/fs_rom \
+!                   [depot_user]/src/vfs \
+!                   [depot_user]/src/init
+
+The 'depot_user' function returns the name of the depot sub directory from
+where the archives should be obtained. It returns "genodelabs" by default.
+This default can be overridden via the '--depot-user' argument of the run tool.
+For example, the following line in the _<build-dir>/etc/build.conf_ file
+instructs the 'import_from_depot' call above to obtain the depot content from
+_depot/test/_.
+
+! RUN_OPT += --depot-user test
+
+
+Automated depot management
+--------------------------
+
+When using the 'import_from_depot' mechanism of the run tool, one frequently
+encounters a situation where the depot lacks a particular archive.
+Whenever the run tool detects such a situation, it prompts the user to
+manually curate the depot content via the _tool/depot/create_ tool.
+The need for such manual steps negatively interferes with the development
+workflow. The right manual steps are sometimes not straight-forward to find,
+in particular after switching between Git branches.
+
+To relieve the developer from this uncreative manual labor, the run tool
+provides the option '--depot-auto-update' for managing the depot automatically
+according to the needs of the executed run script. To enable this option, use
+the following line in the build configuration:
+
+! RUN_OPT += --depot-auto-update
+
+If enabled, the run tool automatically invokes the right
+depot-management commands to populate the depot with the required archives,
+and to ensure the consistency of the depot content with the current version of
+the source tree. The feature comes at the price of a delay when executing the
+run script because the consistency check involves the extraction of all used
+source archives from the source tree. In regular run scripts, this delay
+is barely noticeable. Only when working with a run script of a large system,
+it may be better to leave the depot auto update disabled.
+
+Please note that the use of the automated depot update may result in version
+updates of the corresponding depot recipes in the source tree (recipe hash
+files). It is a good practice to review and commit those hash files once the
+local changes in the source tree have reached a good shape.
 
 
 Selectively overriding depot content
@@ -1315,6 +1369,54 @@ and integrate the resulting _ld.lib.so_ binary as boot module:
 ! ...
 ! build { lib/ld }
 ! build_boot_image { ld.lib.so }
+
+
+Static code analysis
+====================
+
+The Clang static analyzer tool can analyze source code in C and C++ projects
+to find bugs at compile time:
+
+:Clang static analyzer:
+  [https://clang-analyzer.llvm.org]
+
+With this tool enabled, Genode users can check and ensure the quality of
+Genode components. It can be invoked during make invocations and during
+the creation of packages.
+
+For the invocation of _make_ within a Genode build directory, the
+STATIC_ANALYZE variable on the command line prompts the static analyzer to
+run next to the actual build step.
+
+! STATIC_ANALYZE=1 make -C build/x86_64 KERNEL=... run/...
+
+For analyzing packages, the wrapper tool _tool/depot/static_analyze_
+becomes handy. It can be combined with the _tool/depot/*_ tools to
+take effect:
+
+! tool/depot/static_analyze tool/depot/create <user>/pkg/...
+
+The results of the static-analyzer tool are generated in the form of HTML
+pages and can be inspected afterwards. The following example output showcases
+a run of the static analyzer tool:
+
+! make: Entering directory '../genode/build/x86_64'
+! checking library dependencies...
+! scan-build: Using '/usr/lib/llvm-6.0/bin/clang' for static analysis
+! ...
+!
+! LINK     init
+! scan-build: 0 bugs found.
+! scan-build: The analyzer encountered problems on some source files.
+! scan-build: Preprocessed versions of these sources were deposited in
+!             '/tmp/scan-build-2018-11-28-111203-20081-1/failures'.
+
+This feature is known to work well with Clang 6.0 on Ubuntu 16.04. The
+steps to provide the required tools on Linux are like follows.
+
+! sudo apt install clang-tools-6.0
+! cd $HOME/bin
+! ln -s $(which scan-build-6.0) scan-build
 
 
 Git flow
@@ -1486,7 +1588,7 @@ is described in the following document:
 
 :Coding-style Guidelines:
 
-  [http://genode.org/documentation/developer-resources/coding_style]
+  [https://genode.org/documentation/developer-resources/coding_style]
 
 
 Writing a commit message

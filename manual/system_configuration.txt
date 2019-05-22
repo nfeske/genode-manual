@@ -735,3 +735,45 @@ the session label presented to the server, analogous to how the
 rewriting of session labels works in session routes. If not specified,
 the client-provided label is presented to the server as is.
 
+
+Component health monitoring
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Scenarios where components are known to sometimes fail call for a mechanism
+that continuously checks the health of components and reports anomalies. To
+accommodate such use cases, Genode provides a built-in health-monitoring
+mechanism. Each component registers a heartbeat signal handler during its
+initialization at its parent. This happens under the hood and is thereby
+transparent to application code. Each time the signal is triggered by the
+parent, the default heartbeat handler invokes the 'heartbeat_response'
+function at the parent interface and thereby confirms that the component is
+still able to respond to external events.
+
+[tikz img/heartbeat]
+  Init queries the responsiveness of its children
+
+Thanks to this low-level mechanism, the init component is able to
+monitor its child components as depicted in Figure [img/heartbeat].
+A global (for this init instance) heartbeat rate can be configured via
+a '<heartbeat rate_ms="1000"/>' node at the top level of init's configuration.
+The heartbeat rate can be specified in milliseconds. If configured, init uses
+a dedicated timer session for performing health checks periodically. Each
+component that hosts a '<heartbeat>' node inside its '<start>' node is
+monitored. In each period, init requests heartbeat responses from all
+monitored children and maintains a count of outstanding heartbeats for each
+component. The counter is incremented in each period and reset whenever the
+child responds to init's heartbeat request. Whenever the number of outstanding
+heartbeats of a child becomes higher than 1, the child may be in trouble.
+Init reports this information in its state report via the new attribute
+'skipped_heartbeats="N"' where N denotes the number of periods since the child
+became unresponsive.
+
+Of course, the mechanism won't deliver 100% accuracy. There may be situations
+like long-running calculations where long times of unresponsiveness are
+expected from a healthy component. Vice versa, in a multi-threaded
+application, the crash of a secondary thread may go undetected if the primary
+(checked) thread stays responsive. However, in the majority of cases where a
+component crashes (page fault, stack overflow), gets stuck in a busy loop,
+produces a deadlock, or throws an unhandled exception (abort), the mechanism
+nicely reflects the troublesome situation to the outside.
+
