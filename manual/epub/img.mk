@@ -14,7 +14,7 @@ img/%-unscaled.png: img/%.pdf
 	gs -dNOPAUSE -dBATCH -sDEVICE=pngalpha -r$(GS_DPI) -sOutputFile=$@ $<
 
 img/%.png: img/%-unscaled.png
-	convert -filter lanczos -resize 80% $< $@
+	convert -filter lanczos -resize 80% +profile icc $< $@
 
 GENERATED_IMGS_LOG := $(wildcard img/*.log)
 GENERATED_IMGS     := $(GENERATED_IMGS_LOG:.log=)
