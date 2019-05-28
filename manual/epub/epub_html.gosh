@@ -143,6 +143,7 @@ proc produce_head_html {} {
 	}
 	printline {</head>}
 	printline {<body>}
+	printline {<div class="content">}
 	if { $web_build && !$main_index } {
 		produce_navbar
 	}
@@ -176,7 +177,7 @@ proc produce_tail_html {} {
 			produce_xrefs_linklist $content_list "chapter-toc"
 		}
 	}
-	printline {</body></html>}
+	printline {</div></body></html>}
 }
 
 
