@@ -1,106 +1,79 @@
 body {
 	font: 100% "Lucida Grande", Verdana, Lucida, Helvetica, Arial, sans-serif;
+	background-color: transparent;
+	background-image: url(bg_pattern.png);
+	margin: 25px;
 }
 
+.content {
+	background-color: #fff;
+	max-width: 1000px;
+	margin-left: auto;
+	margin-right: auto;
+	border-radius: 6px;
+	padding: 8px 32px 16px 32px;
+}
+
+h1 {
+	font-family: "Lucida Grande", Verdana, Lucida, Helvetica, Arial, sans-serif;
+	font-size: 160%;
+	font-weight: 500;
+}
 h2 {
+	font: 145% "Lucida Grande", Verdana, Lucida, Helvetica, Arial, sans-serif;
+}
+h3 {
 	font: 135% "Lucida Grande", Verdana, Lucida, Helvetica, Arial, sans-serif;
 }
 
 pre {
 	font-family: Monaco, monospace;
-	border-left: 2px solid #bcdceb;
+	border-left: 2px solid #ccc;
+	overflow-x: auto;
 }
 
-.figure {
-	/* adapt width to content's width */
-	display: inline-block;
-	/* center the image */
-	text-align: center;
-}
-.figure legend {
-	font-weight: bold;
-}
+tt { font-family: Monaco, monospace; }
+
+a { text-decoration: none; }
+a:link { color: #00a; }
+a:visited { color: #44c; }
+a:hover { color: #66f; }
+
 p {
 	line-height: 125%;
-}
-p, .caption {
-	max-width: 43em;
-	/* for .caption: remove the centering of the figure again */
-	text-align: left;
+	text-align: justify;
 }
 p.direct-img {
 	text-align: center;
 }
 img {
-	/* If in doubt, prefer a smaller, unreadable "overview" over a giant image
-	 * and vertical scrolling. The user may still open the image in fullscreen.
-	 */
-	max-width: 100%;
-	max-height: 70vh;
+	max-width: 90%;
+	max-height: 90vh;
 }
+
+/* fieldset */ .figure {
+	display: block;
+	text-align: center;
+	border: 1px solid #888;
+	max-width: 90%;
+	margin-left: auto;
+	margin-right: auto;
+}
+.caption {
+	text-align: justify;
+	display: block;
+	margin-top: 6px;
+}
+
 ol.toc a.chapter {
-	font-size: 1.4em;
-	font-weight: bold;
+	font-size: 135%;
+	font-weight: 500;
 }
+ol { padding-left: 2em; }
+ol li { margin-top: 2px; }
 p.code-ref {
 	background-color: #F0F0F0;
 	border-style: solid;
 	border-width: thin;
 }
 
-/* use the available space by right aligning all figures
- *
- * The images on the right may reduce the length of the text lines on the left.
- * This is not a problem as long as we ensure a minimum text column width so
- * that the readability is not affected. Most images are narrower than 50em. So
- * if we assume a minimal text width of 20em, the minimal screen width at which
- * a floating layout makes sense may be estimated at about 67em.
- *
- * As an alternative, we might try to activate this floating mode for smaller
- * screens as well while specifying a minimal text width directly. This way, we
- * could avoid general image width assessments and let the browser decide on
- * the layout for each text/image pair individually. Unfortunately, text
- * content cannot make use of the 'min-width' CSS property in such floating
- * contexts and I have not found any reliable workarounds. For example, adding
- * a hidden border with a fixed width [1] does not work if the text floats
- * around more than one image. Besides these limitations, due to the text
- * structure of the document source, a min-width solution may lead to isolated
- * headlines to the left of an image. The reader might mistake such a headline
- * for the image's caption or something.
- *
- * [1] https://stackoverflow.com/a/32324732
- */
-@media (min-width:67em) {
-	.figure {
-		clear: both;
-		float: right;
-		margin: 1em;
-		margin-right: 0;
-		/* Guarantee the minimal text width even in the rare cases where the width
-		 * of an image is bigger than usual.
-		 */
-		max-width: calc(100% - 20em);
-	}
-
-	body {
-		margin-right: 0.1em;
-		/* prevent the right-aligned images from being miles away from the text
-		 *
-		 * Including indentations, the text part should not be wider than ~50em.
-		 * Since images are also <50em in most cases, 95em should be a good value.
-		 */
-		max-width: 95em;
-	}
-
-	/* What do we want:
-	 *  - min and max width of the caption lines for readability
-	 *  - Because the readability of the main text is more important, we also
-	 *    want the max width to be smaller than the image's width as long as its
-	 *    not smaller than our min width requirement.
-	 * Unfortunately, the CSS min and max functions are not well supported yet.
-	 * Thus, we make a tradeoff.
-	 */
-	.caption {
-		max-width: 30em;
-	}
-}

@@ -176,6 +176,9 @@ proc produce_tail_html {} {
 			produce_xrefs_linklist $content_list "chapter-toc"
 		}
 	}
+	if { $web_build && !$main_index } {
+		produce_navbar
+	}
 	printline {</div></body></html>}
 }
 

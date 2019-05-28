@@ -49,7 +49,7 @@ GOSH_DOC_ARGS :=  --style ../epub/epub_html \
                   --repo-url $(REPO_URL) \
                   --stylesheet style.css
 
-default: html/style.css $(ALL_HTML)
+default: html/style.css html/bg_pattern.png $(ALL_HTML)
 
 #
 # Create img directory before generating html documents to allow epub_html.gosh
@@ -97,6 +97,11 @@ html/img:
 
 # install CSS file
 html/style.css: style.css
+	mkdir -p $(dir $@)
+	cp $< $@
+
+# install background image
+html/bg_pattern.png: bg_pattern.png
 	mkdir -p $(dir $@)
 	cp $< $@
 
