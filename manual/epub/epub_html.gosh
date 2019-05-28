@@ -156,7 +156,6 @@ proc produce_tail_html {} {
 	if {!$web_build} {
 	} elseif {0 != $main_index} {
 		printline {<h1>Genode OS Framework Foundations</h1>}
-		printline {<h2>Table of Contents:</h2>}
 
 		produce_xrefs_linklist $html_xrefs "main-toc"
 	} else {
