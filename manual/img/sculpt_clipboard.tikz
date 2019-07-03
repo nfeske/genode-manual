@@ -1,0 +1,97 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=8ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+	\tikzstyle{treesessionarrow} = [arrow, sloped=false, text opacity=0.5]
+
+	\definecolor{lzcolor}          {rgb}{0.9,0.55,0.6}
+	\definecolor{innerstaticcolor} {rgb}{0.5,0.4,0.5}
+	\definecolor{staticcolor}      {rgb}{0.4,0.3,0.4}
+	\definecolor{kernelcolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{driverscolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{runtimecolor}     {rgb}{0.7,0.9,0.6}
+
+	\tikzstyle{runtimenode}     = [treenode, bottom color=runtimecolor]
+	\tikzstyle{vfsentry}   = [align=left, text opacity=0.5]
+	\tikzstyle{appnode}   = [treenode, minimum width=15ex, minimum height=7ex]
+
+	\node[runtimenode, minimum width=15ex] (init) {Runtime init};
+
+	\node[appnode, above=5ex of init, xshift=-10ex] (wm) {Window Manager\\"wm"};
+
+	\node[appnode, above=5ex of init, xshift=10ex] (app) {Application\\"app"};
+
+	\path[treechildarrow] (init) -- (wm);
+	\path[treechildarrow] (init) -- (app);
+
+	\tikzstyle{label} = [outer sep=0, opacity=0.6, minimum height=4ex, minimum width=20ex]
+
+	\node[label, above=13ex of init, minimum width=35ex] (runtimelabel) {\large Runtime};
+	\node[label, below=12ex of init, minimum width=35ex, opacity=0.8] (staticlabel) {\large static system};
+
+	\tikzstyle{outline} = [inner sep=1ex]
+
+	% midpoint between static and dynamic user land
+	\path (init)+(0,-4ex) coordinate (midstaticdynamic);
+
+	\node[treenode, below=3ex of midstaticdynamic, xshift=-10ex] (nitpicker) {GUI};
+	\node[treenode, below=3ex of midstaticdynamic, xshift=10ex] (clipboard) {Clipboard};
+
+	% helper outline nodes
+	\node[outline, fit=(wm) (app) (runtimelabel) (staticlabel) (nitpicker) (clipboard)] (alloutline) {};
+
+	\path[treesessionarrow] (app.230)
+		.. controls +(0ex, -7ex) and +(-3ex, 6ex) .. (wm.270)
+		.. controls +(2ex, -3ex) and +(5ex, 0ex) .. coordinate[pos=0.75] (runtimelabel) (nitpicker.east);
+
+	\path[treesessionarrow] (app.250)
+		.. controls +(0ex, -9ex) and +(-2.5ex, 5ex) .. (wm.280)
+		.. controls +(2ex, -3ex) and +(-5ex, 0ex) .. (clipboard.190);
+
+	\path[treesessionarrow] (app.270)
+		.. controls +(0ex, -11ex) and +(-2ex, 4ex) .. coordinate[pos=0.3] (applabel) (wm.290)
+		.. controls +(2ex, -3ex) and +(-5ex, 0ex) .. coordinate[pos=0.3] (wmlabel) coordinate[pos=0.7] (runtimelabel2) (clipboard.170);
+
+	\tikzstyle{policy} = [rectangle callout, fill=white!30!black,
+	                      callout relative pointer={(5ex,-3ex)},
+	                      rounded corners=3, text=white, scale=0.7, opacity=0.7]
+
+	\node[policy, at=(applabel), xshift=9ex, callout relative pointer={(-3ex, 3ex)}] {"app"};
+	\node[policy, at=(wmlabel), xshift=-9ex, callout relative pointer={(4ex, 3ex)}] {"wm $\rightarrow$ app"};
+	\node[policy, at=(runtimelabel), xshift=-9ex, yshift=2ex, callout relative pointer={(5ex, 3ex)}] {"runtime $\rightarrow$ wm $\rightarrow$ app"};
+	\node[policy, at=(runtimelabel2), xshift=10ex, yshift=2ex, callout relative pointer={(-5ex, -3ex)}] {"runtime $\rightarrow$ wm $\rightarrow$ app"};
+
+	\tikzstyle{infoflow} = [opacity=0.7,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	\path[infoflow] (nitpicker.south east)
+		.. controls +(3ex, -3ex) and +(-3ex, -3ex) .. node[above] {focus} (clipboard.south west);
+
+	% backgrounds
+	\begin{scope}[on background layer]
+
+		\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=5]
+
+		% static user land
+		\path[land, inner color=innerstaticcolor, opacity=0.4, outer color=staticcolor, sharp corners]
+			(alloutline.west |- midstaticdynamic) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.east |- alloutline.south) --
+			(alloutline.west |- alloutline.south) --cycle;
+
+		% runtime
+		\path[land, sharp corners, opacity=0.4, outer color=runtimecolor]
+			(alloutline.north west) --
+			(alloutline.north east) --
+			(alloutline.east |- midstaticdynamic) --
+			(alloutline.west |- midstaticdynamic) --cycle;
+
+
+	\end{scope}
+
+\end{tikzpicture}
