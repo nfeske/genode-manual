@@ -1,0 +1,28 @@
+\begin{tikzpicture}[node distance=12ex, inner sep=1ex]
+
+	\node (resilience) {Resilience};
+
+	\node [align=center, below of=resilience] (attacksurface) {Minimized\\Attack Surface};
+
+	\node [below of=attacksurface, xshift=-10ex] (correctness) {Correctness};
+	\node [below of=attacksurface, xshift=10ex] (compartmentization) {Compartmentization};
+
+	\node [align=center, below of=correctness, xshift=-10ex] (verification) {Formal\\Verification};
+	\node [align=center, below of=compartmentization] (isolation) {Isolation\\Techniques};
+	\node [align=center, below of=isolation, xshift=-20ex] (airgap) {Air-gapped\\Devices};
+	\node [align=center, below of=isolation, xshift=-5ex] (lang) {Language-based\\Isolation};
+	\node [align=center, below of=isolation, xshift=10ex] (vmm) {Virtual\\Memory};
+
+	\path[arrow] (resilience) -- (attacksurface);
+	\path[arrow] (attacksurface) -- (correctness);
+	\path[arrow] (attacksurface) -- (compartmentization);
+	\path[arrow] (correctness) -- (verification);
+	\path[arrow] (compartmentization) -- (isolation);
+	\path[arrow] (isolation) -- (airgap);
+	\path[arrow] (isolation) -- (lang);
+	\path[arrow] (isolation) -- (vmm);
+
+	% \path[sloped] (parent) -- node [pos=0.4, ownership] {owns}
+	%               (child);
+
+\end{tikzpicture}

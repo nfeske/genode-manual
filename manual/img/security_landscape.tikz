@@ -1,0 +1,105 @@
+\begin{tikzpicture}
+
+	\definecolor{cellcolor} {rgb}{0.75,0.7,0.65}
+
+	\tikzstyle{cell} = [draw, draw opacity=0.1, thin, minimum width=23ex,
+	                    minimum height=10ex, outer sep=0, align=center]
+
+	\tikzstyle{odd}  = [cell, fill opacity=0.4, fill=cellcolor]
+	\tikzstyle{even} = [cell, fill opacity=0.6, fill=cellcolor]
+
+	%
+	% Grid
+	%
+
+	\node[odd]                  (c1a) {};
+	\node[even, right=0 of c1a] (c2a) {};
+	\node[odd,  right=0 of c2a] (c3a) {};
+
+	\node[even, below=0 of c1a] (c1b) {};
+	\node[odd,  right=0 of c1b] (c2b) {};
+	\node[even, right=0 of c2b] (c3b) {};
+
+	\node[odd,  below=0 of c1b] (c1c) {};
+	\node[even, right=0 of c1c] (c2c) {};
+	\node[odd,  right=0 of c2c] (c3c) {};
+
+	\node[even, below=0 of c1c] (c1d) {};
+	\node[odd,  right=0 of c1d] (c2d) {};
+	\node[even, right=0 of c2d] (c3d) {};
+
+	\node[odd,  below=0 of c1d] (c1e) {};
+	\node[even, right=0 of c1e] (c2e) {};
+	\node[odd,  right=0 of c2e] (c3e) {};
+
+	\node[even, below=0 of c1e] (c1f) {};
+	\node[odd,  right=0 of c1f] (c2f) {};
+	\node[even, right=0 of c2f] (c3f) {};
+
+	\node[odd,  below=0 of c1f] (c1g) {};
+	\node[even, right=0 of c1g] (c2g) {};
+	\node[odd,  right=0 of c2g] (c3g) {};
+
+	\tikzstyle{title}     = [cell, font=\large \sffamily]
+	\tikzstyle{oddtitle}  = [title, fill opacity=0.9, fill=cellcolor]
+	\tikzstyle{eventitle} = [title, fill opacity=0.7, fill=cellcolor]
+
+	\node[eventitle, above=0 of c1a] (c1) {Confidentiality};
+	\node[oddtitle,  above=0 of c2a] (c2) {Integrity};
+	\node[eventitle, above=0 of c3a] (c3) {Availability};
+
+	\node[eventitle, left=0 of c1a] (ca) {Cryptography};
+	\node[oddtitle,  left=0 of c1b] (cb) {Network\\Security};
+	\node[eventitle, left=0 of c1c] (cc) {Operational\\Security};
+	\node[oddtitle,  left=0 of c1d] (cd) {Posthumous\\Security};
+	\node[eventitle, left=0 of c1e] (ce) {Reactive\\Security};
+	\node[oddtitle,  left=0 of c1f] (cf) {Attack\\Mitigation};
+	\node[eventitle, left=0 of c1g] (cg) {Resilience};
+
+	\node[above=0 of c2, opacity=0.6] {\LARGE \bf{\sffamily What to protect?}};
+	\node[left=3ex of cc, rotate=90, opacity=0.6] {\LARGE \bf{\sffamily Perspectives}};
+
+	\tikzstyle{dropshadow} = [blur shadow={shadow blur steps=5,shadow xshift=.0ex,
+	                               shadow yshift=-0.2ex,opacity=0.9,
+	                               shadow blur radius=0.5ex}]
+	\tikzstyle{topic} = [inner sep=0.5ex, inner xsep=1ex, draw opacity=0.3, fill=white,
+	                     dropshadow, rounded corners=3]
+
+	\node[topic, at=(c1a)] {Encryption};
+	\node[topic, at=(c2a), yshift=-2ex] {Hashing/MAC};
+	\node[topic, at=(c2a), yshift=2ex] {Digital Signatures};
+
+	\node[topic, at=(c1b.east), yshift=-3ex] {Routing, Firewalling};
+	\node[topic, at=(c1b.east), yshift=0ex] {VPN};
+	\node[topic, at=(c1b.east), yshift=3ex] {TLS};
+	\node[topic, at=(c3b)] {Replication};
+
+	\node[topic, at=(c2c)] {Training, Best Practices, Certified Processes};
+	\node[topic, at=(c1c.east), yshift=3ex] {Password Strength};
+	\node[topic, at=(c2c), yshift=-3ex] {Reproducible Builds};
+	\node[topic, at=(c2c), yshift=3ex, xshift=3ex] {Audit};
+
+	\node[topic, at=(c2d.east)] {Forensics, Debugging};
+	\node[topic, at=(c2d), yshift=-3ex] {Log Anomaly Analysis};
+	\node[topic, at=(c1d.east), yshift=0ex] {Honeypots};
+	\node[topic, at=(c2d), yshift=3ex] {Malware Analysis};
+
+	\node[topic, at=(c1e.east), yshift=3ex] {Antivirus};
+	\node[topic, at=(c1e.east), yshift=-3ex] {Intrusion Detection};
+	\node[topic, at=(c2e)] {Lockstepping};
+	\node[topic, at=(c1e)] {Taint Tracking};
+	\node[topic, at=(c3e)] {Watchdog};
+	\node[topic, at=(c2e.east), yshift=-3ex] {Log Monitoring};
+
+	\node[topic, at=(c2f), yshift=3ex, xshift=-5ex] {ASLR};
+	\node[topic, at=(c2f), yshift=0ex] {Stack-Smash Protection};
+	\node[topic, at=(c2f), yshift=-3ex] {Pointer Obfuscation};
+	\node[topic, at=(c2f), yshift=3ex, xshift=5ex] {Pledges};
+
+	\node[topic, at=(c1g.east), yshift=3ex] {Formal Verification};
+	\node[topic, at=(c2g)] {Compartmentalization, Sandboxing, Virtualization};
+	\node[topic, at=(c2g), yshift=-3ex] {Secure Boot};
+	\node[topic, at=(c3g), yshift=3ex] {Redundancy};
+	\node[topic, at=(c3g), yshift=-3ex] {Self-Healing};
+
+\end{tikzpicture}
