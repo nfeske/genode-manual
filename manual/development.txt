@@ -677,7 +677,7 @@ message "Run script execution successful.".
 
 Note that the _hello.run_ script does not contain kernel-specific information.
 Therefore it can be executed from the build directory of any base platform
-via the command 'make run/hello KERNEL=<kernel>'.
+via the command 'make run/hello KERNEL=<kernel> BOARD=<board>'.
 When invoking 'make' with an argument of the form 'run/<run-script>', the
 build system searches all repositories for a run script with the specified name.
 The run script must be located in one of the repositories' _run/_ subdirectories

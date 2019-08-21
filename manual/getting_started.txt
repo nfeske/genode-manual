@@ -311,7 +311,7 @@ Genode comes with a ready-to-use run script showcasing simple graphical demo
 scenario. It is located at _<genode-dir>/repos/os/run/demo.run_ and can
 be executed from within the build directory via:
 
-! make run/demo KERNEL=linux
+! make run/demo KERNEL=linux BOARD=linux
 
 In contrast to the building of individual components as described above,
 the integration of a complete system scenario requires us to select a
@@ -377,7 +377,7 @@ microhypervisor, the following preparatory steps are needed:
 With those preparations in place, issue the execution of the demo run
 script from within the build directory:
 
-! make run/demo KERNEL=nova
+! make run/demo KERNEL=nova BOARD=pc
 
 This time, an instance of Qemu will be started to execute the demo scenario.
 The Qemu command-line arguments appear in the log output. As suggested
@@ -563,7 +563,7 @@ This run script performs the following steps:
 The run script can be executed from within the build directory via the
 command:
 
-! make run/hello KERNEL=linux
+! make run/hello KERNEL=linux BOARD=linux
 
 After the boot output of the used kernel, the scenario will produce the
 following output:
