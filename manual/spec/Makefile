@@ -19,8 +19,7 @@ VERBOSE ?= @
 #
 
 GENODE_GIT_URL := https://github.com/genodelabs/genode.git
-GENODE_GIT_REV := 64ee151d07a65dd0a77039817cb9a7fa11b53a6e
-#GENODE_GIT_REV := 18.05
+GENODE_GIT_REV := 19.05
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
