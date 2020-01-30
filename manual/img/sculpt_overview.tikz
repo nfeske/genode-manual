@@ -27,7 +27,7 @@
 	\tikzstyle{label} = [opacity=0.5]
 
 	\node[label, above=10ex of driversinit] (driverslabel)     {\large Drivers};
-	\node[label, above=10ex of lzinit] (lzlabel)               {\large Leitzentrale};
+	\node[label, above=10ex of lzinit] (lzlabel)               {\large Management};
 	\node[label, above=10ex of runtimeinit] (runtimelabel)     {\large Runtime};
 	\node[label, right=10ex of init, yshift=3ex] (staticlabel) {\large static system};
 
