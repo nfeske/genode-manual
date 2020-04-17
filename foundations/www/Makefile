@@ -63,7 +63,7 @@ IMG_DIR_CONTENT := Makefile \
 $(ALL_HTML): $(addprefix img/,$(IMG_DIR_CONTENT))
 $(addprefix img/,$(IMG_DIR_CONTENT)):
 	mkdir -p img
-	ln -sf ../../img/$(notdir $@) $@
+	ln -sf ../../../img/$(notdir $@) $@
 
 # generate cross-reference index
 xrefs: $(ALL_SECTIONS_TXT) $(ALL_CHAPTERS_TXT)

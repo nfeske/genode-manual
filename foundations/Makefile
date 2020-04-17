@@ -42,8 +42,14 @@ $(FOUNDATIONS_PDF): $(FOUNDATIONS_PDF:.pdf=.txt) manual.gosh Makefile \
 	cp $(TEXFILE).pdf $@
 	rm -f $(TEXFILE) $(TEXFILE).*
 
+$(FOUNDATIONS_PDF): img
+
+img:
+	ln -sf ../img
+
 clean_manual:
 	rm -f $(TEXFILE) $(TEXFILE).* $(FOUNDATIONS_PDF:.pdf=.txt) $(FOUNDATIONS_PDF)
+	rm -f img
 
 spec/repos spec/classes:
 	make -C spec all

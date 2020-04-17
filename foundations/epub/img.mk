@@ -2,8 +2,8 @@
 # Rules for converting TikZ figures to PNG images, invoked by 'epub_html.gosh'
 #
 
-img/%.tikz: ../img/%.tikz
-	cd img; ln -s ../../img/$*.tikz
+img/%.tikz: ../../img/%.tikz
+	cd img; ln -s ../../../img/$*.tikz
 
 img/%.pdf: img/%.tikz
 	make -C img $*.pdf

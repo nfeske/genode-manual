@@ -1,6 +1,6 @@
 This repository contains the user manual for the Genode OS Framework.
 
-:[http://genode.org]:
+:[https://genode.org]:
 
   Website of the Genode OS Framework
 
@@ -16,4 +16,5 @@ To build the manual, the following tools need to be installed:
   texlive-fonts-extra, texlive-fonts-recommended
 * GNU make
 
-To build the manual, invoke 'make' from within the 'manual/' directory.
+To build the Genode Foundations book, invoke 'make' from within the
+'foundations/' directory.
