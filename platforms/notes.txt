@@ -1,0 +1,251 @@
+
+
+                             ================
+                             Genode Platforms
+                             ================
+
+
+
+Test-control loop for an ARM development board
+==============================================
+
+; Overview of the development workflow
+; * Building and integrating a system scenario
+;   (refer to Genode Foundations book)
+; * Triggering the reset of the target
+; * Booting the target with the built system scenario
+; * Observing log output
+
+; Machinery (supported by an illustration)
+; * Developer machine
+; * Target board
+; * Orchestration server
+; * Network between them
+; * Network-controllable power plug
+; * Serial connection
+
+; Configuration
+; * TFTP server configuration, run-tool support for serving TFTP
+; * DHCP configuration
+; * Boot configration of the target (U-Boot)
+; * Target power control, run-tool support for managing the power socket
+; * Routing log output to the developer machine, run-tool support for
+;   obtaining logs
+
+
+
+Enabling Sculpt OS on a new ARM SoC
+===================================
+
+The Genode-based Sculpt OS is a general-purpose operating system originally
+targeted at PC hardware. This Section provides technical guidance for the
+steps needed for porting Sculpt OS to a new ARM-based hardware platform.
+Sculpt along with its documentation is available at the following website.
+
+:Sculpt Operating System:
+
+  [https://genode.org/download/sculpt]
+
+Goals
+-----
+
+Our goal is to get the bare-bones Sculpt system up and running on an ARM SoC
+not yet supported by Genode. This bare-bones Sculpt system entails
+
+* The principal ability for the user to interact with the system via
+  a graphical user interface,
+
+* Support for installing and deploying the existing arsenal of Genode
+  components from regular packages,
+
+* The ability to store information persistently on the device, and
+
+* Network connectivity.
+
+Thanks to Sculpt's built-in ability to integrate 3rd-party components -
+including functionality that is traditionally attributed to the core of the
+operating system - into the system in the form of packages, this bare-bones
+system enables a great variety of usage scenarios.
+
+Non-goals
+---------
+
+That said, the following features remain beyond the scope of this document
+because they are either too vendor-specific to be described in a general
+fashion or can be realized in the form of supplemental components.
+
+* Hardware-accelerated graphics,
+
+* Audio,
+
+* Power management,
+
+* Mobile data communication,
+
+* Secure boot.
+
+
+Working steps
+-------------
+
+The work of enabling Genode for a new SoC requires the following steps in the
+described order. To give an indicator of the effort to be expected, each step
+is accompanied with a rough estimation.
+
+# Preparing the development testbed
+
+  Before the actual development work can start, a few preparations are needed
+  or at least recommended.
+
+  One of our team members typically spends up to *one month* for this step.
+
+  * Building and running a working Linux-based OS on the target board as
+    reference, following the instructions of the vendor
+
+  * Exploration and configuration of the target's boot mechanism
+
+  * Creation of a test-control loop as described in Section
+    [Test-control loop for an ARM development board]
+
+  * Familiarization with the available board and SoC-vendor documentation
+    and the Vendor-specific subsystems in the vendor's Linux kernel
+
+  * Studying the device tree, correlating it with information gathered
+    from the documentation.
+
+# Code skeleton for a new SoC
+
+  Given the impressions gathered during the preparatory step, we take one
+  of the SoCs that are already supported by Genode as reference. One should
+  select the SoC with the most similarities such as the same ARM core revision
+  or the same interrupt controller. The goal of this step is an almost
+  empty skeleton code of Genode that gives us a little life sign when booted
+  on the real hardware.
+
+  It does not take a seasoned Genode developer longer than *two weeks* to
+  complete this step. However, for a developer with no prior experience with
+  Genode's code base, an *additional* effort of *two weeks* for the required
+  familiarization should be planned for.
+
+  * Mirroring the files of another SoC but with empty bodies,
+    (describing roles of the individual files)
+  * Creating a bare-bone base-hw kernel ELF image
+  * Booting the custom image on the target hardware
+  * Serial output driver
+
+# Basic kernel functionality
+
+  The goal of this step is getting the most basic Genode system scenario
+  to run on the new SoC. This scenario comprises three components, namely
+  the Genode core component (including the kernel), the init component,
+  and a test program that produces some log output.
+
+  On this way, one has to overcome the challenges of initializing the kernel,
+  enabling the MMU, and exercising the kernel's IPC and context-switching
+  mechanism. Assuming that the new SoC has the same architecture revision
+  as the ones already supported by Genode, this step should take no longer
+  than *two weeks*.
+
+  * Enabling the MMU
+  * Enabling caches
+  * Memory layout parameters
+  * Entering and returning from the user land (IPC, context switches)
+  * Running Genode's log scenario
+
+# Support for user-level device drivers
+
+  With the principal ability of running multiple user-level components,
+  it is time to enable preemptive scheduling and the kernel mechanisms
+  needed by user-level device drivers. Assuming the new SoC uses standard
+  ARM building blocks like the core-local timer and the GIC interrupt
+  controller as readily supported by Genode, this step does not entail
+  much risks and should be completed within *a week*.
+
+  However, should the SoC deviate from the beaten track of standard ARM
+  building blocks, e.g., using a custom interrupt controller, the step may
+  additionally require the development of an in-kernel driver for such a
+  device. Genode provides several existing drivers that can be taken as a blue
+  print. Depending of the quirkiness of the device, the development can take
+  one or two weeks. Fortunately, vendor-specific timers and interrupt
+  controllers are largely a problem of the past.
+
+  * Enabling the in-kernel interrupt controller driver
+  * Enabling in-kernel timer driver
+  * Definition of I/O resources
+  * IOMUX configuration (board-specific)
+
+  Once the principal support for user-level device drivers is in place,
+  the development work can be tackled by multiple developers in parallel.
+
+# Network driver
+
+  We usually plan to spend about *one month* for enabling a network driver
+  for Genode. Depending on the complexity of the network controller,
+  the driver may be ported from the Linux kernel, from the U-Boot boot
+  loader, or written from scratch.
+
+# SD-card driver
+
+  For driving SD-cards, we usually extend Genode's custom SD-card driver
+  with SoC-specific support, which takes usually *two weeks*. One should
+  be prepared for device-specific peculiarities though. In some cases,
+  in the presence of flaky hardware, it took us up to 3 weeks more to reach
+  a stable and performant state.
+
+# Framebuffer driver
+
+  In the past, we used to develop framebuffer drivers from scratch. But
+  nowadays, we prefer to reuse the vendor-provided driver code from the Linux
+  kernel to attain feature parity with Linux. That said, depending on the
+  driver, such porting work still requires substantial manual labour because
+  the driver often does not only drive one device but multiple (such as
+  power-gating via additional I2C-connected controllers, or a dedicated HDMI
+  chip). As an indicator for the expected effort, the i.MX framebuffer driver
+  took us *two months* to bring to live.
+
+# USB host-controller driver
+
+  Genode's USB host-controller driver is based on the Linux USB driver.
+  Adding supplemental support for new SoC should generally possible within
+  *one month*. With the USB host-controller driver in place, the actual USB
+  device drivers (e.g., for HID and storage) should work out of the box.
+
+  As a note of caution, in rare cases, in particular for the Raspberry Pi, the
+  USB host controller driver can become an almost infinite time sink though.
+
+# Multi-processor support
+
+  Real-world workloads demand multi-processor support. In theory, this should
+  generally be covered well by Genode's ARM support as long as the SoC stays
+  close to ARM's reference design. However, the bring-up of secondary CPUs,
+  inter-processor interrupts, and the maintenance of TLB/cache coherence still
+  poses risks because those topics may involve upcalls to vendor-specific
+  firmware or may depend on the unexpected vendor-specific boot-time
+  configuration (like the surprise of one CPU core left configured with a
+  different byte order). To stay on the safe side, one should plan *one month*
+  for the potential troubleshooting around these areas.
+
+# Sculpt OS integration
+
+  With the four peripheral drivers in place, Sculpt's demands on the platform's
+  feature set is satisfied. The remaining task is the integration of those
+  drivers into Sculpt, which should be doable in no more than *two weeks*.
+
+  * Drivers subsystem definition
+  * Sculpt-manager tweaks
+  * Configuration
+
+; Further topics of interest
+
+; * Leveraging U-Boot (e.g., keeping boot-time power configuration)
+; * Debugging, use of JTAG
+; * Porting of driver subsystems from Linux using Genode's
+;   Linux Device-Driver Environment
+; * Cross-correlation between a Vendor Linux kernel and Genode
+;   (obtaining register traces, register states)
+; * Cross-correlation between different architectures, kernels, devices
+
+
+
+
+
