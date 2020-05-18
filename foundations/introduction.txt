@@ -270,8 +270,8 @@ stacks.
 
 :CPU architectures:
 
-  Genode supports the x86 (32 and 64 bit), ARM (32 bit), and RISC-V (64 bit)
-  CPU architectures.
+  Genode supports the x86 (32 and 64 bit), ARM (32 and 64 bit),
+  and RISC-V (64 bit) CPU architectures.
   On x86, modern architectural features such as IOMMUs and
   hardware virtualization can be utilized.
   On ARM, Genode is able to take advantage of TrustZone and virtualization
@@ -295,8 +295,6 @@ stacks.
     unmodified guest operating systems as Genode subsystems. Alternatively,
     the Seoul virtual machine monitor can be used to run unmodified
     Linux-based guest OSes.
-  * With Noux, there exists a runtime environment for Unix
-    software such as GNU coreutils, bash, GCC, binutils, and findutils.
   * On ARM, Genode can be used as TrustZone monitor, or as a virtual machine
     monitor that facilitates ARM's virtualization extensions.
 
@@ -305,12 +303,14 @@ stacks.
   There exist hundreds of ready-to-use components such as
   * Device drivers for most common PC peripherals including networking,
     storage, display, USB, PS/2, Intel wireless, and audio output.
-  * Device drivers for a variety of ARM-based SoCs such as Texas Instruments
-    OMAP4, Samsung Exynos5, and FreeScale i.MX.
+  * Device drivers for a variety of ARM-based SoCs, in particular the NXP i.MX
+    family.
   * A GUI stack including a low-complexity GUI server, window management,
     and widget toolkits such as Qt5.
   * Networking components such as TCP/IP stacks and packet-level network
     services.
+  * Applications based on the POSIX interface, including GNU coreutils, bash,
+    GCC, binutils, and findutils.
 
 
 Licensing and commercial support

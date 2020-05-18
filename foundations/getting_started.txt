@@ -128,11 +128,11 @@ repositories.
 
     The hw platform allows the execution of Genode on bare hardware
     without the need for a separate kernel. The kernel functionality is
-    included in the core component. It supports the ARM, 64-bit x86,
-    and 64-bit RISC-V CPU architectures. The hw platform is also used as the
-    basis for executing Genode on top of the Muen separation kernel.
-    More information about the hw platform can be found in Section
-    [Execution on bare hardware (base-hw)].
+    included in the core component. It supports the 32-bit ARM, 64-bit ARM,
+    64-bit x86, and 64-bit RISC-V CPU architectures.
+    The hw platform is also used as the basis for executing Genode on top of
+    the Muen separation kernel. More information about the hw platform can be
+    found in Section [Execution on bare hardware (base-hw)].
 
   :_sel4_:
 

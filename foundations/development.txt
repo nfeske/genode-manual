@@ -1008,7 +1008,7 @@ easily combined.
 The actual archives are stored in the subdirectories named after the archive
 types ('raw', 'api', 'src', 'bin', 'pkg'). Archives contained in the _bin/_
 subdirectories are further subdivided in the various architectures (like
-'x86_64', or 'arm_v7').
+'x86_64', or 'arm_v7a').
 
 
 Depot management
