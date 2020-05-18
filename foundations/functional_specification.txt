@@ -1507,13 +1507,6 @@ used to equip the class of the called object with thread safety.
 ;; Genode::Pager_entrypoint
 ;; Genode::Pager_activation<>
 
-; Timed semaphore should not be promoted
-;
-; Genode::Timeout_thread
-; Genode::Timeout_exception
-; Genode::Nonblocking_exception
-; Genode::Timed_semaphore
-
 
 Signalling
 ==========
