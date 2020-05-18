@@ -19,7 +19,7 @@ VERBOSE ?= @
 #
 
 GENODE_GIT_URL := https://github.com/genodelabs/genode.git
-GENODE_GIT_REV := 19.05
+GENODE_GIT_REV := 20.05
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
@@ -83,6 +83,7 @@ endef
 define OS_INCLUDE_DIRS
   audio_out_session
   block_session
+  block
   file_system_session
   framebuffer_session
   gpio_session
@@ -95,7 +96,6 @@ define OS_INCLUDE_DIRS
   packet_stream_tx
   platform_session
   platform_device
-  regulator_session
   report_session
   rtc_session
   spec/x86

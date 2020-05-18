@@ -53,7 +53,7 @@ proc get_cmd_arg { arg_name default_value } {
 #
 # XXX evaluate command-line argument
 #
-proc code_url { } { return "https://github.com/genodelabs/genode/blob/19.05/" }
+proc code_url { } { return "https://github.com/genodelabs/genode/blob/20.05/" }
 
 
 ##

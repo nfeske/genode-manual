@@ -11,7 +11,7 @@ CHAPTERS := introduction \
             under_the_hood \
             functional_specification
 
-REPO_URL := https://github.com/genodelabs/genode/blob/19.05
+REPO_URL := https://github.com/genodelabs/genode/blob/20.05
 
 # return list of sections for given basename of chapter
 sections = $(shell ./splitter/filter-sec.sh list < ../$1.txt)
@@ -81,6 +81,8 @@ $(error please create class index via 'make class_index.mk' in the spec/ directo
 endif
 
 include ../spec/class_index.mk
+
+$(ALL_SECTIONS_TXT) $(ALL_CHAPTERS_TXT): class_index
 
 class_index: ../spec/class_index.mk
 	@( $(foreach class,$(CLASSES),\
@@ -164,4 +166,4 @@ $(ALL_SECTIONS_HTML) : xrefs
 include ../epub/img.mk
 
 clean:
-	rm -rf sections chapters html xrefs img
+	rm -rf sections chapters html xrefs img class_index

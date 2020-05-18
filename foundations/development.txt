@@ -767,14 +767,21 @@ Automated testing across base platforms
 To execute one or multiple test cases on more than one base platform, there
 exists a dedicated tool at _tool/autopilot_. Its primary purpose is the
 nightly execution of test cases. The tool takes a list of platforms and of
-run scripts as arguments and executes each run script on each platform. The
-build directory for each platform is created at
-_/tmp/autopilot.<username>/<platform>_ and the output of each run script is
-written to a file called _<platform>.<run-script>.log_. On stderr, autopilot
-prints the statistics about whether or not each run script executed
-successfully on each platform. If at least one run script failed, autopilot
-returns a non-zero exit code, which makes it straight forward to include
-autopilot into an automated build-and-test environment.
+run scripts as arguments and executes each run script on each platform.
+A platform is a triplet of CPU architecture, board, and kernel. For example,
+the following command instructs autopilot to generate a build directory for
+the x86_64 architecture and to execute the _log.run_ script for the kernels
+board-kernel combinations NOVA on a PC and seL4 on a PC.
+
+! autopilot -t x86_64-pc-sel4 -t x86_64-pc-nova -r log
+
+The build directory for each architecture is created at
+_/tmp/autopilot.<username>/<architecture>_ and the output of each run script is
+written to a file called _<architecture>.<board>.<kernel>.<run-script>.log_.
+On stderr, autopilot prints the statistics about whether or not each run
+script executed successfully on each platform. If at least one run script
+failed, autopilot returns a non-zero exit code, which makes it straight
+forward to include autopilot into an automated build-and-test environment.
 
 
 Package management
@@ -1008,7 +1015,7 @@ easily combined.
 The actual archives are stored in the subdirectories named after the archive
 types ('raw', 'api', 'src', 'bin', 'pkg'). Archives contained in the _bin/_
 subdirectories are further subdivided in the various architectures (like
-'x86_64', or 'arm_v7').
+'x86_64', or 'arm_v7a').
 
 
 Depot management

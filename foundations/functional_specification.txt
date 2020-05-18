@@ -673,40 +673,67 @@ Platform session interface
 Block session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+The block-session interface provides block-device-level access to persistent
+storage (Section [Block]). At the client side, the 'Block::Connection'
+provides a job interface to issue arbitrary block requests to a server in an
+asynchronous fashion. At the server side, the 'Block::Request_stream' API
+facilitates the implementation of asynchronously block services such as
+block-device drivers. Both client and server share the same notion of a
+'Block::Request'.
+
+; Block::Operation
+[raw spec/classes/block/operation/description]
+
+; Block::Request
+[raw spec/classes/block/request/description]
+
 ; XXX description, reference to components section
-
-; XXX Block::Session_client
-
-; Block::Packet_descriptor
-[raw spec/classes/block/packet_descriptor/description]
+; Block::Session_client
 
 ; Block::Session
-[raw spec/classes/block/session/description]
+; [raw spec/classes/block/session/description]
 
-; XXX Block::Session_rpc_object
+Client-side block connection
+----------------------------
+
+!
 
 ; Block::Connection
 [raw spec/classes/block/connection/description]
 
 
+Server-side block-request stream
+--------------------------------
+
+To simplify the implementation of robust and scalable block servers, there
+exists a server-side block-session front end called block-request stream.
+It is designed with the following considerations:
+
+* It anticipates the asynchronous operation of block servers by default.
+  Using the API, such servers - in particular block-device drivers - can be
+  implemented as state machines triggered by client requests and device
+  interrupts.
+
+* It reinforces the memory safety of the server code by not returning any
+  pointers or references.
+
+* It relieves the server developers from handling special cases (like a
+  congested acknowledgement queue) while being flexible enough to accommodate
+  different categories of components like drivers, resource multiplexers
+  (part_block), and bump-in-the-wire components in a natural way.
+
+* It naturally supports the batching of requests as well as zero-copy (device
+  DMA directly into the client's communication buffer).
+
+The use of the block-request stream API is illustrated by the example at
+_os/src/test/block_request_stream/_.
+
+; Block::Request_stream
+[raw spec/classes/block/request_stream/description]
+
+
 [raw spec/clearpage]
 
-Regulator session interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-; XXX description, reference to components section
-
-; XXX Regulator::Session_client
-; XXX Regulator::Session_rpc_object
-
-; Regulator::Session
-[raw spec/classes/regulator/session/description]
-
-; Regulator::Connection
-[raw spec/classes/regulator/connection/description]
-
-
-[raw spec/clearpage]
 
 Timer session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1391,9 +1418,9 @@ to incorporate private state into the output.
 
 The component's execution environment provides an implementation of the
 'Output' interface that targets a LOG session. This output back end is
-offered to the component in the form of the 'log', 'warning', and 'error'
-functions that accept an arbitrary number of arguments that are printed
-in a concatenated fashion. Each messages is implicitly finalized with a
+offered to the component in the form of the 'log', 'warning', 'error', and
+'trace' functions that accept an arbitrary number of arguments that are printed
+in a concatenated fashion. Each message is implicitly finalized with a
 newline character.
 
 [raw spec/repos/base/include/base/log.h.overview]
@@ -1434,15 +1461,11 @@ UTF-8-encoded string.
 Multi-threading and synchronization
 ===================================
 
-; XXX information about thread-context management (as given in base/thread.h)
-
-
 Threads
 ~~~~~~~
 
 A thread is created by constructing an object of a class inherited from
-'Thread'. The new thread starts its execution at the 'entry' member
-function.
+'Thread'. The new thread starts its execution at the 'entry' method.
 Thereby, each thread runs in the context of its object and
 can access context-specific information by accessing its member
 variables. This largely alleviates the need for a thread-local storage (TLS)
@@ -1457,37 +1480,52 @@ to the corresponding constructor argument.
 [raw spec/clearpage]
 
 
-Locks and semaphores
-~~~~~~~~~~~~~~~~~~~~
+Inter-thread synchronization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For mutual exclusive execution of critical sections, there exists
-a simple lock interface providing lock and unlock semantics.
-The lock comes in two flavours. Cancelable locks can be
-unblocked by force via core's cancel-blocking mechanism. In contrast,
-a non-cancelable lock ('Lock') does not reflect the cancellation of
-its blocking operation at the API level but transparently re-enters
-its blocking state after a cancellation.
+Genode provides three inter-thread synchronization primitives, namely 'Mutex',
+'Blockade', and 'Semaphore', which model different thread-synchronization
+situations. Under the hood, they are based on the same low-level 'Lock'
+primitive, which is visible at the API but not recommended for direct use as
+it will potentially be removed from the API in a later version.
+
+; Genode::Mutex
+[raw spec/classes/genode/mutex/description]
+
+Example of using a 'Mutex'
+--------------------------
+
+! Mutex mutex;
+! mutex.acquire();
+! mutex.release();
+!
+! {
+!   Mutex::Guard guard(mutex) /* acquire() during construction */
+! }                           /* release() on guard object destruction */
+!
+! Mutex::Guard guard(mutex);
+! mutex.acquire();            /* <-- cause a warning about the deadlock */
+
+
+; Genode::Blockade
+[raw spec/classes/genode/blockade/description]
 
 ; Genode::Cancelable_lock
-[raw spec/classes/genode/cancelable_lock/description]
+; [raw spec/classes/genode/cancelable_lock/description]
 
 ; Genode::Lock
-[raw spec/classes/genode/lock/description]
-
-For the use case of using locks for protecting critical sections,
-the 'Lock_guard' provides a convenient mechanism for the automated
-unlocking of a lock when leaving a variable scope.
+; [raw spec/classes/genode/lock/description]
 
 ; Genode::Lock_guard<>
-[raw spec/classes/genode/lock_guard/description]
+; [raw spec/classes/genode/lock_guard/description]
 
 
 [raw spec/clearpage]
 
-Alongside lock-based mutual exclusion of entering critical sections,
-organizing threads in a producer-consumer relationship is a common
-design pattern for thread synchronization. The 'Semaphore' interface
-enables the implementation of this synchronization scheme.
+Alongside the mutual exclusion of entering critical sections and the startup
+synchronization of threads, producer-consumer relationships between threads
+are most common. The 'Semaphore' enables the implementation of this
+synchronization scheme.
 
 ; Genode::Semaphore
 [raw spec/classes/genode/semaphore/description]
@@ -1506,13 +1544,6 @@ used to equip the class of the called object with thread safety.
 ;; Genode::Pager_activation_base
 ;; Genode::Pager_entrypoint
 ;; Genode::Pager_activation<>
-
-; Timed semaphore should not be promoted
-;
-; Genode::Timeout_thread
-; Genode::Timeout_exception
-; Genode::Nonblocking_exception
-; Genode::Timed_semaphore
 
 
 Signalling
@@ -2052,6 +2083,8 @@ XML parser.
 ; Genode::Xml_node
 [raw spec/classes/genode/xml_node/description]
 
+; Genode::Xml_unquoted
+[raw spec/classes/genode/xml_unquoted/description]
 
 [raw spec/clearpage]
 
@@ -2137,6 +2170,27 @@ PD session holding the child's RAM and capability quota.
 ; XXX Genode::Slave::Policy
 ; XXX Genode::Slave::Connection_base
 ; XXX Genode::Slave::Connection
+
+
+Composition of subsystems
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Whereas the 'Child' class aids the sandboxed execution of one child component,
+the interplay between such a child with its environment must be implemented
+manually, which can quickly become complex. This is where the sandbox API
+enters the picture. It makes the full feature set of the init component
+available to C++ programs, including the hosting of an arbitrary number of
+children, the routing of sessions among them, the balancing of resources, and
+dynamic reconfiguration. In addition to the hosting of components, the
+sandbox API also allows the program to interact with the sandboxed children by
+providing locally implemented services.
+
+A sandbox instance consumes configurations and produces reports, both in the
+form of the XML format as known from the init component. An example for
+using the API can be found at _repos/os/src/test/sandbox/_.
+
+; Genode::Sandbox
+[raw spec/classes/genode/sandbox/description]
 
 
 [raw spec/clearpage]
@@ -2431,4 +2485,24 @@ verbatim description of how the device is used. For example:
 ; Genode::Quota_guard
 ; Genode::Rpc_object::Capability_guard
 ; Genode::Quota_transfer
+; Genode::Dynamic_linker
+; Genode::Trace_output
+; Block::Session_rpc_object
+; Block::Packet_descriptor
+; Block::Session_component_base
+; Block::Session_component
+; Block::Root
+; Block::Driver_session_base
+; Block::Driver_session
+; Block::Driver
+; Block::Driver_factory
+; Genode::Sandbox::Local_service_base
+; Genode::Sandbox::Local_service
+; Genode::Directory
+; Genode::Root_directory
+; Genode::File
+; Genode::Readonly_file
+; Genode::File_content
+; Genode::Watcher
+; Genode::Watch_handler
 

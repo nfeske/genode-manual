@@ -128,11 +128,11 @@ repositories.
 
     The hw platform allows the execution of Genode on bare hardware
     without the need for a separate kernel. The kernel functionality is
-    included in the core component. It supports the ARM, 64-bit x86,
-    and 64-bit RISC-V CPU architectures. The hw platform is also used as the
-    basis for executing Genode on top of the Muen separation kernel.
-    More information about the hw platform can be found in Section
-    [Execution on bare hardware (base-hw)].
+    included in the core component. It supports the 32-bit ARM, 64-bit ARM,
+    64-bit x86, and 64-bit RISC-V CPU architectures.
+    The hw platform is also used as the basis for executing Genode on top of
+    the Muen separation kernel. More information about the hw platform can be
+    found in Section [Execution on bare hardware (base-hw)].
 
   :_sel4_:
 
@@ -307,20 +307,30 @@ a so-called run script. Each run script represents a system scenario and
 entails all information required to reproduce the scenario. Run scripts can
 reside within the _run/_ subdirectory of any source-code repository.
 
-Genode comes with a ready-to-use run script showcasing simple graphical demo
-scenario. It is located at _<genode-dir>/repos/os/run/demo.run_ and can
-be executed from within the build directory via:
+Genode comes with a ready-to-use run script showcasing a simple graphical demo
+scenario. The run script is located at _<genode-dir>/repos/os/run/demo.run_.
+It leverages Genode's package-management tools for assembling a static system
+image.
+The package management is explained in detail in Section [Package management].
+For now, we can skip the details by instructing the build system to
+automatically create packages and update their version numbers for us.
+Uncomment the following line in the _build/x86_64/build.conf_ file:
+
+! RUN_OPT += --depot-auto-update
+
+In contrast to the building of individual components as described in the
+previous section, the integration of a complete system scenario requires us to
+select a particular OS kernel to use. The following command instructs the
+build system to build, integrate, and start the "run/demo" scenario on the
+Linux kernel:
 
 ! make run/demo KERNEL=linux BOARD=linux
 
-In contrast to the building of individual components as described above,
-the integration of a complete system scenario requires us to select a
-particular OS kernel to use. The command instructs the build system to
-integrate and start the "run/demo" scenario on the Linux kernel.
-It will lookup a run script called _demo.run_ in all repositories
-listed in _etc/build.conf_. It will eventually find the run script within
-the _os/_ repository. After completing the build of all components needed,
-the command will then automatically start the scenario.
+The command prompts the build system to lookup a run script called _demo.run_
+in all repositories listed in _etc/build.conf_.
+It will eventually find the run script within the _os/_ repository. After
+completing the build of all components needed, the command will then
+automatically start the scenario.
 Because the build directory was created for the _x86_64_ platform and we
 specified "linux" as 'KERNEL', the scenario will be executed directly on the
 host system where each Genode component resides in a distinct Linux process.
@@ -728,4 +738,43 @@ of the component in the log output:
 ![init -> hello] woke up at 1008 ms
 ![init -> hello] woke up at 2005 ms
 !...
+
+
+Next steps
+==========
+
+There are several possible ways to continue your exploration.
+
+# To form a *mental model* of how Genode works, give Chapter [Architecture]
+  a read. In particular, Sections [Capability-based security],
+  [Recursive system structure], [Resource trading], and
+  [Inter-component communication] deserve your attention.
+  Section [Component composition] nicely complements this theoretic material
+  with a number of illustrative examples.
+
+# If you are eager to see Genode's *potential* *unfolded*, try out
+  the Genode-based operating system called Sculpt OS, which is available
+  as a downloadable system image along with thorough documentation.
+
+  :Sculpt OS:
+
+    [https://genode.org/download/sculpt]
+
+# Genode comprises a *feature set* of hundreds of ready-to-use components,
+  which are fun to discover and to combine. Most components are not only
+  accompanied with documentation in the form of README files local to the
+  respective source code, but come with at least one ready-to-use run script
+  or test package, which illustrates the integration of the component in
+  executable form. After familiarizing yourself with the concept of run
+  scripts by reading Section [System integration and automated testing],
+  review the _run/_ and _recipes/pkg/_ subdirectories of the various
+  source-code repositories, for example those at _repos/os/run/_ or
+  _repos/gems/run/_.
+
+# To follow the work of the Genode *community*, learn about current lines of
+  work, plans, and experiences, head to the Genodians.org community blog.
+
+  :Genodians.org:
+
+    [https://genodians.org]
 
