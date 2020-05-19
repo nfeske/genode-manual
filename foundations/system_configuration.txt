@@ -808,3 +808,20 @@ component crashes (page fault, stack overflow), gets stuck in a busy loop,
 produces a deadlock, or throws an unhandled exception (abort), the mechanism
 nicely reflects the troublesome situation to the outside.
 
+
+Unlabeled of LOG messages
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, each line printed by core's LOG service is prefixed with the label
+of the originating component. In situations where a Genode system is remotely
+controlled and monitored, it is useful to allow a special component to produce
+log output with no label applied. This way, such a component can produce log
+data in a format that is immediately suitable for a controller. This feature
+can be enabled for a component by rewriting the label of the component's LOG
+session to "unlabeled".
+
+! <route>
+!   <service name="LOG"> <parent label="unlabeled"/> </service>
+!   ...
+! </route>
+
