@@ -123,7 +123,7 @@ such a config ROM module.
 
 The config ROM module uses XML as syntax, which supports the expression of
 arbitrary structural data while being simple to parse. I.e., Genode's XML
-parser comes in the form of a single header file with less than 400 lines of
+parser comes in the form of a single header file with less than 600 lines of
 code. Init's configuration is contained within a single '<config>' node.
 
 Each component started by init obtains its configuration by requesting
@@ -161,7 +161,8 @@ gets started directly by core, gets assigned all physical resources, and
 controls the execution of all subsequent component nodes, which can be further
 instances of init. Init's policy is driven by an XML-based configuration,
 which declares a number of children, their relationships, and resource
-assignments.
+assignments. The XML schema definition for init's configuration is provided
+at _repos/os/src/init/config.xsd_.
 
 
 Session routing
