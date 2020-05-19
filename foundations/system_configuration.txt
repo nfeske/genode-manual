@@ -359,6 +359,36 @@ permitted relationships between all processes are explicitly defined and can be
 easily verified.
 
 
+Using aliases for component names
+---------------------------------
+
+In complex scenarios, it is sometimes useful to distinguish the name of a
+component from its role as a service provider for other components.
+For example, file-system server may be called "ahci-1.ext2.fs" to express that
+the component works with an EXT2 file system on partition 1 of an AHCI block
+device. Such an encoding is useful to clearly tell multiple file-system
+servers apart. But for configuring the routes of multiple file-system clients,
+the repetition of this level of detail becomes a burden. This situation calls
+for an indirection:
+
+! <alias name="wwwdata_fs" child="ahci-1.ext2.fs"/>
+
+An '<alias>' node introduces a new name that can be used as session-routing
+target alternatively to the name of the referred-to '<start>' node. With
+the alias in place, a client's session route can now be written such that the
+purpose of the targeted server becomes clear at first glance.
+
+! ...
+! <service name="File_system" label="wwwdata">
+!   <child name="wwwdata_fs"/> </service>
+! ...
+
+The alias not only eases the human interpretation of routing rules during a
+security assessment. It also anticipates a flexible adaptation of the scenario
+for the use of another file system, which would involve only the change of the
+single alias while keeping all client-side session routes unaffected.
+
+
 Resource assignment
 ~~~~~~~~~~~~~~~~~~~
 
