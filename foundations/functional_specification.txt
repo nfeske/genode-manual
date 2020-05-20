@@ -689,6 +689,37 @@ Block session interface
 [raw spec/classes/block/connection/description]
 
 
+Block-request stream
+--------------------
+
+To simplify the implementation of robust and scalable block servers, there
+exists a server-side block-session front end called block-request stream.
+The interface can be found at _os/include/block/request_stream.h_.
+It is designed with the following considerations:
+
+* It anticipates the asynchronous operation of block servers by default.
+  Using the API, such servers - in particular block-device drivers - can be
+  implemented as state machines triggered by client requests and device
+  interrupts.
+
+* It reinforces the memory safety of the server code by not returning any
+  pointers or references.
+
+* It relieves the server developers from handling special cases (like a
+  congested acknowledgement queue) while being flexible enough to accommodate
+  different categories of components like drivers, resource multiplexers
+  (part_block), and bump-in-the-wire components in a natural way.
+
+* It naturally supports the batching of requests as well as zero-copy (device
+  DMA directly into the client's communication buffer).
+
+The use of the block-request stream API is illustrated by the example at
+_os/src/test/block_request_stream/_.
+
+; Block::Request_stream
+[raw spec/classes/block/request_stream/description]
+
+
 [raw spec/clearpage]
 
 Regulator session interface
