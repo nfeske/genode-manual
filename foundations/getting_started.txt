@@ -739,3 +739,41 @@ of the component in the log output:
 ![init -> hello] woke up at 2005 ms
 !...
 
+
+Next steps
+~~~~~~~~~~
+
+There are several possible ways to continue your exploration.
+
+# To form a *mental model* of how Genode works, give Chapter [Architecture]
+  a read. In particular, Sections [Capability-based security],
+  [Recursive system structure], [Resource trading], and
+  [Inter-component communication] deserve your attention.
+  Section [Component composition] nicely complements this theoretic material
+  with a number of illustrative examples.
+
+# If you are eager to see Genode's *potential* *unfolded*, try out
+  the Genode-based operating system called Sculpt OS, which is available
+  as a downloadable system image along with thorough documentation.
+
+  :Sculpt OS:
+
+    [https://genode.org/download/sculpt]
+
+# Genode comprises a *feature set* of hundreds of ready-to-use components,
+  which are fun to discover and to combine. Most components are not only
+  accompanied with documentation in the form of README files local to the
+  respective source code, but come with at least one ready-to-use run script,
+  which illustrate the integration of the component in executable form. After
+  familiarizing yourself with the concept of run scripts by reading Section
+  [System integration and automated testing], review the _run/_ subdirectories
+  of the various source-code repositories, for example those at
+  _repos/os/run/_ or _repos/gems/run/_.
+
+# To follow the work of the Genode *community*, learn about current lines of
+  work, plans, and experiences, head to the Genodians.org community blog.
+
+  :Genodians.org:
+
+    [https://genodians.org]
+
