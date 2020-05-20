@@ -1391,9 +1391,9 @@ to incorporate private state into the output.
 
 The component's execution environment provides an implementation of the
 'Output' interface that targets a LOG session. This output back end is
-offered to the component in the form of the 'log', 'warning', and 'error'
-functions that accept an arbitrary number of arguments that are printed
-in a concatenated fashion. Each messages is implicitly finalized with a
+offered to the component in the form of the 'log', 'warning', 'error', and
+'trace' functions that accept an arbitrary number of arguments that are printed
+in a concatenated fashion. Each message is implicitly finalized with a
 newline character.
 
 [raw spec/repos/base/include/base/log.h.overview]
@@ -2045,6 +2045,8 @@ XML parser.
 ; Genode::Xml_node
 [raw spec/classes/genode/xml_node/description]
 
+; Genode::Xml_unquoted
+[raw spec/classes/genode/xml_unquoted/description]
 
 [raw spec/clearpage]
 
@@ -2130,6 +2132,27 @@ PD session holding the child's RAM and capability quota.
 ; XXX Genode::Slave::Policy
 ; XXX Genode::Slave::Connection_base
 ; XXX Genode::Slave::Connection
+
+
+Composition of subsystems
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Whereas the 'Child' class aids the sandboxed execution of one child component,
+the interplay between such a child with its environment must be implemented
+manually, which can quickly become complex. This is where the sandbox API
+enters the picture. It makes the full feature set of the init component
+available to C++ programs, including the hosting of an arbitrary number of
+children, the routing of sessions among them, the balancing of resources, and
+dynamic reconfiguration. In addition to the hosting of components, the
+sandbox API also allows the program to interact with the sandboxed children by
+providing locally implemented services.
+
+A sandbox instance consumes configurations and produces reports, both in the
+form of the XML format as known from the init component. An example for
+using the API can be found at _repos/os/src/test/sandbox/_.
+
+; Genode::Sandbox
+[raw spec/classes/genode/sandbox/description]
 
 
 [raw spec/clearpage]
