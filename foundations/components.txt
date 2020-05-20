@@ -545,8 +545,7 @@ a large variety of policies using two principal approaches:
   strategies, for example, sharing one single budget among multiple children.
 
 Canonical examples of runtime environments are the init component that
-applies a policy according to its configuration, the noux runtime that
-presents itself as a Unix kernel to its children, a debugger that
+applies a policy according to its configuration, a debugger that
 interposes all core services for the debugging target, or a virtual machine
 monitor.
 
@@ -768,8 +767,7 @@ Use cases
 * A graphical terminal.
 * Transfer of streams of data over TCP (using the TCP terminal).
 * Writing streams of data to a file (using a file terminal).
-* User input and output of traditional command-line based software, i.e.,
-  programs executed in the noux runtime environment.
+* User input and output of traditional command-line based software.
 * Multiplexing of multiple textual user interfaces (using the terminal-mux
   component).
 * Headless operation and management of subsystems (using the CLI monitor).
@@ -1246,9 +1244,9 @@ a RAM file system with different policies.
 
 ! <config>
 !   <!-- constrain sessions according to their labels -->
-!   <policy label="noux -> root" root="/" />
-!   <policy label="noux -> home" root="/home/user" />
-!   <policy label="noux -> tmp"  root="/tmp" writeable="yes" />
+!   <policy label="shell -> root" root="/" />
+!   <policy label="shell -> home" root="/home/user" />
+!   <policy label="shell -> tmp"  root="/tmp" writeable="yes" />
 ! </config>
 
 Each time a session is created, the server matches the supplied session label
@@ -1402,46 +1400,61 @@ but completely define all aspects of the child's execution. This clears
 the way for introducing custom operating-system interfaces at any position
 within the component tree, or for monitoring the behavior of subsystems.
 
-[tikz img/noux]
-  The Noux runtime provides a Unix-like interface to its children.
-
 
 Introducing a custom OS interface
 ---------------------------------
 
-By implementing all session interfaces normally provided by core, a runtime
+By intercepting all session interfaces normally provided by core, a runtime
 environment becomes able to handle all low-level interactions of the
 child with core. This includes the allocation of memory using the PD service,
 the spawning and controlling of threads using the CPU service, and the
 management of the child's address space using the PD service.
 
-The noux runtime illustrated in Figure [img/noux] is the canonical example of
-this approach.
-It appears as a Unix kernel to its children and thereby enables the
-use of Unix software on top of Genode.
+This flexibility paves the ground for hosting traditional operating-system
+interfaces such as Unix as a mere user-level construct within a Genode system.
 Normally, several aspects of Unix would contradict with Genode's architecture:
 
 * The Unix system-call interface supports files and sockets as first-level
   citizens.
 * There is no global virtual file system in Genode.
-* Any Unix process can allocate memory as needed. There is no necessity for explicit
-  assignment of memory resources to Unix processes.
+* Any Unix process can allocate memory as needed. There is no necessity for
+  explicit assignment of memory resources to Unix processes.
+  In contrast, Genode employs the rigid accounting of physical resources
+  as explained in Section [Resource trading].
 * Processes are created by forking existing processes. The new process
   inherits the roles (in the form of open file descriptors) of the
   forking process.
 
-Noux resolves these contradictions by providing
-the interfaces of core's low-level services alongside a custom RPC interface.
-By providing a custom noux session interface to its children, noux can
-accommodate all kinds of abstractions including the notion of files and
-sockets.
-Noux maintains a virtual file system that appears to be global among all the
-children of the noux instance.
-Since noux handles all the children's interaction with the PD service, it can
-hand out memory allocations from a pool of memory shared among all children.
-Finally, because noux observes all the interactions of each child with the
-PD service, it is able to replay the address-space layout of an existing
-process to a new process when fork is called.
+[tikz img/unix]
+  Runtime environment that provides a Unix-like interface
+
+Figure [img/unix] illustrates a custom Unix runtime environment that bridges
+these gaps by using Genode's building blocks.
+
+# The VFS server is able mount TAR archives locally as a virtual file
+  system and offer the content as a _file-system service_. Furthermore,
+  the VFS server exposes a terminal session as a pseudo file.
+  In the depicted scenario, the terminal session request is routed to the
+  parent of init.
+
+# The 'fs_rom' component provides a ROM service by fetching the content
+  of ROM modules from a file system. By connecting the 'fs_rom' with the VFS
+  component, the files of the _bash.tar_ and _vim.tar_ archives become
+  available as ROM modules. With the bash executable binary accessible as ROM
+  module, it can be executed as a Genode component.
+
+# The init component allows one to stick components together and let the
+  result appear to the surrounding system as a single component. It is
+  used to host the composition of the VFS, 'fs_rom', and bash.
+
+# The bash shell can spawn child processes such as Vim by relying of
+  traditional Unix interfaces, namely fork and execve. In contrast to
+  regular Unix systems, however, the underlying mechanisms are implemented
+  as part of the C runtime with no kernel support or special privileges
+  needed. In the depicted scenario, bash plays the role of a runtime
+  environment for Vim. Since bash is a parent of Vim, it is able to respond to
+  Vim's resource demands by paying out of its own pocket, thereby softening
+  Genode's rigid resource accounting to accommodate Vim's expectations.
 
 
 Monitoring the behavior of subsystems
@@ -1499,17 +1512,9 @@ execution or enable single-stepping) and modify the memory content
 (e.g., inserting breakpoint instructions). The figure shows that those
 debugging features can be remotely controlled over a terminal connection.
 
-[tikz img/on_target_gdb]
-  The GNU debugger is executed within a dedicated noux instance, thereby
-  providing an on-target debugging facility.
-
 Using this form of component-level virtualization, a problem that used to
 require special kernel additions in traditional operating systems
 can be solved via Genode's regular interfaces.
-Furthermore, Figure [img/on_target_gdb] shows that by
-combining the solution with OS-level virtualization, the connection
-to a remote debugger can actually be routed to an on-target instance of the
-debugger, thereby enabling on-target debugging.
 
 
 Interposing individual services
