@@ -646,7 +646,7 @@ As illustrated by this example, the numbers used in the declarations for this
 instance of init are not directly related to physical CPUs.
 If the machine has merely two cores, init's affinity space would be mapped to
 the range 0,1 of physical CPUs. However, in a machine with 16x16 CPUs, the
-loader would obtain 8x8 CPUs with the upper-left CPU at position (4,0).
+loader would obtain 8x8 CPUs with the upper-left CPU at position (0,8).
 
 
 Priority support
