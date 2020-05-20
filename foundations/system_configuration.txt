@@ -480,7 +480,7 @@ taking the requested service type and the
 session label into account. The latter may be used by the server as a key for
 selecting a policy at the server side. To simplify server-side policies, init
 supports the rewriting of session labels in the target node
-of a matching session route. For example, a interactive shell ("noux") may
+of a matching session route. For example, an interactive shell ("shell") may
 have the following session route for the "home" file system:
 
 !<route>
@@ -491,8 +491,8 @@ have the following session route for the "home" file system:
 !</route>
 
 At the "vfs" file-system server, the label of the file-system session will
-appear as "noux -> home". This information may be evaluated by the vfs's
-server-side policy. However, when renaming the noux instance, we'd need to
+appear as "shell -> home". This information may be evaluated by the vfs's
+server-side policy. However, when renaming the shell instance, we'd need to
 update this server-side policy.
 
 With the label-rewriting mechanism, the client's identity can be hidden from
@@ -506,8 +506,8 @@ of a physical resource. For example, the route could be changed to this:
 !  ...
 !</route>
 
-When the vfs receives the session request, it is presented with the label
-"primary_user". The fact that the client is "noux" is not taken into account
+Whenever the vfs receives the session request, it is presented with the label
+"primary_user". The fact that the client is "shell" is not taken into account
 for the server-side policy selection.
 
 
@@ -672,7 +672,7 @@ propagate the exit of a child to the parent of init, start nodes can host the
 optional sub node '<exit>' with the attribute 'propagate' set to "yes".
 
 ! <config>
-!   <start name="noux">
+!   <start name="shell">
 !     <exit propagate="yes"/>
 !     ...
 !   </start>
@@ -752,7 +752,7 @@ server-side policy-selection mechanism, for example:
 ! <config>
 !   ...
 !   <service name="LOG">
-!     <policy label="noux">
+!     <policy label="shell">
 !       <child name="terminal_log" label="important"/>
 !     </policy>
 !     <default-policy> <child name="nitlog"/> </default-policy>
