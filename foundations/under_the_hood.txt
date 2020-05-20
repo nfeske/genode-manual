@@ -1132,6 +1132,9 @@ The core-private kernel interface consists of the following operations:
   (_new_obj_, _delete_obj_)
 * The creation, manipulation, and destruction of interrupt kernel objects
   (_new_irq_, _ack_irq_, and _delete_irq_)
+* The mechanisms needed to transfer the flow of control between virtual
+  machines and virtual-machine monitors (_new_vm_, _delete_vm_, _run_vm_,
+  _pause_vm_)
 
 
 Scheduler of the base-hw kernel
