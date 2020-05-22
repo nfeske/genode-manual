@@ -1745,3 +1745,100 @@ compromised, the policy for the information flows between the producers and
 consumers of information stays in effect.
 
 
+Feedback control system
+~~~~~~~~~~~~~~~~~~~~~~~
+
+By combining the techniques presented in Sections [Ceding the parenthood] and
+[Publishing and subscribing], a general pattern of a feedback-control system
+emerges (Figure [tikz/feedback_control]).
+
+[tikz/feedback_control 60%]
+
+  The combination of the dynamic re-configuration with the state reporting of
+  an init instance forms a feedback-control system.
+
+This pattern achieves a strict separation of policy from functionality by
+employing a dynamically configured init component (dynamic init) in tandem
+with a management component (manager). The manager (1) monitors the state of
+the dynamic init and its children, and (2) feeds the dynamic init with
+configurations. Both the dynamic init and the manager are siblings within
+another (e.g., the static initial) init instance. The _state_ report and the
+_config_ ROM are propagated via the report-ROM component as presented in
+Section [Publishing and subscribing]. Hence, the manager and the dynamic init
+are loosely coupled. There is no client-server dependency in either direction.
+
+The init component supports the reporting of its current state including the
+state of all children. Refer to Section [State reporting] for an overview of
+the reporting options. The report captures, among other things, the resource
+consumption of each child. For example, should a child overstep its resource
+boundaries, the report's respective '<child>' node turns into this:
+
+! <state>
+!   ..
+!   <child name="system-shell" ...>
+!     <ram ... requested="2M"/>
+!     ..
+!   </child>
+! </state>
+
+If the 'requested' attribute is present, the child got stuck in a resource
+request. In the example above, the "system-shell" asks for 2M of additional
+memory. To resolve this situation, the manager can generate a new
+configuration for the dynamic init. In particular, it can
+
+* Adjust the resource quota of the resource-starved child. When the
+  dynamic init observes such a configuration change, it answers the
+  resource request and thereby prompts the child to continue its execution.
+
+* Restart the child by incrementing a 'version' attribute of the
+  child node. Once the dynamic init observes a change of this attribute,
+  the child is killed and restarted.
+
+In addition to responding to resource requests, the manager component
+can also evaluate other parts of the report. The two most interesting
+bits of information are the exit state of each child (featuring the exit
+code) and the health. The health is the child's ability to respond to
+external events. It is described in more detail at Section
+[Component health monitoring]. It effectively allows the manager to implement
+watchdog functionality.
+
+In contrast to the potentially highly complex child hosted within the dynamic
+init, the manager component is much less prone to bugs. All it does is
+consuming reports (parsing some XML) and generating configurations (generating
+XML). It does not not need any C runtime, file system, or I/O drivers. It can
+be implemented without any dynamic memory allocations. In contrast to the
+complex child, which can just expected to be flaky, the manager and the
+dynamic init are supposed to be correct and trustworthy. Since the
+functionality of the dynamic init is present in the regular init component,
+which is part of any Genode system's trusted computing base anyway, the
+feedback-control pattern does not add new critical code complexity.
+
+
+Examples
+--------
+
+* The sequential execution of multiple automated tests integrated in single
+  system scenario requires the monitoring and parsing of test results and the
+  orchestration of the test sequence. The depot-autopilot scenario
+  at _gems/run/depot_autopilot.run_ solves these problems by applying
+  the described pattern.
+
+* The combination of a dynamic init with a manager can be found
+  in advanced test scenarios such as the init test (_os/recipes/pkg/test-init_).
+
+* To enable one system image to run on a variety of hardware configurations,
+  the dynamic probing of devices and starting of appropriate device drivers is
+  needed. The device-driver subsystem of Sculpt OS solves this problem with
+  the manager component _gems/src/app/driver_manager/_. For example, the
+  driver manager evaluates the information reported by the PCI-bus driver to
+  conditionally start the most suitable graphics driver.
+
+* For the on-target installation of packages, the so-called depot-download
+  subsystem uses a dynamic init that successively downloads, verifies,
+  extracts, and parses archives. The manager of this subsystem is located at
+  _gems/src/app/depot_download_manager/_.
+
+* The arguably most sophisticated example is the sculpt manager that
+  controls the runtime environment of the Sculpt operating system.
+  It is located at _gems/src/app/sculpt_manager/_.
+

@@ -1,0 +1,34 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum width=2ex,
+	                        minimum height=2ex]
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\definecolor{dynamiccolor}     {rgb}{0.6,0.7,0.9}
+
+	\tikzstyle{dynamicnode} = [treenode, bottom color=dynamiccolor]
+
+	\node[dynamicnode] (dynamic) {Dynamic\\ Init};
+	\node[treenode, left=4ex of dynamic] (manager) {Manager};
+
+	% dynamically started components
+	\node[dynamicnode, above=10ex of dynamic, xshift=-8ex] (child1) {Managed\\Child};
+	\node[above=11ex of dynamic] (childx) {...};
+	\node[dynamicnode, above=10ex of dynamic, xshift=8ex]  (child2) {Managed\\Child};
+	\path[treechildarrow] (dynamic) -- (child1);
+	\path[treechildarrow] (dynamic) -- (child2);
+
+	% config / state information flow
+	\tikzstyle{infoflow} = [opacity=0.3,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	\path[infoflow] (manager.320)
+		.. controls +(2ex,-2ex) and +(-2ex,-2ex) .. node[below] {config (2)} (dynamic.south);
+	\path[infoflow] (dynamic.120)
+		.. controls +(-2ex,2ex) and +(2ex,2ex) .. node[above] {state (1)} (manager.60);
+
+\end{tikzpicture}
