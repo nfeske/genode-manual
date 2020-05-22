@@ -734,22 +734,6 @@ _os/src/test/block_request_stream/_.
 
 [raw spec/clearpage]
 
-Regulator session interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-; XXX description, reference to components section
-
-; XXX Regulator::Session_client
-; XXX Regulator::Session_rpc_object
-
-; Regulator::Session
-[raw spec/classes/regulator/session/description]
-
-; Regulator::Connection
-[raw spec/classes/regulator/connection/description]
-
-
-[raw spec/clearpage]
 
 Timer session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
