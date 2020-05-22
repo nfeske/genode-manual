@@ -31,7 +31,7 @@ genode.git:
 	git clone $(GENODE_GIT_URL) $@
 
 genode.git/checked_out.tag: genode.git
-	cd genode.git; git reset --hard $(GENODE_GIT_REV)
+	#cd genode.git; git reset --hard $(GENODE_GIT_REV)
 	touch $@
 
 clean_local_genode_git:
@@ -96,7 +96,6 @@ define OS_INCLUDE_DIRS
   packet_stream_tx
   platform_session
   platform_device
-  regulator_session
   report_session
   rtc_session
   spec/x86
