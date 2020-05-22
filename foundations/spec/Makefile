@@ -83,6 +83,7 @@ endef
 define OS_INCLUDE_DIRS
   audio_out_session
   block_session
+  block
   file_system_session
   framebuffer_session
   gpio_session

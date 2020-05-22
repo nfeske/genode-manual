@@ -1752,8 +1752,7 @@ By combining the techniques presented in Sections [Ceding the parenthood] and
 [Publishing and subscribing], a general pattern of a feedback-control system
 emerges (Figure [tikz/feedback_control]).
 
-[tikz/feedback_control 60%]
-
+[tikz img/feedback_control 60%]
   The combination of the dynamic re-configuration with the state reporting of
   an init instance forms a feedback-control system.
 

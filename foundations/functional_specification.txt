@@ -673,24 +673,32 @@ Platform session interface
 Block session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
+The block-session interface provides block-device-level access to persistent
+storage (Section [Block]). At the client side, the 'Block::Connection'
+provides a job interface to issue arbitrary block requests to a server in an
+asynchronous fashion. At the server side, the 'Block::Request_stream' API
+facilitates the implementation of asynchronously block services such as
+block-device drivers. Both client and server share the same notion of a
+'Block::Request'.
+
+; Block::Request
+[raw spec/classes/block/request/description]
+
 ; XXX description, reference to components section
-
-; XXX Block::Session_client
-
-; Block::Packet_descriptor
-[raw spec/classes/block/packet_descriptor/description]
+; Block::Session_client
 
 ; Block::Session
-[raw spec/classes/block/session/description]
+; [raw spec/classes/block/session/description]
 
-; XXX Block::Session_rpc_object
+Client-side block connection
+----------------------------
 
 ; Block::Connection
 [raw spec/classes/block/connection/description]
 
 
-Block-request stream
---------------------
+Server-side block-request stream
+--------------------------------
 
 To simplify the implementation of robust and scalable block servers, there
 exists a server-side block-session front end called block-request stream.
