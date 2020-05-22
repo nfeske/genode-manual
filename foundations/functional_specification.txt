@@ -696,6 +696,8 @@ block-device drivers. Both client and server share the same notion of a
 Client-side block connection
 ----------------------------
 
+!
+
 ; Block::Connection
 [raw spec/classes/block/connection/description]
 
@@ -705,7 +707,6 @@ Server-side block-request stream
 
 To simplify the implementation of robust and scalable block servers, there
 exists a server-side block-session front end called block-request stream.
-The interface can be found at _os/include/block/request_stream.h_.
 It is designed with the following considerations:
 
 * It anticipates the asynchronous operation of block servers by default.

@@ -741,7 +741,7 @@ of the component in the log output:
 
 
 Next steps
-~~~~~~~~~~
+==========
 
 There are several possible ways to continue your exploration.
 
@@ -763,12 +763,13 @@ There are several possible ways to continue your exploration.
 # Genode comprises a *feature set* of hundreds of ready-to-use components,
   which are fun to discover and to combine. Most components are not only
   accompanied with documentation in the form of README files local to the
-  respective source code, but come with at least one ready-to-use run script,
-  which illustrate the integration of the component in executable form. After
-  familiarizing yourself with the concept of run scripts by reading Section
-  [System integration and automated testing], review the _run/_ subdirectories
-  of the various source-code repositories, for example those at
-  _repos/os/run/_ or _repos/gems/run/_.
+  respective source code, but come with at least one ready-to-use run script
+  or test package, which illustrates the integration of the component in
+  executable form. After familiarizing yourself with the concept of run
+  scripts by reading Section [System integration and automated testing],
+  review the _run/_ and _recipes/pkg/_ subdirectories of the various
+  source-code repositories, for example those at _repos/os/run/_ or
+  _repos/gems/run/_.
 
 # To follow the work of the Genode *community*, learn about current lines of
   work, plans, and experiences, head to the Genodians.org community blog.

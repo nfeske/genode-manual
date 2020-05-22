@@ -1432,7 +1432,7 @@ Figure [img/unix] illustrates a custom Unix runtime environment that bridges
 these gaps by using Genode's building blocks.
 
 # The VFS server is able mount TAR archives locally as a virtual file
-  system and offer the content as a _file-system service_. Furthermore,
+  system and offers the content as a _file-system service_. Furthermore,
   the VFS server exposes a terminal session as a pseudo file.
   In the depicted scenario, the terminal session request is routed to the
   parent of init.
@@ -1750,7 +1750,7 @@ Feedback control system
 
 By combining the techniques presented in Sections [Ceding the parenthood] and
 [Publishing and subscribing], a general pattern of a feedback-control system
-emerges (Figure [tikz/feedback_control]).
+emerges (Figure [img/feedback_control]).
 
 [tikz img/feedback_control 60%]
   The combination of the dynamic re-configuration with the state reporting of
