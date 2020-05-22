@@ -1465,15 +1465,11 @@ UTF-8-encoded string.
 Multi-threading and synchronization
 ===================================
 
-; XXX information about thread-context management (as given in base/thread.h)
-
-
 Threads
 ~~~~~~~
 
 A thread is created by constructing an object of a class inherited from
-'Thread'. The new thread starts its execution at the 'entry' member
-function.
+'Thread'. The new thread starts its execution at the 'entry' method.
 Thereby, each thread runs in the context of its object and
 can access context-specific information by accessing its member
 variables. This largely alleviates the need for a thread-local storage (TLS)
@@ -1488,37 +1484,52 @@ to the corresponding constructor argument.
 [raw spec/clearpage]
 
 
-Locks and semaphores
-~~~~~~~~~~~~~~~~~~~~
+Inter-thread synchronization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For mutual exclusive execution of critical sections, there exists
-a simple lock interface providing lock and unlock semantics.
-The lock comes in two flavours. Cancelable locks can be
-unblocked by force via core's cancel-blocking mechanism. In contrast,
-a non-cancelable lock ('Lock') does not reflect the cancellation of
-its blocking operation at the API level but transparently re-enters
-its blocking state after a cancellation.
+Genode provides three inter-thread synchronization primitives, namely 'Mutex',
+'Blockade', and 'Semaphore', which model different thread-synchronization
+situations. Under the hood, they are based on the same low-level 'Lock'
+primitive, which is visible at the API but not recommended for direct use as
+it will potentially be removed from the API in a later version.
+
+; Genode::Mutex
+[raw spec/classes/genode/mutex/description]
+
+Example of using a 'Mutex'
+--------------------------
+
+! Mutex mutex;
+! mutex.acquire();
+! mutex.release();
+!
+! {
+!   Mutex::Guard guard(mutex) /* acquire() during construction */
+! }                           /* release() on guard object destruction */
+!
+! Mutex::Guard guard(mutex);
+! mutex.acquire();            /* <-- cause a warning about the deadlock */
+
+
+; Genode::Blockade
+[raw spec/classes/genode/blockade/description]
 
 ; Genode::Cancelable_lock
-[raw spec/classes/genode/cancelable_lock/description]
+; [raw spec/classes/genode/cancelable_lock/description]
 
 ; Genode::Lock
-[raw spec/classes/genode/lock/description]
-
-For the use case of using locks for protecting critical sections,
-the 'Lock_guard' provides a convenient mechanism for the automated
-unlocking of a lock when leaving a variable scope.
+; [raw spec/classes/genode/lock/description]
 
 ; Genode::Lock_guard<>
-[raw spec/classes/genode/lock_guard/description]
+; [raw spec/classes/genode/lock_guard/description]
 
 
 [raw spec/clearpage]
 
-Alongside lock-based mutual exclusion of entering critical sections,
-organizing threads in a producer-consumer relationship is a common
-design pattern for thread synchronization. The 'Semaphore' interface
-enables the implementation of this synchronization scheme.
+Alongside the mutual exclusion of entering critical sections and the startup
+synchronization of threads, producer-consumer relationships between threads
+are most common. The 'Semaphore' enables the implementation of this
+synchronization scheme.
 
 ; Genode::Semaphore
 [raw spec/classes/genode/semaphore/description]
