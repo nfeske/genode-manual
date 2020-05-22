@@ -681,6 +681,9 @@ facilitates the implementation of asynchronously block services such as
 block-device drivers. Both client and server share the same notion of a
 'Block::Request'.
 
+; Block::Operation
+[raw spec/classes/block/operation/description]
+
 ; Block::Request
 [raw spec/classes/block/request/description]
 
@@ -2497,4 +2500,24 @@ verbatim description of how the device is used. For example:
 ; Genode::Quota_guard
 ; Genode::Rpc_object::Capability_guard
 ; Genode::Quota_transfer
+; Genode::Dynamic_linker
+; Genode::Trace_output
+; Block::Session_rpc_object
+; Block::Packet_descriptor
+; Block::Session_component_base
+; Block::Session_component
+; Block::Root
+; Block::Driver_session_base
+; Block::Driver_session
+; Block::Driver
+; Block::Driver_factory
+; Genode::Sandbox::Local_service_base
+; Genode::Sandbox::Local_service
+; Genode::Directory
+; Genode::Root_directory
+; Genode::File
+; Genode::Readonly_file
+; Genode::File_content
+; Genode::Watcher
+; Genode::Watch_handler
 
