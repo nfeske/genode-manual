@@ -1,0 +1,203 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1,
+	                        minimum width=12ex, minimum height=5ex]
+
+	\tikzstyle{nouxsubsystem} = [minimum width=7ex, minimum height=3ex,
+	                             align=center,
+	                             draw=black!80, fill=white, fill opacity=0.6]
+
+	%
+	% Init
+	%
+	\path (-22ex,0) node[treenode] (init) {Init};
+
+	%
+	% Noux runtime
+	%
+	\node[treenode, above=8ex of init,
+	      minimum width=27ex, minimum height=9ex] (noux) {};
+
+	\path (noux.north) node[below=1ex] {\normalsize Noux};
+
+	\path (noux.center)+(-7ex,0) node[nouxsubsystem, yshift=2ex] (vfs) {VFS};
+	\path (vfs.south) node[nouxsubsystem, below=1ex] (tarfs) {TarFS};
+
+	\path (noux.center)+(8ex,0ex) node[nouxsubsystem] (iochannels) {I/O\\channels};
+
+	%
+	% Noux program
+	%
+	\node[above=7ex of noux] {
+		\begin{tikzpicture}[inner sep=0, outer sep=0]
+
+			%%
+			% Create rugged path
+			%
+			% argument 1:  number of saw tooths
+			% argument 2:  size of saw tooth
+			%
+			\newcommand{\ruggedpath}[2]{\foreach \i in {1,2,...,#1} {
+				-- ++(#2,#2) -- ++(2*#2,-2*#2) -- ++(#2,#2)}}
+
+			\definecolor{nouxprgcolor} {rgb}{1,1,0.7}
+
+			\tikzstyle{puzzle} = [component, path fading=flow fade, align=center,
+			                      dropshadow, rounded corners=2]
+
+			\path[puzzle, bottom color=nouxprgcolor]
+				(0,0) -- ++(29ex,0) {[sharp corners]
+				      -- ++(0,-7ex) -- ++(-29ex,0)} --cycle;
+
+			\path (14.5ex,-4ex) node {Recompiled Unix program};
+
+			% FreeBSD libc
+			\path[puzzle] (2.5ex, 2ex - 15ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0.5ex,0) -- ++(0,-6ex) -- ++(2ex,0)
+				{[sharp corners] -- ++(0,12ex) -- ++(-6*4ex - 5ex,0) }
+				-- ++(0,-12ex) -- ++(2ex,0) -- ++(0,5ex) --cycle;
+
+			\path (14.5ex,-10ex) node {FreeBSD libc};
+
+			% libc plugin
+			\path[puzzle] (2.5ex, -14ex)
+				{[sharp corners] \ruggedpath{6}{1ex}}
+				-- ++(0,-6ex) -- coordinate (libcplugin) ++(-6*4ex,0) --cycle;
+
+			\path (14.5ex,-18ex) node {libc plugin};
+
+		\end{tikzpicture}
+	};
+
+	\path (libcplugin)+(-1ex,0)     coordinate (libcpluginin) {};
+	\path (libcplugin)+(1ex,0)      coordinate (libcpluginout) {};
+	\path (libcpluginin)+(0, -8ex)  coordinate (nouxin) {};
+	\path (libcpluginout)+(0, -8ex) coordinate (nouxout) {};
+
+	\draw[arrow] (nouxin) -- node[left, sloped=false] {Noux session}
+		(libcpluginin);
+	\draw[arrow] (libcpluginout) --
+		node[right, sloped=false, align=left]
+		{\emph{open read write}\\
+		 \emph{select ioctrl}\\
+		 \emph{stat readdir}} (nouxout);
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init) -- (noux.south);
+
+	%
+	% Session relationships
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	% I/O channels -> terminal
+	\path[treesessionarrow] (iochannels.270)
+		.. controls +(270:7ex) and +(90:7ex) .. (init.320);
+
+	% ROM session from TarFS to core's ROM service
+	\path[treesessionarrow] (tarfs.270)
+		.. controls +(270:7ex) and +(90:7ex) .. (init.220);
+
+
+	%%%
+	%%% arrow between old and new version
+	%%%
+
+	\tikzstyle{singlearrow} = [draw, single arrow, minimum size=8ex,
+	                           fill=black, opacity=0.3,
+	                           single arrow head extend=1ex]
+
+	\path (0,15ex) node[singlearrow] (arrow) {};
+
+
+
+	%%%
+	%%% new version based on the libc
+	%%%
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1,
+	                        minimum width=12ex, minimum height=5ex]
+	\tikzstyle{vfs} = [align=center, draw, opacity=0.4, scale=0.7,
+	                   rounded corners=1, fill=white,
+	                   minimum width=5ex, minimum height=2ex]
+
+	%
+	% Components
+	%
+
+	\path (30ex,0) node[treenode] (init) {Init};
+
+	\node[treenode, above=8ex of init, xshift=-14ex] (vfs) {VFS server\\\\};
+	\node[treenode, above=8ex of init] (fsrom) {fs\_rom};
+	\node[treenode, above=8ex of init, xshift=14ex] (bashbase) {\\\\};
+	\node[treenode, above=8ex of bashbase] (vimbase) {\\\\};
+
+	\definecolor{prgcolor} {rgb}{1,1,0.7}
+	\tikzstyle{prgnode} = [treenode, minimum height=0, inner sep=1ex, bottom color=prgcolor]
+
+	\node[prgnode, above=0ex of vimbase]  (vim)  {Vim};
+	\node[prgnode, above=0ex of bashbase] (bash) {Bash};
+
+	\path (vimbase)+(0ex,1.2ex) node {FreeBSD libc};
+	\path (bashbase)+(0ex,1.2ex) node {FreeBSD libc};
+
+	\node[vfs, above=1ex of vfs.south, xshift=5ex] (vfsvfs) {VFS};
+	\node[left=1ex of vfsvfs, scale=0.5, yshift=-2ex] (devterminal) {Terminal};
+	\node[left=1ex of vfsvfs, scale=0.5, yshift=0ex] (bashtar) {ROM bash.tar};
+	\node[left=1ex of vfsvfs, scale=0.5, yshift=2ex] (vimtar) {ROM vim.tar};
+
+	\path[arrow] (devterminal.east) -- (vfsvfs);
+	\path[arrow] (bashtar.east) -- (vfsvfs);
+	\path[arrow] (vimtar.east) -- (vfsvfs);
+
+	\node[vfs, above=1ex of bashbase.south, xshift=0ex] (bashvfs) {VFS};
+	\node[vfs, above=1ex of vimbase.south, xshift=0ex] (vimvfs) {VFS};
+
+	%
+	% Parent-child relationships
+	%
+
+	\tikzstyle{treechildarrow} = [arrow, thick, opacity=0.2]
+
+	\path[treechildarrow] (init) -- (vfs.south);
+	\path[treechildarrow] (init) -- (fsrom.south);
+	\path[treechildarrow] (init) -- (bashbase.south);
+	\path[treechildarrow] (bash) -- (vimbase.south);
+
+	%
+	% Session relationships
+	%
+
+	\tikzstyle{treesessionarrow} = [arrow, thick, densely dashed]
+
+	\path[treesessionarrow] (fsrom.250)
+		.. controls +(250:4ex) and +(320:4ex) .. (vfs.320);
+
+	\path[treesessionarrow] (bashbase.230)
+		.. controls +(230:4ex) and +(320:4ex) .. (fsrom.320);
+
+	\path[treesessionarrow] (bashvfs.270)
+		.. controls +(257:8ex) and +(310:7ex) .. (vfs.310);
+
+	\path (bashbase.center)+(3ex,0) coordinate (midvimvfs) {};
+
+	\path[treesessionarrow] (vimvfs.290)
+		.. controls +(290:4ex) and +(90:4ex) .. (midvimvfs)
+		.. controls +(270:12ex) and +(300:8ex) .. (vfs.300);
+
+	\path[treesessionarrow] (devterminal)
+		.. controls +(270:3ex) and +(90:7ex) .. (init.230);
+
+	\path[treesessionarrow] (bashtar.210)
+		.. controls +(270:3ex) and +(90:7ex) .. (init.210);
+
+\end{tikzpicture}
