@@ -1,0 +1,563 @@
+\begin {tikzpicture}
+
+	\definecolor{color4} {rgb} {0.9,0.7,0.8}
+	\definecolor{color3} {rgb} {0.8,0.8,0.9}
+	\definecolor{color2} {rgb} {0.7,0.9,0.7}
+	\definecolor{color1} {rgb} {1.0,1.0,1.0}
+
+	\def\peerWidth        {4ex}
+	\def\peerHeight       {3ex}
+	\def\linkWidth        {8ex}
+	\def\linkHeight       {2ex}
+
+	\def\compDist         {1ex}
+	\def\compWidth        {14ex}
+	\def\compHeight       {3ex}
+
+	\def\netWidth         {12ex}
+	\def\netHeight        {7ex}
+	\def\netDist          {\compDist*6+\compHeight+\netHeight/2}
+	\def\intfWidth        {1.5ex}
+	\def\intfHeight       {1.5ex}
+	\def\reportWidth      {3ex}
+	\def\reportHeight     {4ex}
+	\def\ruleDist         {0.2ex}
+	\def\ruleWidth        {12ex}
+	\def\ruleHeight       {2ex}
+	\def\ruleNr           {4}
+	\def\domLablHeight    {3.5ex}
+	\def\domWidth         {13ex}
+	\def\domHeight        {6ex}
+	\def\domNr            {3}
+	\def\routerLablHeight {4ex}
+	\def\routerWidth      {56.1ex}
+	\def\routerHeight     {24ex}
+	\def\compRounding     {0.6ex}
+
+\tikzstyle{compound1} = [rectangle, draw, text centered,
+                         rounded corners,
+                         top color=white,
+                         bottom color=black!5,
+                         draw=black!10]
+\tikzstyle{component1} = [compound1, draw=black!70]
+
+	\tikzstyle{compSty} = [
+		component, rounded corners=0.5ex, thin,
+		draw=black, minimum height=\compHeight,
+		bottom color=color4, minimum width=\compWidth]
+
+	\tikzstyle{compSty1} = [
+		component, rounded corners=0.5ex, thin,
+		draw=black, minimum height=\compHeight,
+		bottom color=color3, minimum width=\compWidth]
+
+	\tikzstyle{compSty2} = [
+		component, rounded corners=0.5ex, thin,
+		draw=black, minimum height=\compHeight,
+		bottom color=color2, minimum width=\compWidth]
+
+	\tikzstyle{domSty} = [
+		component, rounded corners=0ex, thin,
+		draw=black!50!white, minimum height=\domHeight,
+		bottom color=color2, minimum width=\domWidth, font=\tiny\sffamily]
+
+	\tikzstyle{domLablSty} = [
+		minimum height=\domLablHeight]
+
+	\tikzstyle{intfConnSty} = [
+		draw=black!40!white, thick, minimum height=\intfHeight,
+		fill=color1, minimum width=\intfWidth, inner sep=0ex, densely dotted]
+
+	\tikzstyle{ruleSty1} = [
+		thin,
+		draw=black!50!white, minimum height=\ruleHeight,
+		fill=color1, opacity=0.7, minimum width=\ruleWidth, inner sep=0ex]
+
+	\tikzstyle{ruleSty} = [
+		rounded corners=\ruleHeight/2, thin,
+		draw=black!50!white, minimum height=\ruleHeight,
+		fill=color1, opacity=0.7, minimum width=\ruleWidth, inner sep=0ex]
+
+	\tikzstyle{intfSty} = [
+		rounded corners=\intfHeight/3, thin,
+		draw=black!50!white, minimum height=\intfHeight,
+		fill=color1, minimum width=\intfWidth, inner sep=0ex]
+
+	\tikzstyle{intfContactSty} = [
+		intfSty, rounded corners=0ex, minimum width=0.5ex,
+		minimum height=\intfHeight/3]
+
+	\tikzstyle{reportSty} = [
+		draw=black!40!white, thick, fill=color1]
+
+	\tikzstyle{netSty} = [
+		draw=black!50!white, dropshadow, fill=white, cloud, cloud puffs=9,
+		minimum width=\netWidth, minimum height=\netHeight, opacity=1.0]
+
+	\tikzstyle{NStyWhite} = [draw=black, fill=white, minimum height=2.5ex, minimum width=12ex, opacity=0.6, inner sep=0.5ex]
+
+\tikzstyle{mydropshadow} = [blur shadow={shadow blur steps=5,shadow xshift=.0ex,
+                                       shadow yshift=-0.3ex,
+                                       shadow blur radius=0.5ex}]
+
+
+	\tikzstyle{TreeNode1} = [draw=black, mydropshadow, fill=white, minimum width=1ex, minimum height=1ex, inner sep=0ex, rounded corners=0.5ex]
+	\tikzstyle{TreeNode2} = [draw=black, mydropshadow, fill=white, minimum width=1ex, minimum height=1ex, inner sep=0ex]
+	\tikzstyle{TreeNode3} = [regular polygon, regular polygon sides=3, draw=black, mydropshadow, fill=white, minimum width=1.5ex, minimum height=1.5ex, inner sep=0ex]
+	\tikzstyle{TreeNode4} = [draw=black, mydropshadow, fill=white, minimum width=1.5ex, minimum height=1.5ex, inner sep=0.5ex]
+	\tikzstyle{TreeEdge1} = [draw=black, very thin]
+	\tikzstyle{TreeEdge2} = [draw=black, densely dotted]
+
+	\node[minimum width=96ex, minimum height=59ex] (n1) {};
+
+	\path(n1.north west)+(1ex,-1ex) coordinate (c11);
+	\node[compSty1, minimum width=38.1ex, minimum height=16ex, below right=0ex of c11] (n12) {};
+	\node[above right=0.5ex of n12.south west] {VirtualBox};
+
+	\path(n12.south east)+(5ex,0ex) coordinate (c13);
+	\node[compSty, minimum width=25ex, minimum height=8ex, above right=0ex of c13] (n14) {};
+	\node[above right=0.5ex of n14.south west] {Bash Terminal};
+	\node[left=1ex of n14.east] (c7) {\includegraphics[height=8ex]{bash.png}};
+
+	\path(n12.south west)+(1ex,5ex) coordinate (c12);
+	\node[compSty2, minimum width=36ex, minimum height=10ex, above right=0ex of c12] (n13) {};
+	\node[above right=0.5ex of n13.south west] {Linux};
+	\node[right=10ex of n13.west] (c7) {\includegraphics[height=10ex]{tux.png}};
+
+	\path(n12.south west)+(10ex,-15ex) coordinate (c1);
+	\node[compSty1, minimum width=50ex, minimum height=23ex, below right=0ex of c1] (n2) {};
+	\node[below right=0.5ex of n2.north west] {VFS Server};
+
+	\path(n2.north west)+(1ex,-8ex) coordinate (c2);
+	\node[compSty2, minimum width=36ex, minimum height=14ex, below right=0ex of c2] (n3) {};
+	\node[below right=0.5ex of n3.north west] (n71) {Consistent Block Encrypter};
+	\node[below right=0ex of n71.south west, yshift=0.5ex, opacity=1.0] (n72) {\tiny \it Management of Virtual Block Device,};
+	\node[below right=0ex of n72.south west, yshift=1.3ex, opacity=1.0] (n73) {\tiny \it Snapshots, Sparse Blocks, Rekeying, and Resizing};
+	\node[below right=0ex of n73.south west, yshift=0.5ex, opacity=1.0] {\tiny \it Entirely in SPARK};
+
+	\path(n2.north east)+(10ex,3ex) coordinate (c4);
+	\node[compSty, minimum width=24ex, minimum height=8ex, below right=0ex of c4] (n4) {};
+	\node[below right=0.5ex of n4.north west] (n41) {Block Back End};
+	\node[below right=0ex of n41.south west, yshift=0.5ex, opacity=1.0] (n42) {\tiny \it Read / Write / Sync a };
+	\node[below right=0ex of n42.south west, yshift=1.3ex, opacity=1.0] {\tiny \it Physical Block Range};
+
+	\path(n4.south west)+(0ex,-2ex) coordinate (c5);
+	\node[compSty, minimum width=24ex, minimum height=8ex, below right=0ex of c5] (n5) {};
+	\node[below right=0.5ex of n5.north west] (n51) {Crypto Back End};
+	\node[below right=0ex of n51.south west, yshift=0.5ex, opacity=1.0] (n52) {\tiny \it Encrypt / Decrypt a Block};
+	\node[below right=0ex of n52.south west, yshift=1.3ex, opacity=1.0] {\tiny \it Add / Remove a Key};
+
+	\path(n5.south west)+(0ex,-2ex) coordinate (c6);
+	\node[compSty, minimum width=24ex, minimum height=8ex, below right=0ex of c6] (n6) {};
+	\node[below right=0.5ex of n6.north west] (n61) {Trust Anchor};
+	\node[below right=0ex of n61.south west, yshift=0.5ex, opacity=1.0] (n62) {\tiny \it Create / Encrypt / Decrypt a Key};
+	\node[below right=0ex of n62.south west, yshift=1.3ex, opacity=1.0]    {\tiny \it Store / Load a Hash Value};
+
+	\path(n3.north west)+(15ex,0ex) coordinate (c22);
+	\path(n13.south)+(-3ex,0ex) coordinate (c23);
+	\path(n12.south)+(-20ex,-5ex) coordinate (c33);
+	\path(n12.south)+(-20ex,-7ex) coordinate (c37);
+	\path[arrow, densely dotted, thick, <-] (c22) .. controls ++(0ex,15ex) and ++(0ex,-10ex) .. (c23);
+	\node[below right=0ex of c33] {\it \scriptsize Access to Virtual Block};
+	\node[below right=0ex of c37] {\it \scriptsize Device Only};
+
+	\path(n3.north west)+(17ex,0ex) coordinate (c24);
+	\path(n14.south)+(0ex,0ex) coordinate (c25);
+	\path(n14.south)+(-2ex,-5ex) coordinate (c35);
+	\path[arrow, densely dotted, thick, <-] (c24) .. controls ++(0ex,15ex) and ++(0ex,-15ex) .. (c25);
+	\node[below right=0ex of c35] {\it \scriptsize Full Control Interface};
+
+	\path(n3.north west)+(25ex,0ex) coordinate (c25);
+	\path(n3.north east)+(0ex,5ex) coordinate (c26);
+	\path(n4.west)+(0ex,0ex) coordinate (c27);
+	\path[arrow, densely dotted, thick] (c25) .. controls ++(0ex,5ex) and ++(-5ex,0ex) .. (c26)
+                                              .. controls ++(20ex,0ex) and ++(-4ex,-0.5ex) .. (c27);
+
+	\path(n3.north west)+(26ex,0ex) coordinate (c25);
+	\path(n3.north east)+(0ex,4ex) coordinate (c26);
+	\path(n5.west)+(0ex,0ex) coordinate (c27);
+	\path[arrow, densely dotted, thick] (c25) .. controls ++(0ex,4ex) and ++(-4ex,0ex) .. (c26)
+                                              .. controls ++(20ex,0ex) and ++(-5ex,1ex) .. (c27);
+
+	\path(n3.north west)+(27ex,0ex) coordinate (c25);
+	\path(n3.north east)+(0ex,3ex) coordinate (c26);
+	\path(n6.west)+(0ex,0ex) coordinate (c27);
+	\path[arrow, densely dotted, thick] (c25) .. controls ++(0ex,3ex) and ++(-3ex,0ex) .. (c26)
+                                              .. controls ++(20ex,0ex) and ++(-10ex,2ex) .. (c27);
+
+%	\node[fill=white, below right=0ex of c4, xshift=-1ex, yshift=1ex, minimum width=85.5ex, minimum height=9ex] {};
+
+
+%	\node[minimum width=18ex, densely dotted, minimum height=26ex, draw=black] (n1) {};
+%	\node[below right=0ex of n1.north west, opacity=0.6] { \sffamily\scriptsize Normal World };
+%	\path(n1.north west)+(2ex, -4ex) coordinate (c1);
+%	\path(n1.north west)+(82ex, -49ex) coordinate (c30);
+%	\path[densely dotted, minimum height=26ex, draw=black]
+%		(n1.south west) -- (n1.south west |- c30) -- (c30) -- (c30 |- n1.north east) -- (n1.north east);
+%	\node[below right=0ex of n1.north east, opacity=0.6] { \sffamily\scriptsize Trusted World };
+%
+%	\node[compSty, minimum width=14ex, minimum height=20ex, below right=0ex of c1] (n1) {  };
+%	\node[below right=0ex of n1.north west] { \textbf{BL3\textsubscript{3}} \tiny UEFI };
+%	\node[NStyWhite, below=4ex of n1.north] (n2) {\tiny\sffamily EDK2 Core };
+%	\node[NStyWhite, below=0.5ex of n2] (n2) {\tiny\sffamily I/O Drivers };
+%	\node[NStyWhite, below=0.5ex of n2] (n2) {\tiny\sffamily UEFI Secure Boot };
+%	\path(n1.north east)+(4ex, 0ex) coordinate (c1);
+%	\path(n1.south west)+(0ex, -4ex) coordinate (c2);
+%	\path(n1.east) coordinate (c17);
+%
+%
+%	\node[compSty1, minimum width=24.9ex, minimum height=15.2ex, below right=0ex of c1] (n1) {  };
+%	\node[below right=0ex of n1.north west] { \textbf{BL3\textsubscript{2}} \tiny Test Trusted OS };
+%	\node[NStyWhite, minimum width=22.95ex, below=4ex of n1.north] (n2) {\tiny\sffamily Service Router };
+%	\path(n2.south west)+(0ex, -0.5ex) coordinate (c1);
+%	\node[NStyWhite, minimum width=7.3ex, below right=0ex of c1] (n2) {\tiny\sffamily PSCI Test };
+%	\path(n2.south west)+(0ex, -0.5ex) coordinate (c1);
+%	\node[NStyWhite, minimum width=0ex, right=0.5ex of n2] (n2) {\tiny\sffamily Other Tests };
+%	\node[NStyWhite, minimum width=0ex, right=0.5ex of n2] (n2) {\tiny\sffamily IRQ Handler };
+%	\node[NStyWhite, minimum width=13.05ex, minimum height=4ex, below right=0ex of c1] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily S-EL1 Arch Context };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily Save/Restore };
+%	\node[NStyWhite, minimum width=9.35ex, minimum height=4ex, right=0.5ex of n2] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily Runtime Arch };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily + Platform Init };
+%	\path(n1.north east)+(4ex, 0ex) coordinate (c1);
+%	\path(n1.east) coordinate (c19);
+%
+%
+%	\node[compSty1, minimum width=18ex, minimum height=15.2ex, below right=0ex of c1] (n1) {  };
+%	\node[below right=0ex of n1.north west] { \textbf{BL2} \tiny Trusted Boot Firmware };
+%	\node[NStyWhite, minimum width=16ex, minimum height=4ex, below=4ex of n1.north] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily Boot Time Arch };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily + Platform Init };
+%	\node[NStyWhite, minimum width=16ex, below=0.5ex of n2] (n2) {\tiny\sffamily Trusted Board Boot 2 };
+%	\node[NStyWhite, minimum width=16ex, below=0.5ex of n2] (n2) {\tiny\sffamily NV Storage Driver };
+%	\path(n1.south) coordinate (c13);
+%	\path(n1.south)+(-2ex, 0ex) coordinate (c14);
+%	\path(n1.south)+(-2ex, -2ex) coordinate (c15);
+%	\path(n1.west) coordinate (c18);
+%	\path(n1.north east)+(0.5ex, -2ex) coordinate (c20);
+%
+%
+%	\node[compSty1, minimum width=18ex, minimum height=23.3ex, below=4ex of n1] (n1) {  };
+%	\node[below right=0ex of n1.north west] { \textbf{BL1} \tiny Boot ROM };
+%	\node[NStyWhite, minimum width=16ex, minimum height=4ex, below=4ex of n1.north] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily Boot Time Arch };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily + Platform Init };
+%	\node[NStyWhite, minimum width=16ex, minimum height=4ex, below=0.5ex of n2] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily Cold/Warm };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily Boot Detection };
+%	\node[NStyWhite, minimum width=16ex, minimum height=4ex, below=0.5ex of n2] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily Trusted Board };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily Boot 1 };
+%	\node[NStyWhite, minimum width=16ex, minimum height=4ex, below=0.5ex of n2] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily Temp SMC };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily Handler };
+%	\path(n1.east)+(0ex, -4ex) coordinate (c11);
+%	\path(n1.north)+(2ex, 0ex) coordinate (c12);
+%	\path(c11)+(4ex, 0ex) coordinate (c10);
+%	\path(n1.north east)+(0.5ex, -2ex) coordinate (c21);
+%
+%
+%	\node[compSty1, minimum width=43ex, minimum height=18.5ex, below right=0ex of c2] (n1) {  };
+%	\node[below right=0ex of n1.north west] { \textbf{BL3\textsubscript{1}} \tiny EL3 Firmware (Secure Monitor) };
+%	\node[NStyWhite, minimum width=41ex, below=4ex of n1.north] (n2) {\tiny\sffamily SMC Interface };
+%	\path(n2.south west)+(0ex, -0.5ex) coordinate (c1);
+%	\node[NStyWhite, minimum width=30ex, below right=0ex of c1] (n2) {\tiny\sffamily Service Router };
+%	\path(n2.south west)+(0ex, -0.5ex) coordinate (c1);
+%	\node[NStyWhite, minimum width=9.9ex, right=1ex of n2] (n2) {\tiny\sffamily World Switcher };
+%	\path(n2.south west)+(0ex, -0.5ex) coordinate (c3);
+%	\node[NStyWhite, minimum width=17.6ex, below right=0ex of c1] (n2) {\tiny\sffamily PSCI };
+%	\path(n2.south west)+(0ex, -0.5ex) coordinate (c1);
+%	\node[NStyWhite, minimum width=0ex, right=0.5ex of n2] (n2) {\tiny\sffamily Other EL3 Interfaces };
+%	\node[NStyWhite, minimum width=11ex, minimum height=4ex, below right=0ex of c1] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily EL3 Arch Context };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily Save/Restore };
+%	\node[NStyWhite, minimum width=6ex, minimum height=4ex, right=0.5ex of n2] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily Pwr Ctrl };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily Driver };
+%	\node[NStyWhite, minimum width=9.9ex, below right=0ex of c3] (n2) { \tiny\sffamily IRQ Handler};
+%	\node[NStyWhite, minimum width=9.9ex, minimum height=4ex, below=0.5ex of n2] (n2) { };
+%	\node[below=0ex of n2.north, opacity=0.6] (n3) {\tiny\sffamily Runtime Arch };
+%	\node[below=-1ex of n3, opacity=0.6] (n3) {\tiny\sffamily + Platform Init };
+%	\path(n1.north)+(4ex, 0ex) coordinate (c16);
+%
+%
+%	\path[arrow, very thick, rounded corners=1.5ex] (c10) -- (c11);
+%	\path[arrow, very thick, rounded corners=1.5ex] (c12) -- (c12 |- c13);
+%	\path[arrow, very thick, rounded corners=1.5ex] (c14) -- (c14 |- c15) -- (c16 |- c15) -- (c16);
+%	\path[arrow, very thick, rounded corners=1.5ex] (c16 |- c15)+(1.5ex, 0ex) -- (c17 |- c15);
+%	\path[arrow, very thick, rounded corners=1.5ex] (c18) -- (c19 |- c18);
+%	\node[right=0ex of c10] (n3) { \it\sffamily Reset };
+%
+%	\node[below right=0ex of c20, inner sep=0.5ex, opacity=0.6] (n1) { \tiny Level 2 boot loader};
+%	\node[below right=0ex of n1.south west, inner sep=0.5ex, opacity=0.6] (n1) { \tiny Loads all level 3 images};
+%
+%	\node[below right=0ex of c21, inner sep=0.5ex, opacity=0.6] (n1) { \tiny Level 1 boot loader};
+%	\node[below right=0ex of n1.south west, inner sep=0.5ex, opacity=0.6] (n1) { \tiny Loads all level 2 images};
+
+
+
+
+
+
+
+%	% router
+%	\node[domSty, minimum width=24ex, minimum height=14ex] (c1) { };
+%	\node[above right=0ex of c1.south west] () { \it\tiny\sffamily drivers-rtc-pc };
+%
+%	\node[compSty, minimum width=18ex, minimum height=5ex, below=1ex of c1.north] (c2) { \scriptsize\sffamily System RTC };
+%	\path (c2.south west)+(0ex,-2.5ex) coordinate (c20);
+%	\node[compSty, minimum width=12ex, minimum height=3ex, right=0ex of c20] (c3) { \scriptsize\sffamily RTC Driver };
+%	\path [arrow] (c3.north) -- (c3.north |- c2.south);
+%
+%	\path (c2.north west)+(-10ex,1ex) coordinate (x1);
+%	\node[compSty, minimum width=12ex, minimum height=5ex, above left=0ex of x1] (x2) {  };
+%
+%	\path (c2.north west)+(-7ex,3ex) coordinate (x1);
+%	\node[compSty, minimum width=12ex, minimum height=5ex, above left=0ex of x1] (x3) {  };
+%	\node[draw=black, fill=white, minimum width=10ex, above=0ex of x3.south, opacity=0.7] (x4) {\it\tiny\sffamily Qt Clock  };
+%
+%	\path (c2.north west)+(-3ex,5ex) coordinate (x1);
+%	\node[compSty, minimum width=12ex, minimum height=5ex, above left=0ex of x1] (x5) {  };
+%	\node[draw=black, fill=white, minimum height=3ex, minimum width=10ex, above=0ex of x5.south, opacity=0.7] (x6) {\it\tiny\sffamily libc  };
+%
+%
+%	\path (c2.north)+(0.5ex,0ex) coordinate (x40);
+%	\path (x6.east)+(0ex,-0.4ex) coordinate (x50);
+%	\path[arrow] (x40) .. controls ++(0ex,12ex) and ++(9ex,0ex) .. (x50);
+%	\path (c2.north)+(0ex,0ex) coordinate (x40);
+%	\path[arrow] (x40) .. controls ++(0ex,12ex) and ++(12ex,0ex) .. (x4.east);
+%	\path (c2.north)+(-0.5ex,0ex) coordinate (x40);
+%	\path (x2.south east)+(0ex,1ex) coordinate (x41);
+%	\path[arrow] (x40) .. controls ++(0ex,12ex) and ++(13ex,0ex) .. (x41);
+%
+%	\path (x6.east)+(0ex,0.4ex) coordinate (x50);
+%	\path (c2.east)+(0ex,0.25ex) coordinate (x40);
+%	\path[arrow, densely dotted, draw=black, semithick, opacity=0.7]
+%		(x40) .. controls ++(11ex,0ex) and ++(30ex,10ex) .. (x50);
+%
+%	\path (c2.east)+(0ex,-0.25ex) coordinate (x40);
+%	\path[arrow, densely dotted, draw=black, semithick, opacity=0.7]
+%		(c3.east) .. controls ++(17ex,0ex) and ++(6ex,0ex) .. (x40);
+%
+%
+%	\path (c2.north)+(-3ex,3ex) coordinate (x20);
+%	\node[above=0ex of x20] () {\it\tiny\sffamily RTC  };
+%	\path (c2.east)+(7ex,8ex) coordinate (x20);
+%	\node[above=0ex of x20] () {\it\tiny\sffamily RTC set };
+%	\path (c2.east)+(7ex,-1.7ex) coordinate (x20);
+%	\node[above=0ex of x20] () {\it\tiny\sffamily RTC set };
+%
+%
+%	\node[domSty, minimum width=12ex, bottom color=yellow!20!white, minimum height=3ex, below=10ex of c3.south] (c30) { RTC };
+%	\node[domSty, minimum width=5ex, bottom color=yellow!20!white, minimum height=3ex, right=1ex of c30.east] (c31) { Timer };
+%	\node[compSty, minimum width=5ex, minimum height=3ex, above=1ex of c31.north] (c32) { \tiny\sffamily Timer Driver };
+%	\path [arrow] (c30.north) -- (c30.north |- c3.south);
+%	\path [arrow] (c31.north) -- (c31.north |- c32.south);
+%	\path [arrow] (c32.north) -- (c32.north |- c2.south);
+%
+%	\path (c30.north)+(0.6ex, 0ex) coordinate (c99);
+%	\path[arrow, <-,densely dotted, draw=black, semithick, opacity=0.7]
+%		(c99) -- (c99 |- c3.south);
+%
+%	\path (c2.west)+(-8ex,-3ex) coordinate (r1);
+%	\path[draw=black, thin, dropshadow, fill=white] (r1) --
+%		++(0ex,0.7ex) coordinate (r2) -- ++(-0.7ex,0.7ex) -- ++(-1.4ex, 0ex) --
+%		++(0ex,-1.4ex) coordinate (r11) --++(0ex,-1.4ex) --
+%		++(1.05ex,0ex) coordinate (r10) -- ++(1.05ex,0ex) -- cycle;
+%	\path[draw=black, thin] (r2) -- ++(-0.7ex,0ex) -- ++(0ex,0.7ex);
+%	\path (r1)+(-0.35ex,0ex) coordinate (r3);
+%	\path (r1)+(-0.35ex,0.35ex) coordinate (r4);
+%	\path (r1)+(-0.35ex,-0.35ex) coordinate (r5);
+%	\path (r1)+(-0.35ex,-0.7ex) coordinate (r6);
+%	\path[draw=black] (r3) -- ++(-1.45ex,0ex);
+%	\path[draw=black] (r4) -- ++(-1.45ex,0ex);
+%	\path[draw=black] (r5) -- ++(-1.45ex,0ex);
+%	\path[draw=black] (r6) -- ++(-1.45ex,0ex);
+%	\node[below=0ex of r10] () { \it\tiny\sffamily sys\_set\_rtc };
+%	\path[arrow, densely dotted, draw=black, semithick, opacity=0.7]
+%		(r1) .. controls ++(4ex,0ex) and ++(-4ex,0ex) .. (c2.west);
+%
+%	\path (c3.west)+(-8ex,-3ex) coordinate (r1);
+%	\path[draw=black, thin, dropshadow, fill=white] (r1) --
+%		++(0ex,0.7ex) coordinate (r2) -- ++(-0.7ex,0.7ex) -- ++(-1.4ex, 0ex) --
+%		++(0ex,-1.4ex) coordinate (r12) --++(0ex,-1.4ex)  --
+%		++(1.05ex,0ex) coordinate (r10) -- ++(1.05ex,0ex) -- cycle;
+%	\path[draw=black, thin] (r2) -- ++(-0.7ex,0ex) -- ++(0ex,0.7ex);
+%	\path (r1)+(-0.35ex,0ex) coordinate (r3);
+%	\path (r1)+(-0.35ex,0.35ex) coordinate (r4);
+%	\path (r1)+(-0.35ex,-0.35ex) coordinate (r5);
+%	\path (r1)+(-0.35ex,-0.7ex) coordinate (r6);
+%	\path[draw=black] (r3) -- ++(-1.45ex,0ex);
+%	\path[draw=black] (r4) -- ++(-1.45ex,0ex);
+%	\path[draw=black] (r5) -- ++(-1.45ex,0ex);
+%	\path[draw=black] (r6) -- ++(-1.45ex,0ex);
+%	\node[below=0ex of r10] () { \it\tiny\sffamily hw\_set\_rtc };
+%	\path[arrow, densely dotted, draw=black, semithick, opacity=0.7]
+%		(r1) .. controls ++(4ex,0ex) and ++(-4ex,0ex) .. (c3.west);
+%
+%	\node[compSty, minimum width=12ex, left=16ex of c3.west] (c4) { \scriptsize\sffamily SNTP Client };
+%	\path (c4.east)+(0ex,0.2ex) coordinate (c41);
+%	\path (c4.east)+(0ex,-0.2ex) coordinate (c42);
+%	\path[arrow, densely dotted, draw=black, semithick, opacity=0.7]
+%		(c41) .. controls ++(2ex,0ex) and ++(-5ex,0ex) .. (r11);
+%	\path[arrow, densely dotted, draw=black, semithick, opacity=0.7]
+%		(c42) .. controls ++(2ex,0ex) and ++(-5ex,0ex) .. (r12);
+%	\node[netSty, below=1ex of c4.south] (c5) { };
+%	\path [arrow] (c5.north) -- (c4.south);
+%	\node[below=2ex of c5.north]() {\scriptsize\sffamily Network };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%	\path (c1.south)+(-\domWidth-1ex, 9ex) coordinate (y1);
+%	\node[minimum width=\peerWidth, minimum height=\peerHeight*1.2, above right=1ex of c1.south west] () { NIC Router };
+%	\path(c1.north west)+(\compDist*1.5,-\compDist*7) coordinate (c2);
+%	\path(c1.north west)+(0ex,\compDist*2) coordinate (c1);
+%
+%	% links
+%
+%	\path[ruleSty] (c2)
+%		-- ++(0ex,\linkHeight)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,\linkHeight) coordinate (c211)}
+%		-- ++(\linkWidth/2,-\linkHeight)
+%		-- ++(0ex,-\linkHeight) coordinate (c213)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c212)
+%		-- cycle;
+%	\node[above=0ex of c212, opacity=0.7] () { \tiny "Wired 1" };
+%	\path (c213)+(\compDist,0ex) coordinate (c213);
+%
+%	\path[ruleSty] (c213)
+%		-- ++(0ex,\linkHeight)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,\linkHeight) coordinate (c221)}
+%		-- ++(\linkWidth/2,-\linkHeight)
+%		-- ++(0ex,-\linkHeight) coordinate (c223)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c222)
+%		-- cycle;
+%	\node[above=0ex of c222, opacity=0.7] () { \tiny "Wired 2" };
+%	\path (c223)+(\compDist,0ex) coordinate (c223);
+%
+%	\path[ruleSty] (c223)
+%		-- ++(0ex,\linkHeight)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,\linkHeight) coordinate (c231)}
+%		-- ++(\linkWidth/2,-\linkHeight)
+%		-- ++(0ex,-\linkHeight) coordinate (c233)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c232)
+%		-- cycle;
+%	\node[above=0ex of c232, opacity=0.7] () { \tiny "Wifi" };
+%	\path (c233)+(\compDist,0ex) coordinate (c233);
+%
+%	\path[ruleSty] (c233)
+%		-- ++(0ex,\linkHeight)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,\linkHeight) coordinate (c241)}
+%		-- ++(\linkWidth/2,-\linkHeight)
+%		-- ++(0ex,-\linkHeight) coordinate (c243)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c242)
+%		-- cycle;
+%	\node[above=0ex of c242, opacity=0.7] () { \tiny "" };
+%	\path (c243)+(\compDist,0ex) coordinate (c243);
+%
+%	\path[ruleSty] (c243)+(0ex,\linkHeight/4) coordinate (c243x);
+%	\path[ruleSty] (c243x)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,-\linkHeight) coordinate (c252)}
+%		-- ++(\linkWidth/2,\linkHeight)
+%		-- ++(0ex,\linkHeight)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c251)
+%		-- ++(-\linkWidth/2,0ex)
+%		-- ++(0ex,-\linkHeight)
+%		-- cycle;
+%	\path[ruleSty] (c243)+(\linkWidth/2,0ex) coordinate (c252);
+%	\path[ruleSty] (c243)+(\linkWidth+\compDist,0ex)   coordinate (c253);
+%	\node[above=0ex of c252, opacity=0.7] () { \tiny "VirtualBox" };
+%
+%	\path[ruleSty] (c253)+(0ex,\linkHeight/4) coordinate (c253x);
+%	\path[ruleSty] (c253x)
+%		{[rounded corners=0ex]-- ++(\linkWidth/2,-\linkHeight)}
+%		-- ++(\linkWidth/2,\linkHeight)
+%		-- ++(0ex,\linkHeight)
+%		-- ++(-\linkWidth/2,0ex) coordinate (c261)
+%		-- ++(-\linkWidth/2,0ex)
+%		-- ++(0ex,-\linkHeight)
+%		-- cycle;
+%	\path[ruleSty] (c253)+(\linkWidth/2,0ex) coordinate (c262);
+%	\node[above=0ex of c262, opacity=0.7] () { \tiny "Arora" };
+%
+%	% peers
+%	\node[compSty, minimum width=\peerWidth, minimum height=\peerHeight, above right=0ex of c1] (c1) { \tiny NIC Driver 1 };
+%	\path[arrow, opacity=0.5] (c211) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+%
+%	\node[compSty, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c1] (c1) { \tiny NIC Driver 2 };
+%	\path[arrow, opacity=0.5] (c221) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+%
+%	\node[compSty, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c1] (c1) { \tiny Wifi Driver };
+%	\path[arrow, opacity=0.5] (c231) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+%
+%	\node[compSty, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c1] (c1) { \tiny NIC Bridge };
+%	\path[arrow, opacity=0.5] (c241) .. controls ++(0ex,2ex) and ++(0ex,-2ex) .. (c1.south);
+%
+%	\path (c1.east)+(0ex,0ex)      coordinate (c31);
+%	\path (c1.east)+(1.2ex,-0.2ex) coordinate (c32);
+%	\path (c1.east)+(2.4ex,-0.4ex) coordinate (c33);
+%	\node[compSty,  opacity=0.4, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c33] (c1) { \tiny VirtualBox 3 };
+%	\node[compSty1, opacity=0.7, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c32] (c2) { \tiny VirtualBox 2 };
+%	\node[compSty1, opacity=1.0, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c31] (c3) { \tiny VirtualBox 1 };
+%	\path (c1.south |- c251)+(1ex,0ex) coordinate (x1);
+%	\path (c2.south |- c251)+(1ex,0ex) coordinate (x2);
+%	\path (c3.south |- c251)+(1ex,0ex) coordinate (x3);
+%	\path[arrow, opacity=0.3] (c1.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x1);
+%	\path[arrow, opacity=0.4] (c2.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x2);
+%	\path[arrow, opacity=0.5] (c3.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x3);
+%	\path (c1.east |- c3.east) coordinate (c1);
+%
+%	\path (c1.east)+(0ex,0ex)      coordinate (c31);
+%	\path (c1.east)+(1.2ex,-0.2ex) coordinate (c32);
+%	\path (c1.east)+(2.4ex,-0.4ex) coordinate (c33);
+%	\node[compSty,  opacity=0.4, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c33] (c1) { \tiny Arora 3 };
+%	\node[compSty1, opacity=0.7, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c32] (c2) { \tiny Arora 2 };
+%	\node[compSty1, opacity=1.0, minimum width=\peerWidth, minimum height=\peerHeight, right=\compDist of c31] (c3) { \tiny Arora 1 };
+%	\path (c1.south |- c261)+(1ex,0ex) coordinate (x1);
+%	\path (c2.south |- c261)+(1ex,0ex) coordinate (x2);
+%	\path (c3.south |- c261)+(1ex,0ex) coordinate (x3);
+%	\path[arrow, opacity=0.3] (c1.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x1);
+%	\path[arrow, opacity=0.4] (c2.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x2);
+%	\path[arrow, opacity=0.5] (c3.south) .. controls ++(0ex,-2ex) and ++(0ex,2ex) .. (x3);
+%
+%	\node[domSty, right=0ex of y1] (c1) {};
+%	\path (c1.south) coordinate (f1);
+%	\node[below=0.5ex of c1.north] (a1) {\fontsize{6}{6} \selectfont Wired Bridge};
+%	\node[ruleSty1, above=0ex of c1.south] (b1) { };
+%	\node[below=-0.15ex of b1.north, opacity=0.65] (a1) {\tiny Routing Rules};
+%
+%	\path(c1.north)+(-1ex,0ex) coordinate (z1);
+%	\path[draw, thick, opacity=0.5, densely dotted] (z1) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (c212);
+%	\path(c1.north)+(1ex,0ex) coordinate (z1);
+%	\path[draw, thick, opacity=0.5, densely dotted] (z1) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (c222);
+%
+%	\node[domSty, right=\compDist*2 of c1] (c1) {};
+%	\path (c1.south) coordinate (f2);
+%	\node[below=0.5ex of c1.north] (a1) {\fontsize{6}{6} \selectfont Default};
+%	\node[ruleSty1, above=-0ex of c1.south] (b1) { };
+%	\node[below=-0.15ex of b1.north, opacity=0.65] (a1) {\tiny Routing Rules};
+%	\path(c1.north)+(-1ex,0ex) coordinate (z1);
+%	\path[draw, thick, opacity=0.5, densely dotted] (z1) .. controls ++(0ex,2ex) and ++(0ex,-3ex) .. (c242);
+%	\path(c1.north)+(1ex,0ex) coordinate (z1);
+%	\path(c252)+(-1ex,-1ex) coordinate (z2);
+%	\path[draw, thick, opacity=0.5, densely dotted] (z1) .. controls ++(0ex,2ex) and ++(-2ex,-3ex) .. (z2);
+%
+%	\path[arrow, <->, thick, opacity=0.5, densely dotted] (f1) .. controls ++(0ex,-5ex) and ++(0ex,-5ex) .. (f2);
+
+
+\end {tikzpicture}
