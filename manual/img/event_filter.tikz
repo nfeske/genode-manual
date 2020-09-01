@@ -56,11 +56,11 @@
 			-- cycle;
 	}
 
-	% input filter
+	% event filter
 	\node [appStyle, minimum height=30ex, minimum width=30ex] (app) { };
-	\node [below right=0ex of app.north west, opacity=0.8] { Input Filter };
+	\node [below right=0ex of app.north west, opacity=0.8] { Event Filter };
 
-	% input filter funnels
+	% event filter funnels
 	\def\funnelWidth{1}
 	\def\funnelHeight{1}
 	\def\funnelColorA{white}
