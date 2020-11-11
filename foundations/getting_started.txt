@@ -283,9 +283,9 @@ _<repo>/src/drivers/_ subdirectories:
 ! make drivers
 
 Furthermore, it is possible to specify multiple targets at once. The following
-command builds both the init component and the timer driver:
+command builds both the init component and the nitpicker GUI server component:
 
-! make init drivers/timer
+! make init server/nitpicker
 
 
 A simple system scenario
@@ -685,7 +685,7 @@ The following remarks are worth noting:
 To execute the new version of the component, we need to slightly modify the
 run script.
 
-!build "core init drivers/timer app/hello"
+!build "core init timer app/hello"
 !create_boot_directory
 !install_config {
 ! <config>
