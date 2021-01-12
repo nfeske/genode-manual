@@ -1,0 +1,68 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{kernelnode} = [treenode, bottom color=kernelcolor, minimum width=80ex]
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\tikzstyle{infoflow} = [opacity=0.3,
+	                        decoration={markings,
+	                        mark=between positions 0.1 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	%
+	% Input filter
+	%
+	\node[treenode, minimum width=26ex] (inputfilter) {Input Filter};
+	\path (inputfilter.north) node[service, scale=0.4] (inputservice) {};
+	\path (inputservice) node[scale=0.7, yshift=-2ex] {Input};
+
+	\path[treesessionarrow] (inputfilter.210) -- +(0,-5ex) node[anchor=north, sloped=false] {PS/2};
+	\path[treesessionarrow] (inputfilter.330) -- +(0,-5ex) node[anchor=north, sloped=false] {USB HID};
+
+	\path[treesessionarrow] (inputservice.north)+(0,5ex) -- (inputservice.north);
+
+	\path[infoflow] (inputfilter.south east)+(-6ex,-5ex)
+		.. controls +(4ex,4ex) and +(2ex,-4ex) .. +(-12ex,12ex);
+
+	\path[infoflow] (inputfilter.south west)+(+6ex,-5ex)
+		.. controls +(-4ex,4ex) and +(-2ex,-4ex) .. +(12ex,12ex);
+
+	%
+	% Event filter
+	%
+	\node[treenode, minimum width=26ex, right=24ex of inputfilter] (eventfilter) {Event Filter};
+	\path (eventfilter.north) node[service, scale=0.4] (eventservice) {};
+	\path (eventservice) node[scale=0.7, yshift=-2ex] {Event};
+
+	\path[treesessionarrow] (eventservice.north)+(-5ex,5ex) -- node[anchor=south, pos=0, above, sloped=false] {PS/2} (eventservice);
+	\path[treesessionarrow] (eventservice.north)+(5ex,5ex)  -- node[anchor=south, pos=0, above, sloped=false] {USB HID} (eventservice);
+
+	\path[treesessionarrow] (eventfilter.south) -- +(0,-5ex) node[anchor=north, sloped=false] {};
+
+	\path[infoflow] (eventfilter.north east)+(-6ex,7ex)
+		.. controls +(0ex,-13ex) and +(0ex,2ex) .. +(-12ex,-12ex);
+
+	\path[infoflow] (eventfilter.north west)+(6ex,7ex)
+		.. controls +(0ex,-13ex) and +(0ex,2ex) .. +(12ex,-12ex);
+
+	\path (inputfilter) -- node[opacity=0.2, draw, fill, single arrow, minimum size=8ex,
+	                             path fading=flow fade,
+	                             single arrow head extend=1ex] {} (eventfilter);
+
+\end{tikzpicture}

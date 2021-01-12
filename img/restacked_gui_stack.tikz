@@ -1,0 +1,117 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{kernelnode} = [treenode, bottom color=kernelcolor, minimum width=80ex]
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+
+	%
+	% Components
+	%
+
+	% kernel
+	\node[kernelnode] (kernel) {Kernel};
+
+	% core / init
+	\node[above=1ex of kernel, kernelnode] (core) {Core / Init};
+
+	\path (core.north) node[service, xshift=-30ex, scale=0.4] (irqservice) {};
+	\path (irqservice) node[scale=0.7, yshift=-2ex] {IRQ};
+
+	\path (core.north) node[service, xshift=-10ex, scale=0.4] (mmioservice) {};
+	\path (mmioservice) node[scale=0.7, yshift=-2ex] {MMIO};
+
+	% platform driver
+	\node[drivernode, minimum width=39ex, above=4ex of core, xshift=-20.5ex] (platformdrv) {Platform Driver};
+	\path (platformdrv.north) node[service, scale=0.4] (platformservice) {};
+	\path (platformdrv.north) node[scale=0.7, yshift=-1.5ex] {Platform};
+
+	% nitpicker GUI server
+	\node[muxnode, minimum width=39ex, above=4ex of core, xshift=20.5ex] (nitpicker) {Nitpicker GUI Server};
+	\path (nitpicker.north) node[service, scale=0.4, xshift=20ex] (nitpickerservice) {};
+	\path (nitpickerservice) node[scale=0.7, yshift=-2ex] {GUI};
+
+	\path (nitpicker.north) node[service, scale=0.4, xshift=0ex] (captureservice) {};
+	\path (captureservice) node[scale=0.7, yshift=-2ex] {Capture};
+
+	\path (nitpicker.north) node[service, scale=0.4, xshift=-20ex] (niteventservice) {};
+	\path (niteventservice) node[scale=0.7, yshift=-2ex] {Event};
+
+	% event filter
+	\node[treenode, above=6ex of nitpicker, xshift=-20.5ex] (eventfilter) {Event Filter};
+	\path (eventfilter.north) node[service, scale=0.4] (eventfilterservice) {};
+	\path (eventfilterservice) node[scale=0.7, yshift=-2ex] {Event};
+
+	% window manager
+	\node[muxnode, minimum width=24ex, anchor=east, at=(nitpicker.east), yshift=32ex] (wm) {Window Manager};
+	\path (wm.north) node[service, scale=0.4] (wmservice) {};
+	\path (wm.north) node[scale=0.7, yshift=-1.5ex] {GUI};
+
+	% nitpicker clients
+	\node[appnode, anchor=north east, minimum height=2ex, at=(wm.south east), yshift=-1ex] (backdrop) {Backdrop};
+	\node[appnode, anchor=north east, minimum height=2ex, at=(backdrop.south east), yshift=-1ex] (pointer) {Pointer};
+	\node[appnode, anchor=north east, minimum height=2ex, minimum width=5ex, at=(pointer.south east), yshift=-1ex] (app) {};
+	\node[appnode, anchor=north east, minimum height=2ex, minimum width=4ex, at=(app.south east), yshift=-1ex] (app) {};
+	\node[appnode, anchor=north east, minimum height=2ex, minimum width=3ex, at=(app.south east), yshift=-1ex] (app) {};
+	\node[appnode, anchor=north east, minimum height=2ex, minimum width=2ex, at=(app.south east), yshift=-1ex] (app) {};
+	\node[appnode, anchor=north east, minimum height=2ex, minimum width=1ex, at=(app.south east), yshift=-1ex] (app) {};
+
+	% window manager clients
+	\node[appnode, anchor=south east, minimum width=8ex, at=(wm.north east), yshift=4ex] (decorator) {Decorator};
+	\node[appnode, minimum width=8ex, left=1ex of decorator] (browser)  {Web Browser};
+	\node[appnode, minimum width=8ex, left=1ex of browser]   (terminal) {Terminal};
+	\node[appnode, minimum width=8ex, left=1ex of terminal]  (textedit) {Text Editor};
+	\node[appnode, minimum size=5ex, left=1ex of textedit] (app) {};
+	\node[appnode, minimum size=4ex, left=1ex of app] (app) {};
+	\node[appnode, minimum size=3ex, left=1ex of app] (app) {};
+	\node[appnode, minimum size=2ex, left=1ex of app] (app) {};
+	\node[appnode, minimum size=1ex, left=1ex of app] (app) {};
+
+	% drivers
+
+	\node[drivernode, anchor=west, minimum size=4ex, at=(platformdrv.west), yshift=31ex] (usbhiddrv) {USB HID Driver};
+
+	\node[drivernode, below=4ex of usbhiddrv]   (usbdrv) {USB Host Driver};
+	\path (usbdrv.north) node[service, scale=0.4] (usbservice) {};
+	\path (usbservice) node[scale=0.7, yshift=-2ex] {USB};
+
+	\node[drivernode, minimum size=4ex, right=1ex of usbhiddrv]  (ps2drv) {PS/2 Driver};
+
+	\node[drivernode, minimum size=4ex, right=1ex of ps2drv] (fbdrv)  {Intel FB Driver};
+
+	%
+	% Sessions
+	%
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+	\path[treesessionarrow] (irqservice         |- platformdrv.south) -- (irqservice);
+	\path[treesessionarrow] (mmioservice        |- platformdrv.south) -- (mmioservice);
+	\path[treesessionarrow] (fbdrv.230)         .. controls +(-1ex,-10ex) and +(4ex, 10ex)  .. (platformservice);
+	\path[treesessionarrow] (fbdrv.310)         .. controls +(2ex,-12ex)   and +(-2ex,12ex) .. (captureservice);
+	\path[treesessionarrow] (wm.220)            .. controls +(0,-2ex)     and +(-2ex,2ex)  .. (nitpickerservice);
+	\path[treesessionarrow] (pointer.210)       .. controls +(-1ex,0ex)   and +(1ex,4ex)   .. (nitpickerservice);
+	\path[treesessionarrow] (backdrop.200)      .. controls +(-3ex,-1ex)  and +(0ex,4ex)   .. (nitpickerservice);
+	\path[treesessionarrow] (decorator.south)   .. controls +(0,-2ex)     and +(2ex,2ex)   .. (wmservice);
+	\path[treesessionarrow] (browser.south)     .. controls +(0,-2ex)     and +(0ex,2ex)   .. (wmservice);
+	\path[treesessionarrow] (terminal.south)    .. controls +(1,-2ex)     and +(-2ex,2ex)  .. (wmservice);
+	\path[treesessionarrow] (textedit.south)    .. controls +(0,-2ex)     and +(-4ex,1ex)  .. (wmservice);
+	\path[treesessionarrow] (ps2drv.290)        .. controls +(0,-5ex)     and +(0ex,7ex)  .. (eventfilterservice);
+	\path[treesessionarrow] (ps2drv.250)        .. controls +(0,-10ex)     and +(0ex,10ex)   .. (platformservice);
+	\path[treesessionarrow] (usbhiddrv)         -- (usbservice);
+	\path[treesessionarrow] (usbhiddrv.340)     .. controls +(0ex,-3ex)   and +(-2ex,5ex)   .. (eventfilterservice);
+	\path[treesessionarrow] (usbdrv.south)      .. controls +(0ex,-5ex)   and +(-4ex,10ex)   .. (platformservice);
+	\path[treesessionarrow] (eventfilter.south) .. controls +(0ex,-3ex)   and +(-1ex,3ex)  .. (niteventservice);
+
+\end{tikzpicture}

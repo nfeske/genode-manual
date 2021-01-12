@@ -1,0 +1,60 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{kernelnode} = [treenode, bottom color=kernelcolor, minimum width=80ex]
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	%
+	% Old
+	%
+	\node[muxnode, minimum width=26ex] (oldnitpicker) {Nitpicker GUI Server};
+	\path (oldnitpicker.north) node[service, scale=0.4] (nitpickerservice) {};
+	\path (nitpickerservice) node[scale=0.7, yshift=-2ex] {GUI};
+
+	\path[treesessionarrow] (oldnitpicker.210) -- +(0,-5ex) node[anchor=north, sloped=false] {Input};
+	\path[treesessionarrow] (oldnitpicker.330) -- +(0,-5ex) node[anchor=north, sloped=false] {Framebuffer};
+
+	\path[treesessionarrow] (nitpickerservice.north)+(0,5ex) -- (nitpickerservice.north);
+
+
+	%
+	% New
+	%
+	\node[muxnode, minimum width=26ex, right=24ex of oldnitpicker] (nitpicker) {Nitpicker GUI Server};
+	\path (nitpicker.north) node[service, scale=0.4, xshift=20ex] (nitpickerservice) {};
+	\path (nitpickerservice) node[scale=0.7, yshift=-2ex] {GUI};
+
+	\path (nitpicker.north) node[service, scale=0.4, xshift=0ex] (captureservice) {};
+	\path (captureservice) node[scale=0.7, yshift=-2ex] {Capture};
+
+	\path (nitpicker.north) node[service, scale=0.4, xshift=-20ex] (eventservice) {};
+	\path (eventservice) node[scale=0.7, yshift=-2ex] {Event};
+
+	\path[treesessionarrow, opacity=0.5] (nitpicker.210) -- +(0,-5ex) node[align=center, anchor=north, sloped=false] {Input\\ (optional)};
+	\path[treesessionarrow, opacity=0.5] (nitpicker.330) -- +(0,-5ex) node[align=center, anchor=north, sloped=false] {Framebuffer\\ (optional)};
+
+	\path[treesessionarrow] (nitpickerservice.north)+(0,5ex) -- (nitpickerservice.north);
+	\path[treesessionarrow] (captureservice.north)+(0,5ex)   -- (captureservice.north);
+	\path[treesessionarrow] (eventservice.north)+(0,5ex)     -- (eventservice.north);
+
+	\path (oldnitpicker) -- node[opacity=0.2, draw, fill, single arrow, minimum size=8ex,
+	                             path fading=flow fade,
+	                             single arrow head extend=1ex] {} (nitpicker);
+
+\end{tikzpicture}

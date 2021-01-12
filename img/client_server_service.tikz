@@ -1,0 +1,21 @@
+\begin{tikzpicture}
+
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex, minimum width=16ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\node[treenode] (server) {Server};
+	\path (server.north) node[service, scale=0.4] (service) {};
+	\path (server.north) node[scale=0.7, yshift=-1.5ex] {Service};
+
+	\node[treenode, above=4ex of server] (client) {Client};
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+	\path[treesessionarrow] (service |- client.south) -- (service);
+
+\end{tikzpicture}

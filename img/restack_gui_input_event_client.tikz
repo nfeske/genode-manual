@@ -1,0 +1,51 @@
+\begin{tikzpicture}
+
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+
+	%
+	% Components
+	%
+
+	% nitpicker GUI server
+	\node[muxnode, minimum width=43ex] (nitpicker) {Nitpicker GUI Server};
+	\path (nitpicker.north) node[service, scale=0.4] (nitpickerservice) {};
+	\path (nitpickerservice) node[scale=0.7, yshift=-2ex] {GUI};
+	\path (nitpicker.north) node[service, scale=0.4, xshift=30ex] (eventservice) {};
+	\path (eventservice) node[scale=0.7, yshift=-2ex] {Event};
+
+	\node[treenode, minimum width=53ex, below=8ex of nitpicker, xshift=5ex] (inputfilter) {Input Filter};
+	\path (inputfilter.north) node[service, scale=0.4] (inputfilterservice) {};
+	\path (inputfilterservice) node[scale=0.7, yshift=-2ex] {Input};
+
+	\node[drivernode, minimum width=25ex, below=8ex of inputfilter, xshift=14ex]  (ps2drv) {PS/2 Driver};
+	\path (ps2drv.north) node[service, scale=0.4] (ps2service) {};
+	\path (ps2service) node[scale=0.7, yshift=-2ex] {Input};
+
+	\node[drivernode, minimum width=25ex, below=8ex of inputfilter, xshift=-14ex] (usbhiddrv) {USB HID Driver};
+	\path (usbhiddrv.north) node[service, scale=0.4] (usbhidservice) {};
+	\path (usbhidservice) node[scale=0.7, yshift=-2ex] {Input};
+
+	\node[treenode, minimum width=25ex, minimum height=6ex, above=8ex of nitpicker, xshift=19ex] (inputeventclient) {Input-Event Client};
+
+	%
+	% Sessions
+	%
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+	\path[treesessionarrow] (eventservice|- inputeventclient.south)   -- (eventservice);
+	\path[treesessionarrow] (inputeventclient.330) .. controls +(0,-25ex) and +(12ex, 4ex) .. (inputfilterservice);
+	\path[treesessionarrow] (usbhidservice      |- inputfilter.south) -- (usbhidservice);
+	\path[treesessionarrow] (ps2service         |- inputfilter.south) -- (ps2service);
+
+\end{tikzpicture}

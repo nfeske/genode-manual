@@ -1,0 +1,43 @@
+\begin{tikzpicture}
+
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+
+	%
+	% Components
+	%
+
+	% nitpicker GUI server
+	\node[muxnode, minimum width=53ex] (nitpicker) {Nitpicker GUI Server};
+	\path (nitpicker.north) node[service, scale=0.4, xshift=-30ex] (nitpickerservice) {};
+	\path (nitpickerservice) node[scale=0.7, yshift=-2ex] {GUI};
+	\path (nitpicker.north) node[service, scale=0.4, xshift=0ex] (eventservice) {};
+	\path (eventservice) node[scale=0.7, yshift=-2ex] {Event};
+
+	\node[treenode, minimum width=53ex, above=8ex of nitpicker] (eventfilter) {Event Filter};
+	\path (eventfilter.north) node[service, scale=0.4] (eventfilterservice) {};
+	\path (eventfilterservice) node[scale=0.7, yshift=-2ex] {Event};
+
+	\node[drivernode, minimum width=25ex, above=8ex of eventfilter, xshift=14ex]  (ps2drv) {PS/2 Driver};
+	\node[drivernode, minimum width=25ex, above=8ex of eventfilter, xshift=-14ex] (usbhiddrv) {USB HID Driver};
+
+	%
+	% Sessions
+	%
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+	\path[treesessionarrow] (ps2drv) -- (eventfilterservice);
+	\path[treesessionarrow] (usbhiddrv) -- (eventfilterservice);
+	\path[treesessionarrow] (eventfilter) -- (eventservice);
+
+\end{tikzpicture}

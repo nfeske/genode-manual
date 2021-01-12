@@ -1,0 +1,48 @@
+\begin{tikzpicture}
+
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	%
+	% Original driver
+	%
+
+	\node[drivernode, minimum width=25ex]  (olddriver) {Input Driver};
+	\path (olddriver.north) node[service, scale=0.4] (driverservice) {};
+	\path (driverservice) node[scale=0.7, yshift=-2ex] {Input};
+	\path[treesessionarrow] (driverservice.north)+(0,10ex) -- (driverservice.north);
+
+	%
+	% New driver + input-event bridge
+	%
+
+	\node[treenode, right=30ex of olddriver, minimum width=25ex] (bridge) {Input-Event Bridge};
+	\path (bridge.north) node[service, scale=0.4, xshift=-15ex] (bridgeinputservice) {};
+	\path (bridgeinputservice) node[scale=0.7, yshift=-2ex] {Input};
+	\path (bridge.north) node[service, scale=0.4, xshift=15ex] (bridgeeventservice) {};
+	\path (bridgeeventservice) node[scale=0.7, yshift=-2ex] {Event};
+	\path[treesessionarrow] (bridgeinputservice.north)+(0,10ex) -- (bridgeinputservice.north);
+
+	\node[drivernode, above=4ex of bridgeeventservice] (newdriver) {Input Driver};
+	\path[treesessionarrow] (newdriver) -- (bridgeeventservice);
+
+	%
+	% Sessions
+	%
+	\path (olddriver) -- node[opacity=0.2, draw, fill, single arrow, minimum size=8ex,
+	                          path fading=flow fade,
+	                          single arrow head extend=1ex, yshift=5ex] {} (bridge);
+
+\end{tikzpicture}

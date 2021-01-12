@@ -1,0 +1,64 @@
+\begin{tikzpicture}
+
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex, minimum width=16ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+
+	\tikzstyle{infoflow} = [opacity=0.5,
+	                        decoration={markings,
+	                        mark=between positions 0.1 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	\tikzstyle{signalarrow}      = [arrow, densely dotted, sloped=false, thick]
+	\tikzstyle{treesessionarrow} = [arrow, thick, sloped=false]
+	\tikzstyle{smallabel}        = [scale=0.8]
+
+	%
+	% Input
+	%
+	\node[drivernode] (inputserver) {Input Server};
+	\path (inputserver.north) node[service, scale=0.4] (inputservice) {};
+	\path (inputserver.north) node[scale=0.7, yshift=-1.5ex] {Input};
+
+	\node[treenode, above=14ex of inputserver] (inputclient) {Input Client};
+
+	\path[treesessionarrow] (inputservice |- inputclient.south)
+	   -- node[left, smallabel, align=right] {request\\ pending\\ events} (inputservice);
+
+	\path[infoflow] (inputserver.45)
+		.. controls +(4ex,4ex) and +(4ex,-4ex) .. node[right, align=left] {event\\ flow} (inputclient.315);
+
+	\path[signalarrow] (inputserver.135)
+		.. controls +(-4ex,4ex) and +(-4ex,-4ex) .. node[left, smallabel] {notify} (inputclient.225);
+
+	%
+	% Event
+	%
+	\node[treenode, right=24ex of inputserver] (eventserver) {Event Server};
+	\path (eventserver.north) node[service, scale=0.4] (eventservice) {};
+	\path (eventserver.north) node[scale=0.7, yshift=-1.5ex] {Event};
+
+	\node[drivernode, above=14ex of eventserver] (eventclient) {Event Client};
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+	\path[treesessionarrow] (eventservice |- eventclient.south) -- (eventservice);
+
+	\path[treesessionarrow] (eventservice |- eventclient.south)
+	   -- node[left, smallabel, align=right, sloped=false] {push\\ event\\ batch} (eventservice);
+
+	\path[infoflow] (eventclient.315)
+		.. controls +(4ex,-4ex) and +(4ex,4ex) .. node[right, align=left] {event\\ flow} (eventserver.45);
+
+	\path (inputserver) -- node[opacity=0.2, draw, fill, single arrow, minimum size=8ex,
+	                           path fading=flow fade,
+	                           single arrow head extend=1ex] {} (eventclient);
+
+\end{tikzpicture}
