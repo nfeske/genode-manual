@@ -1,0 +1,46 @@
+\begin{tikzpicture}
+
+	\definecolor{containercolor} {rgb}{0.95,0.95,0.95}
+	\definecolor{textcolor}      {rgb}{0.97,0.94,0.90}
+	\definecolor{datacolor}      {rgb}{0.9,0.9,0.95}
+	\definecolor{physicalcolor}  {rgb}{0.6,0.7,0.9}
+	\definecolor{virtualcolor}   {rgb}{0.6,0.8,0.7}
+
+	\tikzstyle{compound} = [draw, dropshadow, fill opacity=0.8, draw opacity=0.2,
+	                        rounded corners=1]
+
+	\tikzstyle{container}   = [compound, fill=containercolor]
+	\tikzstyle{textsegment} = [compound, fill=textcolor]
+	\tikzstyle{datasegment} = [compound, fill=datacolor]
+
+	\node[container, minimum width=45ex, minimum height=48ex] (imageelf) {};
+	\node[below=0.5ex of imageelf.north] {\texttt{image.elf}};
+
+	\node[container, above=2ex of imageelf.south,
+	      minimum width=40ex, minimum height=32ex] (imagedata) {};
+
+	\node[textsegment, fill=physicalcolor!50!white, above=2ex of imagedata.north,
+	      minimum width=40ex, minimum height=8ex] (imagetext) {};
+	\node[below=0.5ex of imagetext.north, text opacity=0.5] {Executable};
+
+	\node[below=3ex of imagetext.north] {\texttt{bootstrap/hw/bootstrap-hw-pine\_a64lts.o}};
+
+	\node[textsegment, fill=virtualcolor!50!white, below=4ex of imagedata.north,
+	      minimum width=35ex, minimum height=8ex] (coreobj) {};
+	\node[below=0.5ex of coreobj.north, text opacity=0.5] {Executable};
+
+	\node[below=3ex of coreobj.north] {\texttt{core/hw/core-hw-pine\_a64lts.a}};
+
+	\node[container, below=2ex of coreobj.south,
+	      minimum width=35ex, minimum height=16ex] (bootmodules) {};
+
+	\node[below=0.5ex of bootmodules.north] {\texttt{var/run/log.boot\_modules.o}};
+
+	\node[below=0.5ex of imagedata.north] {\texttt{core.elf}};
+
+	\node[container, below=4ex of bootmodules.north, fill=white,
+	      minimum width=30ex, minimum height=5ex, align=left] (bootmodulescontent)
+	      {\texttt{config}\\ \texttt{init}\\ \texttt{ld.lib.so}\\ \texttt{test-log}};
+
+
+\end{tikzpicture}

@@ -1,0 +1,69 @@
+\begin{tikzpicture}
+
+	\tikzstyle{bstep} = [fill, fill opacity=0.1, text opacity=1, minimum width=16ex, minimum height=6ex]
+
+	\node[bstep] (uboot) {U-Boot};
+
+	\path (uboot.north east)+(-0ex,0) node[bstep, anchor=south west]
+	      (bootstrap) {Bootstrap};
+
+	\path (bootstrap.north east)+(-0ex,0) node[bstep, anchor=south west]
+	      (core) {Core / Kernel};
+
+	\path (core.north east)+(-0ex,0) node[bstep, anchor=south west]
+	      (init) {Init};
+
+	\path[draw, thick] (uboot.south west) -- (uboot.north west)
+	   -- (bootstrap.west |- uboot.north) -- (bootstrap.north west)
+	   -- (core.west |- bootstrap.north) -- (core.north west)
+	   -- (init.west |- core.north) -- (init.north west) -- (init.north east);
+
+	\path[draw] (uboot.north east) -- (uboot.north west);
+	\path[draw] (bootstrap.north east) -- (bootstrap.north west);
+	\path[draw] (core.north east) -- (core.north west);
+
+	% artificially extend image to the right for visual balance
+	\path (init.east |- core.north)+(16ex,0) coordinate (cpumodeeast);
+
+	\path[draw=red!80!black, thick, densely dashed] (uboot.west |- core.north)+(-16ex,0)
+	   -- node[pos=0.1, above] {user mode}
+	      node[pos=0.1, below] {privileged mode} (init.east |- core.north);
+
+	\tikzstyle{elfload} = [arrow, sloped=false];
+
+	\path[elfload] (uboot.east)+(-2ex,0) .. controls +(5ex, -2ex) and +(2ex, -3ex)
+	   .. node[pos=0.6, below=1ex, scale=0.8] {ELF load} (bootstrap.south);
+
+	\path[elfload] (bootstrap.east)+(-2ex,0) .. controls +(5ex, -2ex) and +(2ex, -3ex)
+	   .. node[pos=0.6, below=1ex, scale=0.8] {ELF load} (core.south);
+
+	\path[elfload] (core.east)+(-2ex,0) .. controls +(5ex, -2ex) and +(2ex, -3ex)
+	   .. node[pos=0.6, below=1ex, scale=0.8] {ELF load} (init.south);
+
+	\path (bootstrap.east)+(-0ex,0) coordinate (mmuboundary);
+
+	\path (init.north)+(0,2ex)   coordinate (northboundary);
+	\path (uboot.south)+(0,-6ex) coordinate (southboundary);
+
+	\path (bootstrap.west |- southboundary) node[below] {MMU disabled};
+	\path (bootstrap.west |- southboundary) node[above, opacity=0.5] {physical memory};
+	\path (init.west      |- southboundary) node[below] {MMU enabled};
+	\path (init.west      |- southboundary) node[above, opacity=0.5] {virtual memory};
+
+	\begin{scope}[on background layer]
+
+		\definecolor{physicalcolor}    {rgb}{0.6,0.7,0.9}
+		\definecolor{virtualcolor}     {rgb}{0.6,0.8,0.7}
+
+		\path[fill=physicalcolor, fill opacity=0.2, draw=physicalcolor, rounded corners=0]
+		   (uboot.west  |- southboundary) -- (uboot.west  |- northboundary) --
+		   (mmuboundary |- northboundary) -- (mmuboundary |- southboundary) --cycle;
+
+		\path[fill=virtualcolor, fill opacity=0.2, draw=virtualcolor, rounded corners=0]
+		   (mmuboundary |- southboundary) -- (mmuboundary |- northboundary) --
+		   (init.east   |- northboundary) -- (init.east   |- southboundary) --cycle;
+
+	\end{scope}
+
+
+\end{tikzpicture}
