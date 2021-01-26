@@ -1,0 +1,15 @@
+\begin{tikzpicture}
+
+	\input{img/base_hw_soc_dirs.inc}
+
+	\node (leftanchor) {};
+	\path (leftanchor) coordinate (anchor);
+	\path (anchor) node[dirnode] (basehwdir) {base-hw/};
+	\dirstructure{imx8q\_evk}
+
+	\path (leftanchor)+(50ex,0) coordinate (anchor);
+
+	\path (anchor) node[dirnode] (allwinner) {allwinner/};
+	\dirstructure{pine\_a64lts}
+
+\end{tikzpicture}

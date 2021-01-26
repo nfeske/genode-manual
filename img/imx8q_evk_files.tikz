@@ -1,0 +1,10 @@
+\begin{tikzpicture}
+
+	\input{img/base_hw_soc_dirs.inc}
+
+	\node (leftanchor) {};
+	\path (leftanchor) coordinate (anchor);
+	\path (anchor) node[dirnode] (basehwdir) {base-hw/};
+	\dirstructure{imx8q\_evk}
+
+\end{tikzpicture}
