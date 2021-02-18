@@ -1,0 +1,92 @@
+\begin{tikzpicture}
+
+	\definecolor{containercolor} {rgb}{0.95,0.95,0.95}
+	\definecolor{textcolor}      {rgb}{0.97,0.94,0.90}
+	\definecolor{datacolor}      {rgb}{0.9,0.9,0.95}
+	\definecolor{physicalcolor}  {rgb}{0.6,0.7,0.9}
+	\definecolor{virtualcolor}   {rgb}{0.6,0.8,0.7}
+
+	\tikzstyle{container}   = [compound, fill=containercolor]
+	\tikzstyle{textsegment} = [compound, fill=textcolor]
+	\tikzstyle{datasegment} = [compound, fill=datacolor]
+
+	\tikzstyle{code} = [minimum height=3ex];
+	\tikzstyle{log} = [code, color=green!60!black];
+
+	\coordinate (anchor);
+
+	\path (anchor) node[anchor=north west, code] (class) { class Kernel::Cpu : };
+
+	\path (class.north east) node[anchor=north west, code] (inherit1) { public Genode::Cpu, };
+	\path (inherit1.south west) node[anchor=north west, code] (inherit2) { private Irq::Pool, };
+	\path (inherit2.south west) node[anchor=north west, code] (inherit3) { private Timout };
+
+	\path (class.west |- inherit3.south) coordinate (anchor);
+
+	\path (anchor) node[anchor=north west, code] (openbrace) { \{ };
+
+	\path (openbrace.south east) coordinate (member);
+	
+	\path (member) node[anchor=north west, code] (arbitrary) {...};
+
+	\path (arbitrary.south west) node[log, anchor=north west, code] (log)
+	    {bool \_x1 = (Genode::log(\_\_FILE\_\_, ":", \_\_LINE\_\_), true);};
+
+	\path (log.south west)+(0,-3ex) node[anchor=north west, code] (idtype) {unsigned const};
+	\path (idtype.north west) node[anchor=north west, code, xshift=15ex] (id) {\_id;};
+
+	\path (idtype.south west) node[anchor=north west, code] (pictype) {Board::Pic};
+	\path (pictype.north west) node[anchor=north west, code, xshift=15ex] (pic) {\_pic \{ \};};
+
+	\path (pictype.south west) node[anchor=north west, code] (schedtype) {Cpu\_scheduler};
+	\path (schedtype.north west) node[anchor=north west, code, xshift=15ex] (scheduler) {\_scheduler;};
+
+	\path (schedtype.south west) node[anchor=north west, code] (arbitrary) {...};
+
+	\path (arbitrary.south west) node[anchor=north west, code, yshift=-2ex] (constructor) {Cpu(unsigned id, ...)};
+
+	\path (constructor.south west) node[anchor=north west, code] (initializer) {:};
+
+	\path (initializer.south east) node[anchor=north west, code] (initid) {\_id(id),};
+	\path (initid.south west) node[anchor=north west, code] (arbitrary) {...};
+
+	\path (initializer.west |- arbitrary.south) coordinate (anchor);
+
+	\path (anchor) node[anchor=north west, code] (constopenbrace) { \{ };
+	\path (constopenbrace.south east) node[anchor=north west, code] (constcode) {...};
+
+	\path (initializer.west |- constcode.south) coordinate (anchor);
+	\path (anchor) node[anchor=north west, code] (constclosebrace) { \} };
+	\path (constclosebrace.south west) node[anchor=north west, code, yshift=-2ex] (arbitrary) {...};
+
+	\path (class.west |- arbitrary.south) coordinate (anchor);
+	\path (anchor) node[anchor=north west, code] (closebrace) { \}; };
+
+	\path (class.west |- arbitrary.north) coordinate (finish);
+
+	\tikzstyle{controlflow} = [arrow, thick, red!70!black]
+
+	\path[controlflow] (class.north west) .. controls +(1ex, 0ex) and +(-3ex, 3ex) .. (inherit1.north);
+
+	\path[controlflow] (inherit1.east) .. controls +(2ex, -1ex) and +(2ex, 0ex) .. (inherit2.5);
+
+	\path[controlflow] (inherit2.east) .. controls +(2ex, -1ex) and +(2ex, 0ex) .. (inherit3.5);
+
+	\path[controlflow] (inherit3.east) .. controls +(2ex, -3ex) and +(-1ex, 5ex) .. (log);
+
+	\path[controlflow] (log.south) .. controls +(-2ex, -3ex) and +(1ex, 5ex) .. (id);
+
+	\path[controlflow] (id.west) .. controls +(-2ex, -1ex) and +(-2ex, 1ex) .. (pic.170);
+
+	\path[controlflow] (pic.west) .. controls +(-2ex, -1ex) and +(-2ex, 1ex) .. (scheduler.175);
+
+	\path[controlflow] (scheduler.185)+(0,-1ex) .. controls +(-18ex, -1ex) and +(-7ex, 6ex) .. (constopenbrace.north);
+
+	\path[controlflow] (constclosebrace.east) .. controls +(3ex, -1ex) and +(7ex, 0ex) .. (finish);
+
+	\path (scheduler.east)+(5ex,0) coordinate (anchor);
+
+	\path[draw, ->, densely dotted, opacity=0.6] (initid.east)
+	      -- (anchor |- initid.east) -- (anchor |- id.east) -- (id.east);
+
+\end{tikzpicture}
