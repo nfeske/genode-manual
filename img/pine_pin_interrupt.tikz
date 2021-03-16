@@ -1,0 +1,237 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{kernelnode} = [treenode, bottom color=kernelcolor, minimum width=18ex]
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\tikzstyle{signal} = [sloped=false, >= stealth]
+
+	\tikzstyle{memrange} = [anchor=north, draw, minimum width=3ex, inner sep=0, outer sep=0]
+
+
+	%
+	% Components
+	%
+
+	% core / init
+	\node[kernelnode] (core) {Core / Init};
+
+	\path (core.north) node[service, scale=0.4, xshift=8ex]  (mmioservice) {};
+	\path (core.north) node[service, scale=0.4, xshift=-8ex] (irqservice)  {};
+	\path (mmioservice) node[scale=0.7, yshift=-2ex] {MMIO};
+	\path (irqservice)  node[scale=0.7, yshift=-2ex] {IRQ};
+
+	% gpio test
+	\node[appnode, minimum width=18ex, minimum height=16ex, above=4ex of core, align=center]
+	     (gpiotest) {};
+	\path (irqservice.north)+(0,6ex)
+		node[scale=0.7, align=center] (irqhandler)  {Interrupt\\handler};
+
+	\path (gpiotest) node[align=center, xshift=-2ex] {GPIO\\Interrupt\\Test\\};
+
+	% sessions
+	\path[treesessionarrow] (mmioservice |- gpiotest.south) -- (mmioservice);
+	\path[treesessionarrow] (irqservice  |- gpiotest.south) -- (irqservice);
+
+
+	%
+	% Device registers
+	%
+
+	\tikzstyle{devreg} = [inner sep=0, outer sep=0, draw, anchor=north, minimum width=17ex, minimum height=3ex]
+
+	\path (core)+(34ex,25ex) coordinate (anchor);
+
+	\path (anchor)             node[devreg] (pbcfg0)  {PB\_CFG0};
+	\path (pbcfg0.south)       node[devreg] (anchor)  {...};
+	\path (anchor.south)       node[devreg] (pbeintcfg0)  {PB\_EINT\_CFG0};
+	\path (pbeintcfg0.south)   node[devreg, minimum height=5ex] (anchor)  {...};
+	\path (anchor.south)       node[devreg] (pbeintstatus) {};
+	\path (pbeintstatus.south) node[devreg] (anchor)     {...};
+	\path (anchor.south)       node[devreg] (pbeintctl)  {};
+	\path (pbeintctl.south)    node[devreg, opacity=0.5]  (anchor)  {...};
+	\path (anchor.south)       node[devreg, opacity=0.2]  (anchor)  {...};
+	\path (anchor.south west)  coordinate (lastreg) {};
+
+	\path (pbcfg0.north) node[anchor=south] (devregs) {Device Registers};
+
+	\tikzstyle{bit} = [draw, draw opacity=0.1, anchor=north east,
+	                   minimum width=1ex, minimum height=3ex,
+	                   inner sep=0, outer sep=0]
+
+	\newcommand\bitarray[1]{
+		\foreach \i in {0, 1,...,#1} {
+			\path (anchor)+(\i*-1ex,0)
+				node[bit] (bit\i) { }; } }
+
+	% bits of the status register
+	\path (pbeintstatus.north east) coordinate (anchor) {};
+	\bitarray{9}
+	\path (bit2.north) coordinate (statusbit2in)  {};
+	\path (bit2.south) coordinate (statusbit2out) {};
+
+	% bits of the control register
+	\path (pbeintctl.north east) coordinate (anchor) {};
+	\bitarray{9}
+	\path (bit2.south) coordinate (ctlbit2out) {};
+
+	\node[at=(pbeintstatus)] {PB\_EINT\_STATUS};
+	\node[at=(pbeintctl)]    {PB\_EINT\_CTL};
+
+
+	%
+	% Pin MUX
+	%
+
+	\path (pbcfg0)+(30ex,-7ex)
+		node [draw, thick, rotate=270, trapezium, trapezium angle=60, minimum width=10ex] (pinmux) {};
+
+	\node[at=(pinmux), scale=0.8] {MUX};
+
+	\path (pinmux.south) coordinate (pbcontact) {};
+
+	\draw[-] (pbcontact)+(0,3ex)    -- ++(-2ex,3ex);
+	\draw[-] (pbcontact)+(0,1.5ex)  -- ++(-2ex,1.5ex);
+	\draw[-] (pbcontact)+(0,-1.5ex) -- ++(-2ex,-1.5ex);
+	\draw[-] (pbcontact)+(0,-3ex)   -- ++(-2ex,-3ex);
+
+	% contact to the board
+	\draw[signal, <-] (pinmux.north) -- ++(2ex,0) node[align=left, xshift=1ex] (pb2) {PB2\\};
+
+	% mux selector defined by PB_CFG0
+	\path (pinmux |- pbcfg0) coordinate (corner) {};
+	\draw[signal, ->] (pbcfg0) -- (corner) -- (pinmux);
+
+
+	%
+	% Trigger logic
+	%
+
+	\path (pinmux)+(-12ex,0) node[draw, thick, align=center] (triggerlogic) {Trigger\\Logic};
+
+	% input from pin MUX
+	\draw[signal, ->] (pbcontact)  -- node[above, scale=0.5] {PB\_EINT2} (triggerlogic);
+
+	% input from PB_EINT_CFG0
+	\draw[signal, ->] (pbeintcfg0) -- node[scale=0.7, align=center] {positive\\edge} (triggerlogic.west |- pbeintcfg0);
+
+	% output to PB_EINT_STATUS bit 2
+	\path (triggerlogic.south) -- coordinate (midway) (statusbit2in);
+	\draw[signal, ->] (triggerlogic.south) -- (triggerlogic.south |- midway)
+	               -- (statusbit2in |- midway) -- node[pos=0.5, left, scale=0.7] {2} (statusbit2in);
+
+
+	%
+	% GIC IRQ gating
+	%
+
+	\path (triggerlogic)+(0,-19ex) node[draw, thick, align=center, minimum size=4ex] (irqgate) {};
+	\node[at=(irqgate)] {$\&$};
+
+	% input from status bit to gate
+	\path (irqgate.north)+(1ex,0) coordinate (connector) {};
+	\path (connector) -- coordinate[pos=0.85] (midpoint) (statusbit2out);
+	\draw[signal, ->] (statusbit2out) -- (statusbit2out |- midpoint) --
+	                  (connector |- midpoint) -- (connector);
+
+	% input from cfg bit to gate
+	\path (irqgate.north)+(-1ex,0) coordinate (connector) {};
+	\path (connector) -- coordinate[pos=0.5] (midpoint) (ctlbit2out);
+	\draw[signal, ->] (ctlbit2out) -- (ctlbit2out |- midpoint) --
+	                  (connector |- midpoint) -- (connector);
+
+	%
+	% Compound for PIO
+	%
+
+	\node[fit=(pinmux) (devregs) (lastreg) (irqgate), draw, opacity=0.5, fill=black, fill opacity=0.03] (pio) {};
+
+	\path (pio.south east) node[anchor=south east, scale=2, opacity=0.6] {PIO};
+
+
+	%
+	% System bus
+	%
+
+	\path (devregs)+(-17ex,0) node (sysbus) {System Bus};
+
+	\path (sysbus.south) node[memrange, fill, fill opacity=0.03, draw opacity=0.5, minimum height=12ex] {};
+	\path (sysbus.south)+(0,-8ex) node[memrange, fill=black, fill opacity=0.1, minimum height=1ex] (piobusaddr) {};
+
+	% mapping of device registers at the system bus
+	\draw[fill=black, draw opacity=0.2, fill opacity=0.05]
+		(piobusaddr.north east) -- (pbcfg0.north west) --
+		(lastreg.south west) -- (piobusaddr.south east);
+
+
+	%
+	% Interrupt controller
+	%
+
+	\path (sysbus)+(0,-18ex) node (gic) {GIC};
+
+	\tikzstyle{irq} = [draw, draw opacity=0.5,
+	                   inner sep=0, anchor=north, minimum size=1ex];
+
+	\path (gic)+(0,-2ex) node[irq, draw opacity=0.15] (irq0) {};
+	\path (irq0.south) coordinate (anchor) {};
+	\path (anchor) node[irq, draw opacity=0.3] (irq1) {};
+	\path (irq1.south) coordinate (anchor) {};
+
+	\foreach \i in {40, 41,...,49} {
+		\path (anchor) node[irq] (irq\i) { };
+		\path (irq\i.south) coordinate (anchor) {};
+	}
+
+	\path (anchor) node[irq, draw opacity=0.3] (irq998) {};
+	\path (irq998.south) coordinate (anchor) {};
+	\path (anchor) node[irq, draw opacity=0.15] (irq999) {};
+	\path (irq999.south) coordinate (anchor) {};
+
+	\path (irq999.south)+(4ex,0) coordinate (midpoint) {};
+	\draw[signal, ->] (irqgate.south) -- (irqgate.south |- midpoint) --
+	                  (midpoint) -- (midpoint |- irq43) -- (irq43);
+
+	\path (irq43.west)+(-1ex,0.7ex) node[scale=0.7] {43};
+
+	\path (irq49.south)+(-4ex,0) coordinate (midpoint) {};
+
+	\draw[signal, densely dotted, rounded corners=10] (irq43) -- (midpoint |- irq43) -- (midpoint) --
+	                  (irqservice |- midpoint) -- (irqhandler);
+
+
+	%
+	% Virtual address space
+	%
+
+	\path (gpiotest |- sysbus) node (sysbus) {Genode};
+
+	\path (gpiotest)+(6ex,4ex) node (vaddr) {};
+
+	\path (vaddr) node[anchor=south, scale=0.7, align=center] {Virtual\\Memory};
+
+	\path (vaddr.south) node[memrange, fill=white, fill opacity=0.53, draw opacity=0.5, minimum height=10ex] {};
+	\path (vaddr.south)+(0,-5ex) node[memrange, fill=black, fill opacity=0.1, minimum height=1ex] (piovirtaddr) {};
+
+	% mapping from system bus to virtual address space
+	\draw[fill=black, draw opacity=0.2, fill opacity=0.05]
+	     (piovirtaddr.north east) -- (piobusaddr.north west) --
+	     (piobusaddr.south west) -- (piovirtaddr.south east);
+
+\end{tikzpicture}
+
