@@ -1,0 +1,62 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{kernelnode} = [treenode, bottom color=kernelcolor, minimum width=18ex]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+
+	%
+	% Components
+	%
+
+	% core / init
+	\node[kernelnode] (core) {Core / Init};
+
+	\path (core.north) node[service, scale=0.4, xshift=8ex]  (mmioservice) {};
+	\path (core.north) node[service, scale=0.4, xshift=-8ex] (irqservice)  {};
+	\path (mmioservice) node[scale=0.7, yshift=-2ex] {MMIO};
+	\path (irqservice)  node[scale=0.7, yshift=-2ex] {IRQ};
+
+	% gpio test
+	\node[appnode, minimum width=18ex, above=4ex of core, align=center]
+	     (gpiotest) {};
+
+	\path (gpiotest) node[align=center] {PIO Test};
+
+	% sessions
+	\path[treesessionarrow] (mmioservice |- gpiotest.south) -- (mmioservice);
+	\path[treesessionarrow] (irqservice  |- gpiotest.south) -- (irqservice);
+
+
+	\tikzstyle{risk} = [rectangle callout, fill=red!80!black, rounded corners=3, text=white]
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	\path (core.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		ultimate \\
+		authority
+		};
+
+	\path (gpiotest.east)+(3ex,0ex)
+		node [risk, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		access to \\
+		any device
+		};
+
+\end{tikzpicture}
+
