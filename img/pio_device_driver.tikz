@@ -1,0 +1,113 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{drivernode} = [treenode, bottom color=criticalcolor]
+	\tikzstyle{kernelnode} = [treenode, bottom color=kernelcolor, minimum width=18ex]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+
+	%
+	% Components
+	%
+
+	% core / init
+	\node[kernelnode] (core) {Core / Init};
+
+	\path (core.north) node[service, scale=0.4, xshift=8ex]  (mmioservice) {};
+	\path (core.north) node[service, scale=0.4, xshift=-8ex] (irqservice)  {};
+	\path (mmioservice) node[scale=0.7, yshift=-2ex] {MMIO};
+	\path (irqservice)  node[scale=0.7, yshift=-2ex] {IRQ};
+
+	% platform driver
+	\node[drivernode, minimum width=18ex, above=4ex of core, align=center]
+	     (platformdrv) {};
+
+	\path (platformdrv) node[align=center] {Platform Driver};
+
+	\path (platformdrv.north) node[service, scale=0.4]  (platformservice) {};
+	\path (platformservice) node[scale=0.7, yshift=-2ex] {Platform};
+
+	% pio driver
+	\node[drivernode, minimum width=18ex, above=4ex of platformdrv, align=center]
+	     (piodrv) {};
+
+	\path (piodrv) node[align=center] {PIO Driver};
+
+	\path (piodrv.north) node[service, scale=0.4, xshift=-12ex]  (pincontrolservice) {};
+	\path (piodrv.north) node[service, scale=0.4, xshift=8ex] (pinirqservice)  {};
+	\path (piodrv.north) node[service, scale=0.4, xshift=16ex] (pinstateservice)  {};
+	\path (pincontrolservice) node[align=center, scale=0.5, yshift=-3.2ex] {Pin\\control};
+	\path (pinirqservice)     node[scale=0.7, yshift=-2ex] {IRQ};
+	\path (pinstateservice)   node[align=center, scale=0.5, yshift=-3.2ex] {Pin\\state};
+
+	\node[appnode, minimum width=8ex, above=4ex of piodrv.north west,
+	      align=center, anchor=south west]
+	     (ledpulse) {};
+
+	\path (ledpulse) node[align=center] {LED\\Pulse};
+
+	\node[appnode, minimum width=8ex, above=4ex of piodrv.north east,
+	      align=center, anchor=south east]
+	     (pinbutton) {};
+
+	\path (pinbutton) node[align=center] {Pin\\Button};
+
+	% sessions
+	\path[treesessionarrow] (mmioservice  |- platformdrv.south) -- (mmioservice);
+	\path[treesessionarrow] (irqservice   |- platformdrv.south) -- (irqservice);
+	\path[treesessionarrow] (platformservice |- piodrv.south) -- (platformservice);
+
+	\path[treesessionarrow] (pincontrolservice |- ledpulse.south)  -- (pincontrolservice);
+	\path[treesessionarrow] (pinstateservice   |- pinbutton.south) -- (pinstateservice);
+	\path[treesessionarrow] (pinirqservice     |- pinbutton.south) -- (pinirqservice);
+
+	\tikzstyle{risk} = [rectangle callout, fill=red!80!black, rounded corners=3, text=white]
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	\path (core.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		ultimate \\
+		authority
+		};
+
+	\path (platformdrv.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		authority over \\
+		all device resources
+		};
+
+	\path (piodrv.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		authority over \\
+		all GPIO pins
+		};
+
+	\path (pinbutton.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		authority to observe \\
+		GPIO pin 8 at bank H
+		};
+
+	\path (ledpulse.north)+(0ex,3ex)
+		node [details, anchor=south, callout relative pointer={(0ex,-3ex)}, align=left] {
+		authority to control \\
+		GPIO pin 2 at bank B
+		};
+
+\end{tikzpicture}
+
