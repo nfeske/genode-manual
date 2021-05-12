@@ -1,0 +1,22 @@
+\begin{tikzpicture}
+
+	\node[opacity=0, inner sep=0, minimum size=1ex] (gap) { };
+
+	\draw[opacity=0.4, densely dotted, <-] (gap) -- +(6ex, -6ex) -- ++(8ex, -6ex) node[opacity=1, anchor=west] {gap};
+
+	\path (gap)+(90:-2ex) node[anchor=east, opacity=0.2, draw, fill, single arrow, minimum size=8ex,
+	                           rotate=90, single arrow head extend=1ex] (arrow) {};
+
+	\path (arrow.west) node[align=center] {Device-tree\\analysis};
+
+	\path (gap)+(90+120:-2ex) node[anchor=east, opacity=0.2, draw, fill, single arrow, minimum size=8ex,
+	                               rotate=90+120, single arrow head extend=1ex] (arrow) {};
+
+	\path (arrow.west) node[align=center] {Rational\\thinking};
+
+	\path (gap)+(90+240:-2ex) node[anchor=east, opacity=0.2, draw, fill, single arrow, minimum size=8ex,
+	                               rotate=90+240, single arrow head extend=1ex] (arrow) {};
+
+	\path (arrow.west) node[align=center] {Intuition};
+
+\end{tikzpicture}
