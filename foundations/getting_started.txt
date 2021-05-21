@@ -130,14 +130,13 @@ repositories.
     without the need for a separate kernel. The kernel functionality is
     included in the core component. It supports the 32-bit ARM, 64-bit ARM,
     64-bit x86, and 64-bit RISC-V CPU architectures.
-    The hw platform is also used as the basis for executing Genode on top of
-    the Muen separation kernel. More information about the hw platform can be
+    More information about the hw platform can be
     found in Section [Execution on bare hardware (base-hw)].
 
   :_sel4_:
 
-    The seL4 microkernel developed by NICTA in Sydney. The support for this
-    kernel is highly experimental.
+    The seL4 microkernel developed by Data61 in Sydney. The support for this
+    kernel is experimental.
 
   :_foc_:
 
@@ -254,6 +253,11 @@ enabling GNU make to use 4 CPU cores, use the following line in the
 _build.conf_ file:
 
 ! MAKE += -j4
+
+You may also consider speeding up your workflow by enabling the use of the
+compiler cache ('ccache') using the following line:
+
+! CCACHE := yes
 
 
 Building components

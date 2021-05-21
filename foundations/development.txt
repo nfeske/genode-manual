@@ -303,6 +303,22 @@ source-code repository where the target resides:
   of the Genode source tree.
 
 
+Custom targets accompanying a library or program
+------------------------------------------------
+
+There are cases that call for building custom targets in addition to a regular
+library or or program. For example, the executable binary of an application
+may be accompanied by generated data files. The creation of such build
+artifacts can be expressed by custom make rules. However, a rule is triggered
+only if it is a dependency of the build target. This can be achieved by adding
+the rule to the 'CUSTOM_TARGET_DEPS' variable. For example,
+
+! CUSTOM_TARGET_DEPS += menu_view_styles.tar
+!
+! menu_view_styles.tar:
+!    $(VERBOSE)cd $(PRG_DIR); tar cf $(PWD)/bin/$@ styles
+
+
 Library descriptions
 ~~~~~~~~~~~~~~~~~~~~
 
