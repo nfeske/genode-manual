@@ -1,24 +1,24 @@
 \begin{tikzpicture}
 
-	\labeledcompoundnode{fbdrv}{component}{Framebuffer driver}{
+	\labeledcompoundnode{fbdrv}{component, minimum width=18ex}{Framebuffer driver}{
 
-		\rpcobjectrnode{fbsession}{align=center}{}{Framebuffer \\ session}
+		\node[capability] (fbdrvcapturesessioncap) {};
 	}
 
-	\labeledcompoundnode{inputdrv}{component, below=5ex of fbdrv}{Input driver}{
+	\labeledcompoundnode{inputdrv}{component, minimum width=18ex, below=5ex of fbdrv}{Input driver}{
 
-		\rpcobjectrnode{inputsession}{align=center}{}{Input \\ session}
+		\node[capability] (inputdrveventsessioncap) {};
 	}
 
 	\node[fit=(fbdrv) (inputdrv)] (drivers) {};
 
-	\labeledcompoundnode{gui}{component, right=5ex of drivers}{GUI server}{
+	\labeledcompoundnode{gui}{component, right=7ex of drivers}{GUI server}{
 
 		\rpcobjectrnode{guisession1}{align=center}{}{GUI session}
 		\rpcobjectrnode{guisession2}{align=center, below=1ex of guisession1}{}{GUI session}
 		\rpcobjectrnode{guisession3}{align=center, below=1ex of guisession2}{}{GUI session}
-		\node[capability, xshift=-5ex, yshift=-2ex] (guiinputsessioncap) {};
-		\node[capability, xshift=-5ex, yshift=2ex] (guifbsessioncap) {};
+		\rpcobjectlnode{capturesession}{align=center, xshift=-30ex, yshift=-2ex}{}{Capture session}
+		\rpcobjectlnode{eventsession}{align=center,   xshift=-30ex, yshift=-7ex}{}{Event session}
 	}
 
 	\labeledcompoundnode{app1}{component, right=8ex of gui, yshift=10ex,
@@ -37,8 +37,8 @@
 	}
 
 	% capability associations
-	\path [draw, dashed] (fbsessioncap) -- (guifbsessioncap);
-	\path [draw, dashed] (inputsessioncap)   -- (guiinputsessioncap);
+	\path [draw, dashed] (capturesessioncap) -- (fbdrvcapturesessioncap);
+	\path [draw, dashed] (eventsessioncap)   -- (inputdrveventsessioncap);
 	\path [draw, dashed] (guisession1cap)    -- (app1guisessioncap);
 	\path [draw, dashed] (guisession2cap)    -- (app2guisessioncap);
 	\path [draw, dashed] (guisession3cap)    -- (app3guisessioncap);

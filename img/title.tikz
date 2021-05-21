@@ -1,8 +1,8 @@
 \begin{tikzpicture}[remember picture,overlay]
 
-	\definecolor{titleblue}   {rgb}{0.75,0.75,1.0}
+	\definecolor{titlecolor}   {rgb}{0.75,0.75,1.0}
 
-	\draw [top color=black!70, bottom color=titleblue]
+	\draw [top color=black!70, bottom color=titlecolor]
 		(current page.south west) rectangle (current page.north east);
 
 	%%
@@ -84,7 +84,7 @@
 
 	\path (genode)
 		node[below=2cm, font=\normalsize \sffamily, color=titlecol,
-		     opacity=0.8, scale=2.65] (osf) {Operating System Framework 20.05};
+		     opacity=0.8, scale=2.65] (osf) {Operating System Framework 21.05};
 
 	\definecolor{subtitlecol} {rgb}{0.95,0.90,0.5}
 
