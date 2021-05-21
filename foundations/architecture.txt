@@ -1344,11 +1344,6 @@ the _state_ of the thread. This includes the register state as well as the
 execution state (whether the thread is paused or running). Those operations
 are primarily designated for realizing user-level debuggers.
 
-To aid the graceful destruction of threads, the CPU client can issue a
-_cancel-blocking_ operation, which causes the specified thread to cancel a
-current blocking operation such as waiting for an RPC response
-or the attempt to acquire a contended lock.
-
 
 Access to device resources (IO_MEM, IO_PORT, IRQ)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1473,7 +1468,7 @@ It is the responsibility of the new component's parent to obtain those
 sessions. The initial situation of the parent is depicted in Figure
 [img/creation_initial].
 The parent's memory budget is represented by the
-parent's PD (Section [Protection Domains (PD)]) session.
+parent's PD (Section [Protection domains (PD)]) session.
 The parent's virtual address space is represented by the region map contained
 in the parent's PD session.
 The parent's PD session was originally created at the parent's construction time.

@@ -1,15 +1,15 @@
 \begin{tikzpicture}
-	\rpcobjectrnode{nitpickersession}{align=center}{}{
-		Nitpicker session \\
+	\rpcobjectrnode{guisession}{align=center}{}{
+		GUI session \\
 
 		\begin{tikzpicture}
-			\rpcobjectrnode{inputsession}{align=center}{}{Input session}
+			\rpcobjectrnode{input}{align=center}{}{Input stream}
 		\end{tikzpicture}
 
 		\\
 
 		\begin{tikzpicture}
-			\rpcobjectrnode{fbsession}{align=center}{}{Framebuffer session}
+			\rpcobjectrnode{fb}{align=center}{}{Framebuffer}
 		\end{tikzpicture}
 
 		\\

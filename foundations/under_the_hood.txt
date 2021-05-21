@@ -718,8 +718,8 @@ peers as is the case for servers that deliver asynchronous notifications
 to their clients.
 A client of such a server supplies a signal-context capability as argument
 to one of the server's RPC functions.
-An example is the input session interface (Section [Input]) that allows the
-client to get notified when new user input becomes available.
+An example is the input stream of the GUI session (Section [GUI]) that allows
+the client to get notified when new user input becomes available.
 A malicious client may specify a capability that was not created via core's
 PD service but that instead refers to an RPC object local to the client.
 If the submit function was an RPC function of the signal context, the

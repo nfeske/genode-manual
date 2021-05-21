@@ -18,7 +18,7 @@
 	\path (gui.west) node[right=1ex] {GUI};
 
 	\path (gui.east) node[left=1ex, subsystem, align=center] (vfb)
-		{\tiny Virtual\\ \tiny Framebuffer};
+		{\tiny Virtual\\ \tiny GUI};
 
 	\path (vfb.west) node[left=1ex, subsystem, align=center] (vrom)
 		{\tiny Virtual\\ \tiny ROM};
@@ -58,9 +58,9 @@
 	\coordinate (avplayconfig) at (vrom |- avplay.south);
 
 	\draw[treesessionarrow] (sdlvideofb) --
-		node[right, align=center, sloped=false] {Frame\\buffer} (vfb);
+		node[right, align=center, sloped=false] {GUI} (vfb);
 	\draw[treesessionarrow] (avplayconfig) --
-		node[right, align=center, pos=0.2, sloped=false] {ROM\\"config"}
+		node[right, align=center, pos=0.2, sloped=false, xshift=-0.5ex] {ROM\\"config"}
 		coordinate[pos=0.55] (configrom) (vrom);
 
 	%
@@ -95,12 +95,12 @@
 
 	\draw[treesessionarrow] (gui.320)
 		.. controls +(270:8ex) and +(270:14ex) ..
-		node[below, sloped=false] {Nitpicker}
+		node[below, sloped=false] {GUI}
 		(nitpickerguisession);
 
-	\draw[treesessionarrow] (vfb.320)
+	\draw[treesessionarrow] (vfb.300)
 		.. controls +(270:5ex) and +(270:13ex) ..
-		node[below, sloped=false] {Nitpicker}
+		node[below, sloped=false] {GUI}
 		(nitpickeravplaysession);
 
 \end{tikzpicture}

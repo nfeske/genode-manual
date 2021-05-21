@@ -598,24 +598,71 @@ parameters
 
 [raw spec/clearpage]
 
-Input session interface
+Event session interface
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-An input session (Section [Input]) represents a stream of user-input events.
+An event session (Section [Event]) represents a stream of user-input events
+from client to server.
 
-; XXX Input::Session_client
+; XXX Event::Session_client
 
-; Input::Session
-[raw spec/classes/input/session/description]
+; Event::Session
+[raw spec/classes/event/session/description]
 
-; Input::Connection
-[raw spec/classes/input/connection/description]
+; Event::Connection
+[raw spec/classes/event/connection/description]
 
 
 [raw spec/clearpage]
 
-Framebuffer session interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Capture session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+; XXX description, reference to components section
+
+; Framebuffer::Mode
+[raw spec/classes/framebuffer/mode/description]
+
+; Capture::Session
+; Capture::Session_client
+[raw spec/classes/capture/session/description]
+
+; Capture::Connection
+; Capture::Connection::Screen
+[raw spec/classes/capture/connection/description]
+
+
+[raw spec/clearpage]
+
+GUI session interface
+~~~~~~~~~~~~~~~~~~~~~
+
+The GUI session described in Section [GUI] comprises a virtual framebuffer,
+a stream of user-input events, and a so-called view stack, which defines
+how portions of the virtual framebuffer are composed on screen.
+
+; Gui::Session
+; XXX Gui::Session_client
+[raw spec/classes/gui/session/description]
+
+; Gui::Connection
+[raw spec/classes/gui/connection/description]
+
+; Framebuffer::Session
+; Framebuffer::Session_client
+; Framebuffer::Connection
+[raw spec/classes/framebuffer/session/description]
+
+; Input::Session
+; Input::Session_client
+; Input::Connection
+[raw spec/classes/input/session/description]
+
+
+[raw spec/clearpage]
+
+Capture session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ; XXX description, reference to components section
 
@@ -624,27 +671,11 @@ Framebuffer session interface
 ; Framebuffer::Mode
 [raw spec/classes/framebuffer/mode/description]
 
-; Framebuffer::Session
-[raw spec/classes/framebuffer/session/description]
+; Capture::Session
+[raw spec/classes/capture/session/description]
 
-; Framebuffer::Connection
-[raw spec/classes/framebuffer/connection/description]
-
-
-[raw spec/clearpage]
-
-Nitpicker session interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-; XXX description, reference to components section
-
-; XXX Nitpicker::Session_client
-
-; Nitpicker::Session
-[raw spec/classes/nitpicker/session/description]
-
-; Nitpicker::Connection
-[raw spec/classes/nitpicker/connection/description]
+; Capture::Connection
+[raw spec/classes/capture/connection/description]
 
 
 [raw spec/clearpage]
@@ -765,8 +796,8 @@ signal handlers (Section [Signalling]).
 
 [raw spec/clearpage]
 
-NIC session interface
-~~~~~~~~~~~~~~~~~~~~~
+NIC and uplink session interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ; XXX description, reference to components section
 
@@ -782,6 +813,15 @@ NIC session interface
 
 ; Nic::Connection
 [raw spec/classes/nic/connection/description]
+
+; Uplink::Session
+; Uplink::Session_client
+[raw spec/classes/uplink/session/description]
+
+; XXX Uplink::Session_rpc_object
+
+; Uplink::Connection
+[raw spec/classes/uplink/connection/description]
 
 
 [raw spec/clearpage]
@@ -1425,17 +1465,10 @@ newline character.
 
 [raw spec/repos/base/include/base/log.h.overview]
 
-;; Genode::Buffered_output
+; Genode::Buffered_output
+; Genode::Log_tsc_probe
 
 [raw spec/clearpage]
-
-;; not important
-;
-;Alarm scheduling
-;================
-;
-;; Genode::Alarm
-;; Genode::Alarm_scheduler
 
 
 Unicode handling
@@ -1509,9 +1542,6 @@ Example of using a 'Mutex'
 
 ; Genode::Blockade
 [raw spec/classes/genode/blockade/description]
-
-; Genode::Cancelable_lock
-; [raw spec/classes/genode/cancelable_lock/description]
 
 ; Genode::Lock
 ; [raw spec/classes/genode/lock/description]
@@ -1841,7 +1871,7 @@ Casting capability types
 For typed capabilities, the same type conversion rules apply as for pointers.
 In fact, a typed capability pretty much resembles a typed pointer, pointing
 to a remote object. Hence, assigning a specialized capability (e.g.,
-'Capability<Input::Session>') to a base-typed capability (e.g.,
+'Capability<Event::Session>') to a base-typed capability (e.g.,
 'Capability<Session>') is always valid. For the opposite case, a static cast
 is needed. For capabilities, this cast is supported by
 ! static_cap_cast<INTERFACE>(cap)
@@ -2468,7 +2498,6 @@ verbatim description of how the device is used. For example:
 ; Dither_painter
 ; Genode::Dynamic_rom_session
 ; Genode::Timeout_scheduler
-; Genode::Alarm_timeout_scheduler
 ; Genode::Static_parent_services
 ; Genode::Session_requester
 ; Genode::Time_source

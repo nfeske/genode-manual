@@ -1,22 +1,14 @@
 \begin{tikzpicture}
 
-	\labeledcompoundnode{fbdrv}{component}{Framebuffer driver}{
+	\labeledcompoundnode{guiserver}{component}{GUI server}{
 
-		\rpcobjectrnode{fbsession}{align=center}{}{Framebuffer \\ session}
+		\rpcobjectrnode{gui}{align=center}{}{GUI \\ session}
 	}
 
-	\labeledcompoundnode{inputdrv}{component, below=5ex of fbdrv}{Input driver}{
-
-		\rpcobjectrnode{inputsession}{align=center}{}{Input \\ session}
-	}
-
-	\node[fit=(fbdrv) (inputdrv)] (drivers) {};
-
-	\labeledcompoundnode{terminal}{component, right=5ex of drivers}{Terminal}{
+	\labeledcompoundnode{terminal}{component, right=5ex of guiserver}{Terminal}{
 
 		\rpcobjectrnode{terminalsession}{align=center}{}{Terminal \\ session}
-		\node[capability, xshift=-5ex, yshift=-2ex] (terminalinputsessioncap) {};
-		\node[capability, xshift=-5ex, yshift=2ex] (terminalfbsessioncap) {};
+		\node[capability, xshift=-5ex, yshift=0] (terminalguicap) {};
 	}
 
 	\labeledcompoundnode{app}{component, right=5ex of terminal,
@@ -26,8 +18,7 @@
 	}
 
 	% capability associations
-	\path [draw, dashed] (fbsessioncap) -- (terminalfbsessioncap);
-	\path [draw, dashed] (inputsessioncap)   -- (terminalinputsessioncap);
+	\path [draw, dashed] (guicap) -- (terminalguicap);
 	\path [draw, dashed] (terminalsessioncap)    -- (appterminalsessioncap);
 
 \end{tikzpicture}

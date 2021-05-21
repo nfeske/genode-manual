@@ -39,20 +39,6 @@
             $<$any-service$>$ $<$any-child/$>$ $<$parent/$>$ $<$/any-service$>$
             }\\
           $<$/default-route$>$\\
-          $<$start name="nit\_fb" caps="100"$>$\\
-            \nestinglevel{
-            $<$resource name="RAM" quantum="6M"/$>$\\
-            \configlevel{fill=black!2}{
-              $<$config xpos="400" ypos="270" width="300" height="200" /$>$
-            }\\
-            $<$provides$>$\\
-            \nestinglevel{
-              $<$service name="Input"/$>$\\
-              $<$service name="Framebuffer"/$>$
-            }\\
-            $<$/provides$>$
-            }\\
-          $<$/start$>$\\
           $<$start name="virtualbox" caps="1000"$>$\\
             \nestinglevel{
             $<$resource name="RAM" quantum="1G"/$>$\\

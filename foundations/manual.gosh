@@ -1,4 +1,7 @@
 
+proc title_tikz {} { return {\input{img/title.tikz}} }
+
+
 ### WRITE HEADER OF TEX FILE ###
 proc produce_head_latex {} {
 	global title authors
@@ -42,7 +45,7 @@ proc produce_head_latex {} {
 
 	printline {\begin{titlepage}}
 	printline {\thispagestyle{empty}}
-	printline {\input{img/title.tikz}}
+	printline [title_tikz]
 	printline {\end{titlepage}}
 	
 	printline "\\title{[out_latex $title]}"

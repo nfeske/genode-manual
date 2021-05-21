@@ -1,7 +1,7 @@
-GENODE_VERSION = 20.05
-FOUNDATIONS_PDF = genode-foundations-$(subst .,-,$(GENODE_VERSION)).pdf
+GENODE_VERSION = 21.05
+PDF = genode-foundations-$(subst .,-,$(GENODE_VERSION)).pdf
 
-all: $(FOUNDATIONS_PDF)
+all: $(PDF)
 
 TEXFILE := misc.tmp
 SHELL = bash
@@ -25,30 +25,30 @@ part_2
 functional_specification
 endef
 
-default: $(FOUNDATIONS_PDF)
+default: $(PDF)
 
 # concatenate chapters except for those that are commented out
-$(FOUNDATIONS_PDF:.pdf=.txt): $(addsuffix .txt,$(patsubst #%,,$(strip $(CHAPTERS))))
+$(PDF:.pdf=.txt): $(addsuffix .txt,$(patsubst #%,,$(strip $(CHAPTERS))))
 	cat $^ > $@
 
-$(FOUNDATIONS_PDF): $(FOUNDATIONS_PDF:.pdf=.txt) manual.gosh Makefile \
+$(PDF): $(PDF:.pdf=.txt) manual.gosh Makefile \
        $(wildcard img/*.pdf) \
        $(wildcard img/*.tikz) \
        spec/repos spec/classes
-	gosh --style manual.gosh $(FOUNDATIONS_PDF:.pdf=.txt) > $(TEXFILE).tex
+	gosh --style manual.gosh $(PDF:.pdf=.txt) > $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	pdflatex $(TEXFILE).tex
 	cp $(TEXFILE).pdf $@
 	rm -f $(TEXFILE) $(TEXFILE).*
 
-$(FOUNDATIONS_PDF): img
+$(PDF): img
 
 img:
 	ln -sf ../img
 
 clean_manual:
-	rm -f $(TEXFILE) $(TEXFILE).* $(FOUNDATIONS_PDF:.pdf=.txt) $(FOUNDATIONS_PDF)
+	rm -f $(TEXFILE) $(TEXFILE).* $(PDF:.pdf=.txt) $(PDF)
 	rm -f img
 
 spec/repos spec/classes:
