@@ -1,0 +1,277 @@
+Preparatory steps
+=================
+
+After getting a rough overview of undertaking the port of Sculpt OS to another
+SoC in the previous section, let us take a closer look at the first step -
+taking technical and non-technical preparations.
+
+For the preparatory work, I recommend taking one month of time. This may sound
+excessive but there are good reasons. First, Genode's tooling deviates from
+the beaten tracks known from commodity operating systems. In particular
+Genode's run tool is quite unique and powerful. But it comes at the price of a
+learning curve. The learning should not be done as a side activity but
+requires the focus of the developer. Second, the initial steps of enabling a
+new hardware tend to be fiddly. Especially when it comes to compiling and
+testing out a vendor-customized boot loader and Linux kernel from source,
+this can become a walk on muddy ground. Without patience or with time
+pressure, it can get messy and exhausting. Third, contemplating about
+non-technical preparatory aspects like licensing deserves some nights to sleep
+over it.
+
+
+Licensing considerations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+I see your raised eyebrows. Why bother with software licensing at this point?
+To pursue the upcoming steps with as little friction as
+possible, make up your mind about *your objectives* behind pursuing the porting work.
+The licensing of your code should follow from that. From the chosen license,
+in turn, follows the way of how to interact with the community. Let me
+illustrate this point with three example scenarios:
+
+:No strings attached:
+
+  Open-source driver code authored by hardware vendors is often published under
+  a permissive license to make the code broadly usable across projects with
+  different open-source and proprietary licenses. Even for code contributed to
+  the GPL-licensed Linux kernel, some vendors like Intel provide
+  their contributions under the terms of the permissive MIT or BSD licenses,
+  and thereby allow anyone to incorporate such code into other operating systems
+  without licensing constraints. Usually such code is a clean-room
+  implementation developed in-house at the vendor without incorporating
+  3rd-party code. This approach is preferable whenever the objective is
+  the *highest possible adoption* of the code.
+
+:Submitting code upstream to the Genode project:
+
+  A second possible objective may be the integration of your work upstream
+  into the official Genode project to make the new SoC platform
+  straight-forward to use for the Genode community and to benefit from
+  the *ongoing maintenance* of the code *by Genode Labs*. However, with this ambition
+  in mind, you need to ensure that you and your employer agree with the
+  process of contributing [1] and in particular with the terms of the Genode
+  contributor's agreement [2], which grants Genode Labs the right to offer
+  Genode - including your code - under both open-source and commercial
+  licensing terms.
+
+:Pursuing a dual-licensing business:
+
+  At the other extreme, your objective may be offering the results of your
+  work as a *commercial product*, following a dual-licensing business model.
+  In this case, you may consider publishing the code under the most
+  restrictive copyleft license possible, along with the option for a
+  commercial license.
+  Or you may even go as far as considering the
+  Genode Component Public License (GCPL) [3].
+  This route should be considered only when planning a *long-term commitment* in
+  actively productising and supporting your code. Note that the GCPL is no
+  win for the open-source community beyond Genode.
+
+[1] [https://genode.org/community/contributions]
+
+[2] [https://genode.org/community/gca.pdf]
+
+[3] [https://genode.org/documentation/articles/component_public_license]
+
+The path taken has far-reaching ramifications. The ability to incorporate
+3rd-party code into your work. The visibility of your work within the Genode
+community. The selection of a suitable place for hosting your code.
+Community spirit. Or the viability of contributions by others to your code.
+
+The decision may be taken for different components individually. For example,
+when taking the Linux USB stack as the basis for a USB host-controller
+driver component, this component naturally inherits Linux' GPLv2 license.
+At the same time, your custom in-kernel timer driver might fit best
+into the upstream Genode project.
+
+In our experience, taking and openly communicating licensing decisions up
+front before starting actual development work reduces possible friction -
+especially if a legal department is involved - and avoids wrong expectations.
+
+
+Selecting a suitable SoC
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+The question of which particular SoC to select as the basis for your work is
+of course closely related with the same objectives as discussed
+above. You may consider the following points:
+
+* Costs of the chip and the devices featuring the chip. E.g., if you primarily
+  intend to accommodate hobbyists, a low-end device might be preferable.
+  But there are other arguments:
+
+* Availability of accessible hardware featuring the SoC. Many SoCs are available
+  only in large volumes and thereby end up in consumer devices only. More
+  often than not, such consumer devices are completely locked down, rendering
+  the attempt to install a custom operating system moot.
+
+  With _accessible_ hardware, I'm also referring to the availability of
+  development boards that mirror the architecture of a consumer device but
+  with additional connectors for obtaining serial output, network
+  connectivity, and possibly JTAG.
+
+* Availability and quality of technical documentation. Even for many
+  SoCs popular in the Linux community - think of the Raspberry Pi
+  devices - public documentation is sparse or of questionable quality.
+  If you find a "reference manual" of only a few hundred pages online,
+  possibly imprinted with the term "CONFIDENTIAL", it's probably better to
+  stay away from this chip. A modern SoC has usually more than 4000 pages of
+  documentation. When browsing through it, look out for prose and
+  architectural diagrams. Some "reference manuals" are merely disguised
+  register listings, which are not very insightful.
+
+* Support by the official Linux kernel. Even though most ARM devices
+  run Linux, many vendors do not even attempt to contribute vendor-specific
+  code upstream to the Linux project. Should the official Linux kernel features
+  support for a particular SoC, this is a good sign for the maturity of the
+  open-source drivers. In contrary, if only a certain whacky vendor kernel
+  is known to work well with the SoC, it's probably best to shy away.
+
+* Presence of hardware-based I/O protection (System-MMU). To fully
+  leverage the advantages of Genode's architecture, the sandboxing of
+  device drivers is important. Otherwise, all device drivers must be
+  considered trusted.
+
+  When we originally embraced the i.MX8M SoC, we silently assumed that every
+  modern 64-bit SoC should feature a System-MMU in our modern times. We
+  eventually learned that this is actually not the case for the i.MX8M.
+
+  If different variants of one SoC with and without System-MMU are
+  available, make sure to pick the variant that includes this feature.
+
+
+Start by taking the known-good path
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Even though you may be eager with bringing Genode to the new device, let us
+first exercise the device with its known-to work software stack.
+
+# Usually, development boards come with a Linux-based system pre-installed.
+  Try it out. Test the functioning of all hardware connectors that are
+  important to you.
+
+# Chase down the source code of the exact Linux kernel that is pre-installed
+  on your board. In most cases, this so-called _vendor kernel_ is a customized
+  version of Linux, with the source code provided at a vendor-specific
+  place. Download it. Follow the vendor-provided instructions to build it
+  from source. Boot your custom built Linux kernel on your device.
+
+  This kernel will serve us as a working reference later. It allows us
+  to cross-correlate problems between Genode and Linux, obtain traces of
+  Linux device drivers, or to get hold of system-register states initialized
+  by the Linux kernel to a working state.
+
+# Study the device tree of the working Linux kernel and correlate this
+  information with the documentation. This helps to form a mental picture
+  of the hardware and to identify possible risks (indicated by your level
+  of confusion) early on.
+
+  ...slowly leaving the known-good path...
+
+# Now that you are familiar with the vendor kernel, let's cross fingers
+  and hope that the vanilla Linux kernel works just as well. Download the
+  vanilla Linux kernel and look out for the support for your SoC. In the
+  worst case, you won't find any. In the best case, the vanilla kernel
+  works out of the box. In case the vanilla kernel works well, better use
+  this one a reference for your further work.
+
+
+Setting up an efficient development workflow
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the few test drives taken until this point, juggling SD-cards is probably fine.
+But down the road, you will need to boot your device with custom system image
+hundreds of times. Take the time for setting up a convenient test-control loop
+for your device to make this work enjoyable.
+
+
+Explore Genode's run tool
+-------------------------
+
+Read Section 5.4 "System integration and automated testing"
+of the Genode Foundations book as found at [https://genode.org].
+
+Try out the various options with an already supported
+platform.
+Browse the files at _tool/run/_ to learn about the
+various backend modules and options. E.g., look at
+_tool/run/image/uboot_ [1] to
+to demystify the creation of uImage files by Genode.
+
+[1] [https://github.com/genodelabs/genode/tree/master/tool/run/image/uboot]
+
+
+Run and test the U-Boot loader on your device
+---------------------------------------------
+
+U-Boot is the de-facto standard of booting embedded ARM boards today.
+We primarily use U-Boot for its ability to fetch a system image over the network.
+There is a good chance that your board comes equipped with U-Boot already.
+If not, investigate the option to chain-load U-Boot from your board's boot
+loader.
+
+Once you got U-Boot to work, continue with reproducing the U-Boot binary from
+source. This may become handy for investigating device-driver issues later on
+(e.g., taking U-Boot's IOMUX or power or clock configuration as reference,
+peeking device states at boot time). Consider extending Genode's
+_tool/create_uboot_ [1]
+utility, thereby documenting the steps for reproducing the U-Boot version
+for your particular board from source.
+
+[1] [https://github.com/genodelabs/genode/blob/master/tool/create_uboot]
+
+
+Create a working test-control loop
+----------------------------------
+
+The goal of this step is to reach a state where you can type only one command
+like following from the Genode build directory to trigger a complete
+build-test cycle.
+
+! make run/log KERNEL=hw BOARD=<your-board>
+
+The build-test cycle entails:
+
+# Compiling the source code of Genode components,
+# Applying a system configuration,
+# Assembling a system image,
+# Making the system image available over TFTP,
+# Power-cycling the board,
+# Letting the board fetch the system image and start it, and
+# Getting the serial output of the board right in your terminal.
+
+To reach this level of convenience, the following topics must be addressed:
+
+
+:Network boot:
+
+  * Set up TFTP server on you development machine
+  * Test your TFTP server locally from your development machine
+  * Configure DHCP server in your network to direct the boot loader of your
+    development board to the TFTP server on your development machine
+
+:Let the run tool obtain the serial output from your board:
+
+  Take a look at the various options of run tool at _tool/run/log [1].
+
+
+:Network-controlled reset / power switch:
+
+  As the icing on the cake, consider powering your board via a
+  network-controlled power socket as described in [2].
+
+  More options can be found at at _tool/run/power_off_ [3] and
+  _tool/run/power_on_ [4].
+
+  For further inspiration, you may also enjoy the article [5].
+
+[1] [https://github.com/genodelabs/genode/blob/master/tool/run/log]
+
+[2] [https://genodians.org/chelmuth/2019-03-13-powerplug]
+
+[3] [https://github.com/genodelabs/genode/blob/master/tool/run/power_off]
+
+[4] [https://github.com/genodelabs/genode/blob/master/tool/run/power_on]
+
+[5] [https://genodians.org/tomga/2019-08-13-rpi-automation]
+

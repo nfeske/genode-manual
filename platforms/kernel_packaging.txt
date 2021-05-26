@@ -1,0 +1,635 @@
+Kernel packaging and testing
+============================
+
+With our toes still a bit frozen from testing the waters of the user land, we
+now take the remaining steps towards a cultivated Genode life, largely
+automating our work flow, packaging the kernel, and testing the platform like
+there is no tomorrow.
+
+During the initial user-land bring-up described in the
+previous section, the process of
+building a system image, loading the image onto the board, and obtaining log
+output required quite a few manual steps: Starting picocom, issuing
+the 'make run/log' command, copying the system image to the TFTP directory,
+resetting the board, scanning the log output with our eyes. Some parts of this
+process can be streamlined.
+
+
+Accelerating our run-script workflow
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+First, instead of manually instructing the run tool to produce a uImage
+instead of an ELF image at the command line, we can place the following
+line into our _etc/built.conf_ file.
+
+! RUN_OPT += --include image/uboot
+
+Second, we can let the run tool manage the execution of the 'picocom' command
+instead of manually starting the it by adding the following line:
+
+! RUN_OPT += --include log/serial
+
+This way, we can skip the step of spawning of picocom. But more importantly,
+the run tool becomes able to detect the success of run scripts automatically!
+So the part about "scanning the log output with our eyes" becomes much more
+relaxing.
+
+Third, the copying of the uImage file into the TFTP directory can be
+automated by adding the following lines.
+
+! RUN_OPT += --include load/tftp
+! RUN_OPT +=   --load-tftp-base-dir /var/lib/tftpboot
+! RUN_OPT +=   --load-tftp-offset-dir /$(BOARD)
+
+Upon the next execution of the 'make run/log KERNEL=hw BOARD=pine_a64lts'
+command, a new symbolic link appears at _/var/lib/tftpboot_.
+
+! $ ls -la /var/lib/tftpboot/pine_a64lts 
+! lrwxrwxrwx ... /var/lib/tftpboot/pine_a64lts -> /.../build/arm_v8a/var/run/log/uImage
+
+The symlink is updated each time a run script is executed. It always points
+to the most recently built system image.
+By setting the U-Boot bootcmd to load _/var/lib/tftpboot/pine_a64lts_, the board
+will automatically fetch the most recently built system image.
+
+! => env edit bootcmd
+! edit: bootp 10.0.0.32:/var/lib/tftpboot/pine_a64lts ; bootm
+! => env save
+! Saving Environment to FAT... OK
+
+With these little tweaks, the work flow with run scripts becomes almost
+fully automated. The only remaining manual steps are:
+
+# Issuing the 'make run/...' command at the build directory.
+# Once the message 'Terminal ready' appears, pressing the reset button
+  on the board.
+
+This is a perfectly acceptable level of convenience.
+If you want to go even further, you may find the following two articles
+inspiring.
+
+:Remote-control your test target via power scripts:
+
+  [https://genodians.org/chelmuth/2019-03-13-powerplug]
+
+:Exploring Genode Base HW with Raspberry Pi - further workflow automation:
+
+  [https://genodians.org/tomga/2019-08-13-rpi-automation]
+
+There is no better way to celebrate the new level of efficiency than to
+test-drive a few hand-picked run scripts.
+
+
+Stress-testing the init component
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The log scenario that we executed so far already employed Genode's init
+component, which is the first (and only) component immediately started by
+core. Init constructs a subsystem of components according to a
+configuration in XML form. The init configuration for the log scenario
+was rather primitive. There exists comprehensive test that exercises
+the entire feature set of init by running a dynamically configured
+instance of init as a child of init.
+The test is hosted at the _repos/os/_ repository and has the form of a
+deployable package (more on that later).
+You can find the test's ingredients at _recipes/pkg/test-init/_ (package with
+the runtime description) _src/test/init/_ (driver for executing a test
+sequence) _recipes/raw/test-init/test-init.config_ (sequence executed by the
+test driver).
+
+That's probably be a bit overwhelming. Let's better just try it out. To run a
+test package, the _os/run/test.run_ script becomes handy. We can use it as
+follows, passing the name of the test package as 'PKG' argument.
+
+! build/arm_v8a$ make run/test PKG=test-init KERNEL=hw BOARD=pine_a64lts
+! ...
+! ...
+! genode build completed
+! ...
+! Terminal ready
+
+At this point, we have to press the reset button of the board.
+
+! ...
+! ... log output of more than 200 test steps
+! ...
+! [init -> test -> test-init] --- test complete ---
+! [init -> test] child "test-init" exited with exit value 0
+!
+! Run script execution successful.
+
+What else could we ask for! When examining the log output, you can get a
+glimpse of the feature set at work: Addition and deletion of subsystems,
+changing access-control policies in the fly, reconfiguring child components,
+chaining services, balancing resources among the components, heartbeat
+monitoring, and exit handling.
+
+As another noteworthy detail, in contrast to the simple log test, the init
+test employs a timer at the user level. Since the test passed, we have the
+confirmation that the in-kernel timer driver and interrupt-controller driver
+work in principle.
+
+
+Timer accuracy test
+~~~~~~~~~~~~~~~~~~~
+
+Speaking of the timer, it is generally not enough to know that the timer
+works in principle but also that it is precise, which comes down to its
+correct calibration. Genode provides a ready-to-use test that compares
+the notion of time as observed by the Genode system with the wall-clock time
+as known on your host system. The run script for this low-level test
+is located at _repos/base/run/timer_accuracy.run_.
+
+! build/arm_v8a$ make run/timer_accuracy KERNEL=hw BOARD=pine_a64lts
+! ...
+! ...
+! Genode 20.11-197-g635985f542 <local changes>
+! 2010 MiB RAM and 64533 caps assigned to init
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! [init -> test-timer_accuracy] 
+! Good: round 1, host measured 1000 ms, test measured 1008 ms
+! Good: round 2, host measured 2000 ms, test measured 2000 ms
+! Good: round 3, host measured 3000 ms, test measured 3006 ms
+! Good: round 4, host measured 4000 ms, test measured 3997 ms
+! Good: round 5, host measured 5000 ms, test measured 5003 ms
+! Good: round 6, host measured 6000 ms, test measured 6007 ms
+! Good: round 7, host measured 7000 ms, test measured 6995 ms
+! Good: round 8, host measured 8000 ms, test measured 7984 ms
+! Good: round 9, host measured 9000 ms, test measured 9005 ms
+!
+! Run script execution successful.
+
+Be patient, the test can take up to 40 seconds.
+The output looks just perfect.
+
+
+Testing the dynamic linker
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ldso test exercises the functionality of the dynamic linker, including
+the execution of global constructors, transitive library dependencies,
+exception handling across libraries, and cross-library symbol resolution.
+
+! build/arm_v8a$ make run/test PKG=test-ldso KERNEL=hw BOARD=pine_a64lts
+! ...
+! ... build libc
+! ...
+! [init -> test] child "test-ldso" exited with exit value 123
+!
+! Run script execution successful.
+
+Given that the init test succeeded, which already employed the dynamic linker,
+the result is not surprising but reassuring.
+
+
+Packaging the kernel
+~~~~~~~~~~~~~~~~~~~~
+
+All but the most basic run scripts leverage Genode's
+package management often referred to as _depot_ and described in Section
+5.5 "Package management" in the Genode Foundations book. A run script can
+conveniently incorporate packaged components into a system scenario via the
+'import_from_depot' function. When reviewing the various existing run scripts
+in the Genode source tree for this function, one can spot the following
+pattern.
+
+! import_from_depot [depot_user]/src/[base_src] \
+!                   [depot_user]/...
+
+Each argument denotes a path of a depot archive. The 'depot_user' and
+'base_src' are function calls. The 'depot_user' function returns the name of
+the originator/creator of the given depot archive. It returns 'genodelabs' by
+default and can be customized in the _etc/build.conf_ file.
+
+The 'base_src' function returns the archive name of the so-called "base"
+source archive for a given combination of board and kernel.
+It contains the lowest-level and kernel-specific fundamentals any
+system scenario relies on, namely the kernel/core, the dynamic linker, and a
+timer driver. In order to execute any of the run scripts that follow this
+pattern, we need to create such a depot archive for our version
+of the kernel. When using the "hw" kernel, the 'base_src' function can be
+found at _tool/run/boot_dir/hw_.
+
+! $ grep -r base_src tool/run/
+! ...
+! run/boot_dir/hw:proc base_src { } { return "base-hw-[board]" }
+! ...
+
+In the case of our 'pine_a64lts' board, the source archive would hence be
+named 'base-hw-pine_a64lts'. The _tool/depot/create_ tool can be used
+to populate the depot. Even though we have not yet provided any declaration
+for our base archive, let's call the tool and see how it breaks:
+
+! $ ./tool/depot/create x/src/base-hw-pine_a64lts UPDATE_VERSIONS=1 FORCE=1
+! Error: incomplete or missing recipe (x/src/base-hw-pine_a64lts)
+
+The following things are worth noting about the command-line arguments.
+
+* I supply 'x' as depot user, which is just a dummy name that is good
+  enough while pursuing the packaging work. Once the work is finished, it
+  allows me to just remove the _depot/x/_ directory and all testing artifacts
+  are gone.
+
+* The UPDATE_VERSIONS=1 argument tells the tool to automatically increase
+  the version of the depot archive whenever the content differs from the
+  previously packaged version. During the packaging work, I always set it
+  to 1.
+
+* The FORCE=1 argument tells the tool to perform all packaging steps from
+  scratch instead of reusing artifacts from previous runs.
+
+Now, let's address the error message. It tell us that the tool expected a
+so-called recipe for the given depot archive, which does not exist yet. The
+so-called recipes describe how a depot archive can be extracted from the
+source tree. They are searched in the _<repo>/recipes/_ directories of all
+repositories. E.g., the recipe for the base source archive for the i.MX8 EVK
+board resides at _repos/base-hw/recipes/src/base-hw-imx8q_evk/_. This
+is a suitable template for out pine_a64lts recipe.
+
+! $ mkdir -p repos/allwinner/recipes/src/base-hw-pine_a64lts
+! $ cp -r repos/base-hw/recipes/src/base-hw-imx8q_evk/* \
+!         repos/allwinner/recipes/src/base-hw-pine_a64lts/
+
+The directory hosts three files:
+
+:content.mk:
+
+  This is Makefile snippet with rules for gathering the content of the
+  archive from the source tree. The copied file, however, merely includes
+  rules from a file called _base-hw_content.inc_. We can keep this line.
+
+  ! include $(GENODE_DIR)/repos/base-hw/recipes/src/base-hw_content.inc
+
+:used_apis:
+
+  This file contains a list of APIs required to build a binary archive
+  from the source archive. The copied template contains merely two lines,
+  which we can keep that way. Naturally, the base-hw kernel requires the
+  definitions of the generic Genode API (base API) and the supplements
+  that are specific for the base-hw kernel (base-hw API).
+
+  ! base-hw
+  ! base
+
+:hash:
+
+  The hash file tells the depot tools about the current version of the
+  archive and draws the connection to the corresponding archive content
+  by specifying a hash value.
+
+  ! 2021-02-24 d122ddee70f0b075de8cec50a41c9f4783702e05
+
+  The hash value is computed over the entire content of the archive. Should
+  the hash of a freshly created archive deviate from the hash stored at the
+  recipe, we know that the version should better be updated. Of course, it
+  would be tiresome to calculate such hash values manually. Thankfully, the
+  depot tools do this job for us. While keeping in mind that the hash is most
+  certainly wrong for our the pine_a64lts source archive, we leave it as is
+  because we don't know any better value anyway at this point.
+
+With the new source recipe in place, let's give the package creation
+another try.
+
+! $ ./tool/depot/create x/src/base-hw-pine_a64lts UPDATE_VERSIONS=1 FORCE=1
+
+This time, the output looks different:
+
+! $ ./tool/depot/create x/src/base-hw-pine_a64lts UPDATE_VERSIONS=1 FORCE=1
+! created x/api/base/2021-02-22
+! created x/api/base-hw/2021-02-22
+!
+! Error: CPU architecure for board pine_a64lts undefined
+!
+!   missing file /.../repos/allwinner/board/pine_a64lts/arch
+
+The tool has successfully created the API archives for the dependencies
+we stated in the _used_apis_ file. However, the source-archive creation
+still backs out, missing the information of the board's CPU architecture.
+The CPU architecture dictates the subset of files of the base-hw repository
+that are relevant for the given board. This information is expected at
+the path printed by the error message. That's our call!
+
+! $ mkdir -p repos/allwinner/board/pine_a64lts
+! $ echo arm_v8a > repos/allwinner/board/pine_a64lts/arch
+
+Upon the next attempt to create the source archive, the creation-process
+succeeds.
+
+! $ ./tool/depot/create x/src/base-hw-pine_a64lts UPDATE_VERSIONS=1 FORCE=1
+! created x/api/base/2021-02-22
+! created x/api/base-hw/2021-02-22
+! created x/src/base-hw-pine_a64lts/2021-03-04 (new version)
+
+The last line tells us that the tool has detected the inconsistency
+of our recipe's hash file with the assembled archive content and has
+automatically adjusted the version (taking the current date) and hash in the
+hash file. Now it looks as follows:
+
+! $ cat repos/allwinner/recipes/src/base-hw-pine_a64lts/hash
+! 2021-03-04 4589eb3b4d816d17a2f2a539031a54eff9dd3712
+
+You may like to have a look at the resulting archive.
+
+! $ ls depot/x/src/base-hw-pine_a64lts/2021-03-04/
+! etc  include  lib  LICENSE  src  used_apis
+
+Finally, let us check that it is possible to create a binary archive from our
+source archive by specifying 'x/bin/arm_v8a/base-hw-pine_a64lts' as
+depot-archive path to the depot-create tool. To accelerate the build, we can
+append '-j8' as argument to enable the use of multiple CPUs.
+
+! $ ./tool/depot/create x/bin/arm_v8a/base-hw-pine_a64lts \
+!                       UPDATE_VERSIONS=1 FORCE=1 -j8
+! created x/api/base-hw/2021-02-22
+! created x/api/base/2021-02-22
+! created x/src/base-hw-pine_a64lts/2021-03-04
+! checking library dependencies...
+! ...
+! ... many build steps
+! ...
+!     LINK     timer
+! created x/bin/arm_v8a/base-hw-pine_a64lts/2021-03-04
+
+This time, the tool was satisfied with the current hash of our source recipe,
+the build process ran to completion, and we can inspect the results at
+the printed location within the depot.
+
+! $ ls -1 depot/x/bin/arm_v8a/base-hw-pine_a64lts/2021-03-04/
+! bootstrap-hw-pine_a64lts.o
+! core-hw-pine_a64lts.a
+! ld.lib.so
+! timer
+
+
+Combined test suite of over 80 system scenarios
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the kernel packaged, a whole new world of run scripts opens up for us.
+The most intriguing one is _repos/gems/run/depot_autopilot.run_. It is a
+system that does not only execute a single test scenario but orchestrates the
+execution of more than 80 system scenarios one after the other. The init test
+we executed earlier is just one of these scenarios. Combined, the
+scenarios form the comprehensive test suite for Genode's base framework
+covering the following topics.
+
+* Low-level data structures and allocators
+* Parsing and generating XML, UTF-8
+* Integration of Ada/SPARK with Genode's C++ API
+* Publisher-subscriber mechanism
+* Management of dynamic subsystems
+* Fault detection mechanism
+* Synthetic tests for low-level components and interfaces
+  such as init, timer, VFS, block access, terminal
+* VFS infrastructure
+* C runtime (I/O, execve, fork, pthreads)
+* Standard C++ library
+* TCP/IP
+* Network routing
+* Tracing
+* On-target deployment of depot packages
+
+[tikz img/depot_autopilot_arch]
+
+The diagram gives an overview of the architecture of the system scenario. It
+is described in great detail in the release documentation [1].
+
+[1] [https://genode.org/documentation/release-notes/18.11#Automated_test_infrastructure_hosted_on_top_of_Genode]
+
+As a prerequisite for executing the depot-autopilot scenario, the depot
+packages for the whole arsenal of tests must be made available. We can
+instruct the build system to automatically create the depot content as needed,
+by enabling the following option at the _etc/build.conf_ file:
+
+! RUN_OPT += --depot-auto-update
+
+Furthermore, we need to make sure to have the following repositories
+enabled in the _etc/build.conf_ file.
+
+! REPOSITORIES += $(GENODE_DIR)/repos/libports
+! REPOSITORIES += $(GENODE_DIR)/repos/dde_linux
+! REPOSITORIES += $(GENODE_DIR)/repos/gems
+
+The dde_linux repository is solely needed for the TCP/IP stack ported from the
+Linux kernel (lxip). The gems repository hosts the depot-autopilot. With these
+precautions taken, we can kick off the _depot_autopilot.run_ script as usual.
+
+! build/arm_v8a$ make run/depot_autopilot KERNEL=hw BOARD=pine_a64lts
+
+You will most likely encounter an error like the following.
+
+! Error: Ports not prepared or outdated:
+!   ada-runtime dde_linux expat gcov gmp libc lwip sanitizer stdcxx
+!
+! You can prepare respectively update them as follows:
+!   /.../tool/ports/prepare_port ada-runtime dde_linux expat gcov \
+!                                gmp libc lwip sanitizer stdcxx
+
+The printed ports of 3rd-party software are required. They can be imported
+into Genode's _contrib/_ directory by executing the command as suggested
+by the error message.
+
+Once the prepare_port command has completed, we can give the
+depot_autopilot.run script another try. This time, we can lay back and enjoy
+tons of build output scroll by, take a nip at a cup of coffee, maybe stretch
+our back a little, continue watching the build output, relax, not to forget to
+keep breathing. Have I mentioned looking at the build output?
+
+When finally loading the resulting uImage on the board, we are greeted
+with a shocking message:
+
+! TFTP from server 10.0.0.32; our IP address is 10.0.0.178
+! Filename '/var/lib/tftpboot/uImage'.
+! Load address: 0x42000000
+! Loading: #################################################################
+!          #################################################################
+!          #################################################################
+!          #################################################################
+!          #################################################################
+!          #################################################################
+!          #################################################################
+!          #################################################################
+!          #################################################################
+!          ##
+!          3.5 MiB/s
+! done
+! Bytes transferred = 8608974 (835cce hex)
+! ## Booting kernel from Legacy Image at 42000000 ...
+!    Image Name:   
+!    Image Type:   AArch64 Linux Kernel Image (gzip compressed)
+!    Data Size:    8608910 Bytes = 8.2 MiB
+!    Load Address: 40010000
+!    Entry Point:  40010000
+!    Verifying Checksum ... OK
+!    Uncompressing Kernel Image
+! Error: inflate() returned -5
+! Image too large: increase CONFIG_SYS_BOOTM_LEN
+! Must RESET board to recover
+! resetting ...
+
+Just at the climax of our expectations, U-Boot's ELF loader went on strike.
+The ELF image is apparently too large. We take the mental note to adjust
+'CONFIG_SYS_BOOTM_LEN' and re-build and re-install U-Boot taking the steps of
+described in Section [The U-Boot boot loader].
+
+To satisfy our urgent need of a reward for our patience during the build of
+the depot-autopilot system image, we can side step U-Boot's image-size
+constraint by loading a raw binary image. Since we need an ELF image instead
+of a uImage, we have to temporarily disable the '--include image/uboot'
+RUN_OPT in the _etc/build.conf_ file and rebuild the image.
+
+! build/arm_v8a$ make run/depot_autopilot KERNEL=hw BOARD=pine_a64lts
+! ....
+
+A quick look at the result reveals that the uncompressed ELF image is
+quite large compared to the uImage file of 8 MiB. Here we can see the benefit
+of uImage files.
+
+! build/arm_v8a$ ls -lh var/run/depot_autopilot/boot/image.elf
+! -rwxrwxr-x 1 ... 49M ... var/run/depot_autopilot/boot/image.elf
+
+The ELF image is swiftly converted to a raw binary placed in our TFTP directory.
+
+! build/arm_v8a$ /usr/local/genode/tool/current/bin/genode-aarch64-objcopy \
+!                    -Obinary \
+!                    var/run/depot_autopilot/boot/image.elf \
+!                    /var/lib/tftpboot/depot_autopilot.img
+! build/arm_v8a$ ls -lh /var/lib/tftpboot/depot_autopilot.img
+! -rwxrwxr-x 1 ... 49M ... /var/lib/tftpboot/depot_autopilot.img
+
+Now, we can use the following U-Boot command to load it on the board.
+
+! => bootp 0x40010000 10.0.0.32:/var/lib/tftpboot/depot_autopilot.img
+! BOOTP broadcast 1
+! DHCP client bound to address 10.0.0.178 (109 ms)
+! Using ethernet@1c30000 device
+! TFTP from server 10.0.0.32; our IP address is 10.0.0.178
+! Filename '/var/lib/tftpboot/depot_autopilot'.
+! Load address: 0x40010000
+! Loading: #################################################################
+! ...
+!          ######################################################
+!          3.2 MiB/s
+! done
+! Bytes transferred = 51351552 (30f9000 hex)
+
+... and run it!
+
+! => go 0x40010000
+! ## Starting application at 0x40010000 ...
+! 
+! kernel initialized
+! ...
+
+... massive amount of log output scrolls by for about 9 minutes ...
+
+! ...
+! [init -> depot_autopilot] --- Finished after 519.179 sec ---
+! [init -> depot_autopilot] 
+! [init -> depot_autopilot]  test-spark                      ok         0.239  log
+! [init -> depot_autopilot]  test-spark_exception            ok         0.161  log
+! [init -> depot_autopilot]  test-spark_secondary_stack      ok         0.518  log
+! [init -> depot_autopilot]  test-block                      ok         1.124  log
+! [init -> depot_autopilot]  test-block_cache                ok         0.692  log
+! [init -> depot_autopilot]  test-clipboard                  ok         3.676  log
+! [init -> depot_autopilot]  test-depot_query_index          ok         0.289  log
+! [init -> depot_autopilot]  test-ds_ownership               ok         0.227  log
+! [init -> depot_autopilot]  test-dynamic_config             ok         3.154  log
+! [init -> depot_autopilot]  test-dynamic_config_loader      ok         3.211  log
+! [init -> depot_autopilot]  test-dynamic_config_slave       ok         2.640  log
+! [init -> depot_autopilot]  test-entrypoint                 ok        40.117  log
+! [init -> depot_autopilot]  test-expat                      ok         0.361  log
+! [init -> depot_autopilot]  test-fault_detection            ok         2.433  log
+! [init -> depot_autopilot]  test-fs_log                     ok         0.938  log
+! [init -> depot_autopilot]  test-fs_packet                  ok         1.292  log
+! [init -> depot_autopilot]  test-fs_report                  ok         2.173  log
+! [init -> depot_autopilot]  test-fs_rom_update              ok         6.486  log
+! [init -> depot_autopilot]  test-fs_rom_update_fs           ok         6.598  log
+! [init -> depot_autopilot]  test-fs_rom_update_ram          ok         6.491  log
+! [init -> depot_autopilot]  test-fs_tool                    ok         1.212  log
+! [init -> depot_autopilot]  test-init                       ok        30.140  log
+! [init -> depot_autopilot]  test-init_loop                  ok        10.156  log
+! [init -> depot_autopilot]  test-ldso                       ok         1.083  log
+! [init -> depot_autopilot]  test-libc                       ok         3.694  log
+! [init -> depot_autopilot]  test-libc_connect_lwip          ok        21.060  log
+! [init -> depot_autopilot]  test-libc_connect_lxip          ok        21.524  log
+! [init -> depot_autopilot]  test-libc_connect_vfs_server_lw ok        21.463  log
+! [init -> depot_autopilot]  test-libc_connect_vfs_server_lx ok        21.961  log
+! [init -> depot_autopilot]  test-libc_counter               ok        11.723  log
+! [init -> depot_autopilot]  test-libc_execve                ok         6.718  log
+! [init -> depot_autopilot]  test-libc_fifo_pipe             ok        13.094  log
+! [init -> depot_autopilot]  test-libc_fork                  ok         3.097  log
+! [init -> depot_autopilot]  test-libc_getenv                ok         0.309  log
+! [init -> depot_autopilot]  test-libc_pipe                  ok         0.816  log
+! [init -> depot_autopilot]  test-libc_vfs                   ok         2.037  log
+! [init -> depot_autopilot]  test-libc_vfs_audit             ok         3.917  log
+! [init -> depot_autopilot]  test-libc_vfs_block             ok         0.468  log
+! [init -> depot_autopilot]  test-libc_vfs_counter           ok        11.809  log
+! [init -> depot_autopilot]  test-libc_vfs_fs                ok         2.036  log
+! [init -> depot_autopilot]  test-libc_vfs_fs_chained        ok         2.306  log
+! [init -> depot_autopilot]  test-libc_vfs_ram               ok         1.719  log
+! [init -> depot_autopilot]  test-log                        ok         0.265  log
+! [init -> depot_autopilot]  test-lx_block                   skipped
+! [init -> depot_autopilot]  test-magic_ring_buffer          ok         0.205  log
+! [init -> depot_autopilot]  test-mmio                       ok         0.100  log
+! [init -> depot_autopilot]  test-new_delete                 ok         0.417  log
+! [init -> depot_autopilot]  test-nic_loopback               ok         1.369  log
+! [init -> depot_autopilot]  test-part_block_gpt             ok         3.096  log
+! [init -> depot_autopilot]  test-part_block_mbr             ok         1.726  log
+! [init -> depot_autopilot]  test-pthread                    ok        28.275  log
+! [init -> depot_autopilot]  test-ram_fs_chunk               ok         0.510  log
+! [init -> depot_autopilot]  test-read_only_rom              ok        19.988  timeout 20 sec
+! [init -> depot_autopilot]  test-reconstructible            ok         0.379  log
+! [init -> depot_autopilot]  test-registry                   ok         0.177  log
+! [init -> depot_autopilot]  test-report_rom                 ok         0.647  log
+! [init -> depot_autopilot]  test-resource_request           ok         6.609  log
+! [init -> depot_autopilot]  test-resource_yield             ok        20.824  log
+! [init -> depot_autopilot]  test-rm_fault                   skipped
+! [init -> depot_autopilot]  test-rm_fault_no_nox            ok         1.302  log
+! [init -> depot_autopilot]  test-rm_nested                  ok         2.891  log
+! [init -> depot_autopilot]  test-rm_stress                  ok         1.386  log
+! [init -> depot_autopilot]  test-rom_filter                 ok         4.316  log
+! [init -> depot_autopilot]  test-sanitizer                  ok         0.261  log
+! [init -> depot_autopilot]  test-sequence                   ok         1.243  log
+! [init -> depot_autopilot]  test-signal                     ok        24.387  log
+! [init -> depot_autopilot]  test-slab                       ok        20.486  log
+! [init -> depot_autopilot]  test-stack_smash                ok         0.103  log
+! [init -> depot_autopilot]  test-stdcxx                     ok         0.390  log
+! [init -> depot_autopilot]  test-synced_interface           ok         0.133  log
+! [init -> depot_autopilot]  test-tcp_bulk_lwip              skipped
+! [init -> depot_autopilot]  test-tcp_bulk_lxip              skipped
+! [init -> depot_autopilot]  test-terminal_crosslink         ok         0.314  log
+! [init -> depot_autopilot]  test-timer                      ok        15.809  log
+! [init -> depot_autopilot]  test-tls                        ok         0.134  log
+! [init -> depot_autopilot]  test-token                      ok         0.119  log
+! [init -> depot_autopilot]  test-trace                      ok         7.488  log
+! [init -> depot_autopilot]  test-trace_logger               ok        13.921  log
+! [init -> depot_autopilot]  test-utf8                       ok         0.142  log
+! [init -> depot_autopilot]  test-vfs_block                  ok         1.967  log
+! [init -> depot_autopilot]  test-vfs_stress_fs              ok         2.243  log
+! [init -> depot_autopilot]  test-vfs_stress_ram             ok         0.560  log
+! [init -> depot_autopilot]  test-weak_ptr                   ok         2.900  log
+! [init -> depot_autopilot]  test-xml_generator              ok         0.570  log
+! [init -> depot_autopilot]  test-xml_node                   ok         1.028  log
+! [init -> depot_autopilot]  gcov                            ok        39.064  log
+! [init -> depot_autopilot] 
+! [init -> depot_autopilot] succeeded: 82 failed: 0 skipped: 4
+! [init -> depot_autopilot] 
+! [init] child "depot_autopilot" exited with exit value 0
+
+The entire test suite succeeded with no errors!
+
+It took 519 seconds. To cross-correlate this duration with the depot-autopilot
+test on the i.MX8q EVK board: The i.MX board takes 465 seconds, which makes
+the Pine-A64-LTS around 10% slower than the i.MX8 EVK. This is of course no
+benchmark to draw meaningful conclusions from. But the fact that both values
+are in the same ballpark reassures us that nothing fundamental (like the
+low-level CPU or memory configuration) went wrong with our port.
+

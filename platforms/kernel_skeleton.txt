@@ -1,0 +1,934 @@
+Kernel skeleton
+===============
+
+Of the several kernels supported by the Genode OS framework, the so-called
+base-hw kernel is our go-to microkernel for ARM-based devices. Section
+7.7. "Execution on bare hardware"
+of the Genode Foundations book goes into detail about its underlying software
+design. This section describes the process of porting this kernel to a new
+board, specifically the Pine-A64-LTS single-board computer.
+
+Equipped with the bare-metal serial-output facility developed in the
+previous section, we are eager to turn
+our attention to the kernel. Before attempting the porting of the kernel to
+the new board, however, it is recommended to run it first on one of the
+already supported boards to have a working reference.
+In the case of the Pine-A64 board, which is based on an Allwinner multi-core
+64-bit ARM SoC, the closest approximation would be the NXP i.MX8Q EVK board,
+which ticks the boxes ARM, multi-core, and 64-bit.
+At the very least, one should give the kernel a try using Qemu's virtual
+pbxa9 board, which is a 32-bit platform. Even though this board has not much
+in common with ours, it is still useful for seeing how the various bits and
+pieces described below are supposed to work together.
+
+
+A tour through the code base
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The starting point of our line of work will be the existing board support
+for the i.MX8Q EVK. To get an idea of the amount of work ahead of us, let's
+examine the base-hw source tree within Genode for occurrences of the board's
+name. The search pattern "imx" is a good start.
+
+! $ find repos/base-hw -type f | grep imx8
+! repos/base-hw/lib/mk/spec/arm_v8/core-hw-imx8q_evk.mk
+! repos/base-hw/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk
+! repos/base-hw/recipes/src/base-hw-imx8q_evk/hash
+! repos/base-hw/recipes/src/base-hw-imx8q_evk/content.mk
+! repos/base-hw/recipes/src/base-hw-imx8q_evk/used_apis
+! repos/base-hw/src/bootstrap/board/imx8q_evk/platform.cc
+! repos/base-hw/src/bootstrap/board/imx8q_evk/board.h
+! repos/base-hw/src/include/hw/spec/arm_64/imx8q_evk_board.h
+! repos/base-hw/src/core/board/imx8q_evk/board.h
+
+We can ignore everything inside the _recipes/_ directory for now. This
+directory contains package descriptions. We will come back to the packaging
+topic later. A 'grep -v' hides these files from our view.
+
+! $ find repos/base-hw -type f | grep imx8 | grep -v recipes
+! repos/base-hw/lib/mk/spec/arm_v8/core-hw-imx8q_evk.mk
+! repos/base-hw/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk
+! repos/base-hw/src/bootstrap/board/imx8q_evk/platform.cc
+! repos/base-hw/src/bootstrap/board/imx8q_evk/board.h
+! repos/base-hw/src/include/hw/spec/arm_64/imx8q_evk_board.h
+! repos/base-hw/src/core/board/imx8q_evk/board.h
+
+On the one hand, it is nice to see such a small number of files to be
+concerned about. On the other hand, those files appear quite scattered
+throughout the source tree with a deep hierarchy, which is a bit confusing.
+To lift the clouds, let's have a look at the source-tree structure.
+
+[tikz img/imx8q_evk_files]
+
+The files appearing under _lib/mk/_ are build-description files for libraries.
+There are two such files, having the file extension '.mk'. They are located in
+a sub directory called _spec/arm_v8/_, which means that the build system
+considers them only when building for an instruction set architecture that
+matches ARMv8.
+
+Distinction between bootstrap and core
+--------------------------------------
+
+Given the set of files depicted above, we can immediately spot two
+construction sites, namely "bootstrap" and "core". The distinction between
+those two parts is illustrated in the following picture.
+
+[tikz img/base_hw_boot_steps]
+
+The *bootstrap* program is started by the boot loader while the CPU is running
+in physical mode. The MMU is disabled at this point.
+Only one CPU - usually referred to as the boot CPU - is active. Bootstrap is
+tasked with all the dirty and quirky work needed in preparation to bring up
+the so-called core component.
+This involves board-specific trickery like tweaking clocks and voltages,
+setting up the page tables for executing the core program in virtual memory,
+enabling the MMU, the initialization of additional CPU cores, and the
+ELF-loading of the core ELF executable. Once these steps are taken, bootstrap
+passes the control to the core component and ceases to exist.
+
+The *core* component contains the microkernel executed in privileged mode.
+When using Genode on a traditional microkernel like NOVA or seL4, core
+is the first user-level program started by the kernel. It is usually
+called roottask. In contrast, when using base-hw as we are going to do now,
+core and the kernel are one single program. Core _is_ the microkernel at the
+root of Genode's component tree. Hence, in the following, the terms core and
+kernel are used synonymously.
+
+Core is executed with the MMU enabled.
+It is globally mapped at the upper part of the virtual address space.
+To operate as the kernel, it contains basic drivers for the interrupt
+controller, kernel timer (for preemptive scheduling), cache maintenance,
+and cross-CPU synchronization.
+For the interplay with the user level components running on top of core,
+it features code paths for exiting the kernel into the user land and,
+vice versa, for entering the kernel from the user land (syscalls, exceptions,
+interrupts).
+Functionality-wise, it implements mechanisms for inter-component
+communication, asynchronous notifications, physical-memory allocation, the
+management of virtual address spaces, and the world-switching between virtual
+machines (if used as a hypervisor). In short, everything a microkernel needs
+to do and - more importantly - nothing a microkernel shouldn't do.
+
+
+Review of the board-specific code
+---------------------------------
+
+Before starting the work on the new board support, let us briefly look into
+each of the files for the existing i.MX8q EVK board.
+
+In list of files, we spot three header files, one _board.h_ header under
+_src/bootstrap/_, one _board.h_ header under _src/core/_, and one
+_imx8q_evk_board.h_ header under _src/include/_. The former two files
+are specific for bootstrap and core, whereas the latter contains definitions
+useful for both programs. The _board.h_ files are located in directories
+named after the board. With this structure, generic (board-agnostic) code
+can '#include <board.h>'. The build system picks the right _board.h_ file
+by adding the board-specific directory to the include-search path.
+
+Let us start with with definitions used across bootstrap and core.
+
+:_repos/base-hw/src/include/hw/spec/arm_64/imx8q_evk_board.h_:
+
+! #include <drivers/uart/imx.h>
+! #include <hw/spec/arm/boot_info.h>
+!
+! namespace Hw::Imx8q_evk_board {
+!     using Serial = Genode::Imx_uart;
+!
+!     enum {
+!         RAM_BASE   = 0x40000000,
+!         RAM_SIZE   = 0xc0000000,
+!
+!         UART_BASE  = 0x30860000,
+!         UART_SIZE  = 0x1000,
+!         UART_CLOCK = 250000000,
+!     };
+!
+!     namespace Cpu_mmio {
+!         enum {
+!             IRQ_CONTROLLER_DISTR_BASE  = 0x38800000,
+!             IRQ_CONTROLLER_DISTR_SIZE  = 0x10000,
+!             IRQ_CONTROLLER_VT_CPU_BASE = 0x31020000,
+!             IRQ_CONTROLLER_VT_CPU_SIZE = 0x2000,
+!             IRQ_CONTROLLER_REDIST_BASE = 0x38880000,
+!             IRQ_CONTROLLER_REDIST_SIZE = 0xc0000,
+!         };
+!     };
+! }
+
+Both bootstrap and core need to know the memory-mapped device registers for
+the UART device to print diagnostic messages. The UART driver
+(_drivers/uart.imx.h_) is included. The 'Serial' type refers to the
+concrete UART driver implementation as present on the board. Thanks to this
+definition, generic code is able to rely on the UART functionality via the
+type name 'Serial'.
+
+The start and size of physical memory must be known by both bootstrap and
+core. So it is defined here.
+
+Both bootstrap and core access the interrupt controller. Whereas bootstrap
+performs the one-time initializations needed in order to start secondary CPU
+cores, core drives the interrupt controller at runtime.
+
+
+The bootstrap-specific files concern build descriptions and actual code.
+The build description looks as follows.
+
+:_repos/base-hw/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk_:
+
+! REP_INC_DIR += src/bootstrap/board/imx8q_evk
+!
+! SRC_CC  += bootstrap/board/imx8q_evk/platform.cc
+! SRC_CC  += bootstrap/spec/arm/gicv3.cc
+! SRC_CC  += bootstrap/spec/arm_64/cortex_a53_mmu.cc
+! SRC_CC  += lib/base/arm_64/kernel/interface.cc
+! SRC_CC  += spec/64bit/memory_map.cc
+! SRC_S   += bootstrap/spec/arm_64/crt0.s
+!
+! NR_OF_CPUS = 4
+!
+! vpath spec/64bit/memory_map.cc $(call select_from_repositories,src/lib/hw)
+!
+! include $(call select_from_repositories,lib/mk/bootstrap-hw.inc)
+
+The i.MX8 SoC uses the GICv3 as interrupt-controller.
+Hence, the driver gicv3.cc is included.
+In contrast, as we learned from the Linux boot log, the Allwinner A64 SoC
+uses the GICv2 interrupt controller.
+
+The MMU driver differs between the various ARM versions. The
+i.MX8 is based on A53 CPU cores. The Allwinner A64 uses the same.
+
+The assembly file _arm_64/crt0.s_ contains the entry point into the program
+as jumped to by the boot loader.
+
+The NR_OF_CPUS definition is used for the static allocation of data
+structures that must be present for each CPU. Hence, this value is globally
+defined.
+
+The strange looking '$(call select_from_repositories...)' is a mechanism
+for accessing files across different source repositories. You can find the
+mechanism described in Section 5.3. "Build system" in the Genode Foundations
+book.
+
+:_repos/base-hw/src/bootstrap/board/imx8q_evk/board.h_:
+
+! #include <hw/spec/arm_64/imx8q_evk_board.h>
+! #include <hw/spec/arm_64/cpu.h>
+! #include <hw/spec/arm/gicv3.h>
+! #include <hw/spec/arm/lpae.h>
+!
+! namespace Board {
+!     using namespace Hw::Imx8q_evk_board;
+!
+!     struct Cpu : Hw::Arm_64_cpu
+!     {
+!         static void wake_up_all_cpus(void*);
+!     };
+!
+!     using Hw::Pic;
+! }
+
+The Board namespace aggregates the knowledge of the board details that
+matter to the bootstrap code, namely the specific interrupt controller
+(gicv3.h) and the declaration of the 'wake_up_all_cpus' function.
+The 'Board' namespace hosts the 'Pic' (programmable interrupt controller)
+type, which allows the generic code of bootstrap to interact with the
+interrupt controller without knowing the exact type of device.
+
+:_repos/base-hw/src/bootstrap/board/imx8q_evk/platform.cc_:
+
+! Bootstrap::Platform::Board::Board()
+! :
+!   early_ram_regions(Memory_region { ::Board::RAM_BASE, ::Board::RAM_SIZE }),
+!   late_ram_regions(Memory_region { }),
+!   core_mmio(Memory_region { ::Board::UART_BASE, ::Board::UART_SIZE },
+!             Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
+!                             ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE },
+!             Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_BASE,
+!                             ::Board::Cpu_mmio::IRQ_CONTROLLER_REDIST_SIZE })
+! {
+!     ::Board::Pic pic {};
+!
+!     ... incomprehensible magic spells, some gibberish about GPIO, CCM, PLL ...
+! }
+!
+! void Board::Cpu::wake_up_all_cpus(void * ip)
+! {
+!     ... more magic spells, digressing into assembly code ...
+! }
+
+The 'early_ram_regions', 'late_ram_regions', and 'core_mmio' data structures
+are initialized with the known ranges of physical memory and memory-mapped
+I/O registers. This information is designated to be passed further to core.
+
+The call of '::Board::Pic pic {};' performs basic interrupt-controller
+initialization that is needed only once.
+It is followed by a sequence of board-specific tweaks to bring the
+board into a defined state for the kernel to rely on. For instance,
+setting the I/O MUX configuration, default voltages, and frequencies.
+The U-boot boot loader already does a fine job for establishing a
+base line but it is rather conservative. The code for the i.MX8 EVK
+boosts the voltages and frequencies for improving the performance.
+
+The 'wake_up_all_cpus' call invokes a hook to enable secondary CPU cores.
+The used mechanism varies from board to board, specifically depending
+on the operation of the ARM Trusted Firmware. We have to brace ourself
+for some investigation once we look into multi-processor support.
+At the beginning, however, we will use only the boot CPU. So we can
+ignore this function for now.
+
+Finally, let's turn our attention to the core-specific files.
+
+:_repos/base-hw/lib/mk/spec/arm_v8/core-hw-imx8q_evk.mk_:
+
+! REP_INC_DIR += src/core/board/imx8q_evk
+! REP_INC_DIR += src/core/spec/arm/virtualization
+!
+! # add C++ sources
+! SRC_CC += kernel/vm_thread_on.cc
+! SRC_CC += spec/arm/gicv3.cc
+! SRC_CC += spec/arm_v8/virtualization/kernel/vm.cc
+! SRC_CC += spec/arm/virtualization/platform_services.cc
+! SRC_CC += spec/arm/virtualization/vm_session_component.cc
+! SRC_CC += vm_session_common.cc
+! SRC_CC += vm_session_component.cc
+!
+! #add assembly sources
+! SRC_S += spec/arm_v8/virtualization/exception_vector.s
+!
+! NR_OF_CPUS = 4
+!
+! # include less specific configuration
+! include $(call select_from_repositories,lib/mk/spec/arm_v8/core-hw.inc)
+
+Core needs to know the type of the interrupt controller because
+it processes interrupts at runtime. Here, the GICv3 driver is incorporated.
+
+Similar to bootstrap, a few data structures within core are statically
+allocated for each CPU, hence the NR_OF_CPUS must be specified here as well.
+
+We can ignore the files with 'vm_*' and 'virtualization' in their names
+for now. They are important for hosting virtual machines. Since the
+virtualization support is a generic feature of the ARM CPU, we don't
+have to take board-specific precautions.
+
+:_repos/base-hw/src/core/board/imx8q_evk/board.h_:
+
+! #include <hw/spec/arm_64/imx8q_evk_board.h>
+! #include <spec/arm/generic_timer.h>
+! #include <spec/arm/virtualization/gicv3.h>
+! #include <spec/arm_64/cpu/vm_state_virtualization.h>
+! #include <spec/arm/virtualization/board.h>
+!
+! namespace Board {
+!     using namespace Hw::Imx8q_evk_board;
+!
+!     enum {
+!         TIMER_IRQ           = 14 + 16,
+!         VT_TIMER_IRQ        = 11 + 16,
+!         VT_MAINTAINANCE_IRQ = 9  + 16,
+!         VCPU_MAX            = 16
+!     };
+! }
+
+In addition to the aggregation of headers matching the board and SoC - like
+the generic timer driver - we see the definitions of just the few interrupt
+numbers that are important to core. The kernel is completely oblivious
+about all other peripheral devices.
+
+The VCPU_MAX definition is solely used for the dimensioning of an
+array that keeps the state of virtual CPUs for virtual machine.
+It is not important for now.
+
+
+A new home for the board support
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The easiest way to add support for a new board is the mirroring of the
+files introduced above.
+We could march forward with adding new files and directories to a
+new branch of the Genode repository.
+Alternatively, the Genode build system allows us to host our custom
+board-specific files in a dedicated source repository that we can
+maintain independently from the Genode main repository.
+The latter approach has the following advantages.
+
+First, it reinforces a clean separation between board-specific code from
+generic Genode code. In particular, the _segregation of code_ constricts the
+working set of files relevant for a given board, keeping only important code
+in view.
+
+Operationally, it allows the decoupling of _code ownership_ in terms of
+responsibility, quality assurance, licensing hygiene, development
+process, and the choice of source hosting.
+
+Finally, it alleviates the pressure to agree on one big joint code base,
+_removing_ potential points of _friction_ between developers.
+
+In the following, we will put our code into a new repository named
+_allwinner_.
+
+! mkdir repos/allwinner
+
+In principle, the directory can be anywhere but I find it practical to
+host it under the _repos_ directory of the Genode source tree.
+One may also opt to use a symlink, e.g., _repos/allwinner_ pointing to
+_~/src/genode-allwinner.git_.
+
+We need to come up with with a concise name for our board support.
+Throughout Genode, we follow certain *naming conventions*. In particular, we
+use underscore '_' for tightly coupled words, and minus '-' for loosely
+coupled terms. For example, in the file name _core-hw-imx8q_evk.mk_,
+"imx8q_evk" belong closely together whereas the words "core" and "hw" are used
+as some kind of category (read: the "core" component for the "hw" kernel for
+the "imx8q_evk" board). With the background of these conventions, the board
+name *pine_a64lts* seems sensible. Specific enough while still concise.
+
+For the initial content from our new _allwinner_ repository be blatantly
+mirror the files of the base-hw repository.
+
+[tikz img/mirror_imx8_pine]
+
+At the current stage, we are concerned about getting the build process right.
+To concentrate at this one thing at a time, let us pretend that the
+Pine-A64-LTS board works equal to the i.MX8 EVK. We don't mind that the
+technicalities copied from the existing board don't match our new board until
+we run the code on the board. That said, as the build-description files (those
+with the 'mk' suffix) steer the build process, they must be made consistent
+with our directory structure. So we have to revisit those files while looking
+out for the pattern 'imx8q_evk'.
+
+A look into _lib/mk/spec/arm_v8/bootstrap-hw-pine_a64lts.mk_ reveals the
+following line:
+! REP_INC_DIR += src/bootstrap/board/imx8q_evk
+We have to replace it with
+! REP_INC_DIR += src/bootstrap/board/pine_a64lts
+
+Similarly, _allwinner/lib/mk/spec/arm_v8/core-hw-pine_a64lts.mk_ contains the
+line:
+! REP_INC_DIR += src/core/board/imx8q_evk
+This must be changed to
+! REP_INC_DIR += src/core/board/pine_a64lts
+
+
+System-integration dry-run
+--------------------------
+
+Let us see how the Genode build system swallows - or chokes on - our new board
+support. First, we need a build directory for the ARMv8 architecture.
+
+! $ ./tool/create_builddir arm_v8a
+! Successfully created build directory at /.../genode/build/arm_v8a.
+! Please adjust /.../genode/build/arm_v8a/etc/build.conf according to your needs.
+
+As suggested, we open _build/etc/build.conf_ in our favorite text editor.
+Normally, I enable parallel builds by uncommenting the corresponding line
+right at the beginning of the file. But for now, let us keep it disabled
+until the skeleton builds successfully. The steps of the build system are
+easier to follow if it operates deterministically.
+
+We need to extend the 'REPOSITORIES' variable with the path to our custom
+repository. For the _allwinner_ repository, that would be following line:
+
+! REPOSITORIES += $(GENODE_DIR)/repos/allwinner
+
+Note that the order of REPOSITORIES defines the search order of the build
+system for files.
+If the _allwinner_ repository should be able to override content
+of the other repositories, specifically base-hw, the above line should appear
+before the others.
+
+With these changes in place, we can issue the build of bootstrap for new
+board.
+
+! $ cd build/arm_v8a
+! $ make bootstrap/hw KERNEL=hw BOARD=pine_a64lts
+!  ...
+!  Library bootstrap-hw-pine_a64lts
+!    ...
+!    MERGE    bootstrap-hw-pine_a64lts.lib.a
+!  Program bootstrap/hw/bootstrap_hw_pine_a64lts
+
+The result can be found in the sub directory _bootstrap/hw/_. We find
+a single object file named _bootstrap-hw-pine_a64lts.o_ along with a stripped
+version of this file.
+
+Likewise, core for the base-hw kernel and the new board can be built as
+follows.
+
+! $ make core KERNEL=hw BOARD=pine_a64lts
+!    ...
+!    MERGE    core-hw-pine_a64lts.lib.a
+!  Program core/hw/core_hw_pine_a64lts
+
+Similar to the build of bootstrap, we can find the result at the corresponding
+subdirectory, here _core/hw/_. We find a single archive file named
+_core-hw-pine_a64lts.a_ along with a stripped version of this file.
+
+Next up, we are going to build a *system image* that contains both core and
+bootstrap.
+Now would be a good time to enable parallel builds. Edit the _etc/build.conf_
+file by un-commenting the following line (removing the hash '#' character).
+
+! #MAKE += -j4
+
+One may also opt to write the BOARD and KERNEL arguments directly into the
+_build.conf_ file as illustrated by the commented-out examples. This
+spares the need to specify the arguments each time when issuing a build
+command.
+
+A system image contains bootstrap, core, and additional boot modules.
+The first two puzzle pieces are already in place. But what about the boot modules?
+In contrast to bootstrap and core, which are always the same for each
+system scenario, the boot modules vary between system scenarios.
+Genode system scenarios are defined in the form of run scripts.
+The run script at _repos/base/run/log.run_ is a good starting point.
+As defined by this particular run script, the system image for the "log"
+system scenario is comprised of core, init, ld.lib.so, init, and test-log in
+addition to a configuration. A system image (image.elf) for this scenario
+would look like this:
+
+[tikz img/base_hw_system_image]
+
+Genode's run tool automates the process of assembling such Matryoshkas from
+the various pieces. Let's give it a try:
+
+! $ make run/log KERNEL=hw BOARD=pine_a64lts
+! ...
+! ... long sequence of compile steps
+! ...
+! genode build completed
+! using 'ld-hw.lib.so' as 'ld.lib.so'
+! core link address is 0xffffffc000000000
+!
+! Error: unknown image link address
+!
+!  File board/pine_a64lts/image_link_address not present in any repository.
+!
+! Makefile:329: recipe for target 'run/log' failed
+
+This message should prompt us to have closer look at the run tool.
+
+! $ cd genode
+! $ grep -r "unknown image link address" tool
+! tool/run/boot_dir/hw: puts stderr "\nError: unknown image link address\n"
+
+The file _tool/run/boot_dir/hw_ is the part of the run tool that defines
+the integration of a system image from its parts for the base-hw kernel.
+It is worth skimming over the file to get a rough understanding of how
+the system image is assembled from its ingredients. The error message
+above comes from the function 'bootstrap_link_address' called during the
+system-image integration step.
+
+The link address is evaluated by the boot loader when loading the system image
+as ELF binary. It defines the start of the text segment of the system image in
+physical memory. As the physical memory layout differs between SoCs and
+boards, we must provide a value that is suitable for the memory layout of the
+Pine-A64-LTS board. From looking at Linux' _/proc/iomem_, we remember that the
+system RAM of our board starts at 0x40000000.
+
+As indicated by the error message above, the run tool expects to find
+the link address in a file called _board/pine_a64lts/image_link_address_.
+Let's create such a file with a sensible value. It is common practice
+to leave some room at the very beginning of the memory, which is often
+occupied by the boot loader. It is usually fine to link the system image to
+64 KiB after the start of the physical memory.
+
+! $ cd allwinner
+! $ mkdir -p board/pine_a64lts
+! $ echo 0x40010000 > board/pine_a64lts/image_link_address
+
+With the link address defined, another attempt to build the system image for
+the log scenario succeeds. The result can be found in the build directory's
+_var/run/_ sub directory:
+
+! $ find var/run
+! var/run
+! var/run/log.boot_modules.o
+! var/run/log
+! var/run/log/boot
+! var/run/log/boot/image.elf
+! var/run/log.core
+! var/run/log.bootstrap
+! var/run/log.config
+
+The most interesting file is certainly _var/run/log/boot/image.elf_, which is
+the final system image. To quickly validate the link address, let's check the
+ELF entrypoint.
+
+! $ readelf -a var/run/log/boot/image.elf | grep Entry
+!   Entry point address:               0x40010000
+
+The value looks familiar. While we are at it, the other files are also worth
+inspecting.
+
+:_var/run/log.boot_modules.o_: is an aggregate of all boot modules of the
+  system scenario.
+
+:_var/run/log.core_: is an ELF binary of core without the boot
+  modules. The binary contains all debug information. This is handy for
+  debugging the core component. For example, using this binary, the
+  instruction pointer of a page fault within core can be related to the
+  matching source code using 'objdump'.
+
+:_var/run/log.bootstrap_: is an ELF binary of the bootstrap code without
+  core and the boot modules. As for the core log.core binary, it is handy
+  for debugging the bootstrap code.
+
+:_var/run/log.config_: is the 'config' boot module passed to the initial
+  init component. It corresponds to the snippet passed the 'install_config'
+  function as found in the _log.run_ script.
+
+By the way, one may prefer booting a uImage instead of an ELF image because a
+uImage is compressed using gzip by default, which reduces the boot time. The
+run tool supports that via the argument '--include image/uboot'. One can
+either extend the RUN_OPT variable by adding a corresponding line to
+_etc/build.conf_ or pass the option to the make command line:
+
+! $ RUN_OPT='--include image/uboot' make run/log BOARD=pine_a64lts KERNEL=hw
+
+After completing the build, the uImage file can be found at
+_var/run/log/uImage_.
+
+This is not magic. At this point, I recommend taking a look at the run tool's
+snippets located at _tool/run/_. In particular, _tool/run/image/uboot_
+contains the sequence of commands used for generating the uImage from the
+ELF image.
+
+
+Getting to grips using meaningful numbers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The faux system image that we just created contains information cowardly
+copied from the imx8q_evk board, and which certainly mismatches the
+pine_a64lts board. So let's revisit the files in our repository one by one and
+look out for any numbers. Numbers are important. According to my experience,
+hexadecimal numbers are especially important. Don't forget to squinch your
+eyes when looking at them. Change them with caution.
+
+! $ cd repos/allwinner
+! $ find -type f
+! ./lib/mk/spec/arm_v8/bootstrap-hw-pine_a64lts.mk
+! ./lib/mk/spec/arm_v8/core-hw-pine_a64lts.mk
+! ./board/pine_a64lts/image_link_address
+! ./src/bootstrap/board/pine_a64lts/platform.cc
+! ./src/bootstrap/board/pine_a64lts/board.h
+! ./src/include/hw/spec/arm_64/pine_a64lts_board.h
+! ./src/core/board/pine_a64lts/board.h
+
+
+:_lib/mk/spec/arm_v8/bootstrap-hw-pine_a64lts.mk_:
+
+The following line catches our attention:
+! SRC_CC  += bootstrap/spec/arm/gicv3.cc
+
+The i.MX8 SoC uses ARM's Generic Interrupt Controller version 3 (GICv3).
+From booting Linux on the Pine-A64 board, we learned that the Allwinner SoC
+uses the GIC version 2. Fortunately, the base-hw kernel supports both
+versions. So we can change the line to:
+! SRC_CC  += bootstrap/spec/arm/gicv2.cc
+
+The NR_OF_CPUS value can stay unmodified because the Allwinner SoC has 4
+cores.
+
+
+:_lib/mk/spec/arm_v8/core-hw-pine_a64lts.mk_:
+
+We merely also have to adjust the GIC version from 3 to 2.
+
+:_src/bootstrap/board/pine_a64lts/platform.cc_:
+
+The file contains a lot of i.MX8Q-specific initialization steps like
+tweaking clocks and voltages. We can remove this code without looking back.
+The body of the 'Bootstrap::Platform::Board' constructor can be reduced
+to the mere initialization of the interrupt controller:
+! {
+!   ::Board::Pic pic { };
+! }
+
+The list of memory regions passed to the 'core_mmio' member can be
+pruned to the single entry for the UART. The other entries that refer
+to the IRQ controller should be removed because they refer to the wrong
+version of the GIC anyway. We will supplement the proper regions for the
+GICv2 later, once we turn our attention to interrupts.
+! core_mmio(Memory_region { ::Board::UART_BASE, ::Board::UART_SIZE })
+
+At this point, I am admittedly unsure about the 'wake_up_all_cpus' implementation,
+in particular whether the opcode of the CPU_ON smc instruction would
+match. I guess not. We will come to multi-processor support at a later
+stage. So let's better remove the uncertainty by reducing
+the implementation to
+! void Board::Cpu::wake_up_all_cpus(void *) { }
+
+:_src/bootstrap/board/pine_a64lts/board.h_:
+
+We see several things that cry for adjustment.
+
+* Updating the include guards
+* Including the correct board definitions by replacing
+  ! #include <hw/spec/arm_64/imx8q_evk_board.h>
+  by
+  ! #include <hw/spec/arm_64/pine_a64lts_board.h>
+* Incorporating the GICv2 driver instead of the GICv3 driver by changing
+  ! #include <hw/spec/arm/gicv3.h>
+  to
+  ! #include <hw/spec/arm/gicv2.h>
+* Defining the C++ type 'Pic' such that it refers to the 'Hw::Gicv2' driver:
+  ! using Pic = Hw::Gicv2;
+
+:_src/include/hw/spec/arm_64/pine_a64lts_board.h_:
+
+To our despair, the file is full of numbers.
+
+* It includes the driver for the UART used for printing debug messages.
+  Of course, the specified drivers/uart/imx.h driver won't work.
+  While experimenting with the bare-metal serial output,
+  we have learned that the Allwinner SoC uses a NS16550 UART controller. Let
+  us pretend having a driver by changing the line to
+  ! #include <drivers/uart/ns16550.h>
+
+* The board-specific name space should reflect the name of our board:
+  ! namespace Hw::Pine_a64lts_board {
+
+* We want the C++ type 'Hw::Serial' to refer to our hypothetical NS16550
+  driver.
+  ! using Serial = Genode::Ns16550_uart;
+
+* The RAM_BASE and RAM_SIZE values must match those we found from the
+  look at Linux _/proc/iomem_.
+  ! RAM_BASE = 0x40000000,
+  ! RAM_SIZE = 0x7e000000,
+
+* We already have found known-good values for UART_BASE and UART_SIZE
+  during our bare-metal serial output experimentation. The UART_CLOCK
+  value won't be needed in our case. So we define it as zero.
+  ! UART_BASE  = 0x1c28000,
+  ! UART_SIZE  = 0x1000,
+  ! UART_CLOCK = 0,
+
+* The IRQ_CONTROLLER_REDIST_BASE and SIZE are not used for the GICv2.
+  So the values can be removed.
+
+* The values for IRQ_CONTROLLER_DISTR_BASE and SIZE as well as
+  VT_CPU_BASE and SIZE will become important once
+  we will turn our attention to the interrupt controller. But this is not
+  today. So we keep the existing numbers, keeping in mind that they won't
+  work.
+
+* When using the GICv2, we need to add the definition of
+  IRQ_CONTROLLER_CPU_BASE and VT_CTRL_BASE.
+  Until we use interrupts, we can pick an
+  arbitrary number. To display good manners, let's leave the lowest 12 bits
+  to zero, pretending that each device resource starts at a page boundary.
+  ! IRQ_CONTROLLER_CPU_BASE     = 0xaaaaa000,
+  ! IRQ_CONTROLLER_VT_CTRL_BASE = 0xbbbbb000,
+
+: \clearpage
+
+:_/src/core/board/pine_a64lts/board.h_:
+
+The file contains mostly interrupt numbers. We will turn our attention to
+interrupts later. Let's not touch them for now because we cannot validate
+the values anyway at this point. Apart from these numbers, a few adjustments
+must be made.
+
+* Updating the include guard
+* Including the board definitions from _pine_a64lts_board.h_
+* Adjusting the GIC version of the included header from _gicv3.h_ to _gicv2.h_
+* Importing the board-specific namespace 'Hw::Pine_a64lts_board'
+
+To wrap up this step, let's check if we missed any leftover by grepping for
+remaining occurrences of patterns like "imx" or "gicv3".
+! $ grep -ri imx repos/allwinner
+
+Now would also be a good time to revisit the file headers, updating the
+information about the author, creation date, brief description, and copyright.
+Should the code be considered to eventually become part of the Genode upstream
+project at some point, it is sensible to leave the license disclaimer as is,
+clarifying that the code is designated be a part of the Genode OS framework.
+
+
+UART driver for bootstrap and core
+----------------------------------
+
+The next attempt to build the system image for the log scenario fails
+predictably:
+
+! $ make run/log KERNEL=hw BOARD=pine_a64lts
+! ...
+!     COMPILE  core_region_map.o
+! In file included from /.../repos/allwinner/src/core/board/pine_a64lts/board.h:17,
+!                  from /.../repos/base-hw/src/core/platform.h:37,
+!                  from /.../repos/base-hw/src/core/core_region_map.cc:18:
+! /.../repos/allwinner/src/include/hw/spec/arm_64/pine_a64lts_board.h:17:10:
+!            fatal error: drivers/uart/ns16550.h: No such file or directory
+!  #include <drivers/uart/ns16550.h>
+!           ^~~~~~~~~~~~~~~~~~~~~~~~
+
+We can find a number of blueprints for our new UART driver at
+_repos/base/include/drivers/uart/_. By following the lines of the existing
+drivers and combining our knowledge from the bare-metal serial experiments,
+we can come up with the following little driver placed
+at _allwinner/include/drivers/uart/ns16550.h_.
+
+! #include <util/mmio.h>
+!
+! namespace Genode { class Ns16550_uart; }
+!
+!
+! class Genode::Ns16550_uart : Mmio
+! {
+!   private:
+!
+!     struct Thr : Register<0x00, 32>
+!     {
+!       struct Data : Bitfield<0,8> { };
+!     };
+!
+!     struct Lsr : Register<0x14, 32>
+!     {
+!       struct Thr_empty : Bitfield<5,1> { };
+!     };
+!
+!   public:
+!
+!     Ns16550_uart(addr_t const base, uint32_t, uint32_t) : Mmio(base) { }
+!
+!     void put_char(char const c)
+!     {
+!       while (read<Lsr::Thr_empty>() == 0);
+!
+!       write<Thr::Data>(c);
+!     }
+! };
+
+Like all drivers dedicatedly developed for Genode, it uses Genode's 'Register'
+API to safely access bits of memory-mapped I/O registers. You can find the API
+described in Section 8.18 "Utilities for user-level device drivers" in the
+Genode-Foundations book.
+
+
+Climbing the mountain step by step
+----------------------------------
+
+We are almost there. On our walk, we repeatedly try to build the system image,
+look at the compiler and linker errors, fix them, and repeat.
+
+! $ make run/log KERNEL=hw BOARD=pine_a64lts
+!     ...
+!     COMPILE  bootstrap/spec/arm/gicv2.o
+! /.../repos/base-hw/src/bootstrap/spec/arm/gicv2.cc:
+!                     In constructor 'Hw::Gicv2::Gicv2()':
+! /.../repos/base-hw/src/bootstrap/spec/arm/gicv2.cc:23:28:
+!                     error: 'NON_SECURE' is not a member of 'Board'
+!   bool use_group_1 = Board::NON_SECURE &&
+!                             ^~~~~~~~~~
+
+The interrupt-controller driver apparently needs to distinguish the cases where
+the kernel is running in the so-called "secure world" or "normal world" of
+ARM TrustZone. If you want to learn more about schizophrenia as a feature of
+ARM processors, let me point you to our dedicated article on ARM TrustZone [1].
+Admittedly, I'm not completely sure about which of both worlds are executing
+our kernel. But it is probably safe to assume that the boot process switches
+to the normal world before loading and starting our system image.
+So we add the definition of NON_SECURE to
+_allwinner/src/bootstrap/board/pine_a64lts/board.h_.
+
+[1] [https://genode.org/documentation/articles/trustzone]
+
+! namespace Board {
+!   ...
+!   static constexpr bool NON_SECURE = true;
+! }
+
+The next slope on our way up the hill:
+
+! $ make run/log KERNEL=hw BOARD=pine_a64lts
+!     ...
+!     MERGE    bootstrap-hw-pine_a64lts.lib.a
+! /.../genode-aarch64-ar: bootstrap/board/pine_a64lts/platform.o:
+!                         No such file or directory
+! /.../repos/base/mk/lib.mk:180: recipe for target
+!                                'bootstrap-hw-pine_a64lts.lib.a' failed
+
+We have to guide the build system to consider source files in the _allwinner_
+repository, by adding the following line to
+_lib/mk/spec/arm_v8/bootstrap-hw-pine_a64lts.mk_.
+
+! vpath bootstrap/% $(REP_DIR)/src
+
+: \clearpage
+
+Next try. This time, we get a link error:
+
+! /.../aarch64-none-elf/bin/ld: debug/core-hw-pine_a64lts.a(cpu.o):
+!                               in function `Board::Pic::Pic()':
+! /.../repos/base-hw/src/core/spec/arm/virtualization/gicv2.h:22:
+!     undefined reference to `Board::Pic::Gich::Gich()'
+
+It turns out that the virtualization-related parts of the GICv2 driver reside
+in a distinct compilation unit located at
+_base-hw/src/core/spec/arm/virtualization/gicv2.cc_, which is not yet included
+in the build description for core. We have to add the following line to
+_allwinner/lib/mk/spec/arm_v8/core-hw-pine_a64lts.mk_.
+
+! SRC_CC += spec/arm/virtualization/gicv2.cc
+
+With these minor obstacles addressed, we get a system image that should
+largely be compatible with our board. The urge to try out the freshly
+baked system image on the board is strong. Why not?
+
+
+A first life sign of the kernel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Testing the system image on the board comes down to the following few steps.
+
+# Make sure to build the uImage using the 'image/uboot' RUN_OPT.
+
+  ! $ RUN_OPT='--include image/uboot' make run/log BOARD=pine_a64lts KERNEL=hw
+
+# Copy the uImage from _build/arm_v8a/var/run/log/uImage_ to the TFTP
+  directory. In my case, that is _/var/lib/tftpboot/_.
+
+# Boot the board and use U-Boot's 'bootp' and 'bootm' commands to load the
+  uImage via TFTP and start it.
+
+! => bootp 10.0.0.32:/var/lib/tftpboot/uImage
+! BOOTP broadcast 1
+! BOOTP broadcast 2
+! BOOTP broadcast 3
+! DHCP client bound to address 10.0.0.178 (1121 ms)
+! Using ethernet@1c30000 device
+! TFTP from server 10.0.0.32; our IP address is 10.0.0.178
+! Filename '/var/lib/tftpboot/uImage'.
+! Load address: 0x42000000
+! Loading: #############################################################
+!          2.7 MiB/s
+! done
+! => bootm
+! ## Booting kernel from Legacy Image at 42000000 ...
+!    Image Name:   
+!    Image Type:   AArch64 Linux Kernel Image (gzip compressed)
+!    Data Size:    887610 Bytes = 866.8 KiB
+!    Load Address: 40010000
+!    Entry Point:  40010000
+!    Verifying Checksum ... OK
+!    Uncompressing Kernel Image
+!
+! Starting kernel ...
+!
+! Error: Assertion failed: id < _count && _cpus[id].constructed()
+! Error:   File: /.../repos/base-hw/src/core/kernel/cpu.cc:205
+! Error:   Function: Kernel::Cpu& Kernel::Cpu_pool::cpu(unsigned int)
+
+The excitement is real! That's the first life sign of Genode's kernel!
+We get three satisfactory results at once.
+First, our custom 'Ns16550_uart' driver is working, as evidenced by the
+beautifully formatted error messages. So we did not mess up any of the
+important numbers there.
+Second, in contrast to the archaic experiments with the bare-metal serial
+output, which did not even use a stack, we can now enjoy the comfort
+of Genode's C++ runtime. We don't feel like living in a cave any longer.
+

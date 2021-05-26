@@ -1,0 +1,161 @@
+Pruning device trees
+====================
+
+We briefly touched the treasure trove called device trees in the
+previous section. To leverage the
+wealth of information for the development and porting of Genode device
+drivers, this article introduces a handy new tool set.
+
+As summarized in the previous article, device-tree files as found at
+Linux source tree under _arch/<arch>/boot/dts/_ provide both
+a structural description of an SoC and parametrization data for individual
+device drivers. It goes without saying that this information is extremely
+valuable. On the other hand, the encoding of the information in the form
+of so-called _Devicetree Specification_ [1] files is not ideal for us.
+
+[1] [https://github.com/devicetree-org/devicetree-specification/]
+
+The authors of DTS files anticipate a monolithic kernel where a global view of
+the system is natural. In contrast, Genode fosters a strict separation of
+drivers from each other where each driver gets to see only a tiny part of the
+picture. With a DTS file of more than 1600 lines (as for the Pine-A64-LTS)
+board given, it is really hard to see to see clear lines of responsibilities
+between drivers. This is where Genode's tool at _tool/dts/extract_
+comes into play. Just for reference, usage information are provided by
+executing the tool without arguments.
+
+Let's assume we have generated an all-encompassing DTS file
+_flat_pine64lts.dts_ for our board via the C preprocessor as
+described in Section [Device-tree treasure trove].
+
+The _tool/dts/extract_ utility allows us to generate a dot graph from the
+source, which can be processed by the Graphviz [1] dot
+tool to generate a PNG file.
+
+[1] [https://graphviz.org/]
+
+! tool/dts$ ./extract --dot-graph flat_pine64lts.dts > pine64.dot
+! tool/dts$ dot -Tpng pine64.dot > pine64.png
+
+[image pine64_dts]
+  Does this count as generative art?
+
+Even though the picture presents only a tiny fraction of the information
+present in the DTS file - neither any properties, nor device addresses, nor
+unlabeled nodes are shown - it is too overwhelming to be useful.
+
+Let's say we are interested in the porting of the ethernet driver. In the
+previous article we already manually walked the DTS tree and spotted the
+corresponding node along the way. With the '--labels' option, the _extract_
+tool provides a convenient way to get an overview of the nodes present in
+the tree.
+
+! tool/dts$ ./extract --labels flat_pine64lts.dts
+! ...
+! uart1 /soc/serial@1c28400
+! spi0_pins /soc/pinctrl@1c20800/spi0-pins
+! ve_sram /soc/syscon@1c00000/sram@1d00000/sram-section@0
+! reg_aldo1 /soc/rsb@1f03400/pmic@3a3/regulators/aldo1
+! emac /soc/ethernet@1c30000
+! uart2 /soc/serial@1c28800
+! lradc /soc/lradc@1c21800
+! ...
+
+Each line presents a label accompanied with the corresponding path of the
+device node. Of course, the command is best combined with grep.
+
+! tool/dts$ ./extract --labels flat_pine64lts.dts | grep ether
+! emac /soc/ethernet@1c30000
+! mdio /soc/ethernet@1c30000/mdio
+! ext_rgmii_phy /soc/ethernet@1c30000/mdio/ethernet-phy@1
+
+The 'emac' label should ring a bell from the previous article.
+To find out about the interaction of the emac device with the other
+parts of the device tree, the extract tool allows us to generate a
+new DTS tree with only a selection of devices and their dependencies
+present.
+
+! tool/dts$ ./extract --select emac flat_pine64lts.dts > emac.dts
+
+From the more of 1600 lines of the original DTS file, the result
+comprises only about 200 lines. This amount of information can be
+digested without choking.
+
+! tool/dts$ wc -l emac.dts 
+! 213 emac.dts
+! tool/dts$ ./extract --dot-graph emac.dts > emac.dot
+! tool/dts$ dot -Tpng emac.doc > emac.png
+
+With a few final manual tweaks of the layout parameters, one can get a picture
+as nice as this.
+
+[image emac_dts]
+  A sudden moment of clarity.
+
+Finally, we can create a device-tree binary out of the pruned device-tree
+source.
+
+! tool/dts$ dtc -Idts emac.dts > emac.dtb
+
+The device-tree compiler does not complain, which gives us the reassurance
+that the tree is in a healthy state after the brutal pruning.
+
+
+Test-driving Linux with the tuned device tree
+---------------------------------------------
+
+In order to successfully boot the Linux kernel, the supplied device tree
+needs a few mandatory ingredients.
+First, we need to supply the information about the timer to be used
+by the kernel, which is provided by the '/timer' node.
+Furthermore, '/chosen' node contains the
+'stdout-path' property, which tells the kernel where messages should go.
+In the device tree for the Pine-A64-LTS board, it is defined as
+! stdout-path = "serial0:115200n8";
+The 'serial0' part of the string refers to an entry of the '/aliases' node,
+which is defines as follows. Note that it contains an alias referring to
+our Ethernet device 'emac'.
+
+! aliases {
+!   ethernet0 = &emac;
+!   serial0 = &uart0;
+!   serial1 = &uart1;
+!   serial2 = &uart2;
+!   serial3 = &uart3;
+!   serial4 = &uart4;
+! };
+
+The following command extracts a device tree featuring those mandatory nodes.
+Since the 'emac' device is implicitly pulled in by the '/alias' node, we
+don't need to explicitly specify the '--select emac' argument.
+
+! tool/dts$ ./extract --select /chosen --select /aliases --select /timer \
+!                     flat_pine64lts.dts
+
+The resulting device tree, once compiled into its dtb representation, suffices
+to boot the hand-crafted Linux kernel we built in the previous article. It
+looks as follows.
+
+[image emac_lx_dts]
+  This fine-tuned device tree suffices for using Ethernet with Linux.
+
+The '/timer', '/chosen', and '/aliases' nodes are not shown because the graph
+omits unlabeled nodes. It still contains a few obviously unneeded parts such
+as the ones relates to the 'simplefb' nodes (defined inside the '/chosen'
+node) or the 'uart1' to 'uart4' nodes (referenced by the '/aliases' node). To
+remove those, one may consider cutting off those dependencies by commenting
+out those parts in the _flat_pine64lts.dts_ file.
+
+
+Prospects
+---------
+
+Even though the primary motivation behind the new tooling is the pruning of
+device trees to attain driver-specific miniature device trees to be fed to
+ported Linux driver code, I already see myself using the graph feature as an
+aid for understanding SoC hardware. As of now, the graph is admittedly just a
+quick hack. The dot language allows for generating nicely structured images,
+e.g., presenting child nodes contained in parent nodes. It's also tempting to
+generate XML configuration data for Genode's platform driver from the
+device-tree information.
+

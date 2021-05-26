@@ -1,0 +1,472 @@
+Getting acquainted with the target platform
+===========================================
+
+The undertaking of bringing Genode - and Sculpt OS in particular - to a new
+ARM SoC comes with a great deal of uncertainties, namely the inner functioning
+of overly complex hardware, picking appropriate tools and methodologies,
+taking informed decisions about porting versus developing drivers, and
+relating all this to Genode.
+
+Combined, these uncertainties pose a huge barrier. At Genode Labs, we have
+conquered this barrier a few times in the past, e.g.,
+for supporting the NXP i.MX8 SoC. However, the porting of Genode to new
+hardware should not be left as an activity exclusive to Genode Labs. In order
+to assist developers outside of Genode's inner circle with joining the fun,
+we'd like to share what we know. This sharing should have the form of profound
+documentation that serves as a guide and removes points of friction as much as
+possible.
+
+To deliver substance, I figured that I should not merely talk the talk by
+speaking from past experience, but also walk the walk again while writing down
+my practical steps as I go. So I went forward looking around for tasty
+hardware, when [https://www.pine64.org/ - Pine64] caught my eyes.
+
+
+Why Pine64?
+-----------
+
+I got excited about Pine64 for several reasons.
+
+First, devices in the form factors of the Pinephone and the A64 development
+boards are readily available at affordable prices. The Pine64 website carries
+a very positive message, highlighting community, openness, sustainability,
+transparency, no marketing nonsense.
+
+Second, the products are designed for hackability. This is evidenced by the
+vibrant developer community, mainline Linux kernel support, and the
+availability of literally more than a dozen Linux distributions. One can boot
+the Pinephone directly from SD-card. How cool is that!
+
+Third, the used Allwinner SoC - introduced as early as 2015 - is rather aged.
+In contrast to bleeding-edge hardware, I would not need to explore unconquered
+territory. Others have hopefully discovered most pitfalls before me. The SoC
+seems to strike a nice balance of modern features (64 bit, multi core,
+virtualization) with modest complexity. The performance of the SoC is notably
+at the lower end of the smartphone product category. From the perspective of
+an operating-systems developer, I don't see this as a con but more as a
+welcome challenge. Will Genode be able to shine on such a constrained device?
+Let's find out!
+
+The only downside of the SoC worth mentioning is the lack of an IO-MMU as
+protection mechanism against rampant I/O devices or drivers. So the sandboxing
+of device drivers can never be water-tight.
+
+
+Getting a first impression
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We ordered a Pine64-LTS board [1], a Pinephone [2], and a serial cable [3]
+for the Pinephone directly from the online store. For some kind
+of safety reason, the phone had to be ordered separately. In hindsight, we
+better had ordered a power supply for the Pine64-LTS board as well. We skipped
+it as we already have kilograms of AC power supplies of other boards at hand.
+However, it turned out that kilograms of power supplies with 5mm connectors
+are of little use when the board features a less mainstream 3.5mm connector.
+Such details matter sometimes.
+
+[1] [https://pine64.com/product-category/pinephone/ - Pine64-LTS]
+
+[2] [https://pine64.com/product-category/pinephone/ - Pinephone]
+
+[3] [https://pine64.com/product/pinebook-pinephone-pinetab-serial-console/]
+
+For getting our hands dirty with technical work, we will have to leave the
+Pinephone alone for a while and turn our attention to the *Pine-A64-LTS* board.
+Pine64 wiki [4] provides the perfect staring point.
+
+[4] [https://wiki.pine64.org/index.php/PINE_A64-LTS/SOPine_Main_Page]
+
+
+Booting an officially supported GNU/Linux image
+-----------------------------------------------
+
+The wiki lists numerous ready-to-use Linux distributions.
+I went for [https://www.armbian.com - Armbian]. Just a few minutes later,
+after downloading the disk image [1], writing the image to an
+SD card, connecting an HDMI display and a USB keyboard, and booting the
+board with the SD card inserted, I was greeted with Armbian login, allowing
+me to login as root user.
+
+[1] [https://dl.armbian.com/pine64so/Buster_current]
+
+At this point, I'm most interested in getting a first overview of the
+hardware. The following information are insightful:
+
+! root@pine64so:/# cat /proc/cpuinfo
+! ...
+! root@pine64so:/# cat /proc/meminfo
+
+Well, that is not too surprising. It's more like a ritual.
+
+! root@pine64so:/# dmesg | less
+
+The kernel boot log is quite chatty. The following lines caught my eyes.
+
+! [    2.228675] sun4i-drm display-engine: bound 1100000.mixer...
+! [    2.230477] sun4i-drm display-engine: bound 1200000.mixer...
+! [    2.231001] sun4i-drm display-engine: No panel or bridge found...
+! [    2.231018] sun4i-drm display-engine: bound 1c0c000.lcd-controller...
+! [    2.231227] sun4i-drm display-engine: bound 1c0d000.lcd-controller...
+! [    2.231293] sun8i-dw-hdmi 1ee0000.hdmi: Couldn't get regulator
+! [    2.231734] sun4i-drm display-engine: Couldn't bind all pipelines...
+
+...once we get to graphics, we have to grep the Linux kernel for "sun4i-drm"
+and "sun8i-dw-hdmi". Whatever sun4i and sun8i means. Does "dw" stands for
+Designware? I shudder for a moment...
+
+
+! [    2.250163] 1c28000.serial: ttyS0 at MMIO 0x1c28000 (irq = 31,...
+! [    2.250239] printk: console [ttyS0] enabled
+! [    2.250893] sun50i-a64-pinctrl 1c20800.pinctrl: supply vcc-pg...
+! [    2.251327] 1c28400.serial: ttyS1 at MMIO 0x1c28400 (irq = 32,...
+! [    2.251471] serial serial0: tty port ttyS1 registered
+
+...the Linux kernel uses the serial controller at 0x1c28000 by default. That
+will be the first device we need a driver for. Never heard of a "16550A"
+device though...
+
+! [    2.277178] ehci-platform 1c1b000.usb: EHCI Host Controller
+! [    2.277210] ehci-platform 1c1b000.usb: new USB bus registered,...
+! [    2.277359] ehci-platform 1c1b000.usb: irq 22, io mem 0x01c1b000
+! [    2.289613] ehci-platform 1c1b000.usb: USB 2.0 started, EHCI 1.00
+! ...
+! [    2.291208] ohci-platform 1c1b400.usb: Generic Platform OHCI controller
+! [    2.291228] ohci-platform 1c1b400.usb: new USB bus registered,...
+! [    2.291342] ohci-platform 1c1b400.usb: irq 23, io mem 0x01c1b400
+
+...an OHCI USB controller, I get a little blast from the past...
+
+! [    2.384988] sunxi-mmc 1c0f000.mmc: initialized,...
+! [    2.410167] sunxi-mmc 1c10000.mmc: initialized,...
+! [    2.422925] mmc0: Problem switching card into high-speed mode!
+! [    2.423025] mmc0: new SDHC card at address 0001
+
+...two multi-media card (MMC) devices, apparently driven by an
+Allwinner-specific controller. "Problem switching card into high-speed mode!".
+MMC and problem are almost synonymous. Allwinner will not positively surprise
+us...
+
+! [    3.412571] dwmac-sun8i 1c30000.ethernet: IRQ eth_wake_irq not found
+
+...the good news is that there is a dedicated Ethernet controller, not merely
+a USB-network device. The bad news is that the controller is an IP core
+purchased from Designware. After the deep scars I got from USB on the
+Raspberry Pi, I was hoping not to touch anything with "dw" in its name
+again...
+
+! [    9.189128] Call trace:
+! [    9.191219]  ktime_get_update_offsets_now+0x5c/0x100
+! [    9.193340]  hrtimer_interrupt+0xa0/0x2f0
+! [    9.195466]  sun50i_a64_read_cntpct_el0+0x30/0x38
+! [    9.197542]  arch_counter_read+0x18/0x28
+! [    9.199712]  arch_timer_handler_phys+0x34/0x48
+! [    9.201813]  handle_percpu_devid_irq+0x84/0x148
+! [    9.203971]  ktime_get_update_offsets_now+0x5c/0x100
+! [    9.206022]  hrtimer_interrupt+0xa0/0x2f0
+! [    9.208071]  generic_handle_irq+0x30/0x48
+! [    9.210150]  __handle_domain_irq+0x64/0xc0
+! ... many more lines ...
+
+...a Linux kernel thread died during boot. The "sun50i" symbol hints at an
+Allwinner-related driver issue. The kernel marches on nevertheless...
+
+! [    9.703995] lima 1c40000.gpu: gp - mali400 version major 1 minor 1
+! ...
+
+...it's really nice to have a GPU without the need for any proprietary
+blobs, thanks to the reverse-engineering efforts by the Lima project.
+
+The kernel log is not the only place revealing information about the hardware.
+
+! root@pine64so:/# cat /proc/iomem
+!
+! 01000000-0100ffff : 1000000.clock clock@0
+! 01100000-011fffff : 1100000.mixer mixer@100000
+! 01200000-012fffff : 1200000.mixer mixer@200000
+! ...
+! ...
+! 40000000-bdffffff : System RAM
+
+Here, we get a complete view of the physical-memory layout, including
+the locations of all memory-mapped devices as well as the actual RAM. The
+(almost) 2 GiB of physical memory does not start at 0 but rather at 0x40000000.
+
+! root@pine64so:/# cat /proc/interrupts
+
+Here, we see how the relationship between devices, interrupt numbers, and
+CPUs (interrupt routing) as configured by the Linux kernel.
+
+Another point of interest is the device tree that can be found at
+_/proc/device-tree_, which is actually a symbolic link to
+_/sys/firmware/devicetree/base_.
+
+At this point, it is too early to digest all this information. Let's save
+it for later. The easiest way is storing data on a USB stick.
+
+# When plugging in a USB stick to the second USB port, the kernel's 'dmesg'
+  output tells us that it is detected as _/dev/sdb_ as well as the partitions,
+  e.g., _/dev/sdb1_ for the first partition.
+
+# Knowing the device name of the partition, we can mount its file system
+  at _/mnt_ via 'mount /dev/sdb1 /mnt'.
+
+# Now we can copy any files interest to '/mnt/'.
+
+
+As an additional function test, one can quickly give the *network interface* a
+try. Once when plugging in a network cable to our local network, the LED
+on the network PHY starts blinking happily, and 'ifconfig' reveals that
+the board got an IP address from our local DHCP server.
+A quick 'wget https://genode.org' works just as expected.
+
+
+Serial line
+-----------
+
+Knowing that the board is fully functional when running a Linux-based OS,
+we have to work towards using the board as an embedded development target.
+Textual output over *serial* is the most important prerequisite for that.
+The times when development boards featured 9-pin D-SUB connectors is long
+past. Nowadays, we need to look out for the right pins on one of the board's
+expansion sockets. The board has several of them. So now is a good time
+to get acquainted with the board's schematics.
+
+:Pine-A64-LTS board schematics:
+
+  [https://files.pine64.org/doc/SOPINE-A64/PINE%20A64-TLS-20180130.pdf]
+
+The schematics hint at several serial devices (UART). E.g.,
+UART1 at the SDIO WIFI + BT pin header. The go-to solution is not obvious.
+Fortunately, a little web search later, we land on a nice wiki page [2]
+describing the UART on Pine64.
+In particular, we learn "Better always use UART0 on the EXP connector nearby,
+accessible on pins 7 (TXD), 8 (RXD), 9 (GND)."
+
+[2] [https://linux-sunxi.org/Pine64]
+
+Everyone should have a few TTL-232R-RPi
+cables at hand. If you don't, hurry up and order some.
+Pay attention to signal level. In our case, the board needs a 3.3V cable.
+All we need is cross-connecting TX to RX, RX to TX, and ground to
+ground.
+
+On Linux-based development machines, we usually use
+picocom as serial terminal program. When
+connecting the USB cable, the Linux kernel's 'dmesg' output tells us about the
+new device _/dev/ttyUSB0_, which we can readily access with picocom.
+
+[4] [https://www.mankier.com/1/picocom]
+
+! picocom --baud 115200 /dev/ttyUSB0
+
+When pressing enter, we are greeted with the login of Armbian.
+
+For the next steps, display and keyboard are no longer needed.
+All we need is the serial line.
+
+
+JTAG
+----
+
+I'm hopeful that serial output will suffice for most debugging work. However,
+in desperate situations like when facing cache-coherency issues, a JTAG
+debugger like Lauterbach or Flyswatter can really save the day (or the week).
+So when encountering a new board, we always look out for JTAG debugging pins.
+If present, we get the cozy feeling of having this option available as a last
+resort.
+
+In the case of the Pine64, we must live without this cozy feeling. While
+searching the forum [https://forum.pine64.org], I learned that the SoC is
+indeed equipped with JTAG pins but the wiring of the Pine board does not make
+them accessible.
+Apparently, there is too little interest in JTAG by the community at large,
+which is perfectly understandable. Most users don't mess around at the low
+level where JTAG becomes the tool of choice.
+
+
+The U-Boot boot loader
+~~~~~~~~~~~~~~~~~~~~~~
+
+U-Boot [1] is widely regarded as _the_
+canonical boot loader for ARM platforms, and we Genode developers agree.
+The primary reason for our high opinion is U-Boot's ability to fetch boot
+images over the network from a TFTP server, which is fundamental to our
+work flows.
+
+[1] [https://www.denx.de/wiki/U-Boot]
+
+The secondary reason is that U-Boot brings the hardware into a state that is
+convenient for the booted operating system. For example, since U-Boot prints
+messages over serial, it needs to initialize the serial controller correctly,
+fiddly stuff like setting up the baud rate or powering the USB FUE.
+With those preparations done by the boot loader, Genode's drivers can
+conveniently skip those steps and still work nicely.
+
+The third great benefit of U-Boot to us is the arsenal of drivers supported by
+the project. Granted, we don't actually use most of those drivers in practice.
+But others are using them. So the drivers work reliably, are well maintained,
+and are usually much less complex compared to drivers found in the Linux
+kernel. This makes the drivers a very useful reference while developing
+drivers for Genode.
+
+Since Armbian uses U-Boot, we can in principle keep using it.
+During the boot, one can press <space> at the serial terminal to intercept
+the automated boot. This brings us to the interactive U-Boot prompt.
+
+
+Building U-Boot from source
+---------------------------
+
+Building the boot loader from source is not just an affair of honor, it also
+fosters our understanding and our full control over the boot process. The
+ability to control the boot loader is empowering and can serve as an
+experimentation ground.
+The steps for building U-Boot manually for Allwinner-based devices are
+described in the excellent documentation [1].
+
+[1] [https://linux-sunxi.org/Mainline_U-Boot]
+
+For reference, here are the steps I took.
+
+# Cloning the git repository and checking a recent release branch:
+
+  ! $ git clone git://git.denx.de/u-boot.git
+  ! $ cd u-boot
+  ! u-boot$ git checkout -b v2020.10 v2020.10
+
+# Looking out for a suitable default configuration for the Pine64-LTS board,
+  guessing it would have something like "pine" in the name:
+
+  ! u-boot$ find configs/ | grep -i pine
+  ! configs/pinebook-pro-rk3399_defconfig
+  ! configs/sopine_baseboard_defconfig
+  ! configs/pine64_plus_defconfig
+  ! configs/pine64-lts_defconfig
+  ! configs/pinebook_defconfig
+  ! configs/pine_h64_defconfig
+
+  Well, _pine64-lts_defconfig_ sounds like I'm lucky for the Pine64 board.
+  But the Pinephone is notably absent.
+  A look at [https://linux-sunxi.org/PinePhone] clarifies the situation:
+  "As we currently do not have any specific U-Boot config for this device, Use
+  the pine64-lts_defconfig build target temporarily as a hack." That's fine
+  by me.
+
+
+# Building the ARM Trusted Firmware
+
+  The ARM Trusted Firmware is the effort to unify low-level firmware
+  interfaces - think of the bring-up secondary CPU cores - across SoC vendors.
+  A dedicated article [1] by Stefan Kalkowski goes into more detail.
+
+  The building steps described at linux-sunxi.org are easy to follow.
+  For us, the build output is quite instructive for guiding our attention.
+
+  ! $ make CROSS_COMPILE=aarch64-linux-gnu- PLAT=sun50i_a64 DEBUG=1 bl31
+  ! ...
+  ! CC      drivers/allwinner/axp/axp803.c
+  ! CC      drivers/allwinner/axp/common.c
+  ! CC      drivers/allwinner/sunxi_msgbox.c
+  ! CC      drivers/allwinner/sunxi_rsb.c
+  ! ...
+  ! CC      plat/allwinner/sun50i_a64/sunxi_power.c
+  ! CC      plat/common/plat_gicv2.c
+  ! ...
+  ! Built /home/no/pine64/arm-trusted-firmware/build/sun50i_a64/debug/bl31.bin successfully
+
+  There are many more lines. They point us to interesting details. For example,
+  _drivers/allwinner/axp/axp803.c_ contains the default settings of the AXP
+  power-management chip,
+  _plat/allwinner/sun50i_a64/sunxi_power.c_ tells us how the AXP chip is
+  accessed via memory-mapped I/O.
+
+# Installing the boot loader on the SD-card
+
+  The steps are described in detail at
+  [https://linux-sunxi.org/Bootable_SD_card].
+  For me, it is great to see the option of using a GPT partitioning
+  scheme, which we already use for Sculpt OS on PC hardware.
+  This will hopefully become handy at a later stage.
+
+[1] [https://genodians.org/skalk/2020-02-18-armv8-smp]
+
+
+A few useful U-Boot commands
+----------------------------
+
+When booting U-Boot from our freshly prepared SD card, we can see U-Boot
+initializing and probing a bunch of devices.
+In our current situation, *booting over the network* is the most important
+functionality. So we turn our attention to the 'bootp' command.
+
+! => help bootp
+! bootp - boot image via network using BOOTP/TFTP protocol
+!
+! Usage:
+! bootp [loadAddress] [[hostIPaddr:]bootfilename]
+
+Let's give it a quick try. My development machine has the IP address
+10.0.0.32 within the local network and happens to have a TFTP server running.
+Just for the test, I put a little file called _something_ into the TFTP
+directory and issue the following command to U-Boot:
+
+! =>  bootp 10.0.0.32:/var/lib/tftpboot/something
+!
+! TFTP from server 10.0.0.32; our IP address is 10.0.0.178
+! Filename '/var/lib/tftpboot/something'.
+! Load address: 0x42000000
+
+Of course, I don't want to manually type this command on every boot.
+It is much better to tell U-Boot to execute the command automatically
+for us. This is possible by customizing U-Boot's 'bootcmd' environment
+variable.
+
+! => help editenv
+! editenv - edit environment variable
+!
+! Usage:
+! editenv name
+!     - edit environment variable 'name'
+!
+! => editenv bootcmd
+! edit: bootp 10.0.0.32:/var/lib/tftpboot/something
+
+With the 'bootcmd' customized to our liking, lets save the new setting.
+U-Boot provides the command 'saveenv' for that, which stores the settings
+at a predefined location on the MMC / SD card.
+
+! => saveenv 
+! Saving Environment to FAT... Card did not respond to voltage select!
+! Failed (1)
+
+Well, this did not work as anticipated. The reason is that there are two
+MMC devices present. The SD-card is connected to the first MMC controller
+whereas U-Boot is apparently configured to store its environment via the
+second MMC controller. Fortunately, the latter setting can be configured
+in U-Boot's build configuration.
+
+Inside the _u-boot/ .config_, we find a variable
+CONFIG_ENV_FAT_DEVICE_AND_PART.
+In the interactive 'menuconfig', the corresponding setting is located at the
+_Environment_ sub menu:
+
+! (1:auto) Device and partition for where to store the environemt in FAT
+
+Changing the setting to 0:auto should do the trick.
+Of course, we have to go again through the steps of building U-Boot and
+writing it to the SD-card. But that is a small price to pay for the
+convenience that awaits us.
+
+Next time in U-Boot, editing the 'bootcmd' again to our liking and invoking
+the 'saveenv' command makes us smile:
+
+! => saveenv 
+! Saving Environment to FAT... OK
+
+From now on, we can save a number of key strokes on each boot. One final
+tweak would increase our comfort even more. By default, U-Boot initializes
+the USB controller at boot time. This takes a few seconds, delaying our
+boot time. Since we don't plan to boot from any USB device during our
+development workflow, it is better to *skip the USB initialization*. This
+can be done by changing the 'preboot' environment variable from "usb start" to
+nothing, and of course make the change persistent via the 'saveenv' command.
