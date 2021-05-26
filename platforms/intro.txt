@@ -1,0 +1,15 @@
+Introduction
+############
+
+This document complements the Genode Foundations book with
+low-level hardware-related topics. It is primarily intended for integrators
+and developers of device drivers. Before studying the Genode Platforms
+material, it is highly recommended to give the Genode Foundations book a read.
+The book can be downloaded at [https://genode.org].
+
+In this first edition, the document features a practical guide for the steps
+needed to bring Genode to a new ARM SoC. The content is based on the ongoing
+Pine Fun article series at [https://genodians.org - Genodians.org].
+Note that the document is not set in stone. We plan to continuously extend it
+with further practical topics as we go.
+

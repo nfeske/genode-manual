@@ -1,0 +1,408 @@
+Bare-metal serial output
+========================
+
+In the previous section,
+we started getting acquainted with the Pine64 hardware, established a serial
+connection using Linux, and explored the use of the U-Boot boot loader.
+Now we can move towards running Genode's kernel on the device. Before
+touching Genode, however, we need to take two precautions.
+
+# We need to understand the hand-over of execution from the boot loader to the
+  loaded kernel code.
+
+# In order to know that the right things are happening within our custom
+  code, we need a way to get information out.
+
+To address both questions, we are going to build a custom code blob that can
+be copied to a predefined physical-memory address and, when executed, prints
+characters over the serial line.
+For the latter, we need a primitive way to print debug messages over a serial
+connection. This section goes through the steps of executing custom code on
+bare-metal hardware with no kernel underneath, and attaining serial output by
+poking UART device registers directly.
+
+
+Information gathering
+---------------------
+
+During our initial exploration in Section
+[Getting acquainted with the target platform], we stumbled over a serial device 
+of type "16550A" at address 0x1c28000 that is apparently used by the Linux kernel by
+default. We have already seen it in action when we interacted with U-Boot and
+the Armbian system over the serial connection. Just for reference, here is
+the corresponding 'dmesg' output again:
+
+! [    2.250163] 1c28000.serial: ttyS0 at MMIO 0x1c28000
+!                (irq = 31, base_baud = 1500000) is a 16550A
+
+There are several ways to find out more about this particular device.
+For example, one might be inclined to consult chip-vendor documentation. This,
+however, can be a muddy approach. More often than not, ARM-based SoCs are
+poorly covered by public documentation, or the available documentation
+contains uncertainties or even errors. Whenever feasible, I like to follow the
+path of ground truth, looking at known-to-work code as reference.
+Let's examine the build configuration of our build of U-Boot, which can
+be readily found in the _u-boot/.config_ file. When searching it for the string
+"Serial", we quickly end up at the following line:
+
+! CONFIG_SYS_NS16550=y
+
+The driver has to have something like "NS16550" in its name. So let's grep
+the source tree for files named after this string:
+
+! $ cd u-boot
+! $ find | grep -i NS16550
+! ./drivers/serial/ns16550.c
+! ./drivers/serial/ns16550.su
+! ./drivers/serial/.ns16550.o.cmd
+! ./drivers/serial/ns16550.o
+! ./drivers/serial/serial_ns16550.c
+! ./include/ns16550.h
+! ./include/config/sys/ns16550.h
+! ./spl/drivers/serial/ns16550.su
+! ./spl/drivers/serial/serial_ns16550.o
+! ./spl/drivers/serial/.ns16550.o.cmd
+! ./spl/drivers/serial/ns16550.o
+! ./spl/drivers/serial/serial_ns16550.su
+! ./spl/drivers/serial/.serial_ns16550.o.cmd
+
+That looks promising. At this point, we are especially interested in drawing
+the connection to the UART device address 0x1c28000. Remember how we specified
+'PLAT=sun50i_a64' to the build system of U-Boot? The "sun50i_a64" has to refer
+to our SoC. So let's grep the source tree for any connection between "sun" and
+"NS16550".
+
+! grep -r NS16550 | grep -i sun
+! ...
+! include/configs/sunxi-common.h:# define CONFIG_SYS_NS16550_COM1  SUNXI_UART0_BASE
+! include/configs/sunxi-common.h:# define CONFIG_SYS_NS16550_COM2  SUNXI_UART1_BASE
+! ...
+
+Next stop, SUNXI_UART0_BASE:
+
+! grep -r SUNXI_UART0_BASE
+! ...
+! arch/arm/include/asm/arch-sunxi/cpu_sun9i.h:#define SUNXI_UART0_BASE (REGS_APB1_BASE + 0x0000)
+! arch/arm/include/asm/arch-sunxi/cpu_sun4i.h:#define SUNXI_UART0_BASE 0x01c28000
+! ...
+
+Now seeing the address 0x01c28000, we know for certain that we are looking at
+the right device and the corresponding driver code.
+
+The next step consists of cross-checking several pieces of information.
+Searching the web for "NS16550 pdf" brings up the data sheet for the
+device ([http://caro.su/msx/ocm_de1/16550.pdf]). In contrast to SoC
+chip vendor documentation, data sheets of individual IP cores like this are -
+if publicly available - usually of good quality. So we are lucky.
+Glimpsing over the data sheet, we learn that the register at offset 0 is
+the so-called transmitter holding register (THR). We must write to this
+register to print a character.
+It is interesting to see that all device registers are 8 bits wide.
+This raises the question how those registers are mapped to system-bus
+addresses of the ARM SoC. The answer can be found at the
+Allwinner A64 manual [1] as linked by the Pine64 wiki.
+Here, we learn that the individual registers are mapped to 32-bit aligned
+memory-mapped I/O registers.
+Thus, the register offsets found in the NS16550 data sheet have to be
+multiplied with 4.
+The THR register is of course mapped to offset 0.
+For cross-checking this information, the U-Boot driver code at
+_drivers/serial/ns16550.c_ becomes handy.
+
+[1] [https://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf]
+
+What has the NS16550 data sheet has to say about the THR register?
+
+! Before writing this register the user must ensure that the UART is
+! ready to accept data for transmission, for example checking that THR
+! Empty flag is set in the LSR
+
+LSR stands for line status register. According to the data sheet, it is
+the 5th register. Hence, it should be accessible at the ARM system bus at
+offset 5*4 = 0x14. We also learn that the mentioned "Empty" flag hides behind
+bit 5 of the LSR.
+
+
+20 bytes yelling "U"
+-------------------
+
+As a preliminary test, let's try to unconditionally write the character 'U'
+(ASCII value 0x55) to the THR register in an infinite loop.
+The corresponding C program (saving the file as _main.c_) looks as follows:
+
+! int _start()
+! {
+!   for (;;)
+!     *(unsigned long *)0x1c28000 = 'U';
+! }
+
+Since we will ultimately have to use Genode's tool chain [1] very soon, now
+would be a good time to install it.
+The tool chain comes with AARCH64 support. All the utilities can be found at
+_/usr/local/genode/tool/current/bin/_. One may consider adding this directory
+to the shell's PATH variable to avoid the need for typing out this rather
+long path. But that is just a matter of convenience.
+
+[1] [https://genode.org/download/tool-chain]
+
+The following invocation of GCC compiles our little C program into an ELF binary:
+
+! $ genode-aarch64-gcc -nostdlib main.c -o serial_test
+
+The '-nostdlib' flag tells the compiler that we don't want to link any
+C runtime or default startup code. Let's inspect the result by disassembling
+the binary using 'objdump'.
+
+! $ genode-aarch64-objdump -ld serial_test
+!
+! serial_test:     file format elf64-littleaarch64
+!
+!
+! Disassembly of section .text:
+!
+! 0000000000400000 <_start>:
+! _start():
+!   400000:	d2900000 	mov	x0, #0x8000                	// #32768
+!   400004:	f2a03840 	movk	x0, #0x1c2, lsl #16
+!   400008:	d2800aa1 	mov	x1, #0x55                  	// #85
+!   40000c:	f9000001 	str	x1, [x0]
+!   400010:	17fffffc 	b	400000 <_start>
+
+Even though the instructions look quite alien to me (not being too familiar
+with the AARCH64 ISA at this point), this looks very reasonable. It's good
+that the generated code does not rely on a stack pointer because we cannot
+assume to have a valid stack. However, the link address 0x400000 is concerning
+because the RAM base address of the A64 SoC is not lower than 0x40000000.
+Remember, when we looked at Linux' _/proc/iomem_, we spotted the following
+line:
+
+! 40000000-bdffffff : System RAM
+
+So we will have to tweak the linker arguments a bit.
+From our experiments with U-Boot, we learned that U-Boot's default
+load address 0x42000000 lies within this range. We can use the linker argument
+'-Ttext' to explicitly specify our desired link address for the text (code)
+segment:
+
+! genode-aarch64-gcc -Wl,-Ttext=0x42000000 -nostdlib main.c -o serial_test
+
+The '-Wl,' prefix is merely needed to tell the GCC frontend to pass the
+following argument to the linker. With this tweak, the disassembled binary
+looks even better:
+
+! Disassembly of section .text:
+! 
+! 0000000042000000 <_start>:
+! _start():
+!     42000000:	d2900000 	mov	x0, #0x8000                	// #32768
+!     42000004:	f2a03840 	movk	x0, #0x1c2, lsl #16
+!     42000008:	d2800aa1 	mov	x1, #0x55                  	// #85
+!     4200000c:	f9000001 	str	x1, [x0]
+!     42000010:	17fffffc 	b	42000000 <_start>
+
+The 'serial_test' is a complete ELF binary with all kinds of meta data.
+For running the instructions on the target, we either need an ELF loader
+(U-Boot can of course do that for us) or we climb the hill barefoot.
+The latter gives us more control. So let's convert the ELF binary into
+a raw binary using 'objcopy'.
+
+! genode-aarch64-objcopy -Obinary serial_test serial_test.img
+
+We named the raw binary _serial_test.img_. Checking its size, it is quite
+thrilling to see that it is just 20 bytes of pure usefulness! No overhead.
+
+The next step would be fetching the image via U-Boot's TFTP support. The
+TFTP server running my development machine serves the directory
+_/var/lib/tftpboot/_. So we have to copy our _serial_test.img_ to this
+directory before turning to U-Boot's console:
+
+! => bootp 10.0.0.32:/var/lib/tftpboot/serial_test.img 
+! BOOTP broadcast 1
+! BOOTP broadcast 2
+! BOOTP broadcast 3
+! DHCP client bound to address 10.0.0.178 (1100 ms)
+! Using ethernet@1c30000 device
+! TFTP from server 10.0.0.32; our IP address is 10.0.0.178
+! Filename '/var/lib/tftpboot/serial_test.img'.
+! Load address: 0x42000000
+! Loading: #
+! 	 4.9 KiB/s
+! done
+! Bytes transferred = 20 (14 hex)
+
+It seems our program in its entirety reached its designated place.
+Now it's time to take a jump!
+
+! => go 0x42000000
+! ## Starting application at 0x42000000 ...
+! UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU...
+
+The serial console gets flooded with U characters. What a joyful moment!
+
+Let's reiterate what we gained by this experiment:
+
+* We know how to compile a custom C program into binary code that works
+  on the target.
+
+* We successfully loaded our binary onto the target and passed control
+  from the boot loader to our code.
+
+* We got a positive lifesign back from our code.
+
+
+Evolving from primordial vocals to words
+----------------------------------------
+
+Until now, we just violently poked the THR register without listening for the
+status of the UART device. To make the program utter words instead of merely
+vocals, this ignorance has to stop.
+
+While modifying our program, we have to be careful to not using the stack.
+While doing these iterative experiments, a little Makefile becomes handy, which
+prints the disassembled program after each compilation:
+
+! CROSS_DEV_PREFIX := /usr/local/genode/tool/current/bin/genode-aarch64-
+!
+! serial_test: main.c
+! 	$(CROSS_DEV_PREFIX)gcc -Wl,-Ttext=0x42000000 -nostdlib $< -o $@
+! 	$(CROSS_DEV_PREFIX)objdump -ld $@
+!
+! serial_test.img: serial_test
+! 	$(CROSS_DEV_PREFIX)objcopy -Obinary $< $@
+!
+! test: serial_test.img
+! 	cp $< /var/lib/tftpboot/
+
+This little workflow tool not only makes life so much more convenient but it
+also documents the use of the various commands for the future me. Since I
+regard it as a mere personal tool of mine, I even don't hesitate place
+commands like the copying of the image to my TFTP directory in there. Now, by
+issuing 'make test', the command takes all the steps of compiling, showing the
+assembly code, creating the raw binary, and copying to the TFTP directory all
+at once.
+
+Turning back to our actual program, the next baby step would be the output
+of a string of characters instead of just one character, like so:
+
+! static char const *text = "Aye aye.\n\r";
+! static char const *s;
+!
+! for (;;)
+!   for (s = text; *s; s++)
+!     *(unsigned int volatile *)0x1c28000 = *s;
+
+You may wonder why the variables 'text' and 's' are marked as static? If I
+made them local variables, which would normally be the better practice, the
+compiler would generate a stack frame. For example, by merely changing the
+'for' loop to the innocent looking line
+! for (char const *s = text; *s; s++)
+the corresponding assembly program will generate instructions changing and
+de-referencing the stack-pointer register:
+
+!    42000000:	d10043ff 	sub	sp, sp, #0x10
+!    42000004:	90000080 	adrp	x0, 42010000 <_start+0x10000>
+!    42000008:	91018000 	add	x0, x0, #0x60
+!    4200000c:	f9400000 	ldr	x0, [x0]
+!    42000010:	f90007e0 	str	x0, [sp, #8]
+!    ...
+
+Since we don't have a stack, this is a big no-no!
+The 'static' keyword tells the compiler to statically allocate the variable
+at the data (or bss) segment of the binary. Speaking of binary segments,
+for a bit of a shock, have a look at the binary size now:
+
+! $ ls -la serial_test.img
+! -rwxrwxr-x 1 no no 65640 Dez 17 15:30 serial_test.img
+
+Isn't that embarrassing? With our change, we inflated the binary size from
+20 bytes to more than 64 KiB. This effect is caused by our use of variables,
+which were completely absent in the initial version. The use of at least one
+variable prompts the compiler/linker to generate a data segment in addition to
+the text (code) segment. By default, the linker places each segment at an
+aligned address using a default alignment. On AARCH64, this default alignment
+is 64 KiB so that the segment always starts at the beginning of a MMU page
+when using virtual memory. Because of this default behavior, our few
+instructions are followed by almost 64 KiB of zeros before the variables
+start at the next 64 KiB boundary. As of now, we don't use any MMU. So we
+could in principle weaken the default alignment. Just for reference, the GCC
+argument for defining a segment alignment of 16 bytes would
+be '-Wl,-z -Wl,max-page-size=0x10'. Voila! The image shrunk from 64 KiB to
+less that 200 bytes. Well, I'll stop the bean counting for now and run this
+version of the program:
+
+! ## Starting application at 0x42000000 ...
+! Aye aye.
+! Aye aye.
+! Aye aye.
+! Aye aye.
+! Aye aye.
+! Aye aye.
+! Ayeaaaaaaaaaaaaaaaaaaaa...
+
+[image serial_aaaa]
+
+Even though we can see strings of characters, at one point, the output
+regresses to primordial vocals again.
+This had to be anticipated since we don't yet check the TX status bit before
+writing a new character to the THR register. Interestingly, it worked for
+a while, presumably as long as the capacity of the UART's TX FIFO buffer
+could swallow the characters.
+
+By the way, while tinkering with devices at such a bare-bones level with
+almost no infrastructure, an artificial delay can be accomplished as follows:
+
+! for (i = 0; i < 1000000; i++)
+!   asm volatile("nop");
+
+By adding these lines to the body of the outer for loop, we can indeed
+observe stable output. But that is of course just a hack. Let's us better
+change the code to actually evaluate the status bit.
+
+! int _start()
+! {
+!   enum {
+!     UART_BASE = 0x1c28000,
+!
+!     THR = UART_BASE,
+!     LSR = UART_BASE + 0x14,
+!
+!     LSR_THRE = (1 << 5)
+!   };
+!
+!   /* static is needed to prevent the compiler from creating a stack frame */
+!   static char const *text = "Aye aye.";
+!
+!   for (;;) {
+!
+!     static char const *s;
+!
+!     for (s = text; *s; s++) {
+!
+!       /* poll 'TX Holding Register Empty' bit */
+!       while (((*(unsigned int volatile *)LSR) & LSR_THRE) == 0);
+!
+!       *(unsigned int volatile *)THR = *s;
+!     }
+!   }
+! }
+
+Note the amount of lipstick I applied to the code.
+
+* Adding a comment here and there.
+* Grouping things with vertical whitespace.
+* Using enum values to give magic values tangible names.
+
+I agree that this may be a little excessive for such a temporary test program.
+But keep in mind that I wrote it not for my present me, but for you, and my
+future me. Also note that I removed the line break from the 'text', which
+has no reason other than making the following picture more pretty.
+
+[image serial_aye]
+  Infinite obedience
+
+Thanks to listening to the UART's TX status bit, the output has become
+reliable. So now, we have a minimal and known-to-work blueprint for
+our upcoming kernel's UART driver. With this primitive way to get information
+out of the board, we can turn our attention to the kernel-porting work, which
+is the topic of the next section.
+

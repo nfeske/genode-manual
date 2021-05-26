@@ -1,0 +1,52 @@
+Linux device-driver environment (DDE)
+=====================================
+
+Given the insights gained by driving a device using a tailored bare-bones
+Linux system as discussed in the previous sections, we are ready to take the
+next step, namely transplanting Linux driver code into self-sufficient Genode
+components. Genode's DDE approach combines unmodified driver code taken from
+the Linux kernel with a driver-specific library that mimics the Linux kernel
+interface such that the driver code feels right at home when executed on top
+of Genode. Upcoming revisions of this document will discuss the creation of
+device driver environments for different classes of device drivers.
+
+At the time of writing, our methodology of crafting DDEs undergoes a
+fundamental revision. The traditional DDEs as found in the _repos/dde_linux/_
+part of Genode's source tree used to require significant manual labor per
+driver. For example, for the porting of a framebuffer driver, we used to
+estimate an effort of two months. We successfully applied the approach to port
+drivers for USB host controllers, HID devices, framebuffers, Wifi cards, as
+well as protocol stacks such as the TCP/IP stack. For reference, the
+documentation section of [https://genode.org] provides practical hints for
+applying the approach [1]. The development costs behind a DDE are arguably
+cheap compared to the time needed to create such feature-rich drivers from
+scratch. But each driver still calls for a significant investment.
+
+[1] [https://genode.org/documentation/developer-resources/porting_device_drivers]
+
+Based on our experience made during a decade of DDE-Linux work, we recently
+critically reviewed our methodology and tools and identified ways to
+dramatically reduce the effort. Stefan Kalkowski documents the approach at
+[https://genodians.org].
+
+:Linux device driver ports - Breaking new ground:
+
+  [http://genodians.org/skalk/2021-04-06-dde-linux-experiments]
+
+:Linux device driver ports - Generate dummy function definitions:
+
+  [http://genodians.org/skalk/2021-04-06-dde-linux-experiments]
+
+New articles will follow as we go.
+
+For the development of new drivers, we will apply the new way. Still, the
+DDEs found in at _repos/dde_linux/_ provides valuable cues.
+
+If you start developing DDE-Linux-based drivers for Genode, please get in
+touch by joining Genode's mailing list. So we can incorporate your feedback
+into the evolving documentation and tools and provide you with assistance.
+
+:Genode Mailing List:
+
+  [https://genode.org/community/mailing-lists]
+

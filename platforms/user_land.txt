@@ -1,0 +1,293 @@
+Excursion to the user land
+==========================
+
+Equipped with the rudimentary debugging skills presented in the previous
+section, it is time to conquer the remaining stumbling blocks on our way to
+the user land.
+
+To quickly recall, the starting point of our investigation was the following
+error message.
+! Error: Assertion failed: id < _count && _cpus[id].constructed()
+! Error:   File: /.../repos/base-hw/src/core/kernel/cpu.cc:205
+! Error:   Function: Kernel::Cpu& Kernel::Cpu_pool::cpu(unsigned int)
+
+By following the call chain leading to this message in reverse,
+we ultimately arrived at _base-hw/src/core/kernel/init.cc_ at line 64 right
+in the middle of the function 'kernel_init':
+
+!   pool_ready = cpu_pool().initialize();
+
+To double check that the error indeed occurs somewhere in the 'initialize'
+method, let's wrap the call with a bit of instrumentation.
+
+!  Genode::log("call cpu_pool().initialize()");
+!  pool_ready = cpu_pool().initialize();
+!  Genode::log("pool_ready=", pool_ready);
+
+The resulting output confirms our hypothesis.
+
+! Starting kernel ...
+!
+! call cpu_pool().initialize()
+! Error: Assertion failed: id < _count && _cpus[id].constructed()
+
+It is always good to have the reassurance about still being on the right
+track. As we suspected, 'cpu_pool().initialize()' is called but never returns.
+So let's look at its implementation in _base-hw/src/core/kernel/cpu.cc_.
+
+! bool Cpu_pool::initialize()
+! {
+!     unsigned id = Cpu::executing_id();
+!     _cpus[id].construct(id, _global_work_list);
+!     return --_initialized == 0;
+! }
+
+Each element of the '_cpus' array is a 'Constructible<Cpu>' object. The
+'Constructible' pattern is used throughout Genode. It allows for the static
+allocation of dynamically created objects. The 'construct' method triggers the
+construction of a 'Cpu' object. We are ultimately faced with a general
+question: How to instrument the construction of C++ objects?
+
+
+Debugging the construction of C++ objects
+-----------------------------------------
+
+The lowest-hanging fruit is adding a message right at the beginning of the
+constructor's body:
+
+! Cpu::Cpu(unsigned const id, Inter_processor_work_list & global_work_list)
+! :
+!   ... plenty of initializers ...
+! {
+!   Genode::log(__PRETTY_FUNCTION__);
+!   _arch_init();
+! }
+
+Upon the next run, we see no such message. So we can conclude that we get
+stuck in the middle of the construction of one of the base classes or
+aggregated members. As illustrated by the following picture, the body
+of the constructor is called pretty late in the process of constructing
+an object.
+
+[tikz img/cxx_construction 50%]
+
+Placing debug
+messages gets a little bit more cumbersome now. We have to disguise such
+messages as object attributes. For example, by placing the following line
+right at the start of the class body, we can see whether we get stuck in the
+construction of one of the base classes or - later - during the construction
+of a member.
+
+! bool _x1 = ( Genode::log(__FILE__, ":", __LINE__), true );
+
+The effect of this instrumentation looks as follows.
+
+[tikz img/cxx_construction_log 50%]
+
+The trick is to wrap the 'log' call into an expression that can be used as
+initialization of a dummy member. When the construction of the 'Cpu' object
+reaches the point of the '_x1' member, we see the message as a side effect.
+The member '_x1' is never actually used.
+
+On the next run, we see the following:
+
+! Starting kernel ...
+!
+! call Cpu_pool::initialize()
+! /.../repos/base-hw/src/core/kernel/cpu.h:77
+! Error: Assertion failed: id < _count && _cpus[id].constructed()
+
+Since we see the message, we know that the problem occurs not in any of the
+base classes but during the construction of a subsequent member. To find out
+which one, we can spill dummy members in-between the various members, like so:
+
+!     unsigned const _id;
+!     bool _x2 = ( Genode::log(__FILE__, ":", __LINE__), true );
+!     Board::Pic     _pic {};
+!     bool _x3 = ( Genode::log(__FILE__, ":", __LINE__), true );
+!     Timer          _timer;
+!     bool _x4 = ( Genode::log(__FILE__, ":", __LINE__), true );
+!     Cpu_scheduler  _scheduler;
+!     bool _x5 = ( Genode::log(__FILE__, ":", __LINE__), true );
+!     Idle_thread    _idle;
+!     bool _x6 = ( Genode::log(__FILE__, ":", __LINE__), true );
+!     Ipi            _ipi_irq;
+!     bool _x7 = ( Genode::log(__FILE__, ":", __LINE__), true );
+
+If this looks unsophisticated, it's because it is.
+The next run reveals the following.
+
+! call cpu_pool().initialize()
+! bool Kernel::Cpu_pool::initialize()
+! /plain/no/genode.git/repos/base-hw/src/core/kernel/cpu.h:78
+! /plain/no/genode.git/repos/base-hw/src/core/kernel/cpu.h:117
+! Error: Assertion failed: id < _count && _cpus[id].constructed()
+
+From this message, we can conclude that the construction of the '_pic' member
+is the problem. Does that ring a bell? In the backtrace we obtained
+in Section [Option 3: Backtraces], observed the following line.
+
+! /.../base-hw/src/core/spec/arm/virtualization/gicv2.h:22
+
+We could have saved some time by following the output of the backtrace
+utility more closely, but we would have missed our little excursion to the
+C++ constructor instrumentation.
+
+By continuing the manual instrumentation work, we end up in the 'Gicv2'
+constructor, specifically in the initialization of the '_max_irq' member. The
+'max_irq' function interacts with memory-mapped registers of the interrupt
+controller. Recalling that we have merely provided dummy values of the register
+addresses, the failure is no longer a mystery at all.
+
+Let's revisit the corners that we cut while mirroring the i.MX8 EVK board
+support:
+
+* We kept the definitions for memory-mapped I/O regions for the IRQ
+  controller's CPU_BASE and DISTR_BASE untouched, knowing
+  that the values most certainly mismatch with the Allwinner SoC.
+
+* We pruned the 'core_mmio' regions to cover only the UART. So even
+  if core had the right numbers, it could not access the underlying
+  hardware registers.
+
+* We set NR_OF_CPUS to 4 but left 'Board::Cpu::wake_up_all_cpus' empty.
+
+There are quite a few uncertainties. A good way to reduce them is to
+first take the multi-core-related issues from the table. From experience,
+we know that the bring-up of secondary CPU cores can be a pain. So let us safe
+this topic for a later step.
+
+By bringing up a single-processor variant of the kernel first, we will
+certainly reach the state of a working kernel more quickly. Subsequent
+user-level developments like driver-related work can then happen in parallel
+with the fiddly work on the kernel's multi-processor support.
+Disabling the kernel's multi-processor support comes down to changing the
+'NR_OF_CPUS' definition from 4 to 1 in the two files
+_lib/mk/spec/arm_v8/bootstrap-hw-pine_a64lts.mk_ and
+_lib/mk/spec/arm_v8/core-hw-pine_a64lts.mk_.
+
+
+Making the interrupt controller driver happy
+--------------------------------------------
+
+The ARM GIC interrupt controller consists of two parts. Similar to
+distinction between the I/O APIC and local APIC on x86 hardware, there exists
+a so-called distributor and a CPU-local interrupt controller. The distributor
+is responsible for routing interrupts to CPU cores whereas the CPU-local
+interrupt controller handles the interrupt delivery for an individual CPU. So
+on a 4-core SoC, there are one distributor and four CPU-local interrupt
+controllers. The memory-mapped registers of all CPU-local interrupt
+controllers are the same whereas each CPU can access only its own local
+controller.
+
+To find out the addresses of both parts for the Allwinner SoC, there are two
+convenient sources of information. First, the U-Boot boot loader that we
+built in a Section [The U-Boot boot loader] comes with a huge
+database of board specifications in the form of so-called _device tree_ (dts)
+files inside the directory _u-boot/arch/arm/dts/_.
+By grepping for "pine" we find many files referring to "sun50i". By grepping
+for "gic" in all files named "sun50i", we end up at _sun50i-a64.dtsi_. In
+there, the following snippet catches our attention:
+
+!u-boot/arch/arm/dts$ vim sun50i-a64.dtsi
+!
+!    gic: interrupt-controller@1c81000 {
+!      compatible = "arm,gic-400";
+!      reg = <0x01c81000 0x1000>,
+!            <0x01c82000 0x2000>,
+!            <0x01c84000 0x2000>,
+!            <0x01c86000 0x2000>;
+!      interrupts = <GIC_PPI 9 (GIC_CPU_MASK_SIMPLE(4) | IRQ_TYPE_LEVEL_HIGH)>;
+!      interrupt-controller;
+!      #interrupt-cells = <3>;
+!    };
+
+By looking at the numbers, we unfortunately still don't know which register
+ranges refers to the distributor and the CPU local controller. We could
+consult ARM's official documentation.
+
+Alternatively, we find the answer in the Allwinner A64 user manual [1] on page
+74. It states the following:
+
+[1] [https://linux-sunxi.org/images/b/b4/Allwinner_A64_User_Manual_V1.1.pdf]
+
+! GIC_DIST: 0x01C80000 + 0x1000
+! GIC_CPUIF:0x01C80000 + 0x2000
+
+With this knowledge gained, we can change the definitions in our
+_pine_a64lts_board.h_ file to the following.
+
+! IRQ_CONTROLLER_DISTR_BASE = 0x01c81000,
+! IRQ_CONTROLLER_DISTR_SIZE = 0x1000,
+! IRQ_CONTROLLER_CPU_BASE   = 0x01c82000,
+! IRQ_CONTROLLER_CPU_SIZE   = 0x2000,
+
+Additionally, those resources must be registered as core's memory-mapped I/O
+regions in _board/pine_a64lts/platform.cc_.
+
+! Bootstrap::Platform::Board::Board()
+! :
+!   early_ram_regions(Memory_region { ::Board::RAM_BASE, ::Board::RAM_SIZE }),
+!   late_ram_regions(Memory_region { }),
+!   core_mmio(Memory_region { ::Board::UART_BASE, ::Board::UART_SIZE },
+!             Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_BASE,
+!                             ::Board::Cpu_mmio::IRQ_CONTROLLER_DISTR_SIZE },
+!             Memory_region { ::Board::Cpu_mmio::IRQ_CONTROLLER_CPU_BASE,
+!                             ::Board::Cpu_mmio::IRQ_CONTROLLER_CPU_SIZE })
+! {
+!   ::Board::Pic pic {};
+! }
+
+When building and running the run/log system image the next time, we get
+filled with joy:
+
+!Starting kernel ...
+!
+!
+!kernel initialized
+!ROM modules:
+! ROM: [000000004012c000,000000004012c156) config
+! ROM: [0000000040006000,0000000040007000) core_log
+! ROM: [00000000401eb000,000000004022c260) init
+! ROM: [0000000040134000,00000000401eacb0) ld.lib.so
+! ROM: [0000000040004000,0000000040005000) platform_info
+! ROM: [000000004012d000,00000000401331e8) test-log
+!
+!Genode 20.11-197-g635985f542 <local changes>
+!2010 MiB RAM and 64533 caps assigned to init
+![init -> test-log] hex range:          [0e00,1680)
+![init -> test-log] empty hex range:    [0abc0000,0abc0000) (empty!)
+![init -> test-log] hex range to limit: [f8,ff]
+![init -> test-log] invalid hex range:  [f8,08) (overflow!)
+![init -> test-log] negative hex char:  0xfe
+![init -> test-log] positive hex char:  0x02
+![init -> test-log] floating point:     1.70
+![init -> test-log] multiarg string:    "parent -> child.7"
+![init -> test-log] String(Hex(3)):     0x3
+![init -> test-log] Very long messages:
+![init -> test-log -> log] 1.....................................................................................................................................................................................................................................2
+![init -> test-log] 3.....................................................................................................................................................................................................................................4
+![init -> test-log] 5.....................................................................................................................................................................................................................................6
+![init -> test-log] 
+![init -> test-log] Test done.
+
+We just witnessed the first successful excursion to the user land. The kernel
+started the user-level init component, which in turn started the test-log
+program as child component. The output of test program looks just perfect!
+To truly appreciate what just happened, consider that the simple system
+scenario already entails most of Genode's fundamental mechanisms:
+
+* Transition between kernel and user land and vice versa
+* Multiple protection domains protected by virtual memory
+* Synchronous inter-component communication calls (RPC)
+* Asynchronous notifications
+* Shared memory between components
+* The ELF loading of programs
+* Handling of the system's configuration
+* Multi-threading and inter-thread synchronization
+* Dynamic linking
+
+The simple log-test scenario above is just the beginning.
+In the next section, we take the
+board through the entire test suite of the Genode base framework.
+

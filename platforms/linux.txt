@@ -1,0 +1,837 @@
+Taking Linux out for a walk
+===========================
+
+In preparation of the porting of drivers from Linux to Genode, we have to
+gather knowledge about the drivers' natural habitat. This article goes through
+the steps of building a custom Linux system that is tailored to a driver of
+our choice.
+
+Most of Genode's device drivers are not written from scratch specifically for
+Genode but ported from time-tested code bases such as the Linux kernel. In the
+case of most ARM SoC drivers, the driver code is provided by the SoC vendors
+and is often the only reference of how the hardware works. Given the
+staggering complexity of the devices, their rapid product cycles, and the
+diversity of employed IP cores, developing the drivers from scratch is out of
+question.
+
+
+Motivation
+----------
+
+In the past, we sometimes directly jumped into the driver-porting work guided
+by mere intuition, transplanting chewable bites of Linux kernel code into
+Genode components, and reanimating the code to life. In some cases like our
+our first port [1]
+of the Intel GPU driver, we were lucky with bringing up a driver on Genode
+without even testing the driver code on Linux beforehand. However, this
+remained a rare exception. In most cases, especially when a predictable
+success and development schedule is desired, we had to engage with the
+building and integration of custom Linux systems as part of the driver-porting
+work. Even though jumping thought the hoops of Linux is additional work, it
+gives us three invaluable benefits.
+
+[1] [https://genode.org/documentation/release-notes/10.08#Gallium3D_and_Intel_s_Graphics_Execution_Manager]
+
+First, it gives us *reassurance* how the driver works on the reference
+hardware. We can set our expectations regarding the feature set, stability,
+and performance. Once the driver is ported, we can reflect on the success by
+the means of benchmarking the driver in both systems Linux and Genode.
+
+Second, it allows us to *study* and *instrument* the driver's interaction with
+the user-level interfaces and the hardware. For getting hold of the userland's
+interaction with the driver, it is useful to exercize the driver interfaces -
+think of 'ioctl' calls - by walking the beaten tracks.
+
+Third and most importantly, it allows for *cross-correlating* the behavior
+of the driver in its natural environment against its execution within an
+isolated Genode component. We have to mimick Linux kernel APIs so that the
+driver is happy, after all. The comparison of the driver running in both
+environments is instructive for crafting the driver environment.
+
+
+Picking a tangible goal
+-----------------------
+
+Among the various classes of peripherals, _network_ devices are an attractive
+target for porting a first driver.
+In contrast to the PIO device discussed in
+Section [One Platform driver to rule them all],
+network devices are _complicated enough_ to get a tangible benefit out of
+the porting approach. Conversely, network drivers are _simple enough_ to not
+get overwhelmed.
+Furthermore, network connectivity is _easy to test_ in an automated way,
+avoiding distractions from fiddly manual workflows. Finally, the _reward_ of
+enabling networking support is quite substantial. A single driver opens up a
+whole world of Genode system scenarios.
+
+In the following, we will walk towards a minimally complex custom Linux
+system by taking the following steps.
+
+* Learning how to use U-Boot to start an _arbitrary_ Linux-based OS,
+* Using a custom initrd based on Busybox,
+* Booting a _custom-built_ kernel,
+* Getting the _network device_ to work,
+* Stripping down the _kernel configuration_,
+* Making the findings _reproducible_
+
+
+Bootstrapping Linux using U-Boot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For our development work flow, we'd like to retain the convenience of network
+boot as explored in Sections [Getting acquainted with the target platform] and
+[Bare-metal serial output].
+Booting Linux differs from booting a single binary as we did so far. For
+grokking those differences, it is nice to rely on known-to-work ingredients.
+
+Remembering from Section [Getting acquainted with the target platform]
+how well the image of the Armbian [1] distribution worked on the board,
+we know where to look. There are various ways for accessing the content
+of the image. When using Gnome, you may be able to mount the image by clicking
+on it. In my case, I loop-mounted the image manually. First, looking in the
+partition table to find out where the file system starts.
+
+[1] [https://www.armbian.com]
+
+! $ fdisk -l Armbian_21.05....img
+! Disk Armbian_21.05....img: 1,7 GiB, 1782579200 bytes, 3481600 sectors
+! ...
+! Armbian_21.05....img1  8192 3481599 3473408  1,7G 83 Linux
+
+It starts at block '8192'. Given the usual block size of 512 and the help of a
+multiplication device, we get to know the byte offset as an argument for
+loop-mounting the file system.
+
+! $ python -c "print 8192*512"
+! 4194304
+! $ sudo mount -oloop,offset=4194304 Armbian_21.05....img /mnt
+
+In the file-system's _/boot/_ directory, the files of interest are:
+
+:Image: is a symlink to the Linux kernel.
+  In my case, it refers to _vmlinuz-5.10.34-sunxi64_, which is a file of
+  21 MiB.
+
+:config-5.10.34-sunxi64: is the kernel configuration, which will become
+  handy once we build the kernel from source. Save it for later.
+
+:dtb/allwinner/: is a directory of so-called device-tree files, which we
+  will cover in a minute. For now, it suffices to know that each dtb file
+  contains a hardware description of a specific board. Among the 48 dtb
+  files present in the directory, I identified the one for the Pine-A64-LTS
+  board via
+  ! $ ls -1 /mnt/boot/dtb/allwinner/ | grep a64 | grep lts
+  ! sun50i-a64-pine64-lts.dtb
+
+:initrd.img-5.10.34-sunxi64: is the initial ram disk used for bootstrapping
+  the userland.
+
+For booting Linux, we have to supply the kernel (Image), the dtb file
+(pine64.dtb) for our board, and the initrd via our TFTP directory and can use
+the following U-Boot commands to bring the combination of the pieces to life.
+The addresses are picked such that they do not overlap, using U-Boot's default
+load address for the kernel.
+
+# Load the kernel.
+  ! => bootp 0x42000000 10.0.0.32:/var/lib/tftpboot/Image
+
+# Load the initial RAM disk.
+  ! => bootp 0x41000000 10.0.0.32:/var/lib/tftpboot/initrd
+
+# Load the device-tree file
+  ! => bootp 0x41f00000 10.0.0.32:/var/lib/tftpboot/pine64.dtb
+
+# Modifying the device tree to supply kernel parameters.
+  First, telling U-Boot's FDT tool where the location of our DTB data.
+  ! => fdt addr 0x41f00000
+  Making space for adding additional content.
+  ! => fdt resize 0x1000
+  Modifying the 'chosen' device-tree node that contains the kernel parameters
+  such as the location of the initrd (start and end address)
+  ! => fdt chosen 0x41000000 0x41996388
+  or the kernel command line
+  ! => fdt set /chosen bootargs "rdinit=/bin/sh"
+
+# Start the kernel by specifying the kernel's address and DTB address.
+  We can specify '-' as the second (initrd) argument because we already
+  tell the kernel the location of the initrd via the 'chosen' DTB node.
+  ! => booti 0x42000000 - 0x41f00000
+
+It goes without saying that manually executing this sequence of
+commands would be error-prone and unnerving. Fortunately, U-Boot allows
+us to store a sequence of commands in an environment variable, like so:
+
+! => setenv lx 'command; another command; ...'
+
+The variable named 'lx' now contains the sequence of the  commands separated by
+semicolons.
+The value of 'lx' variable can be made persistent via the mechanism discussed
+in Section [The U-Boot boot loader].
+! => saveenv
+
+The sequence of commands stored in the variable 'lx' can be executed via the
+'run' command:
+! => run lx
+
+The machinery takes over...
+
+! ethernet@1c30000 Waiting for PHY auto negotiation to complete........ done
+! ...
+! Using ethernet@1c30000 device
+! TFTP from server 10.0.0.32; our IP address is 10.0.0.178
+! Filename '/var/lib/tftpboot/Image'.
+! Load address: 0x42000000
+! Loading: #################################################################
+!          #################################################################
+!          ....
+!          #####################################
+!          1.6 MiB/s
+! done
+! Bytes transferred = 32020992 (1e89a00 hex)
+! BOOTP broadcast 1
+! DHCP client bound to address 10.0.0.178 (3 ms)
+! Using ethernet@1c30000 device
+! TFTP from server 10.0.0.32; our IP address is 10.0.0.178
+! Filename '/var/lib/tftpboot/initrd'.
+! Load address: 0x41000000
+! Loading: #################################################################
+!          ....
+!          ##############
+!          2.2 MiB/s
+! done
+! Bytes transferred = 10052488 (996388 hex)
+! BOOTP broadcast 1
+! DHCP client bound to address 10.0.0.178 (2 ms)
+! Using ethernet@1c30000 device
+! TFTP from server 10.0.0.32; our IP address is 10.0.0.178
+! Filename '/var/lib/tftpboot/pine64.dtb'.
+! Load address: 0x41f00000
+! Loading: ##
+!          1.2 MiB/s
+! done
+! Bytes transferred = 28418 (6f02 hex)
+! ## Flattened Device Tree blob at 41f00000
+!    Booting using the fdt blob at 0x41f00000
+! EHCI failed to shut down host controller.
+!    Loading Device Tree to 0000000049ff5000, end 0000000049ffffff ... OK
+! 
+! Starting kernel ...
+!
+! [    0.000000] Booting Linux on physical CPU 0x0000000000 [0x410fd034]
+! [    0.000000] Linux version 5.10.34-sunxi64 ...
+! ...
+! ... a few hundred lines of boot messages ...
+! ...
+! [    6.593071] Freeing unused kernel memory: 5888K
+! [   37.865818] vcc-1v2-hsic: disabling
+
+Pressing enter...
+
+! #
+
+A root shell awaits our commands. Could we ask for more?
+
+
+A custom initrd based on Busybox
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With the clarity gained about the network boot process of Linux via U-Boot,
+we can now stepwise replace each of the three ingredients.
+
+First, we replace Armbian's initrd with a custom-built RAM disk based on
+Busybox [1]. This will give us a functional,
+reproducible, and customizable userland to play with while being ten times
+smaller than the initrd we scraped off the Armbian image. Since we ultimately
+strive for a minimalistic Linux kernel with all batteries for our board
+included and dynamic modules switched off, we don't need the initrd as a
+carrier of kernel modules after all.
+
+[1] [https://www.busybox.net/]
+
+Presuming that a regular ARM tool chain and the cpio utilities are installed
+(e.g., the Debian packages _gcc-aarch64-linux-gnu_ and _cpio_), the following
+steps produce a custom initrd from scratch.
+
+# Download and extract BusyBox
+
+  ! $ wget https://busybox.net/downloads/busybox-1.29.3.tar.bz2
+  !
+  ! $ tar xjf busybox-1.29.3.tar.bz2
+  ! $ mkdir build-busybox-aarch64
+  ! $ cd busybox-1.29.3
+
+# Configure BusyBox
+  ! $ make O=../build-busybox-aarch64 defconfig
+  ! $ make O=../build-busybox-aarch64 menuconfig
+
+  Check the following setting in the menu:
+  ! [*] Setting ->  Build static binary (no shared libs)
+
+# Compile BusyBox with the installed cross-compile tool chain
+
+  ! $ cd ../build-busybox-aarch64
+  ! $ make CROSS_COMPILE=aarch64-linux-gnu- install -j6
+
+# Useful setups for the ram disk
+
+  ! $ cd <busbox-build-dir>/_install
+
+  Create fstab by editing _etc/fstab_ as follows.
+
+  ! none /proc  proc   defaults 0 0
+  ! none /sys   sysfs  defaults 0 0
+
+  Enable DNS resolution via a predefined name server.
+
+  ! $ echo "nameserver 1.1.1.1" > etc/resolv.conf
+
+  Create a run-level script using mdev by creating a _etc/init.d/rcS_
+  file with the following content.
+
+  ! #/bin/sh
+  !
+  ! mkdir -p /proc
+  ! mkdir -p /sys
+  ! mkdir -p /var/shm
+  ! mkdir -p /var/run
+  ! mkdir -p /var/tmp
+  ! mkdir -p /tmp
+  ! mkdir -p /home/tc
+  ! mkdir -p /root
+  ! mkdir -p /dev
+  !
+  ! /bin/mount -t tmpfs mdev /dev
+  ! mkdir /dev/pts
+  ! /bin/mount -t devpts devpts /dev/pts
+  !
+  ! echo "Mount everything ${1}"
+  ! /bin/mount -a
+  !
+  ! echo /sbin/mdev > /proc/sys/kernel/hotplug
+  ! /sbin/mdev -s
+  ! echo "Finished"
+  ! /bin/sh
+
+# Create the initial ram disk using _cpio_
+
+  ! $ find . | cpio -H newc -o | gzip > ../initrd
+
+
+After replacing Armbian's initrd with our custom initrd in the TFTP directory,
+the U-Boot command for tweaking the 'chosen' device-tree node must be slightly
+adjusted to the different size.
+
+
+Vendor kernel source
+~~~~~~~~~~~~~~~~~~~~
+
+For most SoCs, the chip vendor provides a vendor-blessed version of the
+Linux kernel source somewhere on the internet. Those so-called vendor
+kernels are usually a somewhat sour compromise. On the one hand, they contain the
+know-how of the vendor regarding the device drivers. The vendor kernels are
+usually tailored well to the hardware. On the other hand, the "tailoring" does
+not always follow the written and unwritten rules of Linux kernel development,
+standing in the way of cleanly integrating the vendor code into the upstream
+kernel. Some vendors don't even try. Hence, after the vendor kernel for a
+specific chip is publicly released, it must be assumed a dead branch of kernel
+development, receiving no further love. In our situation - where we are after
+the vendor's drivers - we have to take the SoC's vendor kernel as our
+reference.
+
+In the case of the Allwinner A64 SoC, the
+vendor kernel [1] is based on Linux as old
+as version 3.10. However, thanks to the tremendous efforts of the Sunxi [2]
+open-source community that works
+independently from the SoC vendor, the A64 is fully supported by the upstream
+Linux kernel by now.
+The instructions [3] for building
+a kernel suitable for the A64 SoC come down to compiling the Linux kernel for
+the AARCH64 architecture using its default configuration.
+
+[1] [https://linux-sunxi.org/Pine64#BSP]
+[2] [https://linux-sunxi.org]
+[3] [https://linux-sunxi.org/Pine64#Linux_Kernel]
+
+The bottom line is that we can pick a recent kernel from
+[https://kernel.org] and go with it.
+
+! $ wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.12.1.tar.xz
+! ...
+! $ tar xf linux-5.12.1.tar.xz
+
+This will extract the kernel source to the _linux-5.12.1_ subdirectory.
+In the following, we will refer to this directory as LX_DIR. Let's remember
+the path in a environment variable. That's just for convenience.
+
+! export LX_DIR=$PWD/linux-5.12.1
+
+
+Building and booting a custom-built kernel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Let's give the default kernel configuration a try. For hygienic reasons,
+I prefer using a build directory separate from the source tree. Let's call
+the build directory LX_BUILD_DIR pointing at some place that does not exist
+yet.
+
+! export LX_BUILD_DIR=$PWD/lx_build
+
+When using the Linux build system targeting the AARCH64 architecture,
+one always has to specify 'ARCH=arm64' as argument to make. Note that this
+argument even changes the output of 'make help'. So we should apply it
+consistently. Let's stuff it into an environment variable so that we don't
+need to repeat it over and over again.
+
+! export ARCH=arm64
+
+Similarly to the 'ARCH' argument, we need to tell the kernel's build system
+about the tool chain used for cross compiling the kernel. In our case,
+we want to use Genode's tool chain, which is usually installed at
+_/usr/local/genode/tool/<version>/bin/_ and prefixed with 'genode-aarch64-'.
+The kernel's build system expects this information as CROSS_COMPILE argument
+or environment variable.
+
+! export CROSS_COMPILE=/usr/local/genode/tool/21.05/bin/genode-aarch64-
+
+With these precautions taken, we can initialize the build directory
+with the default configuration via
+
+! make -C $LX_DIR O=$LX_BUILD_DIR defconfig
+
+The kernel configuration can be found at the .config file inside the build
+directory. To get an idea what a "default" configuration entails, the number
+of enabled options is telling.
+
+! $ grep =y $LX_BUILD_DIR/.config | wc -l
+! 2482
+
+I translate this number to _not processable by my mind_.
+
+A further feel of defeat sets in when trying to compare the default
+configuration with the _config-5.10.21-sunxi64_ found on the Armbian image.
+
+! $ diff $LX_BUILD_DIR/.config config-5.10.21-sunxi64 | wc -l
+! 10363
+
+We seem to be out of luck if we think of correlating both configurations with
+each other.
+
+Without further ado, the kernel image can be built as follows.
+
+! $ make -C $LX_BUILD_DIR Image -j8
+!   ...
+!
+!   LD      vmlinux
+!   SORTTAB vmlinux
+!   SYSMAP  System.map
+!   OBJCOPY arch/arm64/boot/Image
+
+On my laptop, this takes about 20 minutes. As indicated by the build-system
+messages, the resulting kernel 'Image' can
+be found at the _arch/arm64/boot/_. It has a size of 32 MiB.
+
+By the way, the kernel's build system offers a number of other useful targets
+such as a compressed kernel image. It is worth taking a look at the options.
+
+! $ make -C $LX_BUILD_DIR help
+
+Here, we can learn that there exists a convenient target for creating DTB
+files.
+
+! $ make -C $LX_BUILD_DIR dtbs
+
+So we can pick the dtb file matching our board from _arch/arm64/boot/dts/_,
+in our case _allwinner/sun50i-a64-pine64-lts.dtb_ replacing the third
+magical puzzle piece of the boot process by a variant created from source.
+
+When trying out the fresh baked kernel on the board, we can see the kernel
+booting up, showing the kernel log over the serial line, and presenting
+us with the root shell. We have a solid ground to walk on!
+
+Next up, let us turn our attention to networking. The first impulse is to
+issue 'ifconfig' to see the presence of network devices. Well, the bad news
+is that there are none.
+
+We can look at this problem from several angles.
+
+* Grep'ing the _.config_ file for patterns like ALLWINNER, SUNXI, NET, etc.
+* Wandering through the menus of 'make menuconfig' on the hunt for cues.
+* Comparing the boot logs of the Armbian kernel and the custom built kernel,
+  looking out for network-related messages.
+
+Of these points, the last one is probably the least futile. However, there
+is an alternative route towards success and happiness: Let's have a closer
+look at the device tree for our board.
+
+
+Device-tree treasure trove
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The so-called device trees [1]
+are semi-formal descriptions of a hardware platforms, which may consist of
+several peripherals, buses, interrupt controllers, clocks, and so on.
+In the context of Linux, it serves two purposes. First, it fills the gap of
+dynamic device discovery on platforms where devices cannot
+be probed in a reliable way at runtime. This applies for most ARM SoCs.
+By looking at the device tree, the kernel learns which drivers are to use.
+Second, the device tree parametrizes the individual drivers. This allows
+drivers to stay clear from vendor-specific parameters hard-coded in the
+source code. By taking parameters from the device tree, drivers can more
+easily re-targeted to other SoC revisions.
+
+[1] [https://github.com/devicetree-org/devicetree-specification/]
+
+For our aspiration to port drivers to Genode, device trees are a blessing.
+Since they are curated by the SoC vendors, they contain a form of hardware
+documentation that can often not be found anywhere else. Moreover, in
+contrast to sketchy documentation - if available at all - the information
+present in the device trees can be assumed to be correct because it plays a
+role in driving the hardware. In a way, device trees look like a social
+engineering trick to wrest hardware docs from vendors. To lift the
+treasure, we have to look in the source tree at _arch/arm64/boot/dts/_.
+
+! $ find $LX_DIR/arch/arm64/boot/dts
+
+We find almost 800 files there. But the forest is well organized. It is
+straight-forward to spot the vendor and narrow the search. In my case:
+
+! $ find $LX_DIR/arch/arm64/boot/dts | grep allwinner
+! ...
+! $ find $LX_DIR/arch/arm64/boot/dts | grep allwinner | grep pine
+! ...
+! $ find $LX_DIR/arch/arm64/boot/dts | grep allwinner | grep pine | grep lts
+! .../arch/arm64/boot/dts/allwinner/sun50i-a64-pine64-lts.dts
+
+When looking into this file, we see that it uses the C preprocessor to
+include a bunch of includes. To get the entire picture, we have to apply
+the C-preprocessing step.
+
+! $ cpp -I $LX_DIR/include -x assembler-with-cpp -P \
+!       $LX_DIR/arch/arm64/boot/dts/allwinner/sun50i-a64-pine64-lts.dts \
+!       > flat_pine64lts.dts
+
+The '-x assembler-with-cpp' argument is needed to prevent the C preprocessor
+from misinterpreting lines with a leading '#' as preprocessor directive.
+The '-P' argument removes line markers from the output. It is useful to
+save the result in a file (_flat_pine64lts.dts_), which we can consult
+at any time later. For the Pine-A64-LTS board, the file comprises 1600 lines of
+insights: the relationships of many important numbers to human-readable
+terminology.
+
+
+Enabling network support
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Refreshed from studying the device tree for our board, now is a good time to
+come back to the topic of enabling the networking for our board. By skimming
+over the flattened dts file, the following node featuring the term "ethernet"
+catches our attention.
+
+! emac: ethernet@1c30000 {
+!  compatible = "allwinner,sun50i-a64-emac";
+!  syscon = <&syscon>;
+!  reg = <0x01c30000 0x10000>;
+!  interrupts = <0 82 4>;
+!  interrupt-names = "macirq";
+!  resets = <&ccu 13>;
+!  reset-names = "stmmaceth";
+!  clocks = <&ccu 36>;
+!  clock-names = "stmmaceth";
+!  status = "disabled";
+!  mdio: mdio {
+!   compatible = "snps,dwmac-mdio";
+!   #address-cells = <1>;
+!   #size-cells = <0>;
+!  };
+! };
+
+Let me draw your attention to the two lines defining a property called
+'compatible'. Those properties denote the driver that should be used to talk
+to this piece of hardware. It actually draws a direct connection to the source
+code. To put the device-tree node in other words:
+
+_To use ethernet on our board, the kernel configuration must include the_
+_source code related to "allwinner,sun50i-a64-emac" and "snps,dwmac-mdio"_.
+
+Let's start with "allwinner,sun50i-a64-emac".
+
+! $ grep -r "allwinner,sun50i-a64-emac" $LX_DIR/drivers/net
+! .../stmmac/dwmac-sun8i.c: { .compatible = "allwinner,sun50i-a64-emac",
+
+Apparently, a sledgehammer is sometimes the perfect device for singling out a
+needle from a haystack.
+Let's not waste too much time with looking at the code. The only information
+important to us is the name of the compilation unit 'dwmac-sun8i.c'.
+As a matter of convention, the corresponding object file is usually present
+in the makefile for the subsystem.
+
+! $ grep "dwmac-sun8i.o" $LX_DIR/drivers/net/ethernet/stmicro/stmmac/Makefile
+! obj-$(CONFIG_DWMAC_SUN8I)	+= dwmac-sun8i.o
+
+What a revelation! We have just drawn the connection from a node found it
+a device tree to a kernel-configuration option. When looking at the
+kernel's '.config' file, it becomes clear that the kernel does not drive
+the ethernet device with builtin drivers because the driver is configured
+as a module.
+
+! $ grep CONFIG_DWMAC_SUN8I $LX_BUILD_DIR/.config
+! CONFIG_DWMAC_SUN8I=m
+
+Often, kernel options have dependencies. To get a picture of the dependencies
+of the 'CONFIG_DWMAC_SUN8I' driver, one can consult the accompanied _Kconfig_
+files or show the 'Help' for the corresponding item in the menus of the
+kernel's 'make menuconfig' interactive configuration tool.
+
+! $ make -C $LX_BUILD_DIR menuconfig
+
+Use search ('/') to search for the desired option (e.g., CONFIG_DWMAC_SUN8I),
+learn about the location of the option in the menu hierarchy, and look out
+for dependencies not marked with 'y'. In our concrete case, the two
+options STMMAC_ETH and STMMAC_PLATFORM must be enabled to satisfy DWMAC_SUN8I.
+
+To enable the options, one may use the interactive menu config tool. But
+I prefer a non-interactive way that can be scripted. There exists a handy tool
+at _scripts/config_ in the kernel source tree that allows us to enable and
+disable options, like so:
+
+! $ $LX_DIR/scripts/config --file $LX_BUILD_DIR/.config \
+!        --enable STMMAC_ETH --enable STMMAC_PLATFORM --enable DWMAC_SUN8I
+
+The tool merely sets or removes individual options. It must be followed
+by an invocation of 'make olddefconfig' to resolve possible inconsistencies
+and dependencies.
+
+! $ make -C $LX_BUILD_DIR olddefconfig
+
+By looking at the resulting '.config' we get the reassurance that all
+dependencies are indeed met.
+
+! $ grep CONFIG_DWMAC_SUN8I $LX_BUILD_DIR/.config
+! CONFIG_DWMAC_SUN8I=y
+
+The steps above may appear long-winded. But in contrast to hit-and-miss
+juggling of kernel configurations, the steps form a deterministic and
+explainable process.
+
+With the driver for the "allwinner,sun50i-a64-emac" device-tree node
+covered, we are left to repeat the process for the "snps,dwmac-mdio" node.
+It turns out this node is covered by STMMAC_PLATFORM already.
+
+As a convenient way to quickly test-drive our network-equipped Linux kernel,
+the kernel can be instructed to issue a DHCP request as part of the boot
+process. This can be enabled by specifying the argument 'ip=dhcp' to the
+kernel command line. For reference, when using U-Boot's 'fdt' command,
+the 'chosen' device-tree node can be adjusted as follows:
+
+! => fdt set /chosen bootargs "rdinit=/bin/sh ip=dhcp"
+
+Once all driver dependencies are resolved, 'ifconfig' reports the
+Ethernet device with its IP address. At this point we know that network
+packets were successfully transmitted in both directions.
+
+! / # ifconfig
+! ifconfig: /proc/net/dev: No such file or directory
+! eth0      Link encap:Ethernet  HWaddr 02:BA:FE:7B:59:38  
+!           inet addr:10.0.0.178  Bcast:10.0.0.255  Mask:255.255.255.0
+!           UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+!           Interrupt:39 
+!
+! lo        Link encap:Local Loopback  
+!           inet addr:127.0.0.1  Mask:255.0.0.0
+!           UP LOOPBACK RUNNING  MTU:65536  Metric:1
+
+
+Stripping down the kernel configuration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Even though the custom built kernel works in principle, the situation
+it not satisfactory. First, the kernel image of 32 MiB carries a lot
+of excess weight when considering that we merely want to take the network
+driver for a joyride. Second, we learned that the default configuration
+deliberately excludes features that we deem interesting.
+
+To overcome this situation, we have to dive into the world of Linux kernel
+configuration more than knee deep. But first, let's backup the known-to-work
+'.config' file.
+
+! cp $LX_BUILD_DIR/.config $LX_BUILD_DIR/config_works
+
+In addition to the 'defconfig' build target that results in 2482 options
+enabled in the '.config' file, the kernel's build system also features
+a 'tinyconfig' target that leaves only 323 options enabled.
+By using this configuration, the 'Image' build time goes down from 20
+minutes to only 1.5 minutes with the image weighting only 1.6 MiB. That
+is much more to my taste!
+
+The only downside of the 'tiny' kernel is that it does not show a life
+sign when booted on our board. But that is expected because the configuration
+does not accommodate any specific SoC out of the box. In order to bring it to
+life, all we need to do is to enable the right options, don't we?
+The first goal should be to find the options needed to get the boot log over
+the serial line. Once we accomplish that, we can turn our attention to
+supporting our initrd. Once that works, we can revive the networking support.
+
+At this point, we know that serial output works with the 'defconfig' kernel.
+The 2482 options enabled for the defconfig have to contain the right ones.
+Most obviously, we need to enable the platform support for our SoC
+(ARCH_SUNXI).
+We can let our intuition guide us for a bit. Which kernel options found in the
+defconfig could possibly contribute to serial output of the kernel console?
+Searching the _config_works_ file for terms like "SERIAL".
+! $ grep =y $LX_BUILD_DIR/config_works | grep SERIAL
+! ...
+E.g., SERIAL_EARLYCON looks certainly useful to have.
+
+The second strategy for finding the right options is the device-tree-driven
+approach we used for the network device. Searching the DTS file for "serial"
+leads us to a node referring to "snps,dw-apb-uart", which relates to
+_8250_dw.c_ and _8250_early.c_, which in turn brings CONFIG_SERIAL_8250_DW
+and CONFIG_SERIAL_8250_CONSOLE to our attention. Fast forward, the following
+options can be directly inferred from the device tree:
+SERIAL_8250, SERIAL_8250_16550A_VARIANTS, SERIAL_8250_DW, SERIAL_8250_CONSOLE.
+
+[tikz img/lx_kernel_config]
+
+Looking from above, looking from below, however we look, there is still a
+gap of config options to fill. To uncover the missing options, we can apply
+brute force, bisecting the configurations as illustrated by the following commands:
+
+# Create a fresh tinyconfig
+  ! $ make -C $LX_BUILD_DIR tinyconfig
+
+# Enable options we already know we need for sure
+  ! $ $LX_DIR/scripts/config --file $LX_BUILD_DIR/.config \
+  !    --enable SERIAL_8250 ...
+
+# Enable half of the candidates found in the backed up defconfig
+  ! $ grep =y $LX_BUILD_DIR/config_works |\
+  !    head -n 1200 |\
+  !    sed "s/=y//" |\
+  !    xargs -ixxx $LX_DIR/scripts/config \
+  !                    --file $LX_BUILD_DIR/.config --enable xxx
+
+  This command adjusts the _.config_ file by enabling the first 1200 config
+  options we find enabled in the _config_works_ file, which are the upper half
+  of the enabled options.
+
+# Sanitize the _.config_ file
+  ! $ make -C $LX_BUILD_DIR olddefconfig
+
+# Build the kernel and copy the resulting image the TFTP directory
+  ! $ make -C $LX_BUILD_DIR dtbs Image -j8 \
+  !   && cp $LX_BUILD_DIR/arch/arm64/boot/Image /var/lib/tftpboot/
+
+# Boot the board. If the kernel shows a life sign over serial, we know
+  that all the needed options are covered by the first 1200 ones.
+  Otherwise, we know that a missing option is somewhere beyond those 1200.
+  So we can continue with the first step while cutting the search space
+  in half for each iteration.
+
+For example, in the case of the Pine-A64-LTS board, I found that the first
+1200 options sufficed for the serial output. So I went for the first 600
+options in the next iteration.
+
+Since the search space is cut into half in each iteration, resolving the
+mystery of missing kernel options comes down to about 10 iterations and a bit
+of patience. Using this process, I uncovered the need for CONFIG_PRINTK,
+CONFIG_BINFMT_ELF, or BLK_DEV_INITRD, which look obvious in hindsight but
+are very unlikely to find by the means of grep, intuition, or device-tree
+analysis.
+
+By following this process, I eventually came up with a kernel has networking
+and serial output enabled. The bisecting work is not taxing but rather
+mechanic. It is nice knowing that it leads to predictable success. With about
+500 options enabled and an image size of 4.2 MiB (uncompressed), the resulting
+kernel is a workable basis for the upcoming porting and instrumentation work.
+
+
+Making the findings reproducible
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As with any Genode-related working topic, I'm trying to make the essence
+of the above findings easily reproducible, for others and me. This way,
+the next developer can pick up a topic where I left it.
+
+To download the kernel using Genode's ports tool, we can start with the
+following initial ports file placed at _allwinner/ports/a64_linux.port_.
+The prefix 'a64' refers to the name of the Allwinner SoC, which expresses
+our intent that the downloaded version of the Linux kernel is blessed for
+the use of this particular SoC.
+
+! LICENSE   := GPLv2
+! VERSION   := 5.12.1
+! DOWNLOADS := a64_linux.archive
+!
+! URL(a64_linux) := https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-$(VERSION).tar.xz
+! SHA(a64_linux) := 123
+! DIR(a64_linux) := src/linux
+
+The SHA hash is not known at this point, just putting an arbitrary number 123
+there. The accompanied _allwinner/ports/a64_linux.hash_ hash file can be
+created with a made-up number.
+
+! 456
+
+With the port-description file and hash file in place, we can give the
+'a64_linux' port a try.
+
+! genode$ ./tool/ports/prepare_port a64_linux
+! a64_linux  download https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.12.1.tar.xz
+! Error: Hash sum check for a64_linux failed
+
+Even though the hash-sum check predictably failed, the download of the archive
+succeeded. It can be found in the _genode/contrib/_ directory in a
+subdirectory named after the port file.
+
+! genode$ ls -lh contrib/a64_linux-456.incomplete/linux-5.12.1.tar.xz
+! ... 113M ... contrib/a64_linux-456.incomplete/linux-5.12.1.tar.xz
+
+The correct SHA hash value is just one invocation of 'sha256sum' away:
+
+! genode$ sha256sum contrib/a64_linux-456.incomplete/linux-5.12.1.tar.xz 
+! c0fc1cf...fe5f37  contrib/a64_linux-456.incomplete/linux-5.12.1.tar.xz
+
+Now we can replace the dummy value 123 in the port description file with the
+correct value and retry the 'prepare_port' call.
+
+! genode$ ./tool/ports/prepare_port a64_linux
+! a64_linux  extract linux-5.12.1.tar.xz (a64_linux)
+! a64_linux  generate a64_linux.hash
+! Error: allwinner/ports/a64_linux.port is out of date, expected 155f...
+
+This time, the extraction step succeeded. However, the port tool rightfully
+argues about the port hash, which is a hash over the port description file.
+The hash ensures that port is consistent with the Genode source tree.
+This can be conveniently updated using the
+ports/update_hash tool.
+
+! genode$ ./tool/ports/update_hash a64_linux
+! generate a64_linux.hash
+
+With the hash updated, the next attempt to 'prepare_port' succeeds:
+
+! genode$ ./tool/ports/prepare_port a64_linux
+! a64_linux  extract linux-5.12.1.tar.xz (a64_linux)
+! a64_linux  generate a64_linux.hash
+! genode$ ls contrib/a64_linux-155f8b01cd911f42f23178571d70a2220612b634/
+! a64_linux.hash  linux-5.12.1.tar.xz  src
+
+The _src/linux/_ subdirectory contains the source tree of the kernel.
+
+! genode$ ls contrib/a64_linux-155f8b01cd911f42f23178571d70a2220612b634/src/linux/
+! arch     CREDITS        fs       Kbuild   LICENSES     net      security  virt
+! block    crypto         include  Kconfig  MAINTAINERS  README   sound
+! certs    Documentation  init     kernel   Makefile     samples  tools
+! COPYING  drivers        ipc      lib      mm           scripts  usr
+
+Finally, to conserve the information about configuring and building a Linux
+kernel tailored to our porting work, I added a Genode build target at
+_allwinner/src/a64_linux/target.mk_ [1],
+which applies the kernel configuration and builds the kernel image.
+Thanks to this _target.mk_ file, the custom Linux kernel can be built
+from within Genode's build directory via:
+
+[1] [https://github.com/nfeske/genode-allwinner/blob/master/src/a64_linux/target.mk]
+
+! build/arm_v8a$ make a64_linux
+

@@ -1,0 +1,316 @@
+Low-level debugging
+===================
+
+Some kids from the city once told me about programs called "debuggers". They
+also use a technology named "green light" to cross the streets. City kids. As
+we are still far away from urban territory, we are in need of the rural ways
+of debugging. What are our options?
+
+Remember, at the end of the previous section,
+we were greeted with the first life sign of the kernel:
+
+! Error: Assertion failed: id < _count && _cpus[id].constructed()
+! Error:   File: /.../repos/base-hw/src/core/kernel/cpu.cc:205
+! Error:   Function: Kernel::Cpu& Kernel::Cpu_pool::cpu(unsigned int)
+
+This raises the questions: What is the trouble about? How did we get there?
+What went wrong?
+Thankfully, the message gives us a concrete reference to the code _cpu.cc_ at
+line 205.
+
+! Cpu & Cpu_pool::cpu(unsigned const id)
+! {
+!     assert(id < _count && _cpus[id].constructed());
+!     return *_cpus[id];
+! }
+
+By looking at this code, I'm tempted to draw the connection to the corners we
+cut regarding the 'Board::Cpu::wake_up_all_cpus' method, which we deliberately
+left empty. But let us leave this speculation for later.
+
+To get hold of the situation, it is useful to know which part of the condition
+fails. This can be revealed by adding the following instrumentation at the
+beginning of the method.
+
+! Genode::log("cpu: id=", id, " _count=", _count, " "
+!             "constructed=", _cpus[id].constructed());
+
+The 'Genode::log' function is declared in the _base/log.h_ header. Note that
+it relies on a fair bit of framework infrastructure such as synchronization
+primitives. In desperate situations during the debugging of lowest-level
+framework code, the 'Genode::raw' function can become handy as a drop-in
+replacement. In contrast to 'log', the 'raw' function relies on less
+infrastructure. In practice, I use 'log' by default and 'raw' as last resort.
+After rebuilding the system image and rebooting the board, it turns out that
+the 'log' function works well at this point.
+
+! ...
+! cpu: id=0 _count=4 constructed=0
+! Error: Assertion failed: id < _count && _cpus[id].constructed()
+
+The instrumentation tells us that the first element of the '_cpus' array has
+not been properly constructed. But how to find out why? We ultimately need to
+know the call chain that led to execution of the 'Cpu_pool::cpu' method.
+
+
+Option 1: Walking the source code
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The most obvious approach is studying the source code, and determining the
+immediate callers of the method using 'grep'.
+
+! repos/base-hw$ grep -r "\<cpu("
+
+Unfortunately, "cpu" is a pretty bad pattern to grep for. It is too generic.
+However, we know that the code in question must reside inside _repos/base-hw/_
+and can thereby restrict the search to only this part of the source tree.
+Furthermore, by using "\<" (match only the start of a word) and appending "("
+to the pattern (as expected at the caller site), we can narrow down the number
+of matches to a useful level.
+
+! src/test/cpu_quota/main.cc:                  env.cpu()),
+! src/test/cpu_quota/main.cc:       Cpu_session::Quota quota = env.cpu().quota();
+! src/core/spec/arm_v8/virtualization/kernel/vm.cc: _vcpu_context(cpu_pool().cpu(cpu))
+! src/core/spec/arm_v8/virtualization/kernel/vm.cc: affinity(cpu_pool().cpu(cpu));
+! src/core/spec/arm_v7/virtualization/kernel/vm.cc: _vcpu_context(cpu_pool().cpu(cpu))
+! src/core/spec/arm_v7/virtualization/kernel/vm.cc: affinity(cpu_pool().cpu(cpu));
+! src/core/kernel/kernel.cc:    Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
+! src/core/kernel/cpu_mp.cc:    Irq(Board::Pic::IPI, cpu), cpu(cpu)
+! src/core/kernel/cpu.h:        Cpu & cpu(unsigned const id);
+! src/core/kernel/cpu.h:        Cpu & primary_cpu() { return cpu(Cpu::primary_id()); }
+! src/core/kernel/cpu.h:        Cpu & executing_cpu() { return cpu(Cpu::executing_id()); }
+! src/core/kernel/cpu.h:            for (unsigned i = 0; i < _count; i++) func(cpu(i));
+! src/core/kernel/cpu.cc:Cpu & Cpu_pool::cpu(unsigned const id)
+! src/core/kernel/cpu_up.cc:Kernel::Cpu::Ipi::Ipi(Kernel::Cpu & cpu) : ...
+! src/core/kernel/cpu_context.h:        void cpu(Cpu &cpu) { _cpu = &cpu; }
+! src/core/kernel/thread.cc:    Cpu & cpu = cpu_pool().cpu(user_arg_2());
+
+From these results, we can immediately disregard the lines referring to
+_src/test/_. Also the virtualization-related matches are most likely not of
+interest. When inspecting the remaining lines, the number of potential callers
+comes down to 5:
+
+! src/core/kernel/kernel.cc:    Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
+! src/core/kernel/cpu.h:        Cpu & primary_cpu() { return cpu(Cpu::primary_id()); }
+! src/core/kernel/cpu.h:        Cpu & executing_cpu() { return cpu(Cpu::executing_id()); }
+! src/core/kernel/cpu.h:            for (unsigned i = 0; i < _count; i++) func(cpu(i));
+! src/core/kernel/thread.cc:    Cpu & cpu = cpu_pool().cpu(user_arg_2());
+
+With such a low amount of callers, we can apply brute force by adding
+the following line just before each call.
+
+! Genode::log(__FILE__, ":", __LINE__);
+
+The compiler replaces '__FILE__' with a string of the file name of the source
+code and '__LINE__' with a string of the line number where '__LINE__' appears
+within the source file. Another useful magic macro is '__PRETTY_FUNCTION__',
+which expands to the name of the surrounding function.
+
+After rebooting the board with the instrumentations in place, we see the
+origin of the call:
+
+! /.../repos/base-hw/src/core/kernel/kernel.cc:25
+
+A look at the surrounding code reveals that the function call originates from
+a function called 'kernel':
+
+! extern "C" void kernel()
+! {
+!   ...
+!   Cpu &cpu = cpu_pool().cpu(Cpu::executing_id());
+!   ...
+! }
+
+You might guess what's next?
+
+! repos/base-hw$ grep -r "\<kernel(" *
+
+There is only one caller, which is at _src/core/kernel/init.cc_ and
+brings the 'kernel_init' function to our attention.
+
+Granted, this step-wise instrumentation may feel a bit like chopping wood with
+a nail clipper. But I sometimes enjoy the process anyway. By following call
+chains in reverse by browsing and instrumenting the code, one develops some
+kind of peripheral vision for the code around the call path, which fosters
+the sense of familiarity with the code base.
+
+Of course, using 'grep' manually as described above may be too archaic for
+your taste. There exist plenty of dedicated tools (like ctags, cscope) and
+IDEs for aiding source-code discovery after all. Personally, I prefer simple
+tools. As a small life hack, I have put the following snippet in my Vim
+configuration:
+
+! nnoremap <leader>g :execute
+!          \ "grep! -R -I --exclude-dir=.git
+!                       \ --exclude=*.orig
+!                       \ --exclude=.*.swp
+!                       \ --exclude=*.rej
+!                       \ --exclude=*~ "
+!                       \ . shellescape("\\<" . expand("<cword>") . "\\>")
+!                       \ . " ."<cr>:copen<cr><cr>
+
+Similar to how the '*' and '#' commands search for the word under the cursor
+in the current buffer, the '<leader>g' command above allows me to grep the
+word under the cursor in the source tree and presents the results in a
+quickfix window. So I can quickly jump to each occurrence and travel across
+source files like a poor man's hypertext system.
+
+That all said, once when ending up in a situation with many callers, the
+approach of manually instrumenting all caller sites becomes a nuisance, which
+leads us to the second option.
+
+
+Option 2: One step of ground truth at a time
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Instead of instrumenting all potential caller sites, we can let the return
+addresses as found on the stack guide us by using the following line as
+instrumentation:
+
+! Genode::log("called from ", __builtin_return_address(0));
+
+When executed, this line prints us the return address of the current function
+scope. This address corresponds to the caller. By placing this line into the
+'Cpu_pool::cpu' method, we get the following output.
+
+! Starting kernel ...
+!
+! called from 0xffffffc000058720
+! Error: Assertion failed: id < _count && _cpus[id].constructed()
+
+The high number immediately tells us that the executed code
+resides somewhere high up in virtual memory. That means, we have already passed
+the bootstrap stage, the MMU is enabled, and core/kernel code is executed.
+As explained in the
+Section [Kernel skeleton],
+the corresponding ELF binary resides at _build/arm_v8a/var/run/log.core_
+and can be inspected via 'readelf'.
+
+! build/arm_v8a$ readelf -l var/run/log.core | grep LOAD
+!   LOAD           0x0000000000001000 0xffffffc000000000 0xffffffc000000000
+!   LOAD           0x00000000000c1000 0xffffffc0000c0000 0xffffffc0000c0000
+!   LOAD           0x00000000000ef5c0 0x0000000000000000 0x0000000000000000
+
+The addresses of the ELF segments correlate nicely with the value printed by
+our instrumentation. To determine the exact source-code location for the given
+return address, the *objdump* tool becomes handy. It allows one to
+disassemble an ELF binary while displaying the source-code intermixed. The
+tool is specific to the used CPU architecture. That is, for 64-bit ARM, it is
+called _genode-aarch64-objdump_. To use it interactively from the shell, the
+tool chain's _bin/_ directory should be added to the shell's PATH variable:
+
+! $ export PATH=/usr/local/genode/tool/current/bin/:$PATH
+
+With the PATH variable set, we can disassemble the log.core ELF
+binary and pipe the result to 'less' for inspection:
+
+! build/arm_v8a$ genode-aarch64-objdump -lSd var/run/log.core | less
+
+Note that the amount of output generated by objdump can be huge. By
+replacing 'less' by 'wc -l' one can see that the output comprises
+more than 300,000 lines! Still, this amount of data leaves 'less' unimpressed,
+which leaves me impressed. We can simply search for our address
+'ffffffc000058720' (with the 0x prefix stripped away) via the slash ('/')
+command and end up at the following section of output:
+
+! kernel():
+! /.../base-hw/src/core/kernel/kernel.cc:25
+! ffffffc000058718:       12001c21        and     w1, w1, #0xff
+! ffffffc00005871c:       97fff8e3        bl      ffffffc000056aa8 <_ZN6Kernel8Cpu
+! _pool3cpuEj>
+! ffffffc000058720:       aa0003f4        mov     x20, x0
+! /.../base-hw/src/core/kernel/kernel.cc:29
+!         Cpu_job * new_job;
+
+The source location _kernel.cc_ line 25 looks familiar.
+
+Alternatively to going though the disassembled output of objdump,
+the *addr2line* utility can be used to streamline the lookup of a source-code
+location by a given instruction address.
+
+! $ genode-aarch64-addr2line -e var/run/log.core 0xffffffc000058720
+! /.../base-hw/src/core/kernel/kernel.cc:25
+
+This is fast and convenient. But sometimes, in particular when code is
+excessively inlined, the contextual information given by the objdump output
+can be valuable. Most often, I scroll upwards until hitting the next
+occurrence of a '.cc' file and watch silently the lines - header-file names
+and fragments of source code - that scroll by. Again, peripheral vision at
+play.
+
+
+Option 3: Backtraces
+~~~~~~~~~~~~~~~~~~~~
+
+The '__builtin_return_address' feature of the compiler allows us to follow
+the call chain one step at a time. Each step involves a manual
+instrumentation, a compile-test cycle, and the invocation of the
+'addr2line' utility.
+
+To avoid such repetitive work, Genode provides the utility function
+'Genode::backtrace()' to walk the stack and print the return addresses along
+the way. This function is declared in the _os/backtrace.h_ header.
+An instrumentation of the 'Cpu_pool::cpu' method would look as follows.
+
+! #include <os/backtrace.h>
+!
+! Cpu & Cpu_pool::cpu(unsigned const id)
+! {
+!   Genode::backtrace();
+!   ...
+! }
+
+To assist the 'backtrace()' function to parse stack frames correctly, the
+Genode build system must be instructed to preserve frame-pointer information.
+This can be achieved by placing the following line to the build directory's
+_etc/tools.conf_ file. Note that by default there is no such file. So you will
+have to create one containing this line.
+
+! CC_OPT += -fno-omit-frame-pointer
+
+After rebuilding and running the system image the next time, we are greeted
+with quite a lot of output:
+
+! Starting kernel ...
+!
+! 0xffffffc000058738
+! 0xffffffc00000085c
+! 0xffffffc0000568e0
+! 0xffffffc000056a60
+! 0xffffffc000057e44
+! 0x400273d8
+! 0x40026754
+! 0x40010068
+! 0xffffffc000058738
+
+Each of the values starting with '0xfff...' is a valid return address and
+can be used with objdump or addr2line as described above. To make matters
+more convenient, the addr2line utility can be used in an "interactive" fashion
+be running the following command in a separate terminal.
+
+! build/arm_v8a$ genode-aarch64-addr2line -e var/run/log.core
+
+With no address specified at the command line, the tool simply waits for
+standard input. So we can paste multiple lines of the 'Genode::backtrace()'
+output directly into it and get the following result:
+
+! 0xffffffc000058738
+! 0xffffffc00000085c
+! 0xffffffc0000568e0
+! 0xffffffc000056a60
+! 0xffffffc000057e44
+! /.../base-hw/src/core/kernel/kernel.cc:25
+! :?
+! /.../base-hw/src/core/spec/arm/virtualization/gicv2.h:22
+! /.../base/include/util/reconstructible.h:56
+! /.../base-hw/src/core/kernel/init.cc:64 (discriminator 1)
+
+We can spot both of the familiar locations _kernel.cc_ line 25 and _init.cc_
+line 64.
+
+
+As shown above, the standard GNU binutils and compiler features can bring us
+quite far without using a debugger. We have gathered a lot of input for
+investigating the error. Our next job will be using this information to
+discharge it.
+

@@ -1,56 +1,37 @@
+Porting Genode to a new SoC
+###########################
 
+We get repeatedly asked about the principle steps and costs needed to enable
+Genode - and in particular Sculpt OS [1] - for various ARM-based hardware
+platforms. The variety of SoCs is too great to give a general answer. However,
+drawing from our experience with the porting Genode to several ARM-based
+platforms such as NXP's i.MX8, this chapter provides a practical guide for the
+steps of such a porting endeavour.
 
-                             ================
-                             Genode Platforms
-                             ================
+[1] [https://genode.org/download/sculpt]
 
+The guide is based on an article series at [https://genodians.org]. It is
+written in an informal style from the perspective of a developer carrying
+out the work, taking a specific board - namely the Pine-A64-LTS single
+board computer - as a playground. The code discussed throughout this
+chapter is available at the following public Git repository.
 
+:Git repository of the Allwinner board support:
 
-Test-control loop for an ARM development board
-==============================================
+  [https://github.com/nfeske/genode-allwinner]
 
-; Overview of the development workflow
-; * Building and integrating a system scenario
-;   (refer to Genode Foundations book)
-; * Triggering the reset of the target
-; * Booting the target with the built system scenario
-; * Observing log output
+The guide is not carved in stone. It will be progressively enhanced with
+further information - e.g., details about various classes of drivers - over
+time. Should you happen find important topics missing or spot mistakes or have
+suggestions for improving the material, please don't hesitate to send your
+feedback to _norman.feske@genode-labs.com_.
 
-; Machinery (supported by an illustration)
-; * Developer machine
-; * Target board
-; * Orchestration server
-; * Network between them
-; * Network-controllable power plug
-; * Serial connection
-
-; Configuration
-; * TFTP server configuration, run-tool support for serving TFTP
-; * DHCP configuration
-; * Boot configration of the target (U-Boot)
-; * Target power control, run-tool support for managing the power socket
-; * Routing log output to the developer machine, run-tool support for
-;   obtaining logs
-
-
-
-Enabling Sculpt OS on a new ARM SoC
-===================================
-
-The Genode-based Sculpt OS is a general-purpose operating system originally
-targeted at PC hardware. This Section provides technical guidance for the
-steps needed for porting Sculpt OS to a new ARM-based hardware platform.
-Sculpt along with its documentation is available at the following website.
-
-:Sculpt Operating System:
-
-  [https://genode.org/download/sculpt]
 
 Goals
 -----
 
-Our goal is to get the bare-bones Sculpt system up and running on an ARM SoC
-not yet supported by Genode. This bare-bones Sculpt system entails
+Our goal would be to get the bare-bones Sculpt system up and running on an ARM
+SoC not yet supported by Genode. This bare-bones Sculpt system entails
 
 * The principal ability for the user to interact with the system via
   a graphical user interface,
@@ -104,8 +85,9 @@ is accompanied with a rough estimation.
 
   * Exploration and configuration of the target's boot mechanism
 
-  * Creation of a test-control loop as described in Section
-    [Test-control loop for an ARM development board]
+  * Creation of a test-control loop for triggering the booting the target board
+    via the run tool, serving the boot image over the local network, and
+    obtaining the log output.
 
   * Familiarization with the available board and SoC-vendor documentation
     and the Vendor-specific subsystems in the vendor's Linux kernel
@@ -201,12 +183,12 @@ is accompanied with a rough estimation.
   the driver often does not only drive one device but multiple (such as
   power-gating via additional I2C-connected controllers, or a dedicated HDMI
   chip). As an indicator for the expected effort, the i.MX framebuffer driver
-  took us *two months* to bring to live.
+  took us *two months* to bring to life.
 
 # USB host-controller driver
 
   Genode's USB host-controller driver is based on the Linux USB driver.
-  Adding supplemental support for new SoC should generally possible within
+  Adding supplemental support for a new SoC should generally possible within
   *one month*. With the USB host-controller driver in place, the actual USB
   device drivers (e.g., for HID and storage) should work out of the box.
 
@@ -235,17 +217,17 @@ is accompanied with a rough estimation.
   * Sculpt-manager tweaks
   * Configuration
 
-; Further topics of interest
+Summary
+-------
 
-; * Leveraging U-Boot (e.g., keeping boot-time power configuration)
-; * Debugging, use of JTAG
-; * Porting of driver subsystems from Linux using Genode's
-;   Linux Device-Driver Environment
-; * Cross-correlation between a Vendor Linux kernel and Genode
-;   (obtaining register traces, register states)
-; * Cross-correlation between different architectures, kernels, devices
+Based on the steps outlined above, the effort seems to be modest but - given a
+healthy dose of enthusiasm - quite doable for an individual or a small team.
+The biggest risk is the incomplete or lacking documentation for most ARM SoCs.
 
-
-
-
+Granted, such a bare-bone system is still a far cry from a sophisticated
+product like a smart phone, which features plenty of additional peripheral
+devices, an aggressive power-management regime, GPU-accelerated rendering, or
+Bluetooth. But once a bare-bones Sculpt system is ready to run, further device
+drivers can be developed as regular components independent from each other,
+which is the beauty of a component-based operating system like Sculpt OS.
 
