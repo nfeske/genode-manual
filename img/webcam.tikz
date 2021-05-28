@@ -1,0 +1,74 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{kernelnode} = [treenode, bottom color=kernelcolor, minimum width=80ex]
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+
+	%
+	% Components
+	%
+
+	% drivers
+
+	\node[drivernode, minimum width=24ex] (usbdrv) {USB Host Driver};
+	\path (usbdrv.north) node[service, scale=0.4] (usbservice) {};
+	\path (usbservice) node[scale=0.7, yshift=-2ex] {USB};
+
+	\node[drivernode, anchor=west, minimum width=24ex, at=(usbdrv.west), yshift=30ex] (usbwebdrv) {USB Webcam Driver};
+
+	% video bridge
+	\node[muxnode, minimum width=24ex, right=1ex of usbwebdrv, yshift=-14ex] (vb) {Video Bridge (Nitpicker)};
+	\path (vb.north) node[service, scale=0.4, xshift=-10ex] (vb_guiservice) {};
+	\path (vb_guiservice) node[scale=0.7, yshift=-2ex] {GUI};
+
+	\path (vb.north) node[service, scale=0.4, xshift=10ex] (vb_captureservice) {};
+	\path (vb_captureservice) node[scale=0.7, yshift=-2ex] {Capture};
+
+	% window manager
+	\node[muxnode, minimum width=30ex, right=6ex of vb] (wm) {Window Manager};
+	\path (wm.north) node[service, scale=0.4] (wmservice) {};
+	\path (wm.north) node[scale=0.7, yshift=-1.5ex] {GUI};
+
+	% system GUI server
+	\node[muxnode, minimum width=30ex, at=(wm.south), yshift=-13ex] (nitpicker) {System GUI Server (Nitpicker)};
+	\path (nitpicker.north) node[service, scale=0.4, xshift=10ex] (nitpickerservice) {};
+	\path (nitpickerservice) node[scale=0.7, yshift=-2ex] {GUI};
+
+	\path (nitpicker.north) node[service, scale=0.4, xshift=-10ex] (captureservice) {};
+	\path (captureservice) node[scale=0.7, yshift=-2ex] {Capture};
+
+	% window manager clients
+	\node[appnode, anchor=south east, minimum size=4ex, at=(wm.east), yshift=12ex] (app2) {Terminal};
+	\node[appnode,                    minimum size=5ex,   left=2ex of app2] (app1) {Browser};
+
+	\node[appnode,                    minimum width=20ex, left=2ex of app1, minimum height=7ex] (vbox) {VirtualBox};
+	\path (vbox.south) node[scale=0.7, anchor=east, yshift=+1.5ex] (model_webcam)  {webcam  model};
+	\path (vbox.south) node[scale=0.7, anchor=west, yshift=+1.5ex] (model_graphic) {graphic model};
+
+	%
+	% Sessions
+	%
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+	\path[treesessionarrow] (wm.270)              .. controls +(0,-2ex)     and +( 0ex,2ex)  .. (nitpickerservice);
+	\path[treesessionarrow] (model_graphic.south) .. controls +(0,-2ex)     and +(-2ex,2ex)  .. (wmservice);
+	\path[treesessionarrow] (app1.south)          .. controls +(0,-2ex)     and +( 0ex,2ex)  .. (wmservice);
+	\path[treesessionarrow] (app2.south)          .. controls +(0,-2ex)     and +( 2ex,2ex)  .. (wmservice);
+	\path[treesessionarrow] (model_webcam.south)  .. controls +(0,-2ex)     and +( 0ex,5ex)  .. (vb_captureservice);
+	\path[treesessionarrow] (usbwebdrv)           -- (usbservice);
+	\path[treesessionarrow] (usbwebdrv.0)        .. controls +(5ex, 0ex)    and +( 0ex,5ex)  .. (vb_guiservice);
+
+\end{tikzpicture}
