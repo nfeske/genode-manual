@@ -620,7 +620,7 @@ as a 'static' local variable. The actual component code lives inside the
 !
 !   void _handle_timeout()
 !   {
-!     log("woke up at ", _timer.elapsed_ms(), " ms");
+!     Genode::log("woke up at ", _timer.elapsed_ms(), " ms");
 !   }
 !
 !   Genode::Signal_handler<Main> _timeout_handler {
@@ -678,8 +678,8 @@ The following remarks are worth noting:
   readily available, which makes the application of internal state changes as
   response to external events very natural.
 
-* Both the 'construct' function as well as the 'Main::_handle_timeout' method
-  do not block for external events.
+* Neither the 'construct' function nor the 'Main::_handle_timeout' method
+  blocks for external events.
 
 * The component does not receive any indication about the number of occurred
   events, just the fact that at least one event occurred. The
