@@ -372,6 +372,13 @@ microhypervisor, the following preparatory steps are needed:
 
   The source code will be downloaded to _<genode-dir>/contrib/x86emu-<hash>/_.
 
+# To handle USB devices, a device-driver environment for executing a Linux
+  kernel subsystem as a user-level component is used. Download the 3rd-party
+  source code of the _dde_linux_ repository:
+  ! <genode-dir>/tool/ports/prepare_port dde_linux
+
+  The source code will be downloaded to _<genode-dir>/contrib/dde_linux-<hash>/_.
+
 # To boot the scenario as an operating system on a PC, a boot loader is
   needed. The build process produces a bootable disk or ISO image
   that includes the GRUB2 boot loader as well as a working boot-loader
@@ -384,9 +391,10 @@ microhypervisor, the following preparatory steps are needed:
   can keep using the existing build directory that we just used for Linux.
   However, apart from enabling the parallelization of the build process as
   mentioned in Section [Using the build system], we need to incorporate
-  the _libports_ source-code repository into the build process by uncommenting
-  the corresponding line in the configuration. Otherwise the build system
-  would fail to build the VESA driver, which resides within _libports/_.
+  the _libports_ and _dde_linux_ source-code repositories into the build
+  process by uncommenting the corresponding lines in the configuration.
+  Otherwise the build system would fail to build the VESA and USB HID drivers,
+  which reside within _libports/_ and _dde_linux/_, respectively.
 
 With those preparations in place, issue the execution of the demo run
 script from within the build directory:
