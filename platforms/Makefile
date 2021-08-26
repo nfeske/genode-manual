@@ -23,6 +23,7 @@ debugging
 user_land
 device_access
 platform_driver
+linux
 dts_pruning
 dde_linux
 endef

@@ -20,7 +20,7 @@ Motivation
 
 In the past, we sometimes directly jumped into the driver-porting work guided
 by mere intuition, transplanting chewable bites of Linux kernel code into
-Genode components, and reanimating the code to life. In some cases like our
+Genode components, and reanimating the code to life. In some cases like
 our first port [1]
 of the Intel GPU driver, we were lucky with bringing up a driver on Genode
 without even testing the driver code on Linux beforehand. However, this
@@ -349,7 +349,9 @@ a kernel suitable for the A64 SoC come down to compiling the Linux kernel for
 the AARCH64 architecture using its default configuration.
 
 [1] [https://linux-sunxi.org/Pine64#BSP]
+
 [2] [https://linux-sunxi.org]
+
 [3] [https://linux-sunxi.org/Pine64#Linux_Kernel]
 
 The bottom line is that we can pick a recent kernel from
