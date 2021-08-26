@@ -1,0 +1,96 @@
+\begin{tikzpicture}
+
+	\definecolor{genodecolor}     {rgb}{0.9,0.95,1}
+	\definecolor{linuxcolor}      {rgb}{0.9,0.5,0.4}
+	\definecolor{genodecapicolor} {rgb}{0.48,0.64,0.55}
+	\definecolor{lxemulcolor}     {rgb}{0.48,0.55,0.64}
+
+	\tikzstyle{dropshadow} = [blur shadow={shadow blur steps=5,shadow xshift=.0ex,
+	                                       shadow yshift=-0.10ex,opacity=0.9,
+	                                       shadow blur radius=0.3ex}]
+
+	\tikzstyle{flatpart} = [path fading=flow fade, opacity=0.9, draw opacity=0.1]
+	\tikzstyle{part}     = [path fading=flow fade, dropshadow, opacity=0.9, draw opacity=0.1]
+	\tikzstyle{lib}      = [rounded corners=5, text opacity=1, fill=white, fill opacity=0.3]
+
+	\node[minimum size=40ex] (genodeapi) { };
+	\node[minimum size=30ex] (cxxapi)    { };
+	\node[minimum size=17ex] (capi)      { };
+
+	% inner and outer control distances
+	\newcommand{\ix}{} \newcommand{\iy}{}
+	\newcommand{\ox}{} \newcommand{\oy}{}
+
+	\renewcommand{\ox}{12ex} \renewcommand{\oy}{12ex}
+	\renewcommand{\ix}{9ex} \renewcommand{\iy}{9ex}
+	\draw[part, fill=genodecolor]
+		(genodeapi.west)  .. controls +(0,\oy)  and +(-\ox,0) ..
+		(genodeapi.north) .. controls +(\ox,0)  and +(0,\oy)  ..
+		(genodeapi.east)  .. controls +(0,-\oy) and +(\ox,0)  ..
+		(genodeapi.south) .. controls +(-\ox,0) and +(0,-\oy) .. cycle
+		(cxxapi.west)     .. controls +(0,-\iy) and +(-\ix,0) ..
+		(cxxapi.south)    .. controls +(\ix,0)  and +(0,-\iy) ..
+		(cxxapi.east)     .. controls +(0,\iy)  and +(\ix,0)  ..
+		(cxxapi.north)    .. controls +(-\ix,0) and +(0,\iy)  .. cycle;
+
+	\renewcommand{\ox}{9ex} \renewcommand{\oy}{9ex}
+	\renewcommand{\ix}{9ex} \renewcommand{\iy}{9ex}
+	\draw[flatpart, fill=genodecapicolor]
+		(cxxapi.west)  .. controls +(0,\oy) and +(-\ox,0) ..
+		(cxxapi.north) .. controls +(\ox,0) and +(0,\oy)  ..
+		(cxxapi.east)  --
+		(capi.east)    .. controls +(0,\iy)  and +(\ix,0)  ..
+		(capi.north)   .. controls +(-\ix,0) and +(0,\iy)  ..
+		(capi.west)    -- cycle;
+
+	\draw[flatpart, fill=lxemulcolor]
+		(capi.west)    .. controls +(0,-\iy) and +(-\ix,0) ..
+		(capi.south)   .. controls +(\ix,0) and +(0,-\iy)  ..
+		(capi.east)    --
+		(cxxapi.east)  .. controls +(0,-\oy) and +(\ox,0)  ..
+		(cxxapi.south) .. controls +(-\ox,0) and +(0,-\oy) ..
+		(cxxapi.west)  -- cycle;
+
+	\draw[part, fill=linuxcolor]
+		(capi.west)  .. controls +(0,\iy)  and +(-\ix,0) ..
+		(capi.north) .. controls +(\ix,0)  and +(0,\iy)  ..
+		(capi.east)  .. controls +(0,-\iy) and +(\ix,0)  ..
+		(capi.south) .. controls +(-\ix,0) and +(0,-\iy) .. cycle;
+
+	\path (capi)            node[lib, anchor=south, above=2.5ex] {\tt{lx\_user}};
+	\path (capi)            node[lib, anchor=north, below=1ex, align=center] {Linux kernel\\code};
+	\path (cxxapi.south)    node[lib, anchor=south, above=2ex] (lxemul) {\tt{lx\_emul}};
+	\path (genodeapi.south) node[lib, anchor=south, above=1.2ex] (lxkit) {\tt{lx\_kit}};
+	\path (genodeapi.north) node[lib, anchor=north, below=1.5ex, scale=0.8] (session) {Genode session};
+	\path (cxxapi.north)    node[lib, anchor=north, below=2ex] {\tt{genode\_c\_api}};
+
+	\path (genodeapi.north) node[opacity=0.7, scale=0.6] {Genode C++ interface};
+	\path (genodeapi.south) node[opacity=0.7, scale=0.6] {Genode C++ interface};
+	\path (cxxapi.north)    node[opacity=0.7, scale=0.6] {C++ interface};
+	\path (cxxapi.south)    node[opacity=0.7, scale=0.6] {C++ interface};
+	\path (capi.north)      node[opacity=0.7, scale=0.6] {C interface};
+	\path (capi.south)      node[opacity=0.7, scale=0.6] {C interface};
+
+	\path (session.north east)+(14ex, 2ex) node (user) {Driver User};
+	\path (lxkit.south east)+(14ex, -2ex) node (device) {Device};
+
+	\draw[arrow, thick, opacity=0.8] (user.west) .. controls +(-2ex,0) and +(1ex,1ex) .. (session.north east);
+	\draw[arrow, thick, opacity=0.8] (session.east)+(0.2ex,0) .. controls +(2ex,0) and +(-1ex,-1ex) .. (user.190);
+
+	\draw[arrow, thick, opacity=0.8] (device.west) .. controls +(-2ex,0) and +(1ex,-1ex) .. (lxkit.south east);
+	\draw[arrow, thick, opacity=0.8] (lxkit.east)+(0.2ex,0) .. controls +(2ex,0) and +(-1ex,1ex) .. (device.160);
+
+	\path (lxkit) -- node[scale=0.7] {I/O} (device);
+
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	\path (lxemul.west)+(-3ex,-2ex)
+		node [scale=0.7, details, anchor=east, callout relative pointer={(3.8ex,0.7ex)}, align=left] {
+		emulated kernel interfaces \\
+		manually curated dummies \\
+		generated dummies \\
+		generated initcall order
+		};
+
+\end{tikzpicture}
