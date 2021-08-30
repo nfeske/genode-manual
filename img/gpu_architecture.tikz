@@ -1,0 +1,74 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{guestoscolor}    {rgb}{0.8,0.8,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}     = [treenode, bottom color=appcolor]
+	\tikzstyle{kernelnode}  = [treenode, bottom color=kernelcolor, minimum width=80ex]
+	\tikzstyle{drivernode}  = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}     = [treenode, bottom color=criticalcolor]
+	\tikzstyle{guestosnode} = [treenode, bottom color=guestoscolor, top color=appcolor]
+
+	%
+	% Components
+	%
+
+	% core / init
+	\node[kernelnode] (core) {Core / Init};
+
+	\path (core.north) node[service, xshift=-26ex, scale=0.4] (irqservice) {};
+	\path (irqservice) node[scale=0.7, yshift=-2ex] {IRQ};
+
+	\path (core.north) node[service, xshift=-14ex, scale=0.4] (mmioservice) {};
+	\path (mmioservice) node[scale=0.7, yshift=-2ex] {MMIO};
+
+	% platform driver
+	\node[drivernode, minimum width=39ex, above=4ex of core, xshift=-20.5ex] (platformdrv) {Platform Driver};
+	\path (platformdrv.north) node[service, scale=0.4] (platformservice) {};
+	\path (platformdrv.north) node[scale=0.7, yshift=-1.5ex] {Platform};
+
+	% GUI server
+	\node[muxnode, minimum width=39ex, above=4ex of core, xshift=20.5ex] (gui)  {GUI Server};
+	\path (gui.north) node[service, scale=0.4, xshift=10ex] (guiservice) {};
+	\path (guiservice) node[scale=0.7, yshift=-2ex] {GUI};
+	\path (gui.north) node[service, scale=0.4, xshift=-10ex] (captureservice) {};
+	\path (captureservice) node[scale=0.7, yshift=-2ex] {Capture};
+
+	% GPU driver
+	\node[drivernode, minimum width=39ex, above=5ex of platformdrv] (gpudrv)  {GPU Driver};
+	\path (gpudrv.north) node[service, scale=0.4, xshift=-15ex] (gpuservice) {};
+	\path (gpuservice) node[scale=0.7, yshift=-2ex] {GPU};
+	\path (gpudrv.north) node[service, scale=0.4, xshift=15ex] (gpuplatformservice) {};
+	\path (gpuplatformservice) node[scale=0.7, yshift=-2ex] {Platform};
+
+	% framebuffer driver
+	\node[drivernode, minimum width=20ex, above=5ex of gpudrv, xshift=10ex] (fbdrv)  {Framebuffer Driver};
+
+	% application
+	\node[fit=(fbdrv) (core), inner sep=0, outer sep=0] (alldrivers) { };
+	\node[appnode, minimum width=80ex, above=5ex of alldrivers] (app)  {Application};
+
+	%
+	% Sessions
+	%
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+	\path[treesessionarrow] (irqservice  |- platformdrv.south)   -- (irqservice);
+	\path[treesessionarrow] (mmioservice |- platformdrv.south)   -- (mmioservice);
+	\path[treesessionarrow] (fbdrv.320) .. controls +(0,-5ex) and +(0ex,15ex) ..  (captureservice);
+	\path[treesessionarrow] (platformservice |- gpudrv.south) -- (platformservice);
+	\path[treesessionarrow] (gpuplatformservice |- fbdrv.south) -- (gpuplatformservice);
+	\path[treesessionarrow] (gpuservice |- app.south) -- (gpuservice);
+	\path[treesessionarrow] (guiservice |- app.south) -- (guiservice);
+
+\end{tikzpicture}
