@@ -31,11 +31,11 @@ dramatically reduce the effort. Stefan Kalkowski documents the approach at
 
 :Linux device driver ports - Breaking new ground:
 
-  [http://genodians.org/skalk/2021-04-06-dde-linux-experiments]
+  [https://genodians.org/skalk/2021-04-06-dde-linux-experiments]
 
 :Linux device driver ports - Generate dummy function definitions:
 
-  [http://genodians.org/skalk/2021-04-06-dde-linux-experiments]
+  [https://genodians.org/skalk/2021-04-08-dde-linux-experiments-1]
 
 New articles will follow as we go.
 
