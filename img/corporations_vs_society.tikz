@@ -1,0 +1,18 @@
+\begin{tikzpicture}
+
+	\definecolor{arrowcol} {rgb}{0.7,0.8,0.9}
+
+	\node[draw, dropshadow, path fading=flow fade, shape=double arrow,
+	      draw opacity=0.5,
+	      top color=arrowcol, bottom color=black!50!arrowcol,
+	      double arrow head extend=1.5ex,
+	      inner xsep=5ex, inner ysep=1.5ex]
+	      (arrow) { };
+
+	\node[left=0ex  of arrow, minimum width=35ex] {};
+	\node[right=0ex of arrow, minimum width=35ex] {};
+
+	\node[left=2ex  of arrow, yshift=0.1ex,  align=center, scale=2] { Dominating\\Corporations };
+	\node[right=2ex of arrow, yshift=-0.3ex, align=center, scale=2] { Civil Society};
+
+\end{tikzpicture}
