@@ -1,0 +1,100 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{kernelnode} = [treenode, bottom color=kernelcolor, minimum width=80ex]
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+
+	%
+	% Components
+	%
+
+	% drivers
+
+	\node[drivernode, minimum width=24ex] (fbdrv) {Framebuffer Driver};
+
+	\node[at=(fbdrv.east), anchor=west, xshift=4ex, drivernode, minimum width=24ex] (touchdrv) {Touchscreen Driver};
+
+	\path (fbdrv) -- node (drivers) {} (touchdrv);
+
+%	\node[fit=(fbdrv) (touchdrv)] (drivers) { };
+
+	\path (drivers)+(0ex,-18ex) coordinate (devices) { };
+
+	\tikzstyle{device} = [drivernode, rounded corners=0, minimum height=2ex, rotate=45, scale=0.5]
+
+	\path (devices)+(-3ex*0,0) node[device] (dphy) {DPHY};
+	\path (devices)+(-3ex*1,0) node[device] (pio)  {PIO};
+	\path (devices)+(-3ex*2,0) node[device] (rpio) {R\_PIO};
+	\path (devices)+(-3ex*3,0) node[device] (ccu)  {CCU};
+	\path (devices)+(-3ex*4,0) node[device] (dsi)  {DSI};
+	\path (devices)+(-3ex*5,0) node[device] (rsb)  {R\_RSB};
+	\path (rsb)+(0,-5ex) node[device] (pmic) {PMIC};
+	\path (devices)+(-3ex*6,0) node[device] (syscon) {SYSCON};
+	\path (devices)+(3ex*1,0)  node[device] (de2bus) {DE2\_BUS};
+	\path (devices)+(3ex*2,0)  node[device] (rccu)   {R\_CCU};
+	\path (devices)+(3ex*3,0)  node[device] (rintc)  {R\_INTC};
+	\path (devices)+(3ex*4,0)  node[device] (rpwm)   {R\_PWM};
+	\path (devices)+(3ex*5,0)  node[device] (tcon0)  {TCON0};
+	\path (devices)+(3ex*6,0)  node[device] (tcon1)  {TCON1};
+	\path (devices)+(3ex*7,0)  node[device] (i2c0)   {I2C0};
+	\path (i2c0)+(0,-5ex)  node[device] (goodix)   {Goodix};
+
+	\tikzstyle{accessarrow} = [arrow]
+
+	% framebuffer driver dependencies
+	\path[accessarrow] (fbdrv.270) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (dphy);
+	\path[accessarrow] (fbdrv.260) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (pio);
+	\path[accessarrow] (fbdrv.250) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rpio);
+	\path[accessarrow] (fbdrv.240) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (ccu);
+	\path[accessarrow] (fbdrv.230) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (dsi);
+	\path[accessarrow] (fbdrv.220) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rsb);
+	\path[accessarrow] (rsb)       .. controls +(0,-4ex) and +( 0ex,4ex)  .. (pmic);
+	\path[accessarrow] (fbdrv.210) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (syscon);
+
+	\path[accessarrow] (fbdrv.280) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (de2bus);
+	\path[accessarrow] (fbdrv.290) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rccu);
+	\path[accessarrow] (fbdrv.300) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rintc);
+	\path[accessarrow] (fbdrv.310) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rpwm);
+	\path[accessarrow] (fbdrv.320) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (tcon0);
+	\path[accessarrow] (fbdrv.330) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (tcon1);
+
+	% touch driver dependencies
+	\path[accessarrow] (touchdrv.240) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rsb);
+	\path[accessarrow] (touchdrv.250) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (ccu);
+	\path[accessarrow] (touchdrv.260) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rpio);
+	\path[accessarrow] (touchdrv.270) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (pio);
+	\path[accessarrow] (touchdrv.280) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rccu);
+	\path[accessarrow] (touchdrv.290) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (rintc);
+	\path[accessarrow] (touchdrv.300) .. controls +(0,-4ex) and +( 0ex,4ex)  .. (i2c0);
+	\path[accessarrow] (i2c0)      .. controls +(0,-4ex) and +( 0ex,4ex)  .. (goodix);
+
+
+	\tikzstyle{conflict} = [draw, fill, dropshadow,
+	                        top color=white, bottom color=yellow,
+	                        path fading=flow fade,
+	                        starburst, inner sep=0.5ex,
+	                        starburst point height=1ex, minimum width=0.1ex, minimum height=0.1ex]
+
+	\node[at=(ccu.50),conflict,yshift=0.5ex] {};
+	\node[at=(rsb.50),conflict,yshift=0.5ex] {};
+	\node[at=(rpio.50),conflict,yshift=0.5ex] {};
+	\node[at=(pio.50),conflict,yshift=0.5ex] {};
+	\node[at=(rccu.50),conflict,yshift=0.5ex] {};
+	\node[at=(rintc.50),conflict,yshift=0.5ex] {};
+	\node[at=(ccu.50),conflict,yshift=0.5ex] {};
+
+\end{tikzpicture}
