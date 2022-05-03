@@ -1,0 +1,100 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{drivernode}   = [treenode, bottom color=drivercolor]
+	\tikzstyle{criticalnode} = [treenode, bottom color=criticalcolor]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+
+	%
+	% Components
+	%
+
+	% platform driver
+	\node[criticalnode, minimum width=36ex, align=center]
+	     (platformdrv) {};
+
+	\path (platformdrv) node[align=center] {Platform Driver};
+
+	\path (platformdrv.north) node[service, scale=0.4, xshift=-4ex]  (platformservice) {};
+	\path (platformservice) node[scale=0.7, yshift=-2ex] {Platform};
+
+	% pio driver
+	\node[criticalnode, minimum width=18ex, above=6ex of platformdrv, xshift=9ex, align=center]
+	     (piodrv) {};
+
+	\path (piodrv) node[align=center] {PIO Driver};
+
+	\path (piodrv.north) node[service, scale=0.4, xshift=-12ex]  (pincontrolservice) {};
+	\path (piodrv.north) node[service, scale=0.4, xshift=8ex] (pinirqservice)  {};
+	\path (piodrv.north) node[service, scale=0.4, xshift=16ex] (pinstateservice)  {};
+	\path (pincontrolservice) node[align=center, scale=0.5, yshift=-3.2ex] {Pin\\control};
+	\path (pinirqservice)     node[scale=0.7, yshift=-2ex] {IRQ};
+	\path (pinstateservice)   node[align=center, scale=0.5, yshift=-3.2ex] {Pin\\state};
+
+	\node[drivernode, minimum width=18ex, above=6ex of piodrv.north west,
+	      align=center, anchor=south west, xshift=0ex]
+	     (touchscreen) {};
+
+	\path (touchscreen) node[align=center] {Touchscreen\\Driver};
+
+	\node[drivernode, minimum width=17.5ex, above=6ex of piodrv.north east,
+	      align=center, anchor=south east, xshift=-18.5ex]
+	     (framebuffer) {};
+
+	\path (framebuffer) node[align=center] {Framebuffer\\Driver};
+
+	% devices
+
+	\tikzstyle{device} = [drivernode, rounded corners=0, minimum height=2ex, rotate=45, scale=0.5]
+
+	\path (platformdrv.south)+(0ex,-3ex) coordinate (devices) { };
+	\path (devices)+(-3ex*1,0) node[device] (ccu)  {CCU};
+	\path (devices)+(3ex*0,0) node[device] (rsb)  {R\_RSB};
+	\path (rsb)+(0,-4ex) node[device] (pmic) {PMIC};
+	\path (devices)+(3ex*1,0)  node[device] (rccu)   {R\_CCU};
+
+	\path (piodrv.south)+(0ex,-3ex) coordinate (devices) { };
+	\path (devices)+(3ex*1,0) node[device] (pio)  {PIO};
+	\path (devices)+(3ex*2,0) node[device] (rpio) {R\_PIO};
+
+	% device access
+
+	\tikzstyle{accessarrow} = [arrow]
+	\path[accessarrow] (pio |- piodrv.south) -- (pio);
+	\path[accessarrow] (rpio |- piodrv.south) -- (rpio);
+	\path[accessarrow] (ccu |- platformdrv.south) -- (ccu);
+	\path[accessarrow] (rccu |- platformdrv.south) -- (rccu);
+	\path[accessarrow] (rsb |- platformdrv.south) -- (rsb);
+	\path[accessarrow] (rsb) -- (pmic);
+
+	% sessions
+	\path[treesessionarrow] (piodrv.south) .. controls +(0,-2ex) and +(2ex,2ex) .. (platformservice);
+
+	\path[treesessionarrow] (pincontrolservice |- touchscreen.south)  -- (pincontrolservice);
+	\path[treesessionarrow] (pinstateservice   |- framebuffer.south) -- (pinstateservice);
+	\path[treesessionarrow] (pinirqservice     |- framebuffer.south) -- (pinirqservice);
+
+	\path[treesessionarrow] (touchscreen.203) .. controls +(-1ex,-2ex) and +(0ex,12ex) .. (platformservice);
+	\path[treesessionarrow] (framebuffer.250) .. controls +(0ex,-2ex) and +(-4ex,4ex) .. (platformservice);
+	\path[treesessionarrow] (framebuffer.290) .. controls +(2ex,-2ex) and +(-2ex,2ex) .. (pincontrolservice);
+
+	\tikzstyle{risk} = [rectangle callout, fill=red!80!black, rounded corners=3, text=white]
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+\end{tikzpicture}
+
