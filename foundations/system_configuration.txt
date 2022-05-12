@@ -404,7 +404,13 @@ If the specified amount exceeds the available resources,
 the available resources are assigned almost completely to the child.
 This makes it possible to assign all remaining resources to the last child by
 simply specifying an overly large quantum.
-In this case, init retains only a small amount of quota for itself, which is used to cover
+Note that this special case should only be used for static configurations.
+In dynamic scenarios, components can temporarily disappear during the
+reconfiguration, which temporary frees their resources. Once released,
+however, those temporarily slack resources would end up in the unsaturated
+subsystem, preventing the subsequent (re-)spawning of other subsystems.
+
+Init retains only a small amount of quota for itself, which is used to cover
 indirect costs such as a few capabilities created on behalf of the children,
 or memory used for buffering configuration data. The preserved amount
 can be configured as follows:
@@ -414,9 +420,6 @@ can be configured as follows:
 !   <resource name="RAM" preserve="1M"/>
 !   ...
 ! </config>
-
-If not specified, init has a reasonable default of 160K (on 32 bit) and
-320K (on 64 bit).
 
 
 Capability budget
