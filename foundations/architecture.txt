@@ -2322,29 +2322,27 @@ The life cycle of a single packet looks as follows:
 
 This protocol has four corner cases that are handled by signals:
 
-:Submit queue is full: when the source is trying to submit a new packet.
-  In this case, the source blocks and waits for the sink to remove packets
-  from the submit queue. If the sink observes such a condition (when it
-  attempts to get a packet from a full submit queue), it delivers a
-  _ready-to-submit_ signal to wake up the source.
+:Saturated submit queue: Under this condition, the source is not
+  able to submit another packet and may decide to block. Once the sink
+  observes such a condition being cleared - that is when removing a packet
+  from a formerly saturated submit queue - it delivers a _ready-to-submit_
+  signal to wake up the source.
 
-:Submit queue is empty: when the sink tries to obtain a packet from an
-  empty submit queue, it may block. If the source places a
-  packet into an empty submit queue, it delivers a _packet-avail_
+:Submit queue is empty: Whenever the source places a
+  packet into an empty submit queue, it assumes that the sink may have
+  blocked for the arrival of new packets and delivers a _packet-avail_
   signal to wake up the sink.
 
-:Acknowledgement queue is full: when the sink tries to acknowledge a packet
-  at a saturated acknowledgement queue, the sink needs to wait until the source
-  removes an acknowledged packet from the acknowledgement queue. The source
-  notifies the sink about this condition by delivering a _ready-to-ack_
-  signal. On reception of the signal, the sink wakes up and proceeds to
-  submit packets into the acknowledgement queue.
+:Saturated acknowledgement queue: Unless the acknowledgement queue has
+  enough capacity for another acknowledgement, the sink is unable to make
+  progress and may therefore block.
+  Once the source consumes an acknowledgement from a formerly saturated
+  acknowledgement queue, it notifies the sink about the cleared condition
+  by delivering a _ready-to-ack_ signal.
 
-:Acknowledgement queue is empty: when the source tries to obtain an
-  acknowledged packet _(get acked packet)_ from an empty acknowledgement
-  queue. In this case, the source may block until the sink places another
-  acknowledged packet into the empty acknowledgement queue and delivers an
-  _ack-avail_ signal.
+:Acknowledgement queue is empty: In this case, the source may block until
+  the sink places another acknowledged packet into the formerly empty
+  acknowledgement queue and delivers an _ack-avail_ signal.
 
 If bidirectional data exchange between a client and a server is desired,
 there are two approaches:
