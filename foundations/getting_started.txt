@@ -175,14 +175,15 @@ repositories.
 :_libports/_:
 
   Ports of popular open-source libraries, most importantly the C library.
-  Among the 3rd-party libraries are Qt5, libSDL, freetype, Python, ncurses,
-  Mesa, and libav.
+  Among the 3rd-party libraries are the standard C++ library, Qt5, FreeType,
+  ncurses, libUSB, curl, lwip, and Mesa.
 
 :_dde_linux/_:
 
   Device-driver environment for executing Linux kernel subsystems as
-  user-level components. Among the subsystems are the USB stack, the
-  Intel wireless stack, and the TCP/IP stack.
+  user-level components. Besides hosting ports of generic Linux kernel
+  subsystems such as the TCP/IP stack, it is the basis for many board-specific
+  drivers hosted in other repositories.
 
 :_dde_ipxe/_:
 
@@ -198,6 +199,13 @@ repositories.
   kernel as user-level components.
   The repository contains a server that uses a rump kernel to provide
   various NetBSD file systems.
+
+:_pc/_:
+
+  Device drivers for x86 PC hardware. The _pc_ repository depends on the
+  _dde_linux repository because drivers such as the USB stack, the
+  Intel wireless stack, or the Intel graphics driver are based on the
+  framework infrastructure of _dde_linux/_.
 
 :_ports/_:
 
