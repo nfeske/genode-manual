@@ -1544,9 +1544,9 @@ in the ELF executable's header:
   on the kernel used. Also note that not all hardware platforms distinguish
   executable from non-executable memory mappings.
 
-:Read-writable segments:
-  In contrast to read-only segments, read-writable segments cannot be shared
-  between components. Hence, each read-writable segment must be backed with
+:Read-writeable segments:
+  In contrast to read-only segments, read-writeable segments cannot be shared
+  between components. Hence, each read-writeable segment must be backed with
   a distinct copy of the segment data. The parent allocates the backing store
   for the copy from the child's PD session and thereby accounts the memory
   consumption on behalf of the child to the child's budget. For each

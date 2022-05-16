@@ -53,9 +53,9 @@ which appear consecutively in the component's virtual memory.
   On ARM, the information about global constructors is represented by
   '.init_array' and there is no visible information about global destructors.
 
-# A read-writable "data" part that is pre-populated with data.
+# A read-writeable "data" part that is pre-populated with data.
 
-# A read-writable "bss" part that is not physically present in the binary but
+# A read-writeable "bss" part that is not physically present in the binary but
   known to be zero-initialized when the ELF image is loaded.
 
 The link address is not defined in the linker script but specified as
@@ -92,7 +92,7 @@ base framework.
   Those symbols are located at the beginning of the "data" part.
   During the ELF loading of a new component, the parent writes
   information about the parent capability to this location (the start
-  of the first read-writable ELF segment). See the corresponding code
+  of the first read-writeable ELF segment). See the corresponding code
   in the 'Loaded_executable' constructor in _base/src/lib/base/child_process.cc_.
   The use of the information depends on the base platform. E.g.,
   on a platform where a capability is represented by a tuple of a global
