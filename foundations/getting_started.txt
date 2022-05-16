@@ -217,6 +217,15 @@ repositories.
   both native Genode interfaces as well as features of other high-level
   repositories, in particular shared libraries provided by _libports/_.
 
+In addition to the repositories hosted in Genode's main source tree, there
+exist a number of external repositories that extend the framework with
+optional features such as additional components and board support for various
+hardware platforms.
+
+:Additional repositories maintained by Genode Labs:
+
+  [https://github.com/orgs/genodelabs/repositories]
+
 
 Using the build system
 ======================
