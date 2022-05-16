@@ -27,7 +27,7 @@ Why Pine64?
 
 I got excited about Pine64 for several reasons.
 
-First, devices in the form factors of the Pinephone and the A64 development
+First, devices in the form factors of the PinePhone and the A64 development
 boards are readily available at affordable prices. The Pine64 website carries
 a very positive message, highlighting community, openness, sustainability,
 transparency, no marketing nonsense.
@@ -35,7 +35,7 @@ transparency, no marketing nonsense.
 Second, the products are designed for hackability. This is evidenced by the
 vibrant developer community, mainline Linux kernel support, and the
 availability of literally more than a dozen Linux distributions. One can boot
-the Pinephone directly from SD-card. How cool is that!
+the PinePhone directly from SD-card. How cool is that!
 
 Third, the used Allwinner SoC - introduced as early as 2015 - is rather aged.
 In contrast to bleeding-edge hardware, I would not need to explore unconquered
@@ -55,8 +55,8 @@ of device drivers can never be water-tight.
 Getting a first impression
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We ordered a Pine64-LTS board [1], a Pinephone [2], and a serial cable [3]
-for the Pinephone directly from the online store. For some kind
+We ordered a Pine64-LTS board [1], a PinePhone [2], and a serial cable [3]
+for the PinePhone directly from the online store. For some kind
 of safety reason, the phone had to be ordered separately. In hindsight, we
 better had ordered a power supply for the Pine64-LTS board as well. We skipped
 it as we already have kilograms of AC power supplies of other boards at hand.
@@ -66,12 +66,12 @@ Such details matter sometimes.
 
 [1] [https://pine64.com/product-category/pinephone/ - Pine64-LTS]
 
-[2] [https://pine64.com/product-category/pinephone/ - Pinephone]
+[2] [https://pine64.com/product-category/pinephone/ - PinePhone]
 
 [3] [https://pine64.com/product/pinebook-pinephone-pinetab-serial-console/]
 
 For getting our hands dirty with technical work, we will have to leave the
-Pinephone alone for a while and turn our attention to the *Pine-A64-LTS* board.
+PinePhone alone for a while and turn our attention to the *Pine-A64-LTS* board.
 Pine64 wiki [4] provides the perfect staring point.
 
 [4] [https://wiki.pine64.org/index.php/PINE_A64-LTS/SOPine_Main_Page]
@@ -346,7 +346,7 @@ For reference, here are the steps I took.
   ! configs/pine_h64_defconfig
 
   Well, _pine64-lts_defconfig_ sounds like I'm lucky for the Pine64 board.
-  But the Pinephone is notably absent.
+  But the PinePhone is notably absent.
   A look at [https://linux-sunxi.org/PinePhone] clarifies the situation:
   "As we currently do not have any specific U-Boot config for this device, Use
   the pine64-lts_defconfig build target temporarily as a hack." That's fine
