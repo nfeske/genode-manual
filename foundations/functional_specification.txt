@@ -968,6 +968,100 @@ For code consistency, exception types should inherit from the
 [raw spec/classes/genode/exception/description]
 
 
+Exception-less error handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Genode generally employs C++ exceptions for propagating errors, which is true
+to the language. The rationale behind the use of exceptions is given in
+Section [Rationale behind using exceptions].
+
+However, as the mechanics of C++ exceptions are built upon a baseline of
+functionality like the presence of a memory allocator for allocating exception
+headers, no low-level code path involved in memory allocations must depend on
+the exception mechanism. With exceptions not being available as a means to
+reflect error conditions for those parts of framework, an alternative
+error-handling mechanism is required.
+
+Traditional approaches like overloading return values with error codes, or
+the use of out parameters to carry return values are error prone.
+Genode's 'Attempt' utility provides a safe alternative in the spirit of option
+types.
+
+[raw spec/classes/genode/attempt/description]
+
+Its name reflects is designated use as a carrier for return values. To
+illustrate its use, here is slightly abbreviated snippet of Genode's
+'Ram_allocator' interface:
+
+! struct Ram_allocator : Interface
+! {
+!   enum class Alloc_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+!
+!   using Alloc_result = Attempt<Ram_dataspace_capability, Alloc_error>;
+!
+!   virtual Alloc_result try_alloc(size_t size) = 0;
+!
+!   ...
+! };
+
+The 'Alloc_error' type models the possible error conditions, which would
+normally be represented as exception types. The 'Alloc_result' type describes
+the return value of the 'try_alloc' method by using the 'Attempt' utility.
+Whenever 'try_alloc' succeeds, the value will hold a capability (referring to
+a valid RAM dataspace). Otherwise, it will hold an error value of type
+'Alloc_error'.
+
+At the caller side, the 'Attempt' utility is extremely rigid. The caller can
+access the value only when providing both a handler for the value and a
+handler for the error code. For example, with ram being a reference to a
+'Ram_allocator', a call to 'try_alloc' may look like this:
+
+! ram.try_alloc(size).with_result(
+!
+!   [&] (Ram_dataspace_capability ds) {
+!     ...
+!   },
+!
+!   [&] (Alloc_error error) {
+!     switch (error) {
+!
+!     case Alloc_error::OUT_OF_RAM:
+!       _request_ram_from_parent(size);
+!       break;
+!
+!     case Alloc_error::OUT_OF_CAPS:
+!       _request_caps_from_parent(4);
+!       break;
+!
+!     case Alloc_error::DENIED:
+!       ...
+!       break;
+!     }
+!   });
+
+Which of both lambda functions gets called depends on the success of the
+'try_alloc' call. The value returned by 'try_alloc' is only reachable by the
+code in the scope of the first lambda function. The code within this scope can
+rely on the validity of the argument.
+
+By expressing error codes as an enum class, we let the compiler assist us to
+cover all possible error cases (using switch). This a is nice benefit over the
+use of exceptions, which are unfortunately not covered by function/method
+signatures. By using the 'Attempt' utility, we implicitly tie functions together
+with their error conditions using C++ types. As another benefit over catch
+handlers, the use of switch allows us to share error handing code for
+different conditions by grouping case statements.
+
+Note that in the example above, the valid 'ds' object cannot leave the scope of
+its lambda function. Sometimes, however, we need to pass a return value along a
+chain of callers. This situation is covered by the 'Attempt::convert' method.
+Analogously to 'with_result', it takes two lambda functions as arguments. But in
+contrast to 'with_result', both lambda functions return a value of the same
+type. This naturally confronts the programmer with the question of how to
+convert all possible errors to this specific type. If this question cannot be
+answered for all error cases, the design of the code is most likely flawed.
+
+
 C++ supplements
 ~~~~~~~~~~~~~~~
 
@@ -2056,8 +2150,8 @@ alleviates the need for allocating any meta data while extracting information
 from XML data. The XML parser is stateless.
 
 Vice versa, the 'Xml_generator' serves as a utility for generating XML
-formatted data. The scope of an XML node is represented by a lamda function.
-Hence, nested XML nodes can be created by nested lamda functions, which makes
+formatted data. The scope of an XML node is represented by a lambda function.
+Hence, nested XML nodes can be created by nested lambda functions, which makes
 the structure of the XML data immediately apparent in the C++ source code.
 As for the 'Xml_node' the 'Xml_generator' does not use any internal
 intermediate representation of the XML data. No dynamic memory allocations
