@@ -98,10 +98,9 @@ define OS_INCLUDE_DIRS
   packet_stream_rx
   packet_stream_tx
   platform_session
-  platform_device
   report_session
   rtc_session
-  spec/x86
+  sandbox
   terminal_session
   uart_session
   usb_session
