@@ -63,7 +63,7 @@ Each source-code repository has the principle structure shown in Table
  ------------------------------------------------------------
   _doc/_        | Documentation, specific for the repository
  ------------------------------------------------------------
-  _etc/_        | Default configuration for the build process
+  _etc/_        | Default configuration for the build system
  ------------------------------------------------------------
   _mk/_         | Build-system supplements
  ------------------------------------------------------------
@@ -76,6 +76,10 @@ Each source-code repository has the principle structure shown in Table
   _lib/import/_ | Library import descriptions
  ------------------------------------------------------------
   _ports/_      | Port descriptions of 3rd-party software
+ ------------------------------------------------------------
+  _recipes/_    | Package descriptions for depot content
+ ------------------------------------------------------------
+  _run/_        | System scenarios in the form of run scripts
 
 [table repository_overview]
   Structure of a source-code repository. Depending on the repository,
