@@ -480,7 +480,7 @@ test a system scenario. Those steps are:
 # Creation of the *boot image*
 # *Powering-on* the test machine
 # *Loading* of the boot image
-# Capturing the *LOG output*
+# Capturing the *log output*
 # *Validation* of the scenario's behavior
 # *Powering-off* the test machine
 
