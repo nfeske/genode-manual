@@ -1007,8 +1007,6 @@ Depot structure
 Archives are stored within a directory tree called _depot/_. The depot
 is structured as follows:
 
-! <user>/pubkey
-! <user>/download
 ! <user>/src/<name>/<version>/
 ! <user>/api/<name>/<version>/
 ! <user>/raw/<name>/<version>/
@@ -1017,10 +1015,7 @@ is structured as follows:
 
 The <user> stands for the origin of the contained archives. For example, the
 official archives provided by Genode Labs reside in a _genodelabs/_
-subdirectory. Within this directory, there is a 'pubkey' file with the
-user's public key that is used to verify the integrity of archives downloaded
-from the user. The file 'download' specifies the download location as an URL.
-
+subdirectory.
 Subsuming archives in a subdirectory that correspond to their origin
 (user) serves two purposes. First, it provides a user-local name space for
 versioning archives. E.g., there might be two versions of a
@@ -1060,8 +1055,14 @@ the content from locally available source codes as explained by Section
 [Automated extraction of archives from the source tree], or by downloading
 ready-to-use archives from a web server.
 
-In order to download archives originating from a specific user, the depot's
-corresponding user subdirectory must contain two files:
+In order to download archives originating from a specific user,
+the download tool expects user-specific information to be defined
+at _<repo>/sculpt/depot/<user>/_ where _<repo>_ can be any subdirectory
+under _<genode-dir>/repos/_. For reference, the information for the
+official "genodelabs" depot user is located at _gems/sculpt/depot/genodelabs/_.
+
+! <user>/pubkey
+! <user>/download
 
 :_pubkey_: contains the public key of the GPG key pair used by the creator
   (aka "user") of the to-be-downloaded archives for signing the archives. The
@@ -1075,7 +1076,7 @@ corresponding user subdirectory must contain two files:
 If both the public key and the download locations are defined, the download
 tool can be used as follows:
 
-! ./tool/depot/download genodelabs/src/zlib/2018-01-10
+! ./tool/depot/download genodelabs/src/zlib/2022-02-27
 
 The tool automatically downloads the specified archives and their
 dependencies. For example, as the zlib depends on the libc API, the libc API
@@ -1087,7 +1088,7 @@ all binary archives, for the 64-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
-! ./tool/depot/download genodelabs/pkg/x86_64/wm/2018-02-26
+! ./tool/depot/download genodelabs/pkg/x86_64/wm/2022-04-12
 
 Archive content is not downloaded directly to the depot. Instead, the
 individual archives and signature files are downloaded to a quarantine area in
@@ -1114,7 +1115,7 @@ CPU architecture. For example, the following command builds the 'zlib'
 library for the 64-bit x86 architecture. It executes four concurrent jobs
 during the build process.
 
-! ./tool/depot/build genodelabs/bin/x86_64/zlib/2018-01-10 -j4
+! ./tool/depot/build genodelabs/bin/x86_64/zlib/2022-02-27 -j4
 
 Note that the command expects a specific version of the source archive as
 argument. The depot may contain several versions. So the user has to decide,
@@ -1145,38 +1146,42 @@ one, wrapping the archive's content into compressed tar archives, and signing
 those.
 
 As a precondition, the tool requires you to possess the private key that
-matches the _depot/<you>/pubkey_ file within your depot. The key pair should
-be present in the key ring of your GNU privacy guard.
+matches the _sculpt/depot/<you>/pubkey_ file as found within one of the
+available repositories. The key pair should be present in the key ring of your
+GNU privacy guard.
 
 To publish archives, one needs to provide the specific version to publish.
 For example:
 
-! ./tool/depot/publish <you>/pkg/x86_64/wm/2018-02-26
+! ./tool/depot/publish <you>/pkg/x86_64/wm/2022-04-12
+
+To accommodate the common case of publishing the current version of the source
+tree, there exists the following shortcut:
+
+! ./tool/depot/publish_current <you>/pkg/x86_64/wm
 
 The command checks that the specified archive and all dependencies are present
 in the depot. It then proceeds with the archiving and signing operations. For
 the latter, the pass phrase for your private key will be requested. The
 publish tool outputs the information about the processed archives, e.g.:
 
-! publish /.../public/<you>/api/base/2018-02-26.tar.xz
-! publish /.../public/<you>/api/framebuffer_session/2017-05-31.tar.xz
-! publish /.../public/<you>/api/gems/2018-01-28.tar.xz
-! publish /.../public/<you>/api/input_session/2018-01-05.tar.xz
-! publish /.../public/<you>/api/nitpicker_gfx/2018-01-05.tar.xz
-! publish /.../public/<you>/api/nitpicker_session/2018-01-05.tar.xz
-! publish /.../public/<you>/api/os/2018-02-13.tar.xz
-! publish /.../public/<you>/api/report_session/2018-01-05.tar.xz
-! publish /.../public/<you>/api/scout_gfx/2018-01-05.tar.xz
-! publish /.../public/<you>/bin/x86_64/decorator/2018-02-26.tar.xz
-! publish /.../public/<you>/bin/x86_64/floating_window_layouter/2018-02-26.tar.xz
-! publish /.../public/<you>/bin/x86_64/report_rom/2018-02-26.tar.xz
-! publish /.../public/<you>/bin/x86_64/wm/2018-02-26.tar.xz
-! publish /.../public/<you>/pkg/wm/2018-02-26.tar.xz
-! publish /.../public/<you>/raw/wm/2018-02-14.tar.xz
-! publish /.../public/<you>/src/decorator/2018-02-26.tar.xz
-! publish /.../public/<you>/src/floating_window_layouter/2018-02-26.tar.xz
-! publish /.../public/<you>/src/report_rom/2018-02-26.tar.xz
-! publish /.../public/<you>/src/wm/2018-02-26.tar.xz
+! publish /.../public/<you>/api/framebuffer_session/2020-06-28.tar.xz
+! publish /.../public/<you>/api/gems/2022-02-14.tar.xz
+! publish /.../public/<you>/api/gui_session/2020-06-28.tar.xz
+! publish /.../public/<you>/api/input_session/2022-02-14.tar.xz
+! publish /.../public/<you>/api/os/2022-04-12.tar.xz
+! publish /.../public/<you>/api/report_session/2020-03-25.tar.xz
+! publish /.../public/<you>/api/sandbox/2021-06-24.tar.xz
+! publish /.../public/<you>/api/timer_session/2021-04-19.tar.xz
+! publish /.../public/<you>/bin/x86_64/init/2022-04-12.tar.xz
+! publish /.../public/<you>/bin/x86_64/report_rom/2022-04-12.tar.xz
+! publish /.../public/<you>/bin/x86_64/wm/2022-04-12.tar.xz
+! publish /.../public/<you>/pkg/wm/2022-04-12.tar.xz
+! publish /.../public/<you>/raw/wm/2020-06-21.tar.xz
+! publish /.../public/<you>/src/init/2022-04-12.tar.xz
+! publish /.../public/<you>/src/report_rom/2022-04-12.tar.xz
+! publish /.../public/<you>/src/wm/2022-04-12.tar.xz
+
 
 According to the output, the tool populates a directory called _public/_
 at the root of the Genode source tree with the to-be-published archives.
