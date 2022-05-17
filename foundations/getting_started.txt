@@ -407,8 +407,8 @@ microhypervisor, the following preparatory steps are needed:
 # Since NOVA supports the x86_64 architecture of our build directory, we
   can keep using the existing build directory that we just used for Linux.
   However, apart from enabling the parallelization of the build process as
-  mentioned in Section [Using the build system], we need to incorporate
-  the _libports_ and _dde_linux_ source-code repositories into the build
+  mentioned in Section [Using the build system], we need to incorporate the
+  _libports_, _dde_linux_, and _pc_ source-code repositories into the build
   process by uncommenting the corresponding lines in the configuration.
   Otherwise the build system would fail to build the VESA and USB HID drivers,
   which reside within _libports/_ and _dde_linux/_, respectively.
