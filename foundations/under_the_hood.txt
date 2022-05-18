@@ -955,6 +955,21 @@ Bootstrapping of base-hw
 ; * security-sensitive initialization code is not available to kernel/core
 ;   afterwards
 
+Early bootstrap
+---------------
+
+After the boot loader has loaded the kernel image into memory, it calls the
+kernel's entry point. At this stage, the MMU is still switched off and no CPU
+other than the primary boot CPU are initialized.
+The first job of the loaded kernel is the initialization of all CPUs and their
+transition from the use of physical memory to virtual memory. This one-time
+code path is called _bootstrap_. The corresponding code is located at
+_src/bootstrap/_.
+Besides enabling the MMU, this code performs system-global static hardware
+configurations such as setting up an ARM TrustZone policy. Once completed,
+bootstrap ELF-loads the actual core/kernel executable, which is designated to
+run entirely in virtual memory. After this stage is complete, bootstrap is no
+longer part of the picture.
 
 Startup of the base-hw kernel
 -----------------------------
@@ -966,10 +981,10 @@ a kernel running in privileged mode. Instead of directly following the startup
 procedure described in Section [Startup code], base-hw uses custom startup code
 that initializes the kernel part of core first. For example, the startup code
 for the ARM architecture is located at _src/core/spec/arm/crt0.s_.
-It calls the kernel initialization code in _src/core/kernel/init.cc_.
+It calls the kernel initialization code in _src/core/kernel/main.cc_.
 Core's regular C++ startup code (the '_main' function) is executed by the first
 thread created by the kernel (see the thread setup in the
-'Core_thread::Core_thread()' constructor).
+'Core_main_thread::Core_main_thread()' constructor).
 
 
 Kernel entry and exit
@@ -990,26 +1005,27 @@ at _src/core/spec/arm/exception_vector.s_.
 Interrupt handling and preemptive multi-threading
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to respond to interrupts, base-hw has to contain a driver for
-the interrupt controller. The interrupt-controller driver for
-a particular hardware platform can be found at _src/core/spec/<spec>/pic.h_
-and the corresponding _src/core/spec/<spec>/pic.cc_. Whereby _<spec>_
-refers to a particular platform (e.g., imx53) or an IP block that is
-is used across different platforms (e.g., arm_gic for ARM's generic
-interrupt controller).
-Each of the drivers implement the same interface. When building core,
-the build system uses the build-spec mechanism explained in
-Section [Build system] to incorporate the single driver needed for the
-targeted SoC.
+In order to respond to interrupts, base-hw has to contain a driver for the
+interrupt controller. The interrupt-controller driver is named 'Board::Pic'.
+The implementation depends on the used board. For each board supported by the
+base-hw kernel, there exists a _board.h_ file that ties together all
+board-specific definitions. For example, the file _core/board/pbxa9/board.h_
+defines the properties of the PBX-A9 platform. In this case, the header maps
+the 'Board::Pic' type to 'Hw::Gicv2' as defined in _hw/spec/arm/gicv2.h_. Each
+of the 'Board::Pic' drivers implement the same interface.
 
 To support preemptive multi-threading, base-hw requires a hardware timer.
 The timer is programmed with the time slice length of the currently
 executed thread. Once the programmed timeout elapses, the timer device
 generates an interrupt that is handled by the kernel. Similarly to
-interrupt controllers, there exist a variety of different timer devices
-for different CPUs. Therefore, base-hw contains different timer drivers.
-The timer drivers are located at _src/core/spec/<spec>/timer_driver.h_
-where _<spec>_ refers to the timer variant.
+interrupt controllers, there exist a variety of different timer devices for
+different hardware platforms. Therefore, base-hw features a variety of timer
+drivers. The selection of the timer driver for a given board follows the same
+pattern as the definition of the 'Board::Pic' type. The board-specific
+_board.h_ file defines a 'Board::Timer' type that is mapped to one of the
+available drivers. For example, the _pbxa9/board.h_ file includes
+_spec/arm/cortex_a9_private_timer.h_, which contains the definition of
+'Board::Timer'.
 
 The in-kernel handler of the timer interrupt invokes the thread scheduler
 (_src/core/kernel/cpu_scheduler.h_).
@@ -1119,7 +1135,7 @@ an interplay of core and the kernel.
 The core-private kernel interface consists of the following operations:
 
 * The creation and destruction of protection domains
-  (_new_pd_, _update_pd_, _delete_pd_), invoked by the PD service
+  (_new_pd_, _delete_pd_), invoked by the PD service
 * The creation, manipulation, and destruction of threads
   (_new_thread_, _start_thread_, _resume_thread_, _thread_quota_,
   _pause_thread_, _delete_thread_, _thread_pager, and _cancel_thread_blocking_),
