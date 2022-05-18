@@ -522,6 +522,10 @@ each message is tagged with the label of the corresponding client.
 ;; Genode::Trace::Session_client
 ;; Genode::Trace::Session
 ;; Genode::Trace::Connection
+;; Genode::Trace::Simple_buffer
+;; Genode::Trace::Partitioned_buffer
+
+
 
 
 OS-level session interfaces
@@ -987,6 +991,7 @@ the use of out parameters to carry return values are error prone.
 Genode's 'Attempt' utility provides a safe alternative in the spirit of option
 types.
 
+; Genode::Attempt
 [raw spec/classes/genode/attempt/description]
 
 Its name reflects is designated use as a carrier for return values. To
@@ -1494,6 +1499,7 @@ as explained in Section [Diagnostic output].
 There exist a number of printable helper classes that cover typical
 use cases for producing formatted text output.
 
+; Genode::Byte_range_ptr
 ; Genode::Number_of_bytes
 ; Genode::Cstring
 
@@ -2555,6 +2561,7 @@ verbatim description of how the device is used. For example:
 
 
 ;;;; Out of scope
+; Genode::Array
 ; Genode::Texture_base
 ; Genode::Path_base
 ; Genode::Surface_base
@@ -2593,6 +2600,7 @@ verbatim description of how the device is used. For example:
 ; Genode::Dynamic_rom_session
 ; Genode::Timeout_scheduler
 ; Genode::Static_parent_services
+; Genode::Try_parent_service
 ; Genode::Session_requester
 ; Genode::Time_source
 ; Genode::Single_session_service
@@ -2622,10 +2630,23 @@ verbatim description of how the device is used. For example:
 ; Genode::Sandbox::Local_service_base
 ; Genode::Sandbox::Local_service
 ; Genode::Directory
+; Genode::New_file
 ; Genode::Root_directory
 ; Genode::File
 ; Genode::Readonly_file
 ; Genode::File_content
 ; Genode::Watcher
 ; Genode::Watch_handler
-
+; Pin::Driver
+; Pin::Assignment
+; Pin::Root
+; Pin::Irq_session_component
+; Platform::Device_interface
+; Platform::Device::Mmio
+; Platform::Device::Irq
+; Platform::Device::Io_port_range
+; Platform::Dma_buffer
+; Genode::Truncated
+; Genode::Repeated
+; Genode::Left_aligned
+; Genode::Right_aligned
