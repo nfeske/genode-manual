@@ -4,7 +4,7 @@
 
 	\node (leftanchor) {};
 	\path (leftanchor) coordinate (anchor);
-	\path (anchor) node[dirnode] (basehwdir) {base-hw/};
+	\path (anchor) node[dirnode] (imxdir) {imx/};
 	\dirstructure{imx8q\_evk}
 
 	\path (leftanchor)+(50ex,0) coordinate (anchor);

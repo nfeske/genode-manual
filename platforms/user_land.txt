@@ -206,10 +206,9 @@ By looking at the numbers, we unfortunately still don't know which register
 ranges refers to the distributor and the CPU local controller. We could
 consult ARM's official documentation.
 
-Alternatively, we find the answer in the Allwinner A64 user manual [1] on page
-74. It states the following:
-
-[1] [https://linux-sunxi.org/images/b/b4/Allwinner_A64_User_Manual_V1.1.pdf]
+Alternatively, we find the answer in the
+[https://linux-sunxi.org/images/b/b4/Allwinner_A64_User_Manual_V1.1.pdf - Allwinner A64 user manual]
+on page 74. It states the following:
 
 ! GIC_DIST: 0x01C80000 + 0x1000
 ! GIC_CPUIF:0x01C80000 + 0x2000

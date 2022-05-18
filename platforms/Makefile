@@ -1,4 +1,4 @@
-GENODE_VERSION = 21.05
+GENODE_VERSION = 22.05
 PDF = genode-platforms-$(subst .,-,$(GENODE_VERSION)).pdf
 
 all: $(PDF)
@@ -21,11 +21,16 @@ serial
 kernel_skeleton
 debugging
 user_land
+testing
 device_access
 platform_driver
 linux
 dts_pruning
-dde_linux
+networking
+display
+touchscreen
+trimming_drivers
+telephony
 endef
 
 default: $(PDF)

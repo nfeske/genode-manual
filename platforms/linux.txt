@@ -20,8 +20,8 @@ Motivation
 
 In the past, we sometimes directly jumped into the driver-porting work guided
 by mere intuition, transplanting chewable bites of Linux kernel code into
-Genode components, and reanimating the code to life. In some cases like
-our first port [1]
+Genode components, and reanimating the code to life. In some cases like our
+[https://genode.org/documentation/release-notes/10.08#Gallium3D_and_Intel_s_Graphics_Execution_Manager - our first port]
 of the Intel GPU driver, we were lucky with bringing up a driver on Genode
 without even testing the driver code on Linux beforehand. However, this
 remained a rare exception. In most cases, especially when a predictable
@@ -29,8 +29,6 @@ success and development schedule is desired, we had to engage with the
 building and integration of custom Linux systems as part of the driver-porting
 work. Even though jumping thought the hoops of Linux is additional work, it
 gives us three invaluable benefits.
-
-[1] [https://genode.org/documentation/release-notes/10.08#Gallium3D_and_Intel_s_Graphics_Execution_Manager]
 
 First, it gives us *reassurance* how the driver works on the reference
 hardware. We can set our expectations regarding the feature set, stability,
@@ -85,13 +83,12 @@ Booting Linux differs from booting a single binary as we did so far. For
 grokking those differences, it is nice to rely on known-to-work ingredients.
 
 Remembering from Section [Getting acquainted with the target platform]
-how well the image of the Armbian [1] distribution worked on the board,
+how well the image of the [https://www.armbian.com - Armbian]
+distribution worked on the board,
 we know where to look. There are various ways for accessing the content
 of the image. When using Gnome, you may be able to mount the image by clicking
 on it. In my case, I loop-mounted the image manually. First, looking in the
 partition table to find out where the file system starts.
-
-[1] [https://www.armbian.com]
 
 ! $ fdisk -l Armbian_21.05....img
 ! Disk Armbian_21.05....img: 1,7 GiB, 1782579200 bytes, 3481600 sectors
@@ -239,14 +236,12 @@ With the clarity gained about the network boot process of Linux via U-Boot,
 we can now stepwise replace each of the three ingredients.
 
 First, we replace Armbian's initrd with a custom-built RAM disk based on
-Busybox [1]. This will give us a functional,
+[https://www.busybox.net/ - Busybox]. This will give us a functional,
 reproducible, and customizable userland to play with while being ten times
 smaller than the initrd we scraped off the Armbian image. Since we ultimately
 strive for a minimalistic Linux kernel with all batteries for our board
 included and dynamic modules switched off, we don't need the initrd as a
 carrier of kernel modules after all.
-
-[1] [https://www.busybox.net/]
 
 Presuming that a regular ARM tool chain and the cpio utilities are installed
 (e.g., the Debian packages _gcc-aarch64-linux-gnu_ and _cpio_), the following
@@ -339,20 +334,14 @@ the vendor's drivers - we have to take the SoC's vendor kernel as our
 reference.
 
 In the case of the Allwinner A64 SoC, the
-vendor kernel [1] is based on Linux as old
-as version 3.10. However, thanks to the tremendous efforts of the Sunxi [2]
-open-source community that works
+[https://linux-sunxi.org/Pine64#BSP - vendor kernel] is based on Linux as old
+as version 3.10. However, thanks to the tremendous efforts of the
+[https://linux-sunxi.org - Sunxi] open-source community that works
 independently from the SoC vendor, the A64 is fully supported by the upstream
 Linux kernel by now.
-The instructions [3] for building
+The [https://linux-sunxi.org/Pine64#Linux_Kernel - instructions] for building
 a kernel suitable for the A64 SoC come down to compiling the Linux kernel for
 the AARCH64 architecture using its default configuration.
-
-[1] [https://linux-sunxi.org/Pine64#BSP]
-
-[2] [https://linux-sunxi.org]
-
-[3] [https://linux-sunxi.org/Pine64#Linux_Kernel]
 
 The bottom line is that we can pick a recent kernel from
 [https://kernel.org] and go with it.
@@ -469,7 +458,8 @@ look at the device tree for our board.
 Device-tree treasure trove
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The so-called device trees [1]
+The so-called
+[https://github.com/devicetree-org/devicetree-specification/releases/download/v0.3/devicetree-specification-v0.3.pdf - device trees]
 are semi-formal descriptions of a hardware platforms, which may consist of
 several peripherals, buses, interrupt controllers, clocks, and so on.
 In the context of Linux, it serves two purposes. First, it fills the gap of
@@ -480,8 +470,6 @@ Second, the device tree parametrizes the individual drivers. This allows
 drivers to stay clear from vendor-specific parameters hard-coded in the
 source code. By taking parameters from the device tree, drivers can more
 easily re-targeted to other SoC revisions.
-
-[1] [https://github.com/devicetree-org/devicetree-specification/]
 
 For our aspiration to port drivers to Genode, device trees are a blessing.
 Since they are curated by the SoC vendors, they contain a form of hardware
@@ -828,12 +816,11 @@ The _src/linux/_ subdirectory contains the source tree of the kernel.
 
 Finally, to conserve the information about configuring and building a Linux
 kernel tailored to our porting work, I added a Genode build target at
-_allwinner/src/a64_linux/target.mk_ [1],
+[https://github.com/genodelabs/genode-allwinner/blob/master/src/a64_linux/target.mk - allwinner/src/a64_linux/target.mk] /
+[https://github.com/genodelabs/genode-allwinner/blob/master/src/a64_linux/target.inc - target.inc],
 which applies the kernel configuration and builds the kernel image.
 Thanks to this _target.mk_ file, the custom Linux kernel can be built
 from within Genode's build directory via:
-
-[1] [https://github.com/nfeske/genode-allwinner/blob/master/src/a64_linux/target.mk]
 
 ! build/arm_v8a$ make a64_linux
 

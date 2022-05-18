@@ -11,9 +11,9 @@ Linux source tree under _arch/<arch>/boot/dts/_ provide both
 a structural description of an SoC and parametrization data for individual
 device drivers. It goes without saying that this information is extremely
 valuable. On the other hand, the encoding of the information in the form
-of so-called _Devicetree Specification_ [1] files is not ideal for us.
-
-[1] [https://github.com/devicetree-org/devicetree-specification/]
+of so-called _Devicetree Specification_
+([https://github.com/devicetree-org/devicetree-specification/releases/download/v0.3/devicetree-specification-v0.3.pdf - PDF])
+files is not ideal for us.
 
 The authors of DTS files anticipate a monolithic kernel where a global view of
 the system is natural. In contrast, Genode fosters a strict separation of
@@ -29,10 +29,8 @@ _flat_pine64lts.dts_ for our board via the C preprocessor as
 described in Section [Device-tree treasure trove].
 
 The _tool/dts/extract_ utility allows us to generate a dot graph from the
-source, which can be processed by the Graphviz [1] dot
+source, which can be processed by the [https://graphviz.org/ - Graphviz] dot
 tool to generate a PNG file.
-
-[1] [https://graphviz.org/]
 
 ! tool/dts$ ./extract --dot-graph flat_pine64lts.dts > pine64.dot
 ! tool/dts$ dot -Tpng pine64.dot > pine64.png

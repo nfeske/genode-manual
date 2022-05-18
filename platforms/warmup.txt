@@ -55,7 +55,10 @@ of device drivers can never be water-tight.
 Getting a first impression
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We ordered a Pine64-LTS board [1], a PinePhone [2], and a serial cable [3]
+We ordered a
+[https://pine64.com/product-category/pinephone/ - Pine64-LTS] board, a
+[https://pine64.com/product-category/pinephone/ - PinePhone], and a
+[https://pine64.com/product/pinebook-pinephone-pinetab-serial-console/ - serial cable]
 for the PinePhone directly from the online store. For some kind
 of safety reason, the phone had to be ordered separately. In hindsight, we
 better had ordered a power supply for the Pine64-LTS board as well. We skipped
@@ -64,30 +67,23 @@ However, it turned out that kilograms of power supplies with 5mm connectors
 are of little use when the board features a less mainstream 3.5mm connector.
 Such details matter sometimes.
 
-[1] [https://pine64.com/product-category/pinephone/ - Pine64-LTS]
-
-[2] [https://pine64.com/product-category/pinephone/ - PinePhone]
-
-[3] [https://pine64.com/product/pinebook-pinephone-pinetab-serial-console/]
-
 For getting our hands dirty with technical work, we will have to leave the
 PinePhone alone for a while and turn our attention to the *Pine-A64-LTS* board.
-Pine64 wiki [4] provides the perfect staring point.
-
-[4] [https://wiki.pine64.org/index.php/PINE_A64-LTS/SOPine_Main_Page]
+The [https://wiki.pine64.org/index.php/PINE_A64-LTS/SOPine_Main_Page - Pine64 wiki]
+provides the perfect starting point.
 
 
 Booting an officially supported GNU/Linux image
 -----------------------------------------------
 
-The wiki lists numerous ready-to-use Linux distributions.
+The wiki lists numerous ready-to-use Linux
+[https://wiki.pine64.org/wiki/SOPINE_Software_Release - distributions].
 I went for [https://www.armbian.com - Armbian]. Just a few minutes later,
-after downloading the disk image [1], writing the image to an
+after downloading the disk image from
+[https://dl.armbian.com/pine64so/Buster_current], writing the image to an
 SD card, connecting an HDMI display and a USB keyboard, and booting the
 board with the SD card inserted, I was greeted with Armbian login, allowing
 me to login as root user.
-
-[1] [https://dl.armbian.com/pine64so/Buster_current]
 
 At this point, I'm most interested in getting a first overview of the
 hardware. The following information are insightful:
@@ -229,20 +225,15 @@ Textual output over *serial* is the most important prerequisite for that.
 The times when development boards featured 9-pin D-SUB connectors is long
 past. Nowadays, we need to look out for the right pins on one of the board's
 expansion sockets. The board has several of them. So now is a good time
-to get acquainted with the board's schematics.
-
-:Pine-A64-LTS board schematics:
-
-  [https://files.pine64.org/doc/SOPINE-A64/PINE%20A64-TLS-20180130.pdf]
+to get acquainted with the
+[https://files.pine64.org/doc/SOPINE-A64/PINE%20A64-TLS-20180130.pdf - board's schematics].
 
 The schematics hint at several serial devices (UART). E.g.,
 UART1 at the SDIO WIFI + BT pin header. The go-to solution is not obvious.
-Fortunately, a little web search later, we land on a nice wiki page [2]
-describing the UART on Pine64.
+Fortunately, a little web search later, we land on a nice wiki page describing
+the [https://linux-sunxi.org/Pine64#Serial_port_.2F_UART - UART on Pine64].
 In particular, we learn "Better always use UART0 on the EXP connector nearby,
 accessible on pins 7 (TXD), 8 (RXD), 9 (GND)."
-
-[2] [https://linux-sunxi.org/Pine64]
 
 Everyone should have a few TTL-232R-RPi
 cables at hand. If you don't, hurry up and order some.
@@ -251,11 +242,9 @@ All we need is cross-connecting TX to RX, RX to TX, and ground to
 ground.
 
 On Linux-based development machines, we usually use
-picocom as serial terminal program. When
+[https://www.mankier.com/1/picocom - picocom] as serial terminal program. When
 connecting the USB cable, the Linux kernel's 'dmesg' output tells us about the
 new device _/dev/ttyUSB0_, which we can readily access with picocom.
-
-[4] [https://www.mankier.com/1/picocom]
 
 ! picocom --baud 115200 /dev/ttyUSB0
 
@@ -287,13 +276,11 @@ level where JTAG becomes the tool of choice.
 The U-Boot boot loader
 ~~~~~~~~~~~~~~~~~~~~~~
 
-U-Boot [1] is widely regarded as _the_
+[https://www.denx.de/wiki/U-Boot - U-Boot] is widely regarded as _the_
 canonical boot loader for ARM platforms, and we Genode developers agree.
 The primary reason for our high opinion is U-Boot's ability to fetch boot
 images over the network from a TFTP server, which is fundamental to our
 work flows.
-
-[1] [https://www.denx.de/wiki/U-Boot]
 
 The secondary reason is that U-Boot brings the hardware into a state that is
 convenient for the booted operating system. For example, since U-Boot prints
@@ -322,9 +309,7 @@ fosters our understanding and our full control over the boot process. The
 ability to control the boot loader is empowering and can serve as an
 experimentation ground.
 The steps for building U-Boot manually for Allwinner-based devices are
-described in the excellent documentation [1].
-
-[1] [https://linux-sunxi.org/Mainline_U-Boot]
+described in the [https://linux-sunxi.org/Mainline_U-Boot - excellent documentation].
 
 For reference, here are the steps I took.
 
@@ -357,7 +342,8 @@ For reference, here are the steps I took.
 
   The ARM Trusted Firmware is the effort to unify low-level firmware
   interfaces - think of the bring-up secondary CPU cores - across SoC vendors.
-  A dedicated article [1] by Stefan Kalkowski goes into more detail.
+  A recent [http://genodians.org/skalk/2020-02-18-armv8-smp - article]
+  by Stefan Kalkowski goes into more detail.
 
   The building steps described at linux-sunxi.org are easy to follow.
   For us, the build output is quite instructive for guiding our attention.
@@ -387,8 +373,6 @@ For reference, here are the steps I took.
   For me, it is great to see the option of using a GPT partitioning
   scheme, which we already use for Sculpt OS on PC hardware.
   This will hopefully become handy at a later stage.
-
-[1] [https://genodians.org/skalk/2020-02-18-armv8-smp]
 
 
 A few useful U-Boot commands
@@ -445,10 +429,10 @@ whereas U-Boot is apparently configured to store its environment via the
 second MMC controller. Fortunately, the latter setting can be configured
 in U-Boot's build configuration.
 
-Inside the _u-boot/ .config_, we find a variable
-CONFIG_ENV_FAT_DEVICE_AND_PART.
-In the interactive 'menuconfig', the corresponding setting is located at the
-_Environment_ sub menu:
+Inside the _u-boot/ .config_, we find a configuration variable
+called CONFIG_ENV_FAT_DEVICE_AND_PART. In the interactive 'menuconfig', the
+corresponding setting is located at
+the _Environment_ sub menu:
 
 ! (1:auto) Device and partition for where to store the environemt in FAT
 

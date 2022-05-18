@@ -1,0 +1,1138 @@
+Networking
+==========
+
+Given the insights gained by driving a device using a tailored bare-bones
+Linux system as discussed in the previous sections, we are ready to take the
+next step, namely transplanting Linux driver code into self-sufficient Genode
+components.
+This section walks through the challenge of porting a network driver from
+the Linux kernel to Genode. It thereby exemplifies Genode's device-driver
+environment approach for the reuse of unmodified Linux kernel code, touches
+crucial technicalities of the Linux kernel, and provides practical clues.
+
+For reference, the result of the work described herein can be found at
+the _genode-allwinner_ repository.
+
+:Git repository of the Allwinner board support:
+
+  [https://github.com/genodelabs/genode-allwinner]
+
+
+Overview
+--------
+
+The activity of porting a Linux driver is too elaborate for one swift step.
+To get a sense of measurable progress, it is useful and motivating to define
+intermediate goals that can be wrapped up one by one.
+
+# Creating a *minimal Linux kernel configuration* that accommodates barely
+  more than the single driver we are interested in, similar to what
+  we did in the Section [Taking Linux out for a walk].
+  While pursuing this goal, one can solely keep the focus on the Linux kernel
+  configuration.
+
+# Getting a tangible feeling for the targeted device and the interplay
+  with other devices. Looking at the *pruned device tree* as described
+  in Section [Pruning device trees] is a
+  good aid. Look at the cobweb of device nodes and try to make a mental
+  picture out of it. E.g., in the case of the network driver, we have to
+  consider the ethernet PHY, the actual network controller (emac), and spot
+  the dependency from certain clocks and voltages as potential risks.
+  To double-check the findings, it is recommended to test-drive Linux with the
+  pruned device tree to see if it is still able to operate the device.
+
+# Creating the initial source skeleton of the driver component and
+  successfully compiling and linking Linux code into
+  a *first executable ELF binary*.
+  During this step, one can focus solely on the build system, symbols, and
+  compilation units. One doesn't have to understand the code in order to
+  link it. This step is described in Sections
+  [Directory structure of the driver component] and
+  [Identifying Linux source codes of interest].
+
+# Creation of a *test scenario* (run script) and a convenient work flow to
+  execute and quickly update the binary. At this step, which is covered
+  by Section [Executable testbed], we are merely concerned with the
+  relationships between components without looking inside them. For the work
+  flow, it is satisfying to string together a few convenient shell commands
+  to ease ones life.
+
+# Complete the execution of *low-level Linux initcalls* until the first
+  device resources are requested. Here, one has to get close to the Linux code
+  but can ignore any hardware-specific concerns.
+
+# Moving the work flow over to the *real hardware* leveraging the capabilities
+  of Genode's run tool, and possibly tweaking it using custom plugins. The
+  focus is on the use of shell commands and glueing them together using
+  Tcl script snippets, possibly even
+  [https://genodians.org/chelmuth/2019-03-13-powerplug - automating the powering]
+  of the target hardware to make one's life better.
+
+# Successively *completing all Linux initcalls* including those of the
+  driver code. One has to iteratively boot the target hardware, look at the
+  log output, compare the log with the Linux kernel log obtained
+  beforehand. Whenever both logs diverge in non-plausible ways, investigate
+  and instrument the code of both native Linux and Genode. In other words,
+  taking a deep dive into the Linux kernel code, adding additional Linux
+  subsystems, curating dummy functions, supplementing custom emulation code,
+  and extending the platform-driver's configuration whenever encountering
+  the driver's request for additional hardware resources.
+  This step is addressed by Sections [Linux initcalls] and
+  [The lx_emul building blocks].
+
+# Once all initcalls are executed, *provoke a small operation* of the driver.
+  For example, exercising the link detection of the network driver by
+  plugging/unplugging the cable, comparing the resulting log output with
+  native Linux. For the first time, the driver's actual functionality and
+  its interplay with the physical world comes into focus.
+  During the iterative debugging and learning, the tips and tricks given by
+  Sections [Linux caveats] and [Debugging and development hints]
+  may be of help.
+
+# Get the *driver's core functionality* in the form of a self-sufficient
+  program to work. In the network driver's case, this would be the
+  determination of the device's MAC address as well as the transmission
+  and reception of network packets. At this stage, the driver remains
+  co-located with the test code in one program. In other words, the
+  test program uses the Linux kernel's internal APIs directly. For the
+  network driver, one can conveniently use Linux' builtin DHCP support
+  as test program as described in below in Section
+  [Using Linux' built-in DHCP support as networking test].
+
+# Adding the *Genode service interface* to the driver, e.g., by using
+  the building blocks of the 'genode_c_api'. To test this integration,
+  the test scenario must be enhanced by a separate component that
+  interacts with the driver component using a Genode session interface.
+  Knowing that the Linux code and the device is operational,
+  one can focus solely on the Genode integration at this stage.
+  This step is covered in more detail in Section
+  [Connecting the driver with a Genode session interface].
+
+# Once the driver works reliably in a minimalistic setting, it is time
+  to expose it to regular networking scenarios by *packaging* it into
+  a form that is digestible by the arsenal of existing run scripts.
+  The packaging step is covered in Section [Packaging the driver].
+
+# With non-trivial work loads at hand, one can take a critical look at
+  the driver's behavior, in particular at its performance,
+  and *optimize* it if desired.
+
+# Finally, one can wrap up the work by cleaning up the code, potentially
+  consolidating parts shared with other drivers, reviewing the result, and
+  documenting the component.
+
+When broken up into these steps - each with a different focus and a tangible
+intermediate result - the work can be conducted in manageable pieces and can
+even passed-on between developers.
+
+
+Directory structure of the driver component
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Being a network driver, it naturally should reside somewhere under
+_src/drivers/nic/_. To avoid possible path ambiguities with network drivers
+hosted in other Genode source repositories, placing the driver inside a
+uniquely named subdirectory is a good practice. In our case - with the
+driver being referred to as "EMAC" - we settle on the directory
+_src/drivers/nic/emac/_.
+This directory will host the following files, for which we can initially
+create skeleton versions based on one of the already existing drivers. E.g.,
+one may take the
+[https://github.com/genodelabs/genode-allwinner/tree/master/src/drivers/nic/emac - emac driver]
+as reference when porting a new network driver.
+
+:target.mk: The build-description file of the driver
+
+:main.cc: The main program, which initializes the Linux emulation
+  ('Lx_kit::initialize') along with the Genode service frontend
+  ('genode_uplink_init'), hosts the component's central I/O signal handler,
+  defines the interplay between the execution of Linux and Genode code
+  ('lx_emul_start_kernel' and 'Lx_kit::env().scheduler'), and supplies
+  device-tree-binary information to the Linux code ('_dtb'). It is recommended
+  to take a _main.cc_ of an existing driver as starting point.
+
+:generated_dummies.c: Dummy implementations of symbols normally provided
+  by the Linux kernel. As the name suggests, the content won't be manually
+  maintained but generated. So we best start with an empty file.
+
+:dummies.c: Whenever a generated dummy will be called, the execution will
+  stop with a message along with a backtrace, which will prompt us to
+  closely inspect the situation and decide whether the call of the dummy
+  can be ignored by returning an appropriate return code or must be replaced
+  by an actual implementation. In the former case, the dummy implementation
+  must be moved from _generated_dummies.c_ to the manually curated
+  _dummies.c_ file.
+
+:lx_emul.c: This file contains the implementation of symbols that require more
+  thought than merely being a dummy.
+
+:lx_emul.h: This header is included by both _dummies.c_ and
+  _generated_dummies.c_. It can thereby be used as a manually maintained
+  supplement to the automatically generated _generated_dummies.c_.
+
+:lx_user.c: This file contains the implementation of a representative of a
+  Linux user task. It provides the symbol 'lx_user_init' that is called
+  once the Linux kernel initialization is completed. As a skeleton, an
+  empty implementation suffices.
+
+  ! #include <lx_user/init.h>
+  !
+  ! void lx_user_init(void)
+  ! {
+  ! }
+
+  At a later stage, _lx_user.c_ will be our hook for connecting the Linux
+  kernel world with a Genode service interface.
+
+:source.list: This file contains the selection of Linux source codes to be
+  included in our driver. Each line refers to file specified relative to the
+  root of the Linux kernel tree. Most of the development work revolves around
+  the curation of this list. As a starting point, it is useful to take an
+  existing source list as starting point, in particular the selection of
+  _lib/_, _kernel/_, and _arch/_ files.
+
+:src/include/lx_emul/initcall_order.h: In contrast to the files above, which
+  reside local to the driver's directory, the _initcall_order.h_ header is
+  used across the Linux drivers. It equips the Linux emulation with the
+  information about the correct initcall sequence. Later, we will see how
+  to generate this file automatically. Until then, the following empty
+  skeleton will do.
+
+  ! static const char * lx_emul_initcall_order[] = {
+  !   "END_OF_INITCALL_ORDER_ARRAY_DUMMY_ENTRY"
+  !};
+
+
+Build magic
+-----------
+
+When reviewing the _target.mk_ file of the emac driver, it is obvious that
+there must be more to the build rules than those few dull lines. The magic
+happens in the lib-import file
+[https://github.com/genodelabs/genode-allwinner/blob/master/lib/import/import-a64_lx_emul.mk - import-a64_lx_emul.mk].
+This file is supplemented to the build process because the _target.mk_
+specifies _a64_lx_emul_ as a library dependency.
+
+! LIBS = base a64_lx_emul
+
+The content of _import-a64_lx_emul.mk_ is worth studying.
+It lists several building blocks of the _lx_kit_ and _lx_emul_ libraries
+that are used across all Linux drivers ported for the A64 SoC,
+it defines the compiler flags used for building Linux C code, and
+it obtains the list of C source files from the driver's _sources.list_ file.
+Furthermore, it evaluates the 'BOARDS' and 'DTS_EXTRACT' variables to
+generate driver-specific device-tree binary files. Given this mechanism,
+the _target.mk_ of a driver solely needs to declare the supported 'BOARDS'
+and the driver-specific selection of device-tree nodes to produce a
+ready-to-use dtb file, e.g.,
+! BOARDS := pine_a64lts
+! DTS_EXTRACT(pine_a64lts) := --select emac
+
+Finally, the import file contains a number of tweaks and quirks such as
+disabling certain warnings for individual compilation units or generating
+build artifacts that are implicitly generated by the Linux build system
+(crc32table.h).
+
+
+Generated Linux headers
+-----------------------
+
+The Linux build system generates a number of header files when preparing a
+build directory. When compiling Linux code outside the Linux build system - as
+we do - those headers are badly missed. This is where the
+[https://github.com/genodelabs/genode-allwinner/blob/master/lib/mk/spec/arm_v8/a64_linux_generated.mk - a64_linux_generated]
+library comes in. This pseudo library has the sole purpose of creating a Linux
+build directory with the generated headers we need. It takes the same Linux
+[https://github.com/genodelabs/genode-allwinner/blob/master/src/a64_linux/target.inc - kernel configuration]
+as used for the a64_linux target we discussed earlier in
+Section [Taking Linux out for a Walk].
+
+
+Identifying Linux source codes of interest
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+How to spot the files needed to drive our network device among the many
+thousands of C files found in the Linux source tree?
+
+Taking the device tree as our guide
+-----------------------------------
+
+In the remainder of this article, we refer an all-encompassing device-tree
+source (DTS) file _flat_pine64lts.dts_ for our board. This file can be
+extracted from the Linux kernel source via the C preprocessor as
+described in Section [Device-tree treasure trove].
+
+Given the _flat_pine64lts.dts_ file, let Genode's _dts/extract_ tool
+(Section [Pruning device trees]) guide our attention:
+
+!$ .../tool/dts/extract --select emac flat_pine64_lts.dts \
+!                      | grep "compatible = "
+!  compatible = "fixed-clock";
+!  compatible = "fixed-clock";
+!  compatible = "simple-bus";
+!   compatible = "allwinner,sun50i-a64-system-control";
+!    compatible = "mmio-sram";
+!     compatible = "allwinner,sun50i-a64-sram-c";
+!    compatible = "mmio-sram";
+!     compatible = "allwinner,sun50i-a64-sram-c1",
+!   compatible = "allwinner,sun50i-a64-ccu";
+!   compatible = "allwinner,sun50i-a64-pinctrl";
+!   compatible = "allwinner,sun50i-a64-emac";
+!    compatible = "snps,dwmac-mdio";
+!   compatible = "arm,gic-400";
+!   compatible = "allwinner,sun50i-a64-rtc",
+!   compatible = "allwinner,sun50i-a64-r-intc",
+!   compatible = "allwinner,sun50i-a64-r-ccu";
+!   compatible = "allwinner,sun50i-a64-r-pinctrl";
+!   compatible = "allwinner,sun8i-a23-rsb";
+!  compatible = "x-powers,axp803";
+! compatible = "pine64,sopine-baseboard", "pine64,sopine",
+!  compatible = "ethernet-phy-ieee802.3-c22";
+! compatible = "pine64,pine64-lts", "allwinner,sun50i-r18",
+
+Note that some 'compatible' attributes span multiple lines (the lines
+ending with a comma). So it's probably best to manually inspect the
+device-tree source to get the full information.
+
+Recap that we already used the 'compatible' device-node attributes
+in Section [Enabling network support]
+to connect the dots between the device tree and kernel-configuration options.
+Analogously, we can use those attribute values to look up the associated
+source codes.
+
+Let's take "snps,dwmac-mdio" as an pattern to grep Linux source tree:
+
+! linux$ grep -rl "snps,dwmac-mdio" drivers
+! drivers/net/ethernet/stmicro/stmmac/stmmac_platform.c
+
+By looking at the Makefile where the driver code is located, we can
+immediately spot the set of driver sources declared by looking at the listed
+object files. This information is all we need to expand our _sources.list_
+file.
+
+! ...
+! drivers/net/ethernet/stmicro/stmmac/stmmac_platform.c
+! drivers/net/ethernet/stmicro/stmmac/stmmac_main.c
+! drivers/net/ethernet/stmicro/stmmac/stmmac_ethtool.c
+! drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.c
+! drivers/net/ethernet/stmicro/stmmac/ring_mode.c
+! drivers/net/ethernet/stmicro/stmmac/chain_mode.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac_lib.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac1000_core.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac1000_dma.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac100_core.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac100_dma.c
+! drivers/net/ethernet/stmicro/stmmac/enh_desc.c
+! drivers/net/ethernet/stmicro/stmmac/norm_desc.c
+! drivers/net/ethernet/stmicro/stmmac/mmc_core.c
+! drivers/net/ethernet/stmicro/stmmac/stmmac_hwtstamp.c
+! drivers/net/ethernet/stmicro/stmmac/stmmac_ptp.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac4_descs.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac4_dma.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac4_lib.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac4_core.c
+! drivers/net/ethernet/stmicro/stmmac/dwmac5.c
+! drivers/net/ethernet/stmicro/stmmac/hwif.c
+! drivers/net/ethernet/stmicro/stmmac/stmmac_tc.c
+! drivers/net/ethernet/stmicro/stmmac/dwxgmac2_core.c
+! drivers/net/ethernet/stmicro/stmmac/dwxgmac2_dma.c
+! drivers/net/ethernet/stmicro/stmmac/dwxgmac2_descs.c
+
+
+Taking the Linux build directory as our guide
+---------------------------------------------
+
+Alternatively to taking the device-tree as the starting point, the build
+directory of our bare-bones Linux kernel contains instructive information,
+specifically the object files that went into the kernel.
+
+! build/arm_v8a$ find a64_linux/ -name "*.o"
+
+Remember that we have previously slimmed down the Linux kernel configuration
+as far as we could, keeping only the bare minimum needed for networking. So
+the list of object files found in the Linux build directory serves as a
+reasonably small superset of the compilation units that are of interest to us.
+Any compilation unit not listed cannot be important.
+
+By combining both perspectives, taking the 'compatible' device-nodes
+attributes as cues while using the Linux kernel's object files as plausibility
+check, our mental picture of the driver code and its dependencies becomes more
+and more clear and our _sources.list_ file grows.
+
+
+Build test
+----------
+
+With the _sources.list_ enriched with the list of Linux source codes we are
+interested in, let's have the Genode build system chew a bit on our driver:
+
+! build/arm_v8a$ make drivers/emac
+!  ...
+!  Program drivers/nic/emac/emac_nic_drv
+!    COMPILE  arch/arm64/lib/memchr.o
+!    COMPILE  arch/arm64/lib/memcmp.o
+!    ...
+!    COMPILE  drivers/net/ethernet/stmicro/stmmac/stmmac_main.o
+!    COMPILE  drivers/net/ethernet/stmicro/stmmac/stmmac_platform.o
+!    COMPILE  drivers/net/ethernet/stmicro/stmmac/stmmac_mdio.o
+!    COMPILE  drivers/net/ethernet/stmicro/stmmac/stmmac_ptp.o
+!    COMPILE  drivers/net/ethernet/stmicro/stmmac/stmmac_tc.o
+!    COMPILE  dummies.o
+!    COMPILE  main.o
+!    LINK     emac_nic_drv
+! drivers/net/ethernet/stmicro/stmmac/stmmac_main.o: in function `stmmac_cmdline_opt':
+!                        stmmac_main.c:5379: undefined reference to `strsep'
+! ...
+! ... many more undefined references
+! ...
+
+We see the Linux source code being picked up and compiled! The build system
+backs out not before the linking stage. During linking, however, the many
+inter-dependencies of the driver code from the rest of the Linux kernel become
+visible in the form of "undefined reference" errors.
+
+
+Tying the loose ends to make the linker happy
+---------------------------------------------
+
+In principle, we could inspect and resolve each of those linking errors
+manually. But given the volume of error messages, this would be tedious. In
+this situation, Genode's _dde_linux/create_dummies_ tool comes to the rescue.
+
+Let's remember the location of our driver's _generated_dummies.c_ file in an
+environment variable named 'DUMMY_FILE', which will later be evaluated by the
+_create_dummies_ tool:
+
+!build/arm_v8a$ export DUMMY_FILE=/path/to/src/drivers/emac/generated_dummies.c
+
+With the 'DUMMY_FILE' defined, we can instruct the tool to fill the file with
+a dummy implementation for each of the unresolved references reported by the
+linker:
+
+!build/arm_v8a$ echo > $DUMMY_FILE ;\
+!               ../../tool/dde_linux/create_dummies generate \
+!                                    LINUX_KERNEL_DIR=a64_linux \
+!                                    TARGET=drivers/nic/emac ;\
+!               make drivers/nic/emac
+
+In the command line above, we first wipe any prior content from the file,
+then invoke the create_dummies tool, followed by another build of the driver
+with the new version of generated file.
+The _create_dummies_ tool is described in more detail at a dedicated
+[https://genodians.org/skalk/2021-04-08-dde-linux-experiments-1#Generate_missing_implementations - article].
+
+With the dummies generated, the linking of the executable binary succeeds!
+This won't be the last time of issuing the command. In fact, each time after
+adding or removing any content of the _sources.list_ file, it is best to
+update _generated_dummies.c_ using the command above.
+
+
+Executable testbed
+~~~~~~~~~~~~~~~~~~
+
+With a first executable binary built, it is time to give it a first run.
+At this point, we are not yet concerned about accessing any actual hardware.
+We merely want to obtain the first life sign of the component and see any
+hint of Linux initialization code being executed.
+The following run script named after the driver - in our case
+_a64_emac_drv.run_ is an appropriate name - can serve as our initial test
+scenario.
+
+! build { core init timer drivers/platform drivers/nic/emac }
+!
+! create_boot_directory
+!
+! install_config {
+!   <config>
+!     <parent-provides>
+!       <service name="LOG"/>
+!       <service name="PD"/>
+!       <service name="CPU"/>
+!       <service name="ROM"/>
+!       <service name="IO_MEM"/>
+!       <service name="IRQ"/>
+!     </parent-provides>
+!
+!     <default caps="100"/>
+!
+!     <start name="timer">
+!       <resource name="RAM" quantum="1M"/>
+!       <route> <any-service> <parent/> </any-service> </route>
+!       <provides> <service name="Timer"/> </provides>
+!     </start>
+!
+!     <start name="platform_drv">
+!       <resource name="RAM" quantum="1M"/>
+!       <provides> <service name="Platform"/> </provides>
+!       <route> <any-service> <parent/> </any-service> </route>
+!       <config devices_rom="config">
+!         <policy label="emac_nic_drv -> ">
+!         </policy>
+!       </config>
+!     </start>
+!
+!     <start name="emac_nic_drv">
+!       <resource name="RAM" quantum="1M"/>
+!       <route>
+!         <service name="ROM"> <parent/> </service>
+!         <service name="CPU"> <parent/> </service>
+!         <service name="PD">  <parent/> </service>
+!         <service name="LOG"> <parent/> </service>
+!         <service name="Timer">    <child name="timer"/> </service>
+!         <service name="Platform"> <child name="platform_drv"/> </service>
+!       </route>
+!       <config/>
+!     </start>
+!
+!   </config>
+! }
+!
+! build_boot_image { core ld.lib.so init timer platform_drv
+!                    emac_nic_drv emac-pine_a64lts.dtb }
+!
+! run_genode_until forever
+
+The 'emac_nic_drv' is connected to the 'platform_drv' but no device
+resources are assigned to the corresponding policy yet. In fact, the
+device hardware remains completely untouched, which allows us to
+execute the run script for an arbitrary boards, in particular Qemu.
+The use of Qemu instead of the targeted board at this early stage
+is convenient.
+
+The dtb file 'emac-pine_a64lts.dtb' as integrated into the boot
+image is a side-product of building the emac driver. It is created according
+to the definition of the 'BOARDS' and 'DTS_EXTRACT' variables in the driver's
+target.mk file.
+
+
+Linux initcalls
+~~~~~~~~~~~~~~~
+
+When executing the run script exemplified above, we are greeted with the
+following log output.
+
+! kernel initialized
+! ROM modules:
+!  ROM: [0000000040120000,0000000040120469) config
+!  ROM: [0000000040009000,000000004000a000) core_log
+!  ROM: [0000000040149000,000000004014a094) emac-pine_a64lts.dtb
+!  ROM: [0000000040207000,000000004023cbe8) emac_nic_drv
+!  ROM: [000000004023d000,00000000402841f8) init
+!  ROM: [0000000040159000,0000000040206880) ld.lib.so
+!  ROM: [0000000040121000,0000000040148d30) platform_drv
+!  ROM: [0000000040007000,0000000040008000) platform_info
+!  ROM: [000000004014b000,0000000040158710) timer
+!
+! Genode 21.05-10-g51f02a668d9
+! 2010 MiB RAM and 64533 caps assigned to init
+! [init -> emac_nic_drv] Error: Initcall __initcall_initialize_ptr_randomearly unknown in initcall database!
+! [init -> emac_nic_drv] Error: Initcall __initcall_init_jiffies_clocksource1 unknown in initcall database!
+! [init -> emac_nic_drv] Error: Initcall __initcall_stmmac_init6 unknown in initcall database!
+! [init -> emac_nic_drv] Error: Initcall __initcall_sync_state_resume_initcall7 unknown in initcall database!
+! [init -> emac_nic_drv] Error: Initcall __initcall_devlink_class_init2 unknown in initcall database!
+! [init -> emac_nic_drv] Error: Function kmem_cache_init not implemented yet!
+! [init -> emac_nic_drv] Backtrace follows:
+! [init -> emac_nic_drv] 0x1024034
+! [init -> emac_nic_drv] 0x1016898
+! [init -> emac_nic_drv] 0x1022498
+! [init -> emac_nic_drv] Will sleep forever...
+
+The messages "Error: Initcall ... unknown in initcall database!" tell us that
+the Linux code we incorporated into our component features initcalls that are
+unknown to the 'lx_emul' execution environment. Hence, lx_emul won't know
+the order, in which those calls must be executed. More information about
+the initcall mechanism is available in a
+[https://genodians.org/skalk/2021-04-08-dde-linux-experiments-1#Initcalls - dedicated article].
+
+For us, it is important to know that the initcall order is supplemented to the
+lx_emul library via the header file at _src/include/lx_emul/initcall_order.h_.
+The content of this file depends on the Linux kernel configuration.
+Fortunately, we won't need to maintain this header file by hand. Instead, the
+handy _extract_initcall_order_ tool allows us to generate this file from the
+_System.map_ of a built Linux kernel:
+
+! build/arm_v8a$ ../../tool/dde_linux/extract_initcall_order extract \
+!        LINUX_KERNEL_DIR=a64_linux
+!        HEADER_FILE=/path/to/drivers/src/include/lx_emul/initcall_order.h
+
+Note that the directory specified at 'LINUX_KERNEL_DIR' must contain a built
+Linux kernel, specifically the _System.map_ file.
+
+When re-running the run script with the updated _initcall_order.h_, the
+initcall-related errors should disappear.
+
+
+The lx_emul building blocks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A high-level overview of the anatomy of a DDE-Linux-based driver is provided
+in the release documentation of
+[https://genode.org/documentation/release-notes/21.08#Linux-device-driver_environment_re-imagined - Genode 21.08].
+The lx_emul library provides three kinds of build blocks.
+
+First, it provides
+a custom C interface for low-level mechanisms of the runtime. The
+corresponding functions are prefixed with 'lx_emul_'. The interface is
+provided at _dde_linux/include/lx_emul/_.
+
+Second, it provides alternative implementations of low-level Linux subsystems.
+Those implementations reside at _dde_linux/src/lib/lx_emul/shadow/_.
+For example, _shadow/mm/slub.c_ is an alternative to Linux'
+_mm/slub.c_ that provides the same binary interface but implements it by the
+means of the lx_emul mechanisms.
+
+And third, it provides a few shadow headers at
+_dde_linux/src/include/lx_emul/shadow/_ that strip away or tweak a few
+unpleasant parts of the Linux-internal interfaces. In particular, it redirects
+Linux' original initcall mechanism to the use of 'lx_emul_register_initcall'
+and it hides low-level aspects of the memory model that are incompatible with
+Genode. The latter is concerned with the conversion between virtual addresses,
+'struct page' pointers, and DMA addresses.
+
+
+Iterative crafting of the driver's runtime environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The message "Error: Function ... not implemented yet!" (in the log output
+above) followed by a backtrace is triggered by one of the dummy
+implementations in 'generated_dummies.c'. It tells us that we need to replace
+this particular dummy with either
+
+* A dummy implementation in the manually curated 'dummies.c' with the
+  call to 'lx_emul_trace_and_stop' replaced by a meaningful return value, or
+* An actual implementation of the function in 'lx_emul.c', or
+* Additional Linux source codes incorporated by extending the _sources.list_.
+
+The decision must be taken on a case-by-case basis. To take the decision, it
+is worthwhile to inspect the existing drivers. Drivers of the same kind
+(network, framebuffer) tend to show similar patterns across SoCs.
+
+Our job at this stage is the repeated execution of the run script while
+resolving one unimplemented function in each iteration. Sometimes, this
+process requires a deep dive into parts of the Linux kernel architecture in
+order to asses the potential impact of the called dummy on the correct
+functioning of the driver. Sometimes mere intuition may guide us. In any
+case, the backtrace printed in the log output can be immensely helpful.
+You may remember the *addr2line* utility mentioned in Section
+[Option 2: One step of ground truth at a time].
+It accepts an arbitrary sequence of numbers as standard input when started as
+follows:
+
+!build/arm_v8a$ /usr/local/genode/tool/current/bin/genode-aarch64-addr2line \
+!                                          -e drivers/nic/emac/emac_nic_drv
+
+To process the list of hexadecimal numbers appearing in the log, I use to copy
+the numbers from the terminal using a rectangular selection (by pressing the
+control key while selecting an area with the mouse) and pasting the content
+into the 'addr2line' instance.
+
+
+Moving to the target hardware
+-----------------------------
+
+At one point, we will ultimately reach a point where the driver tries to
+obtain access to device resources.
+
+![init -> emac_nic_drv] Error: memory-mapped I/O resource 0x1c00000
+!                              (size=0x1000) unavailable
+
+It's time to move the development from Qemu to the actual target hardware.
+
+In order to grant the driver access to the requested resource, we first look
+up the requested address in the _flat_pine64lts.dts_ file. In the example
+above, the range belongs to a device called 'syscon'. With the information
+found in the device node, we can enrich the platform driver's configuration
+accordingly.
+
+! <config>
+!   <device name="syscon" type="allwinner,sun50i-a64-system-control">
+!     <io_mem address="0x1c00000" size="0x1000"/>
+!   </device>
+!   <policy label="emac_nic_drv -> " info="yes">
+!     <device name="syscon"/>
+!   </policy>
+! </config>
+
+The change consist of two parts. First, a '<device>' is declared. Note that
+the 'type' corresponds to the 'compatible' attribute of the DTS device node.
+Second, the '<policy>' for the emac_nic_drv is changed to grant access of this
+device to the driver. It is important to set the 'info' attribute to "yes",
+which allows the driver to read the device meta information given in the
+'<device>' node.
+
+Besides memory-mapped I/O registers, device interrupts are the second type of
+hardware resource of interest for device drivers. Sooner or later during the
+driver initialization, we encounter a message like the following.
+
+! [init -> emac_nic_drv] Error: irq 114 unavailable
+
+The driver requests GIC interrupt 114. To find out what's behind this number,
+the _flat_pine64lts.dts_ file is the right place for seeking the ground truth.
+Note that interrupt numbers as found in DTS files correspond to GIC interrupts
+numbers minus 32. So GIC interrupt 114 appears as number 114 - 32 = *82*. A
+search in the DTS file for this number leads us to the matching device.
+
+! emac: ethernet@1c30000 {
+!   ...
+!   reg = <0x01c30000 0x10000>;
+!   ...
+!   interrupts = <0 82 4>;
+!   ...
+! };
+
+This information is all we need to craft a corresponding '<device>' node for
+the platform-driver configuration.
+
+! <device name="emac" type="allwinner,sun50i-a64-emac">
+!   <io_mem address="0x1c30000" size="0x10000"/>;
+!   <irq number="114"/>
+! </device>
+
+
+Linux caveats
+~~~~~~~~~~~~~
+
+In the past, we repeatedly encountered two kinds of trip-wires that one should
+always keep in the back of the mind, namely Linux linker-script magic and
+global variables.
+
+A few kernel mechanisms depend of special support at the linker-script level,
+most notably various flavours of initcall mechanisms, sometimes disguised as
+a global table ('__clk_of_table', '__irqchip_of_table') magically created by
+scattered table entries assigned to a special linker section. In contrast
+to Linux, we cannot rely on linker-level mechanisms if we want to keep using
+Genode's regular linker script. The lx_emul environment takes care of the
+initcall flavors that we encountered so far using the pattern described
+[https://genodians.org/skalk/2021-04-08-dde-linux-experiments-1#Initcalls - here].
+But we know that there exist more categories of initcalls. In the event that a
+certain initialization function is unexpectedly not called, it is worth
+skimming the symbols of 'generated_dummies.o' for variables with 'table' in
+their name. Another example for linker magic is the aliasing between the
+'jiffies' and 'jiffies64' variables. Both variables must refer to the same
+memory location (on little-endian architectures). This concrete issue is
+covered by the _lib/import/import-a64_lx_emul.mk_ file.
+
+The second trip wire is the presence of global variables that are specially
+initialized by compilation units not featured in _sources.list_. In this case,
+the _generated_dummies.c_ creates default-initialized variable instances,
+which can break innocent library functions in subtle ways. For example,
+_lib/hexdump.c_ contains the following global variable:
+
+! const char hex_asc_upper[] = "0123456789ABCDEF";
+! EXPORT_SYMBOL(hex_asc_upper);
+
+This variable is implicitly used by _lib/vsprintf.c_ when printing "%d" format
+strings. If default-initialized, a digit is wrongly rendered as null
+(terminating the string) instead of the corresponding ASCII value, producing
+all kinds of funny effects down the road. The global variable defined in
+_lib/ctypes.c_ is equally important. If default-initialized, 'toupper' and
+'strcasecmp' won't work as expected, breaking the program logic when used as
+condition.
+
+As a rule of thumb, when encountering erratic behavior, one should look out
+for global variables in _generated_dummies.c_ and investigate their purpose.
+
+
+Enabling Linux debug messages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Several parts of the Linux kernel are garnished with debug messages that
+reveal valuable insights of the kernel's behavior beyond the regular log
+messages. The easiest way to obtain those messages for a given compilation
+unit is adding the following line right at the beginning of the source file,
+above the first '#include' directive:
+
+! #define DEBUG
+
+When booting Linux, one has to supply "debug" as kernel-command line argument.
+When running the driver as Genode component, no further precaution is needed.
+
+With respect to debug instrumentation, the following compilation units are
+particularly fruitful:
+
+:drivers/of/fdt.c:
+
+  On ARM platforms, the kernel initialization is driven by the information
+  of the supplied device tree. By enabling 'DEBUG' in this compilation unit,
+  one becomes able to observe the processing of the device nodes found in the
+  device-tree and how they are matched with the available drivers.
+
+:drivers/base/dd.c:
+
+  By enabling 'DEBUG' in this compilation unit, the probing of devices by
+  the various drivers becomes visible. This is particular important for
+  devices that depend on each other. Whenever a driver finds a precondition -
+  such as the presence of another driver - not met, it backs out of the
+  probing via Linux' defer mechanism ('EPROBE_DEFER'). Whenever the deferral
+  of probing diverges between native Linux and the ported driver, one
+  should investigate the root cause of the condition that led (or did not led)
+  to an 'EPROBE_DEFER'.
+
+
+Logging the execution of initcalls
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To unveil the execution sequence of initcalls and for relating messages
+and backtraces printed in the log with the corresponding Linux code, two
+little instrumentations are of great help.
+
+:repos/dde_linux/src/lib/lx_emul/init.cc:
+
+  By adding a message like the following to the 'lx_emul_register_initcall'
+  function, we become able to relate the names of initcall functions with
+  their corresponding addresses.
+
+  ! Genode::log("lx_emul_register_initcall ", name, " call=", (void *)initcall);
+
+  Since 'lx_emul_register_initcall' is called immediately at
+  component construction time using the global ctors mechanism, this
+  instrumentation gives us a complete list of initcalls. The names of those
+  calls can easily be grep'ed in the Linux code to determine a suitable
+  starting points for manual instrumentations.
+
+:src/lib/lx_kit/init.cc:
+
+  By changing the implementation of 'Lx_kit::Initcalls::execute_in_order'
+  to print a log message in addition to 'entry->call()', we can know
+  exactly when each initcall is executed.
+
+  ! log("exec init call ", (void *)entry->call);
+
+  The printed addresses correspond to those obtained in the first
+  instrumentation. So when the kernel initialization gets stuck somewhere,
+  one can look at the sequence of initcalls - and in particular the last
+  initcall executed - that led to the situation.
+
+
+Obtaining backtraces of blocked Linux tasks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Linux kernel code is not executed in a straight linear fashion but in the
+form of many kernel threads that interact with each other using a variety
+of mechanisms such as work queues. The lx_emul runtime implements a cooperative
+task-execution model that folds all Linux kernel threads into a single flow
+of control. To see what the Linux kernel threads are doing and in particular
+the situation when they enter a blocking state, the following instrumentation
+in _dde_linux/src/lib/lx_kit/task.cc_ is invaluable.
+
+! #include <os/backtrace.h>
+!
+! void Task::block()
+! {
+!   log("Task::block: ", _name);
+!   backtrace();
+!   ...
+
+The 'Task::block' method is called whenever a Linux kernel thread blocks. By
+adding the two lines at the beginning of the method, we get hold of the
+situation at each single task switch. It prints the name of the blocked kernel
+thread along with the backtrace of the thread.
+
+Another suitable point for an instrumentation is the 'Task::run' method. By
+printing the '_name' after the '_setjmp' branch, one can obtain the sequence
+of resumed (as opposed to blocked) kernel threads.
+
+! void Task::run()
+! {
+!   if (_setjmp(_saved_env))
+!     return;
+!
+!   log("Task::run: ", _name);
+!   ...
+
+
+De-referenced null pointers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Linux kernel is anything but short of function pointers and callbacks. Hence,
+sooner or later during the development, one may be faced with a de-referenced
+null pointer like this:
+
+! no RM attachment (READ pf_addr=0x18c pf_ip=0x1008fa0 from pager_object:
+!                        pd='init -> emac_nic_drv' thread='ep')
+! Warning: page fault, pager_object: pd='init -> emac_nic_drv' thread='ep'
+!                                    ip=0x1008fa0 fault-addr=0x18c type=no-page
+
+The very small page-fault address ('pf_addr') hints at a de-referenced null
+pointer. The first impulse is looking up the instruction pointer 'pf_ip' in
+the driver's binary using 'objdump'.
+
+! build/arm_v8a$ /usr/local/genode/tool/current/bin/genode-aarch64-objdump \
+!                            -lSd drivers/nic/emac/emac_nic_drv | less
+
+In less, when searching for the instruction pointer value ('1008fa0'), one
+can see the surroundings of the offending code.
+
+! 1008f9c:       aa0003f3        mov     x19, x0
+!.../src/linux/drivers/base/regmap/regmap.c:2720
+!        if (!IS_ALIGNED(reg, map->reg_stride))
+! 1008fa0:       b9418c00        ldr     w0, [x0, #396]
+
+Could 'map' be a null pointer? If so, why? When looking into the code at the
+displayed coordinates _regmap.c_ at line 2720, we encounter the function
+'regmap_read' as a suitable point for instrumentation.
+
+!#include <lx_emul.h>
+!...
+!int regmap_read(struct regmap *map, unsigned int reg, unsigned int *val)
+!{
+!  int ret;
+!  printk("regmap_read map=%p\n", map);
+!  if (!map)
+!    lx_emul_trace_and_stop(__func__);
+! 
+!  if (!IS_ALIGNED(reg, map->reg_stride))
+!    return -EINVAL;
+
+The 'printk' should validate our hypothesis that 'map' is indeed a null
+pointer - just to double-check. The 'lx_emul_trace_and_stop' call gives us the
+backtrace in this interesting situation. When running the code with these
+instrumentations in place, the following output appears.
+
+![init -> emac_nic_drv] regmap_read map=0
+![init -> emac_nic_drv] Error: Function regmap_read not implemented yet!
+![init -> emac_nic_drv] Backtrace follows:
+![init -> emac_nic_drv] 0x1008fc0
+![init -> emac_nic_drv] 0x1009044
+![init -> emac_nic_drv] 0x100a9b8
+![init -> emac_nic_drv] 0x10076c0
+![init -> emac_nic_drv] 0x10060f8
+![init -> emac_nic_drv] 0x1006938
+![init -> emac_nic_drv] 0x10069a4
+![init -> emac_nic_drv] 0x1001320
+![init -> emac_nic_drv] 0x1001ac4
+![init -> emac_nic_drv] 0x10074a0
+![init -> emac_nic_drv] 0x1056f28
+![init -> emac_nic_drv] 0x10481e8
+![init -> emac_nic_drv] 0x10580f8
+
+Thanks to the backtrace, we can track where the 'map' pointer comes from,
+ultimately ending up at the call of 'syscon_regmap_lookup_by_phandle'.
+In our case, this function was (wrongly) stubbed with a dummy function
+returning NULL. As a way to double-check that the return value of this
+function indeed corresponds to the de-referenced null pointer, one can tweak
+the return value a little, returning a smallish magic number.
+
+!struct regmap * syscon_regmap_lookup_by_phandle(struct device_node * np,
+!                                                const char * property)
+!{
+!  return (struct regmap *)0x550;
+!}
+
+In the next run, we can observe that the page-fault address indeed changed
+from 0x18c to 0x6dc.
+
+! no RM attachment (READ pf_addr=0x6dc pf_ip=0x1008fc0 from pager_object:
+!                   pd='init -> emac_nic_drv' thread='ep') 
+! Warning: page fault, pager_object: pd='init -> emac_nic_drv' thread='ep'
+!                                    ip=0x1008fc0 fault-addr=0x6dc type=no-page
+
+Apparently, we cannot simply shortcut the 'syscon_regmap_lookup_by_phandle'
+function.
+
+
+Ruling out potential cache-coherency issues
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once the driver starts to interact with the device hardware, additional
+uncertainties enter the picture. The most uncertain uncertainty is certainly
+cache coherency. Nowadays, Linux drivers preferably use cached page mappings
+for DMA buffers and manage the coherency between the device's perspective and
+the CPU's perspective on those buffers via explicit cache-management (flush,
+invalidate) operations. This cache management happens behind the surface of
+functions like 'dma_map_page_attrs'.
+
+To rule out the presence of cache coherency issues, we can force the driver to
+use uncached mappings only by tweaking the allocators at
+_dde_linux/src/include/lx_kit/env.h_. By changing the 'CACHED' argument of the
+'memory' member to 'UNCACHED', all memory dynamically allocated by Linux
+kernel code will be backed by uncached memory.
+
+Should the driver work with this tweak, one can be pretty sure to have hit a
+cache-coherency issue, likely missing the correct implementation of a
+'dma_map' / 'dma_unmap' operation. Should the driver still does not work, the
+problem lies somewhere else. Now would be the time to suspect cosmic rays.
+
+
+Using Linux' built-in DHCP support as networking test
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before equipping the driver with a Genode session interface, it is recommended
+to first execute its core functionality as a standalone program. For a network
+driver, the core functionality is the transmission and reception of network
+packets.
+
+The Linux kernel features builtin support for obtaining an IPv4 network
+configuration at boot time via DHCP. The network-configuration protocol
+involves the successful transmission and reception of multiple network
+packets, and its completion is indicated by the IP address printed in the
+kernel log. In other words, DHCP is the ideal first test workload for the
+driver. It requires the following kernel configuration options:
+
+! INET
+! IP_PNP
+! IP_PNP_DHCP
+
+The implementation resides in _net/ipv4/ipconfig.c_, which must be added to
+the _sources.list_ file of the driver.
+When being part of a regular Linux kernel, this code evaluates the kernel
+command line, namely the option "ip=dhcp". Since the lx_emul environment
+has no notion of a kernel command line, we can manually force the code to
+issue the DHCP request by modifying the implementation of the
+'ip_auto_config' function by adding calls to 'skb_init' and
+'ip_auto_config_setup' at the beginning of the function (right after the local
+variable declarations).
+
+!static int ip_auto_config_setup(char *addrs);
+!
+!static int __init ip_auto_config(void)
+!{
+!  ...
+!  skb_init();
+!  ip_auto_config_setup("dhcp");
+!   ...
+
+
+Capturing network traffic
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There exist many ways to capture network traffic for observing the
+interchange of DHCP protocol messages at the DHCP-server side. The tshark
+tool is particularly nice. For capturing the traffic related to the MAC
+address of my board, the following command line does an excellent job:
+
+! tshark -i eno1 -t ad -Y 'eth.addr == 02:ba:fe:7b:59:38'
+
+
+Using flood ping as a rudimentary stability check
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once the driver has reached a seemingly operational state, having successfully
+completed DHCP, it is a good time to put some stress on the driver. As a
+litmus test, its interesting to see if a flood ping brings the driver to its
+knees:
+
+! sudo ping -f -c 1000 -s 1000 <ip-address>
+
+
+Cross-correlation against the Linux kernel behavior
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Sharing one Linux kernel configuration among both our bare-bones Linux kernel
+and the ported driver code allows for the detailed cross-correlation of the
+driver behavior. This consistency is fostered by the
+[https://github.com/genodelabs/genode-allwinner/blob/master/src/a64_linux/target.inc - src/a64_linux/target.inc]
+file that is used by both the a64_linux target (configuring and building a
+Linux kernel) and each driver component (via the a64_linux_generated library).
+This way, any instrumentation of the Linux kernel code can be quickly tested
+in both execution environments.
+
+
+Connecting the driver with a Genode session interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Once we have validated that the driver is able to send and receive network
+packets via the DHCP test, the time is ripe for integrating it into the Genode
+environment. This integration comes down to two aspects. First, the test
+scenario must be changed to move the network application into a component
+separate from the driver, and second, the driver must interact with Genode's
+uplink session interface.
+
+The first part, the network application, can be accommodated by the NIC router
+component. For reference, the following '<start>' node creates an instance
+of the NIC router that issues a DHCP request once an uplink appears, and
+prints the obtained IP address in the log.
+
+! <start name="nic_router" caps="200">
+!   <resource name="RAM" quantum="10M"/>
+!   <provides>
+!     <service name="Nic"/>
+!     <service name="Uplink"/>
+!   </provides>
+!   <route>
+!     <service name="Timer"> <child name="timer"/> </service>
+!     <any-service> <parent/> </any-service>
+!   </route>
+!   <config verbose_domain_state="yes" dhcp_discover_timeout_sec="1">
+!     <policy label_prefix="emac_nic_drv" domain="uplink"/>
+!     <domain name="uplink"/>
+!   </config>
+! </start>
+
+Of course, the driver must be able to reach the NIC router, which can be
+achieved adding the following session route to the driver's '<start>' node.
+
+! <start name="emac_nic_drv" caps="2000">
+!   ...
+!   <route>
+!     ...
+!     <service name="Uplink"> <child name="nic_router"/> </service>
+!     ...
+!   </route>
+! </start>
+
+The second part - bridging the gap between the Linux kernel code and Genode's
+session interface - can best be addressed by the
+[https://github.com/genodelabs/genode/blob/master/repos/os/include/genode_c_api/uplink.h - genode_c_api/uplink.h]
+API and an implementation of the driver's
+[https://github.com/genodelabs/genode-allwinner/blob/master/src/drivers/nic/emac/lx_user.c - lx_user.c],
+which connects the 'genode_c_api' with the Linux netdevice interface.
+
+
+Packaging the driver
+~~~~~~~~~~~~~~~~~~~~
+
+The final step is the packaging of the driver to make it available to a broad
+range of Genode scenarios, in particular the run scripts based on the
+'drivers_nic' subsystem such as _libports/run/fetchurl_lwip.run_.
+
+The packaging is assisted by the _dde_linux/list_dependencies_ tool.
+It determines the list of header dependencies for our driver by examining
+dependency (.d) files. For reference, the _nic/emac/dep.list_ file is
+generated via following command (the paths are abbreviated).
+
+!build/arm_v8a$ ../../tool/dde_linux/list_dependencies \
+!               TARGET_DIR=drivers/nic/emac \
+!               LINUX_KERNEL_DIR=/path/to/linux/source/ \
+!               SOURCE_LIST_FILE=.../allwinner/src/drivers/nic/emac/source.list \
+!               DEP_LIST_FILE=.../allwinner/src/drivers/nic/emac/dep.list \
+!               generate
+
+As reference for the recipe files needed, the depot recipes at
+[https://github.com/genodelabs/genode-allwinner/tree/master/recipes - allwinner/recipes/]
+are helpful. Their roles are as follows:
+
+:recipes/api/a64_linux/: This API recipe contains the parts of the Linux source tree
+  that are relevant to build the drivers. It also features the parts of the
+  Linux build system that are invoked to generate header files
+  (for the a64_linux_generated library). Each DDE-Linux-based driver
+  depends on this API archive. This recipe notably uses the information of the
+  _dep.list_ and _source.list_ files.
+
+:src/a64_emac_nic_drv/: This source archive contains the Genode parts of the
+  network drivers. The Linux sources are taken from the api/a64_linux archive.
+
+:recipes/pkg/drivers_nic-pine_a64lts/: This package aggregates all ingredients
+  needed for a network-driver subsystem as expected by scenarios based on
+  the convention of _drivers_nic_ packages, that is, run scripts using
+
+  ! import_from_depot ... \
+  !                   [depot_user]/pkg/[drivers_nic_pkg]
+
+:recipes/raw/drivers_nic-pine_a64lts:
+
+  The raw archive contains the init configuration of the driver subsystem.
+
+While crafting those recipes, it is best to use a dummy depot user "x" so
+that the intermediate results can easily be removed from the depot afterwards.
+For reference, the following command extracts the archives from the source
+tree and builds the binaries for the 'arm_v8a' architecture. The process
+of developing the recipes comes down to repeatedly issuing this command
+and extending the recipes until the binary archives are successfully built.
+
+!genode$ ./tool/depot/create x/pkg/arm_v8a/drivers_nic-pine_a64lts \
+!                            -j8 \
+!                            FORCE=1 \
+!                            UPDATE_VERSIONS=1
+
+
