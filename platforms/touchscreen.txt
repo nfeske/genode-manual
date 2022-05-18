@@ -1,0 +1,338 @@
+Touchscreen
+===========
+
+In the previous Section, we went
+though the steps of transplanting the PinePhone's highly complex display
+driver from the Linux kernel into a Genode driver component. Given the lessons
+learned, porting over the touch screen driver should be a walk in the park,
+shouldn't it? Let's see.
+
+
+Information gathering
+---------------------
+
+As a pattern established by now, we first will build a minimal Linux kernel
+that features only our driver of interest. Not before that works, we will
+transplant the relevant code into our custom Genode component as a second
+step. The challenge of the first step is finding the right knobs in the
+Linux kernel configuration to make the driver and device come alive.
+
+Analogously to the network and display drivers covered earlier, our trail head
+is the device tree (Section [Identifying Linux source codes of interest])
+shipped with the vendor Linux kernel. By searching for "touch" in the device
+tree for the PinePhone, the following device node presents itself:
+
+! touchscreen@5d {
+!  compatible = "goodix,gt917s";
+!  reg = <0x5d>;
+!  interrupt-parent = <&pio>;
+!  interrupts = <7 4 4>;
+!  irq-gpios = <&pio 7 4 0>;
+!  reset-gpios = <&pio 7 11 0>;
+!  AVDD28-supply = <&reg_ldo_io0>;
+!  VDDIO-supply = <&reg_ldo_io0>;
+!  touchscreen-size-x = <720>;
+!  touchscreen-size-y = <1440>;
+! };
+
+Given this anchor, we can use Genode's
+[https://github.com/genodelabs/genode/tree/master/tool/dts - dts/extract]
+tool to figure out the inter-device dependencies within the SoC. First, let's
+determine the complete path of the device node within the device tree.
+
+! genode$ ./tool/dts/extract --nodes flat_pinephone.dts | grep touch
+!
+! /soc/i2c@1c2ac00/touchscreen@5d
+
+This path can now be supplied as '--select' argument to another call of the
+extract tool to create pruned device tree that contains only nodes that are
+related to the selected one. For further inspection, we redirect the pruned
+device tree to the file _touch.dts_.
+
+! genode$ ./tool/dts/extract --select /soc/i2c@1c2ac00/touchscreen@5d \
+!                            flat_pinephone.dts > touch.dts
+
+For us, the lines featuring a 'compatible' string are of immediate interest
+because those strings draw a direct relation to Linux source codes.
+
+! genode$ grep compatible touch.dts
+!
+!  compatible = "fixed-clock";
+!  compatible = "fixed-clock";
+!  compatible = "simple-bus";
+!   compatible = "allwinner,sun50i-a64-ccu";
+!   compatible = "allwinner,sun50i-a64-pinctrl";
+!   compatible = "allwinner,sun6i-a31-i2c";
+!   compatible = "arm,gic-400";
+!   compatible = "allwinner,sun50i-a64-rtc",
+!   compatible = "allwinner,sun50i-a64-r-intc",
+!   compatible = "allwinner,sun50i-a64-r-ccu";
+!   compatible = "allwinner,sun50i-a64-r-pinctrl";
+!   compatible = "allwinner,sun8i-a23-rsb";
+!  compatible = "goodix,gt917s";
+!  compatible = "x-powers,axp803";
+! compatible = "pine64,pinephone-1.2", "pine64,pinephone", "allwinner,sun50i-a64";
+
+The actual touchscreen device is the "goodix,gt917s". A few other nodes
+are already familiar from the work with the display driver.
+All devices prefixed with "r-" belong to the so-called RTC-related part of
+SoC, which can be powered independently from the application processor and
+are designated for always-on functionality.
+The "rsb" (reduced serial bus) is the two-wire bus that interconnects the SoC
+with the power-management IC "x-powers,axp803".
+The "i2c" and "pinctrl" relation becomes apparent when looking at the
+schematics of the PinePhone or the datasheet of the Goodix touchscreen
+controller.
+
+[image pinephone_touch_schematics]
+
+"CTP" presumably stands for capacitive touch panel. It is powered
+by same "GPIO-LDO" voltage that we encountered for the display driver before.
+As this signal comes from the AXP803 power-management IC and is disabled
+by default, this explains the need for talking over the RSB bus with the PMIC.
+The actual touch data travels via the signals "TWIO-SDA" and "TWIO-SCK", which
+are the data and clock lines of an I2C connection. The separate "CTP-INT" signal
+allows the touch panel to notify the application processor whenever something
+interesting happens - that is - when it would be worthwhile to request new
+data via I2C. Finally, the "CTP-RST" signal is a reset line driven by the
+application processor.
+
+So long for getting an overview of how the touch panel is integrated. Now,
+let's figure out the Linux source code of interest. The procedure follows
+the same pattern as employed for the display and network drivers.
+
+First, we search the Linux source tree for the 'compatible' strings as present
+in the device nodes.
+
+! linux$ grep -r "goodix,gt917s"
+!
+! drivers/input/touchscreen/goodix.c: { .compatible = "goodix,gt917s" },
+
+Having found an interesting location, look sideways, in particular at
+_drivers/input/touchscreen/Makefile_ in this case. The following line draws
+the connection to a kernel configuration option.
+
+! obj-$(CONFIG_TOUCHSCREEN_GOODIX)	+= goodix.o
+
+This gives us a new clue what to 'grep' for.
+
+! src/linux$ grep -r TOUCHSCREEN_GOODIX
+!
+! drivers/input/touchscreen/Makefile:obj-$(CONFIG_TOUCHSCREEN_GOODIX) += goodix.o
+! drivers/input/touchscreen/Kconfig:config TOUCHSCREEN_GOODIX
+
+The 'Kconfig' file mentioning the kernel option gives us a few more hints.
+
+! config TOUCHSCREEN_GOODIX
+!         tristate "Goodix I2C touchscreen"
+!         depends on I2C
+!         depends on GPIOLIB || COMPILE_TEST
+!         help
+!           Say Y here if you have the Goodix touchscreen (such as one
+!           installed in Onda v975w tablets) connected to your
+!           system. It also supports 5-finger chip models, which can be
+!           found on ARM tablets, like Wexler TAB7200 and MSI Primo73.
+!
+!           If unsure, say N.
+!
+!           To compile this driver as a module, choose M here: the
+!           module will be called goodix.
+
+
+Observing the driver in a minimal Linux kernel
+----------------------------------------------
+
+At this point, it is time to expand our bare-bones Linux configuration in
+_a64_linux/target.inc_.
+
+! LX_ENABLE += INPUT_TOUCHSCREEN
+! LX_ENABLE += TOUCHSCREEN_GOODIX
+
+To see if and how those options come into effect, it's best to build the
+kernel with the changed configuration...
+
+! build/arm_v8a$ make a64_linux
+
+and then manually inspect the _a64_linux/.config_ file, in particular
+searching for "TOUCHSCREEN_GOODIX" to see if all config dependencies are met.
+If not, we have to study the Kconfig files to see missing options.
+E.g., the "TOUCHSCREEN_GOODIX" option is evaluated only if "INPUT_TOUCHSCREEN"
+is enabled.
+
+This procedure needs to be repeated for all 'compatible' strings we
+identified as interesting above.
+
+E.g., the "allwinner,sun6i-a31-i2c" compatible string leads us to
+_drivers/i2c/busses/i2c-mv64xxx.c_. The accompanied _Makefile_ speaks
+of "CONFIG_I2C_MV64XXX". So we add this one to our kernel configuration.
+
+! LX_ENABLE += I2C_MV64XXX
+
+After a few iterations of enabling kernel options, building the kernel,
+and test-driving it on the PinePhone, we are greeted by the driver:
+
+! Goodix-TS 0-005d: ID 917S, version: 0200
+! Goodix-TS 0-005d: Failed to invoke firmware loader: -22
+! Goodix-TS: probe of 0-005d failed with error -22
+
+Looking into the code that prints the message "Failed to invoke firmware
+loader" reveals that a call to 'request_firmware_nowait' fails with the error
+code EINVAL. This happens because the kernel falls back to the dummy function
+at _include/linux/firmware.h_ unless the kernel option FW_LOADER is enabled.
+I guess, you know what comes next:
+
+! LX_ENABLE += FW_LOADER
+
+On the next iteration, the output looks different.
+
+! Goodix-TS 0-005d: ID 917S, version: 0200
+! Goodix-TS 0-005d: Direct firmware load for goodix_917S_cfg.bin failed with error -2
+! input: Goodix Capacitive TouchScreen as /devices/platform/soc/1c2ac00.i2c/i2c-0/0-005d/input/input0
+
+In principle, we could add further kernel infrastructure to expose the driver
+as input/event interface in order to access it from the Linux user land.
+One useful tool is the 'evbug' kernel module, which prints each occurring input
+event to the kernel log. It can be activated by enabling the
+kernel-configuration option 'INPUT_EVBUG'.
+Alternatively, an easy way to see the immediate driver responding to touch
+input is to instrument the driver code directly. In the particular case, the
+function 'goodix_process_events' is a suitable hook. Adding a 'printk' as
+follows does the trick.
+
+! static void goodix_process_events(struct goodix_ts_data *ts)
+! {
+!   ...
+!   touch_num = goodix_ts_read_input_report(ts, point_data);
+!   printk("goodix_process_events got %d touch_num events\n", touch_num);
+!   ...
+
+Upon the next try, we can see that the driver indeed receives touch events!
+
+To crosscheck the minimal set of Linux configuration options that are required
+for the touchscreen driver to work, it is useful to comment out all
+'LX_ENABLE' lines in the a64_linux/target.inc file that are seemingly
+unrelated to the touchscreen device and test the resulting Linux kernel.
+This way, we end up reaching the following set of options.
+
+! LX_ENABLE += MFD_AXP20X_RSB REGULATOR REGULATOR_AXP20X
+! LX_ENABLE += INPUT_TOUCHSCREEN TOUCHSCREEN_GOODIX I2C I2C_MV64XXX FW_LOADER
+
+
+Hosting the touchscreen driver code in a Genode component
+---------------------------------------------------------
+
+Equipped with the display driver as blue print, we can mirror the basic
+structure of a DDE-Linux-based driver component from the display driver
+to an appropriate location. In our case, this would be the
+_src/drivers/touch/goodix/_
+[https://github.com/genodelabs/genode-allwinner/tree/master/src/drivers/touch/goodix - directory]
+in the
+[https://github.com/genodelabs/genode-allwinner - genode-allwinner]
+repository.
+
+The development procedure follows the same lines as
+described in Section [Executable testbed].
+For testing the input driver in isolation without any GUI infrastructure, the
+[https://github.com/genodelabs/genode/tree/master/repos/os/src/server/event_dump - event_dump]
+server is a handy tool.
+
+
+Bridging Genode's C++ world with the Linux world
+------------------------------------------------
+
+For bridging the gap between the Linux kernel and Genode's 'Event' session
+interface, there are two pieces needed. First, the
+[https://github.com/genodelabs/genode/blob/master/repos/os/include/genode_c_api/event.h - genode_c_api/event.h]
+API provides a simple C API for generating events. As of now, the API
+is limited to the few event type we have actual drivers for (touch).
+This free-standing API depends neither on Genode nor on Linux headers.
+The second piece is a custom emulation code for Linux' input subsystem
+contained in
+[https://github.com/genodelabs/genode-allwinner/blob/master/src/drivers/touch/goodix/input.c - input.c].
+It responds to (Linux-internal) calls of the emulated input subsystem by
+invoking the _genode_c_api/event.h_ API.
+
+
+Caveats
+-------
+
+During the work on the driver, I learned a few unexpected lessons that are
+worth sharing.
+
+Apparently, *time-multiplexing* GPIO pins between input and output are a
+thing, even outside I2C. In the concrete case of the Goodix touch panel,
+I struggled matching the Linux driver code against the roles of the signals
+depicted in the
+[https://files.pine64.org/doc/datasheet/pinephone/GT917S-Datasheet.pdf - Goodix documentation].
+
+[image goodix_reset]
+
+According to this diagram, the RESET signal is driven by the host whereas
+the INT signal is driven by the Goodix device, which makes perfect sense.
+In the driver code, however, the INT signal is driven by the host as well!
+It turns out that certain versions of the device scan the INT signal during
+reset to obtain one bit of configuration information (choice between two
+possible I2C addresses).
+
+To accommodate the time multiplexed use of a pin as input or output, Genode's
+pin driver (a64_pio for the PinePhone) switches an output pin to output mode
+not before a pin-control client actually accesses the pin. This way, a driver
+is able to toggle the direction by controlling the lifetime of its pin-control
+session while sensing the pin via a separate pin-state session.
+
+
+Device resources needed by the driver
+-------------------------------------
+
+As described in Section [One Platform driver to rule them all], Genode's platform
+driver restricts access of drivers to devices. During the process of porting a
+Linux driver as Genode component, one is repeatedly confronted with messages
+like:
+
+! Error: memory-mapped I/O resource ... unavailable
+
+While addressing those messages by enhancing the platform driver's
+configuration step by step, the following picture emerges. Note the
+close correlation with the device-tree information we gathered initially.
+
+! <device name="r_pio" type="allwinner,sun50i-a64-r-pinctrl">
+!   <io_mem address="0x01f02c00" size="0x400"/>
+!   <irq number="77"/>
+! </device>
+! <device name="r_ccu" type="allwinner,sun50i-a64-r-ccu">
+!   <io_mem address="0x01f01400" size="0x100"/>
+! </device>
+! <device name="r_intc" type="allwinner,sun6i-a31-r-intc">
+!   <io_mem address="0x01f00c00" size="0x400"/>
+!   <irq number="64"/>
+! </device>
+! <device name="r_rsb" type="allwinner,sun8i-a23-rsb">
+!   <io_mem address="0x01f03400" size="0x400"/>
+!   <irq number="71"/>
+! </device>
+! <device name="ccu" type="allwinner,sun50i-a64-ccu">
+!   <io_mem address="0x01c20000" size="0x400"/>
+! </device>
+! <device name="pio" type="allwinner,sun50i-a64-pinctrl">
+!   <io_mem address="0x01c20800" size="0x400"/>
+!   <irq number="43"/> <!-- Port B -->
+!   <irq number="49"/> <!-- Port G -->
+!   <irq number="53"/> <!-- Port H -->
+! </device>
+! <device name="i2c0" type="allwinner,sun6i-a31-i2c">
+!   <io_mem address="0x01c2ac00" size="0x400"/>
+!   <irq number="38"/>
+! </device>
+
+This picture is concerning because there is apparently a significant
+overlap of resources accessed by the
+display driver (Section [Display]) and those resources needed
+by the touchscreen driver to operate. In Linux, both drivers are part of the
+same program, the Linux kernel. But on Genode, we end up in the situation of
+having two independent programs trying to drive the same parts of the
+hardware.
+
+[tikz img/pinephone_fb_touch_conflict]
+
+The resolution of those conflicts is covered by the next Section.
+

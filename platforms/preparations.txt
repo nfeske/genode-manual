@@ -49,10 +49,11 @@ illustrate this point with three example scenarios:
   straight-forward to use for the Genode community and to benefit from
   the *ongoing maintenance* of the code *by Genode Labs*. However, with this ambition
   in mind, you need to ensure that you and your employer agree with the
-  process of contributing [1] and in particular with the terms of the Genode
-  contributor's agreement [2], which grants Genode Labs the right to offer
-  Genode - including your code - under both open-source and commercial
-  licensing terms.
+  process of [https://genode.org/community/contributions - contributing] and
+  in particular with the terms of the Genode contributor's agreement
+  ([https://genode.org/community/gca.pdf - PDF]), which grants Genode Labs
+  the right to offer Genode - including your code - under both open-source
+  and commercial licensing terms.
 
 :Pursuing a dual-licensing business:
 
@@ -62,16 +63,10 @@ illustrate this point with three example scenarios:
   restrictive copyleft license possible, along with the option for a
   commercial license.
   Or you may even go as far as considering the
-  Genode Component Public License (GCPL) [3].
+  [https://genode.org/documentation/articles/component_public_license - Genode Component Public License] (CPL).
   This route should be considered only when planning a *long-term commitment* in
   actively productising and supporting your code. Note that the GCPL is no
   win for the open-source community beyond Genode.
-
-[1] [https://genode.org/community/contributions]
-
-[2] [https://genode.org/community/gca.pdf]
-
-[3] [https://genode.org/documentation/articles/component_public_license]
 
 The path taken has far-reaching ramifications. The ability to incorporate
 3rd-party code into your work. The visibility of your work within the Genode
@@ -193,12 +188,12 @@ of the Genode Foundations book as found at [https://genode.org].
 
 Try out the various options with an already supported
 platform.
-Browse the files at _tool/run/_ to learn about the
+Browse the files at
+[https://github.com/genodelabs/genode/tree/master/tool/run - tool/run/]
+to learn about the
 various backend modules and options. E.g., look at
-_tool/run/image/uboot_ [1] to
+[https://github.com/genodelabs/genode/tree/master/tool/run/image/uboot - tool/run/image/uboot]
 to demystify the creation of uImage files by Genode.
-
-[1] [https://github.com/genodelabs/genode/tree/master/tool/run/image/uboot]
 
 
 Run and test the U-Boot loader on your device
@@ -214,11 +209,9 @@ Once you got U-Boot to work, continue with reproducing the U-Boot binary from
 source. This may become handy for investigating device-driver issues later on
 (e.g., taking U-Boot's IOMUX or power or clock configuration as reference,
 peeking device states at boot time). Consider extending Genode's
-_tool/create_uboot_ [1]
+[https://github.com/genodelabs/genode/blob/master/tool/create_uboot - tool/create_uboot]
 utility, thereby documenting the steps for reproducing the U-Boot version
 for your particular board from source.
-
-[1] [https://github.com/genodelabs/genode/blob/master/tool/create_uboot]
 
 
 Create a working test-control loop
@@ -242,7 +235,6 @@ The build-test cycle entails:
 
 To reach this level of convenience, the following topics must be addressed:
 
-
 :Network boot:
 
   * Set up TFTP server on you development machine
@@ -252,26 +244,25 @@ To reach this level of convenience, the following topics must be addressed:
 
 :Let the run tool obtain the serial output from your board:
 
-  Take a look at the various options of run tool at _tool/run/log [1].
-
+  Take a look at the various options of run tool at
+  [https://github.com/genodelabs/genode/blob/master/tool/run/log - tool/run/log].
 
 :Network-controlled reset / power switch:
 
   As the icing on the cake, consider powering your board via a
-  network-controlled power socket as described in [2].
+  network-controlled power socket as described in [1].
 
-  More options can be found at at _tool/run/power_off_ [3] and
-  _tool/run/power_on_ [4].
+  More options can be found at at _tool/run/power_off_ [2] and
+  _tool/run/power_on_ [3].
 
-  For further inspiration, you may also enjoy the article [5].
+  For further inspiration, you may also enjoy the article [4].
 
-[1] [https://github.com/genodelabs/genode/blob/master/tool/run/log]
 
-[2] [https://genodians.org/chelmuth/2019-03-13-powerplug]
+[1] [https://genodians.org/chelmuth/2019-03-13-powerplug]
 
-[3] [https://github.com/genodelabs/genode/blob/master/tool/run/power_off]
+[2] [https://github.com/genodelabs/genode/blob/master/tool/run/power_off]
 
-[4] [https://github.com/genodelabs/genode/blob/master/tool/run/power_on]
+[3] [https://github.com/genodelabs/genode/blob/master/tool/run/power_on]
 
-[5] [https://genodians.org/tomga/2019-08-13-rpi-automation]
+[4] [https://genodians.org/tomga/2019-08-13-rpi-automation]
 

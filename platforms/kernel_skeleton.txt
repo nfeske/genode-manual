@@ -62,7 +62,8 @@ To lift the clouds, let's have a look at the source-tree structure.
 
 The files appearing under _lib/mk/_ are build-description files for libraries.
 There are two such files, having the file extension '.mk'. They are located in
-a sub directory called _spec/arm_v8/_, which means that the build system
+a sub directory called _spec/arm_v8/_, which means that the
+[https://genode.org/documentation/genode-foundations/20.05/development/Build_system.html - build system]
 considers them only when building for an instruction set architecture that
 matches ARMv8.
 
@@ -114,9 +115,14 @@ Review of the board-specific code
 ---------------------------------
 
 Before starting the work on the new board support, let us briefly look into
-each of the files for the existing i.MX8q EVK board.
+each of the files for the existing i.MX8q EVK board. Genode's support for the
+NXP i.MX family is hosted in the dedicated
+[https://github.com/genodelabs/genode-imx - genode-imx repository]. Let's draw
+our attention to the files named after board.
 
-In list of files, we spot three header files, one _board.h_ header under
+! repos/imx$ find | grep imx8q_evk
+
+In the list of files, we spot three header files, one _board.h_ header under
 _src/bootstrap/_, one _board.h_ header under _src/core/_, and one
 _imx8q_evk_board.h_ header under _src/include/_. The former two files
 are specific for bootstrap and core, whereas the latter contains definitions
@@ -127,7 +133,7 @@ by adding the board-specific directory to the include-search path.
 
 Let us start with with definitions used across bootstrap and core.
 
-:_repos/base-hw/src/include/hw/spec/arm_64/imx8q_evk_board.h_:
+:_repos/imx/src/include/hw/spec/arm_64/imx8q_evk_board.h_:
 
 ! #include <drivers/uart/imx.h>
 ! #include <hw/spec/arm/boot_info.h>
@@ -174,7 +180,7 @@ cores, core drives the interrupt controller at runtime.
 The bootstrap-specific files concern build descriptions and actual code.
 The build description looks as follows.
 
-:_repos/base-hw/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk_:
+:_repos/imx/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk_:
 
 ! REP_INC_DIR += src/bootstrap/board/imx8q_evk
 !
@@ -188,6 +194,8 @@ The build description looks as follows.
 ! NR_OF_CPUS = 4
 !
 ! vpath spec/64bit/memory_map.cc $(call select_from_repositories,src/lib/hw)
+!
+! vpath bootstrap/% $(REP_DIR)/src
 !
 ! include $(call select_from_repositories,lib/mk/bootstrap-hw.inc)
 
@@ -211,7 +219,7 @@ for accessing files across different source repositories. You can find the
 mechanism described in Section 5.3. "Build system" in the Genode Foundations
 book.
 
-:_repos/base-hw/src/bootstrap/board/imx8q_evk/board.h_:
+:_repos/imx/src/bootstrap/board/imx8q_evk/board.h_:
 
 ! #include <hw/spec/arm_64/imx8q_evk_board.h>
 ! #include <hw/spec/arm_64/cpu.h>
@@ -236,7 +244,7 @@ The 'Board' namespace hosts the 'Pic' (programmable interrupt controller)
 type, which allows the generic code of bootstrap to interact with the
 interrupt controller without knowing the exact type of device.
 
-:_repos/base-hw/src/bootstrap/board/imx8q_evk/platform.cc_:
+:_repos/imx/src/bootstrap/board/imx8q_evk/platform.cc_:
 
 ! Bootstrap::Platform::Board::Board()
 ! :
@@ -280,7 +288,7 @@ ignore this function for now.
 
 Finally, let's turn our attention to the core-specific files.
 
-:_repos/base-hw/lib/mk/spec/arm_v8/core-hw-imx8q_evk.mk_:
+:_repos/imx/lib/mk/spec/arm_v8/core-hw-imx8q_evk.mk_:
 
 ! REP_INC_DIR += src/core/board/imx8q_evk
 ! REP_INC_DIR += src/core/spec/arm/virtualization
@@ -313,11 +321,12 @@ for now. They are important for hosting virtual machines. Since the
 virtualization support is a generic feature of the ARM CPU, we don't
 have to take board-specific precautions.
 
-:_repos/base-hw/src/core/board/imx8q_evk/board.h_:
+:_repos/imx/src/core/board/imx8q_evk/board.h_:
 
 ! #include <hw/spec/arm_64/imx8q_evk_board.h>
 ! #include <spec/arm/generic_timer.h>
 ! #include <spec/arm/virtualization/gicv3.h>
+! #include <spec/arm_v8/cpu.h>
 ! #include <spec/arm_64/cpu/vm_state_virtualization.h>
 ! #include <spec/arm/virtualization/board.h>
 !
@@ -827,15 +836,14 @@ look at the compiler and linker errors, fix them, and repeat.
 
 The interrupt-controller driver apparently needs to distinguish the cases where
 the kernel is running in the so-called "secure world" or "normal world" of
-ARM TrustZone. If you want to learn more about schizophrenia as a feature of
-ARM processors, let me point you to our dedicated article on ARM TrustZone [1].
+ARM TrustZone. If you want to learn more about schizophrenia as a feature
+of ARM processors, let me point you to
+[https://genode.org/documentation/articles/trustzone - our article on ARM TrustZone].
 Admittedly, I'm not completely sure about which of both worlds are executing
 our kernel. But it is probably safe to assume that the boot process switches
 to the normal world before loading and starting our system image.
 So we add the definition of NON_SECURE to
 _allwinner/src/bootstrap/board/pine_a64lts/board.h_.
-
-[1] [https://genode.org/documentation/articles/trustzone]
 
 ! namespace Board {
 !   ...

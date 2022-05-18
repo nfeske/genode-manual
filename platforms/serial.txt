@@ -100,7 +100,8 @@ register to print a character.
 It is interesting to see that all device registers are 8 bits wide.
 This raises the question how those registers are mapped to system-bus
 addresses of the ARM SoC. The answer can be found at the
-Allwinner A64 manual [1] as linked by the Pine64 wiki.
+[https://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf - Allwinner A64 manual]
+as linked by the Pine64 wiki.
 Here, we learn that the individual registers are mapped to 32-bit aligned
 memory-mapped I/O registers.
 Thus, the register offsets found in the NS16550 data sheet have to be
@@ -108,8 +109,6 @@ multiplied with 4.
 The THR register is of course mapped to offset 0.
 For cross-checking this information, the U-Boot driver code at
 _drivers/serial/ns16550.c_ becomes handy.
-
-[1] [https://files.pine64.org/doc/datasheet/pine64/Allwinner_A64_User_Manual_V1.0.pdf]
 
 What has the NS16550 data sheet has to say about the THR register?
 
@@ -136,14 +135,12 @@ The corresponding C program (saving the file as _main.c_) looks as follows:
 !     *(unsigned long *)0x1c28000 = 'U';
 ! }
 
-Since we will ultimately have to use Genode's tool chain [1] very soon, now
-would be a good time to install it.
+Since we will ultimately have to use Genode's tool chain very soon, now
+would be a good time to [https://genode.org/download/tool-chain - install it].
 The tool chain comes with AARCH64 support. All the utilities can be found at
 _/usr/local/genode/tool/current/bin/_. One may consider adding this directory
 to the shell's PATH variable to avoid the need for typing out this rather
 long path. But that is just a matter of convenience.
-
-[1] [https://genode.org/download/tool-chain]
 
 The following invocation of GCC compiles our little C program into an ELF binary:
 

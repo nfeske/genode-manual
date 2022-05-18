@@ -20,15 +20,16 @@ device registers and dispatching interrupts.
 
 The investigation starts with the quest of finding a suitable pin at one
 of the various connectors present on the board. The board
-schematics as found in the PINE64 Wiki [2] are our guide.
+[https://files.pine64.org/doc/SOPINE-A64/PINE%20A64-TLS-20180130.pdf - schematics]
+as found in the
+[https://wiki.pine64.org/wiki/PINE_A64-LTS/SOPine - PINE64 Wiki]
+are our guide.
 While skimming the 19 pages of the document and glancing at the headlines
 above the very technical looking drawings, the so-called Euler connector
 at page 12 catches my attention because this name appears besides a
 prominently visible 34-pin header on the board.
 
-[2] [https://wiki.pine64.org/wiki/PINE_A64-LTS/SOPine]
-
-[image schematics_pb2]
+[image schematics_pb2 100%]
 
 By looking at the schematics, it is easy to guess that the box with the 34
 connectors corresponds to this pin header. The pins have labels, which give us
@@ -51,7 +52,8 @@ of interest to us:
 * Pin 34: ground
 
 The label PB2 has to have a meaning for the SoC, which is hopefully cleared
-up in the SoC's documentation [1].
+up in the SoC's
+[https://linux-sunxi.org/images/b/b4/Allwinner_A64_User_Manual_V1.1.pdf - documentation].
 For SoCs with no public documentation, the most compelling alternative source
 for such information are device-tree source (dts) files as usually provided by
 the SoC vendors for the Linux kernel and U-Boot. But let us save the
@@ -60,9 +62,7 @@ documentation is public, we can search it for "PB2", which brings us to Page
 377, specifically to the description of a bit field named "PB2_SELECT" at a
 so-called "PB Configure Register 0".
 
-[1] [https://linux-sunxi.org/images/b/b4/Allwinner_A64_User_Manual_V1.1.pdf].
-
-[image pb_cfg0]
+[image pb_cfg0 100%]
 
 The surrounding Section 3.21 "Port Controller(CPUx-PORT)" gives us the
 insights we need. PB2 is apparently one of the 10 input/output pins of Port B
@@ -122,7 +122,8 @@ The following details are worth noting.
 
 * The program comes in the form of a 'Main' object as opposed to a
   'main()' function. To learn more about this structure, please refer
-  to the dedicated article about Genode's conscious C++ dialect [1]
+  to the article
+  [https://genodians.org/nfeske/2019-01-22-conscious-c++ - Genode's Conscious C++ dialect].
 
 * The 'Env' interface allows the code to interact with the environment of
   the Genode component such as allocating memory, or opening a connection to a
@@ -149,8 +150,6 @@ The following details are worth noting.
   ! log("PB2_SELECT: ", read<Pb_cfg0::Pb2_select>());
   Note that the code is completely free of (often bug-prone)
   bit-masking/shifting operations.
-
-[1] [https://genodians.org/nfeske/2019-01-22-conscious-c++]
 
 To build the program, we have to accompany it with a _target.mk_ file as
 follows.
@@ -664,11 +663,13 @@ stays completely idle otherwise.
 Pointers to the corresponding code
 ----------------------------------
 
-The test programs described above can be found at the Genode-Allwinner Git
-repository [1]. The C++ code described above is located at
-_src/test/pin_state/_, _src/test/pin_control/_, and _src/test/pin_interrupt/_.
+The test programs described above can be found at the
+[https://github.com/genodelabs/genode-allwinner - genode-allwinner] Git
+repository. The C++ code is located at
+[https://github.com/genodelabs/genode-allwinner/tree/master/src/test/pin_state - src/test/pin_state/],
+[https://github.com/genodelabs/genode-allwinner/tree/master/src/test/pin_control - src/test/pin_control/],
+and
+[https://github.com/genodelabs/genode-allwinner/tree/master/src/test/pin_interrupt - src/test/pin_interrupt/].
 These test programs are accompanied with matching run scripts located at the
-_run/_ directory.
-
-[1] [https://github.com/nfeske/genode-allwinner]
+[https://github.com/genodelabs/genode-allwinner/tree/master/run - run/] directory.
 
