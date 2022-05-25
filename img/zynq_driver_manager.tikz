@@ -1,0 +1,57 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+
+	%
+	% Components
+	%
+
+	\coordinate (anchor);
+
+	% pkg/drivers_fpga-zynq
+	\node[treenode, minimum width=26ex, at=(anchor)] (fpga) {pkg/drivers\_fpga-zynq};
+	\path (fpga.north) node[service, scale=0.4] (platformservice) {};
+	\path (fpga.north) node[scale=0.7, yshift=-1.5ex] {Platform};
+
+	% driver manager
+	\node[appnode, minimum width=26ex, above right=2ex and 20ex of fpga] (drvmanager)  {Zynq Driver Manager};
+
+	% drivers subsystem
+	\node[treenode, minimum width=26ex, above left=2ex and 20ex of drvmanager] (drivers)  {Drivers Subsystem};
+
+	% config / state information flow
+	\tikzstyle{infoflow} = [opacity=0.5,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	\path[infoflow] (fpga.-170)+(0,-10ex) -- node[pos=-0.2] {devices} (fpga.-160);
+	\path[infoflow] (fpga.-150)+(0,-11ex) -- node[pos=-0.2] {fpga.bit} (fpga.-140);
+	\path[infoflow] (fpga.-30) +(0,-11ex) -- node[pos=-0.2] {fpga\_devices} (fpga.-40);
+	\path[infoflow] (fpga.-10) +(0,-10ex) -- node[pos=-0.2] {policy} (fpga.-20);
+
+	\path[infoflow] (fpga.east)
+		.. controls +(10ex,0) and +(0ex,-10ex) ..
+		   coordinate[pos=0.3] (annotation) node[below] {devices} (drvmanager.south);
+
+	\path[infoflow] (drvmanager.north)
+		.. controls +(0,10ex) and +(10ex,0) ..
+		   coordinate[pos=0.3] (annotation) node[above] {init.config} (drivers.east);
+
+	%
+	% Sessions
+	%
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+	\path[treesessionarrow] (drivers) -- (platformservice);
+
+\end{tikzpicture}
