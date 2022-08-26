@@ -69,6 +69,12 @@ After cloning, you can find the source code within
 the _genode/_ directory. In the following, we refer to this directory
 as _<genode-dir>_.
 
+Git checks out the most recent Genode master branch commit, so, let's
+now switch to the version used in this manual:
+
+! cd <genode-dir>
+! git checkout -b 22.05 22.05
+
 
 Source-tree structure
 =====================
