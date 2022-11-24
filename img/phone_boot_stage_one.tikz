@@ -1,0 +1,74 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=3ex]
+
+	\coordinate (anchor);
+
+	\newcommand\component[2] {
+		\path (anchor) node[anchor=west, treenode] (#1) {#2};
+		\path (anchor)+(0,-4ex) coordinate (anchor);
+	}
+
+	\newcommand\child[2] {
+		\component{#1}{#2};
+		\path [draw, arrow] (parent) .. controls +(5ex,0) and +(-3ex,0) .. (#1.west);
+	}
+
+	\component{init}{Init}
+
+	\path (init.east) coordinate (parent);
+	\path (anchor)+(20ex,32ex) coordinate (anchor);
+
+	\child {timer}   {Timer}
+	\child {drivers} {Drivers subsystem}
+
+		\path (drivers.east) coordinate (parent);
+		\path (anchor)+(30ex,14ex) coordinate (anchor);
+		\child {platform}          {Platform driver}
+		\child {pio}               {Pin driver}
+		\child {fb}                {Framebuffer driver}
+		\child {touch}             {Touchscreen driver}
+		\child {eventfilter}       {Event filter}
+		\child {uartmodem}         {UART driver (modem)}
+		\child {terminalcrosslink} {Terminal crosslink}
+		\child {modem}             {Modem driver}
+		\child {audiocontrol}      {Audio-control driver}
+		\child {power}             {Power driver}
+		\child {dynamicconfig}     {Dynamic configuator}
+		\child {dynamic}           {Dynamic subsystem}
+
+	\path (init.east)           coordinate (parent);
+	\path (anchor)+(-30ex,34ex) coordinate (anchor);
+
+	\child {reportlogger}      {Report logger}
+	\child {configfs}          {Config file system}
+	\child {configfsrom}       {Config ROM}
+	\child {reportfsrom}       {Report ROM}
+	\child {reportfs}          {Report file system}
+	\child {fsreport}          {Report aggregator}
+	\child {logterminal}       {Log terminal}
+	\child {log}               {Log};
+	\child {nitpicker}         {GUI server}
+	\child {nitfocus}          {GUI focus}
+	\child {globalkeyshandler} {Global keys handler}
+	\child {leitzentrale}      {Leitzentrale subsystem}
+
+		\path (leitzentrale.east) coordinate (parent);
+		\path (anchor)+(30ex,12ex) coordinate (anchor);
+		\child {reportrom}     {Report ROM}
+		\child {wm} {Window manager}
+		\child {decorator} {Decorator}
+		\child {phonemanager} {Phone manager}
+		\child {fontsfs} {Fonts file system}
+
+	\path (init.east)          coordinate (parent);
+	\path (anchor)+(-30ex,8ex) coordinate (anchor);
+	\child {clipboard} {Clipboard}
+	\child {runtime}   {Runtime subsystem}
+
+		\path (runtime.east)      coordinate (parent);
+		\path (anchor)+(30ex,-2ex) coordinate (anchor);
+		\child {menuview} {Widget renderer}
+
+\end{tikzpicture}
