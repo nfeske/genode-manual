@@ -5,7 +5,7 @@ default:
 	@echo -e "\nusage: make <name.pdf>\n"
 
 
-invoke_pdflatex = pdflatex -jobname $* \
+invoke_pdflatex = lualatex -jobname $* \
                     "\input{tikz-standalone.tex} \input{$<} \end{document}"
 
 %.pdf: %.tikz

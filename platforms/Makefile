@@ -46,9 +46,9 @@ $(PDF): $(PDF:.pdf=.txt) manual.gosh Makefile \
        $(wildcard img/*.pdf) \
        $(wildcard img/*.tikz)
 	gosh --style manual.gosh $(PDF:.pdf=.txt) > $(TEXFILE).tex
-	pdflatex $(TEXFILE).tex
-	pdflatex $(TEXFILE).tex
-	pdflatex $(TEXFILE).tex
+	lualatex $(TEXFILE).tex
+	lualatex $(TEXFILE).tex
+	lualatex $(TEXFILE).tex
 	cp $(TEXFILE).pdf $@
 	rm -f $(TEXFILE) $(TEXFILE).*
 
