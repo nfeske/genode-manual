@@ -194,7 +194,7 @@ Packaging the kernel
 ~~~~~~~~~~~~~~~~~~~~
 
 All but the most basic run scripts leverage Genode's
-[https://genode.org/documentation/genode-foundations/22.05/development/Package_management.html - package management],
+[https://genode.org/documentation/genode-foundations/23.05/development/Package_management.html - package management],
 often referred to as _depot_. A run script can conveniently incorporate
 packaged components into a system scenario via the 'import_from_depot'
 function. When reviewing the various existing run scripts in the Genode source

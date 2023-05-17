@@ -188,13 +188,11 @@ classes/%/description.tex:
 
 FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/util/construct_at.h \
-                         repos/base/include/base/blocking.h \
                          repos/base/include/base/cache.h \
                          repos/base/include/base/component.h \
                          repos/base/include/base/env.h \
                          repos/base/include/base/log.h \
                          repos/base/include/base/output.h \
-                         repos/base/include/base/snprintf.h \
                          repos/base/include/base/stdint.h \
                          repos/base/include/spec/64bit/base/fixed_stdint.h \
                          repos/base/include/spec/32bit/base/fixed_stdint.h \

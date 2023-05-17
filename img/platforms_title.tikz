@@ -84,7 +84,7 @@
 
 	\path (genode)
 		node[below=2cm, font=\normalsize \sffamily, color=titlecol,
-		     opacity=0.8, scale=2.65] (osf) {Operating System Framework 22.05};
+		     opacity=0.8, scale=2.65] (osf) {Operating System Framework 23.05};
 
 	\definecolor{subtitlecol} {rgb}{0.85, 0.90, 0.6}
 
