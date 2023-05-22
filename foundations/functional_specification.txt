@@ -1200,6 +1200,23 @@ AVL tree hosts only one type of elements.
 [raw spec/clearpage]
 
 
+Dictionary
+~~~~~~~~~~
+
+The 'Dictionary' provides an easy and safe way to organize objects by using
+strings as keys. It alleviates the need to manually use the bare-bones AVL tree
+for this prominent use case.
+The 'Dictionary' attains its safety from following the principle design of the
+'Registry'. That is, elements are automatically added to the dictionary at
+construction time, respectively removed at destruction time. The method
+'with_element' calls a functor with one element by specifying its name as key,
+and the 'with_any_element' interface supports the orderly destruction of all
+dictionary items. These patterns limit the exposure of individual dictionary
+elements to a local scope at the caller.
+
+[raw spec/classes/genode/dictionary/description]
+
+
 ID space
 ~~~~~~~~
 
@@ -1499,7 +1516,6 @@ as explained in Section [Diagnostic output].
 There exist a number of printable helper classes that cover typical
 use cases for producing formatted text output.
 
-; Genode::Byte_range_ptr
 ; Genode::Number_of_bytes
 ; Genode::Cstring
 
@@ -1517,8 +1533,19 @@ use cases for producing formatted text output.
 :'Char': produces a character corresponding to the ASCII value the
   wrapped integer argument.
 
+To improve safety in situations that require raw byte-wise access of memory,
+the two utilities 'Byte_range_ptr' and 'Const_byte_range_ptr' hold a
+pointer together with a size limit in bytes. They should be used instead of
+traditional C-style pairs of pointer and size arguments to equip each
+pointer with its legitimate range of access. Note that the utilities are
+meant for transient arguments only. They are deliberately not copyable to
+prevent the accidental storing of the embedded pointer values.
+
+; Genode::Byte_range_ptr
+; Genode::Const_byte_range_ptr
 
 [raw spec/clearpage]
+
 
 Tokenizing
 ~~~~~~~~~~
@@ -2650,3 +2677,8 @@ verbatim description of how the device is used. For example:
 ; Genode::Repeated
 ; Genode::Left_aligned
 ; Genode::Right_aligned
+; Genode::Trace::Checkpoint
+; Genode::Trace::Ethernet_packet
+; Genode::Writeable_file
+; Genode::Append_file
+; Usb::Isoc_transfer
