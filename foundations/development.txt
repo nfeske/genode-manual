@@ -672,10 +672,15 @@ It performs the following steps:
   directory to the boot directory and executes the steps
   needed to transform the content of the boot directory into a bootable
   form.
+  In the most common case, the arguments of 'build_boot_image' correspond to
+  the results of a prior 'build' step. To avoid the need to manually maintain
+  the consistency between the arguments of both steps, the 'build_artifacts'
+  function provides a handy way to express the common case.
+  ! build_boot_image [build_artifacts]
   Under the hood, the run tool invokes the run-module types _boot_dir_ and
   _boot_image_.
-  Depending on the run-tool configuration, this form may be an ISO
-  image, a disk image, or a bootable ELF image.
+  Depending on the run-tool configuration, the resulting boot image may have
+  the form of an ISO image, a disk image, or a bootable ELF image.
 
 # Executing the system image using the 'run_genode_until' command. Depending
   on the run-tool configuration,
