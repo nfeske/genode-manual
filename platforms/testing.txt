@@ -474,8 +474,8 @@ with a shocking message:
 
 Just at the climax of our expectations, U-Boot's ELF loader went on strike.
 The ELF image is apparently too large. We take the mental note to adjust
-'CONFIG_SYS_BOOTM_LEN' and re-build and re-install U-Boot taking the steps of
-the [https:2020-12-10-pine-fun-warmup - earlier article].
+'CONFIG_SYS_BOOTM_LEN' and re-build and re-install U-Boot via the steps
+described in Section [The U-Boot boot loader].
 
 To satisfy our urgent need of a reward for our patience during the build of
 the depot-autopilot system image, we can side step U-Boot's image-size

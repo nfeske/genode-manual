@@ -86,8 +86,8 @@ intermediate goals that can be wrapped up one by one.
   native Linux. For the first time, the driver's actual functionality and
   its interplay with the physical world comes into focus.
   During the iterative debugging and learning, the tips and tricks given by
-  Sections [Linux caveats] and [Debugging and development hints]
-  may be of help.
+  Section [Linux caveats] and the subsequent sections about debugging and
+  development hints may be of help.
 
 # Get the *driver's core functionality* in the form of a self-sufficient
   program to work. In the network driver's case, this would be the
@@ -245,7 +245,7 @@ library comes in. This pseudo library has the sole purpose of creating a Linux
 build directory with the generated headers we need. It takes the same Linux
 [https://github.com/genodelabs/genode-allwinner/blob/master/src/a64_linux/target.inc - kernel configuration]
 as used for the a64_linux target we discussed earlier in
-Section [Taking Linux out for a Walk].
+Section [Taking Linux out for a walk].
 
 
 Identifying Linux source codes of interest
