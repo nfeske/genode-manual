@@ -27,31 +27,33 @@ A tour through the code base
 
 The starting point of our line of work will be the existing board support
 for the i.MX8Q EVK. To get an idea of the amount of work ahead of us, let's
-examine the base-hw source tree within Genode for occurrences of the board's
-name. The search pattern "imx" is a good start.
+examine the source tree within Genode's
+[https://github.com/genodelabs/genode-imx - genode-imx] repository for
+occurrences of the board's name. The search pattern "imx8" is a good start.
 
-! $ find repos/base-hw -type f | grep imx8
-! repos/base-hw/lib/mk/spec/arm_v8/core-hw-imx8q_evk.mk
-! repos/base-hw/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk
-! repos/base-hw/recipes/src/base-hw-imx8q_evk/hash
-! repos/base-hw/recipes/src/base-hw-imx8q_evk/content.mk
-! repos/base-hw/recipes/src/base-hw-imx8q_evk/used_apis
-! repos/base-hw/src/bootstrap/board/imx8q_evk/platform.cc
-! repos/base-hw/src/bootstrap/board/imx8q_evk/board.h
-! repos/base-hw/src/include/hw/spec/arm_64/imx8q_evk_board.h
-! repos/base-hw/src/core/board/imx8q_evk/board.h
+! $ find repos/imx -type f | grep imx8
 
 We can ignore everything inside the _recipes/_ directory for now. This
 directory contains package descriptions. We will come back to the packaging
-topic later. A 'grep -v' hides these files from our view.
+topic later. With the focus on the kernel, we can further ignore anything
+related to "drivers", "boot", "git", or "sculpt".
+The use of 'grep -v' allows us to hide these distractions from our view.
 
-! $ find repos/base-hw -type f | grep imx8 | grep -v recipes
-! repos/base-hw/lib/mk/spec/arm_v8/core-hw-imx8q_evk.mk
-! repos/base-hw/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk
-! repos/base-hw/src/bootstrap/board/imx8q_evk/platform.cc
-! repos/base-hw/src/bootstrap/board/imx8q_evk/board.h
-! repos/base-hw/src/include/hw/spec/arm_64/imx8q_evk_board.h
-! repos/base-hw/src/core/board/imx8q_evk/board.h
+! $ find repos/imx -type f | grep imx8q_evk  | grep -v recipes \
+!                          | grep -v drivers | grep -v uboot \
+!                          | grep -v git     | grep -v sculpt
+! repos/imx/src/u-boot/imx8q_evk/target.mk
+! repos/imx/src/include/hw/spec/arm_64/imx8q_evk_board.h
+! repos/imx/src/core/board/imx8q_evk/board.h
+! repos/imx/src/bootstrap/board/imx8q_evk/platform.cc
+! repos/imx/src/bootstrap/board/imx8q_evk/board.h
+! repos/imx/run/framebuffer_imx8q_evk.run
+! repos/imx/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk
+! repos/imx/lib/mk/spec/arm_v8/core-hw-imx8q_evk.mk
+! repos/imx/board/imx8q_evk/image_link_address
+! repos/imx/board/imx8q_evk/devices
+! repos/imx/board/imx8q_evk/arch
+
 
 On the one hand, it is nice to see such a small number of files to be
 concerned about. On the other hand, those files appear quite scattered
@@ -115,12 +117,8 @@ Review of the board-specific code
 ---------------------------------
 
 Before starting the work on the new board support, let us briefly look into
-each of the files for the existing i.MX8q EVK board. Genode's support for the
-NXP i.MX family is hosted in the dedicated
-[https://github.com/genodelabs/genode-imx - genode-imx repository]. Let's draw
-our attention to the files named after board.
-
-! repos/imx$ find | grep imx8q_evk
+each of the files for the existing i.MX8q EVK board we discovered via find
+and grep above.
 
 In the list of files, we spot three header files, one _board.h_ header under
 _src/bootstrap/_, one _board.h_ header under _src/core/_, and one
@@ -149,6 +147,8 @@ Let us start with with definitions used across bootstrap and core.
 !         UART_SIZE  = 0x1000,
 !         UART_CLOCK = 250000000,
 !     };
+!
+!     static constexpr Genode::size_t NR_OF_CPUS = 4;
 !
 !     namespace Cpu_mmio {
 !         enum {
@@ -182,22 +182,17 @@ The build description looks as follows.
 
 :_repos/imx/lib/mk/spec/arm_v8/bootstrap-hw-imx8q_evk.mk_:
 
+! REQUIRES = hw
+!
 ! REP_INC_DIR += src/bootstrap/board/imx8q_evk
 !
 ! SRC_CC  += bootstrap/board/imx8q_evk/platform.cc
 ! SRC_CC  += bootstrap/spec/arm/gicv3.cc
 ! SRC_CC  += bootstrap/spec/arm_64/cortex_a53_mmu.cc
-! SRC_CC  += lib/base/arm_64/kernel/interface.cc
-! SRC_CC  += spec/64bit/memory_map.cc
-! SRC_S   += bootstrap/spec/arm_64/crt0.s
-!
-! NR_OF_CPUS = 4
-!
-! vpath spec/64bit/memory_map.cc $(call select_from_repositories,src/lib/hw)
 !
 ! vpath bootstrap/% $(REP_DIR)/src
 !
-! include $(call select_from_repositories,lib/mk/bootstrap-hw.inc)
+! include $(call select_from_repositories,lib/mk/spec/arm_v8/bootstrap-hw.inc)
 
 The i.MX8 SoC uses the GICv3 as interrupt-controller.
 Hence, the driver gicv3.cc is included.
@@ -207,17 +202,12 @@ uses the GICv2 interrupt controller.
 The MMU driver differs between the various ARM versions. The
 i.MX8 is based on A53 CPU cores. The Allwinner A64 uses the same.
 
-The assembly file _arm_64/crt0.s_ contains the entry point into the program
-as jumped to by the boot loader.
-
-The NR_OF_CPUS definition is used for the static allocation of data
-structures that must be present for each CPU. Hence, this value is globally
-defined.
-
 The strange looking '$(call select_from_repositories...)' is a mechanism
 for accessing files across different source repositories. You can find the
 mechanism described in Section 5.3. "Build system" in the Genode Foundations
 book.
+
+: \clearpage
 
 :_repos/imx/src/bootstrap/board/imx8q_evk/board.h_:
 
@@ -305,21 +295,18 @@ Finally, let's turn our attention to the core-specific files.
 ! #add assembly sources
 ! SRC_S += spec/arm_v8/virtualization/exception_vector.s
 !
-! NR_OF_CPUS = 4
-!
 ! # include less specific configuration
 ! include $(call select_from_repositories,lib/mk/spec/arm_v8/core-hw.inc)
 
 Core needs to know the type of the interrupt controller because
 it processes interrupts at runtime. Here, the GICv3 driver is incorporated.
 
-Similar to bootstrap, a few data structures within core are statically
-allocated for each CPU, hence the NR_OF_CPUS must be specified here as well.
-
 We can ignore the files with 'vm_*' and 'virtualization' in their names
 for now. They are important for hosting virtual machines. Since the
 virtualization support is a generic feature of the ARM CPU, we don't
 have to take board-specific precautions.
+
+: \clearpage
 
 :_repos/imx/src/core/board/imx8q_evk/board.h_:
 
@@ -349,6 +336,14 @@ about all other peripheral devices.
 The VCPU_MAX definition is solely used for the dimensioning of an
 array that keeps the state of virtual CPUs for virtual machine.
 It is not important for now.
+
+To wrap up our review, let me draw your attention to the files at
+_imx/board/imx8q_evk/_, namely _image_link_address_, _devices_, and _arch_.
+The _image_link_address_ and _arch_ files contain parameters that are
+evaluated by Genode's run tool during the creating of boot images, whereas
+the _devices_ file declares the peripheral devices to be put under the
+supervision of the platform driver - a topic we will touch later in
+Section [One Platform driver to rule them all].
 
 
 A new home for the board support
@@ -638,9 +633,6 @@ uses the GIC version 2. Fortunately, the base-hw kernel supports both
 versions. So we can change the line to:
 ! SRC_CC  += bootstrap/spec/arm/gicv2.cc
 
-The NR_OF_CPUS value can stay unmodified because the Allwinner SoC has 4
-cores.
-
 
 :_lib/mk/spec/arm_v8/core-hw-pine_a64lts.mk_:
 
@@ -715,6 +707,9 @@ To our despair, the file is full of numbers.
   ! UART_BASE  = 0x1c28000,
   ! UART_SIZE  = 0x1000,
   ! UART_CLOCK = 0,
+
+* The NR_OF_CPUS value can stay unmodified because the Allwinner SoC has 4
+  cores.
 
 * The IRQ_CONTROLLER_REDIST_BASE and SIZE are not used for the GICv2.
   So the values can be removed.
@@ -932,7 +927,7 @@ Testing the system image on the board comes down to the following few steps.
 ! Error:   Function: Kernel::Cpu& Kernel::Cpu_pool::cpu(unsigned int)
 
 The excitement is real! That's the first life sign of Genode's kernel!
-We get three satisfactory results at once.
+We get two satisfactory results at once.
 First, our custom 'Ns16550_uart' driver is working, as evidenced by the
 beautifully formatted error messages. So we did not mess up any of the
 important numbers there.

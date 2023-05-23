@@ -132,8 +132,8 @@ The resulting device-tree nodes at a glance:
 Let's not get scared. A glossary of the terminology seen the picture
 should lift the clouds a bit.
 
-* The PIO device controls general-purpose I/O pins. We explored this
-  device [https://genodians.org/nfeske/2021-04-29-platform-driver - previously].
+* The PIO device controls general-purpose I/O pins. We already encountered this
+  device in Section [One Platform driver to rule them all].
   All pins are naturally related to the PIO controller but only a few of them
   are actually relevant for the display. So we can consider the large number of
   pin nodes as just noise for the most part.

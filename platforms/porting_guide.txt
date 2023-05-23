@@ -18,7 +18,7 @@ chapter is available at the following public Git repository.
 
 :Git repository of the Allwinner board support:
 
-  [https://github.com/nfeske/genode-allwinner]
+  [https://github.com/genodelabs/genode-allwinner]
 
 The guide is not carved in stone. It will be progressively enhanced with
 further information - e.g., details about various classes of drivers - over

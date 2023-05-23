@@ -251,11 +251,11 @@ so-called recipe for the given depot archive, which does not exist yet. The
 so-called recipes describe how a depot archive can be extracted from the
 source tree. They are searched in the _<repo>/recipes/_ directories of all
 repositories. E.g., the recipe for the base source archive for the i.MX8 EVK
-board resides at _repos/base-hw/recipes/src/base-hw-imx8q_evk/_. This
+board resides at _repos/imx/recipes/src/base-hw-imx8q_evk/_. This
 is a suitable template for out pine_a64lts recipe.
 
 ! $ mkdir -p repos/allwinner/recipes/src/base-hw-pine_a64lts
-! $ cp -r repos/base-hw/recipes/src/base-hw-imx8q_evk/* \
+! $ cp -r repos/imx/recipes/src/base-hw-imx8q_evk/* \
 !         repos/allwinner/recipes/src/base-hw-pine_a64lts/
 
 The directory hosts three files:
