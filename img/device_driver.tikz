@@ -2,21 +2,21 @@
 
 	\node (anchor) {};
 
-	\labeledcompoundnode{driver}{component, below=0 of anchor}{Device driver}{
+	\labeledcompoundnode{driver}{component, below=0 of anchor}{Block-device driver}{
 
-		\rpcobjectrnode{nicsession}{}{}{NIC session}
+		\rpcobjectrnode{blocksession}{}{}{Block session}
 
-		\node[capability, below of=nicsession] (driveriomemcap) {};
+		\node[capability, below of=blocksession] (driveriomemcap) {};
 		\node[capability, right of=driveriomemcap] (driverirqcap) {};
 	}
 
-	\labeledcompoundnode{nicclient}{component, below=0 of anchor, xshift=25ex,
-	                                minimum width=10ex}{NIC client}{
+	\labeledcompoundnode{blockclient}{component, below=0 of anchor, xshift=25ex,
+	                                minimum width=10ex}{File system}{
 
-		\node[capability] (nicclientcap) {};
+		\node[capability] (blockclientcap) {};
 	}
 
-	\node[fit=(driver) (nicclient)] (components) {};
+	\node[fit=(driver) (blockclient)] (components) {};
 
 	\labeledcompoundnode{core}{component, node distance=18ex,
 	                           below of=components}{Core}{
@@ -29,6 +29,6 @@
 	% capability associations
 	\path [draw, dashed] (iomemsessioncap) -- (driveriomemcap);
 	\path [draw, dashed] (irqsessioncap)   -- (driverirqcap);
-	\path [draw, dashed] (nicclientcap)    -- (nicsessioncap);
+	\path [draw, dashed] (blockclientcap)  -- (blocksessioncap);
 
 \end{tikzpicture}

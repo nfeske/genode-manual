@@ -133,7 +133,7 @@ repositories.
   :_hw_:
 
     The hw platform allows the execution of Genode on bare hardware
-    without the need for a separate kernel. The kernel functionality is
+    without the need for a third-party kernel. The kernel functionality is
     included in the core component. It supports the 32-bit ARM, 64-bit ARM,
     64-bit x86, and 64-bit RISC-V CPU architectures.
     More information about the hw platform can be

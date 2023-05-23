@@ -239,23 +239,10 @@ Component-dependent startup code
 
 With the Genode environment constructed and the initial stack switched
 to a proper stack located in the stack area, the component-dependent
-startup code of the '_main' function in _repos/base/src/lib/startup/_main.cc_ can be
-executed. This code is responsible for calling the global constructors
-of the program before calling the program's main function.
-
-In accordance to the established signature of the 'main' function, taking
-an argument list and an environment as arguments, the startup code supplies
-these arguments but uses dummy default values. However, since the values
-are taken from the global variables 'genode_argv', 'genode_argc', and
-'genode_envp', a global constructor is able to override the default values.
-
-The startup code in '_main.cc' is accompanied with support for _atexit_
-handling. The atexit mechanism allows for the registration of handlers
-to be called at the exit of the program. It is provided in the form of
-a POSIX API by the C runtime. But it is also used by the compiler to
-schedule the execution of the destructors of function-local static objects.
-For the latter reason, the atexit mechanism cannot be merely provided
-by the (optional) C runtime but must be supported by the base library.
+startup code of the 'Genode::bootstrap_component' function in
+_repos/base/src/lib/startup/_main.cc_ can be executed, which, in turn,
+initializes the component's default entrypoint before calling the
+application-level entry function 'Component::construct'.
 
 
 C++ runtime
@@ -1024,7 +1011,7 @@ drivers. The selection of the timer driver for a given board follows the same
 pattern as the definition of the 'Board::Pic' type. The board-specific
 _board.h_ file defines a 'Board::Timer' type that is mapped to one of the
 available drivers. For example, the _pbxa9/board.h_ file includes
-_spec/arm/cortex_a9_private_timer.h_, which contains the definition of
+_spec/arm/cortex_a9_global_timer.h_, which contains the definition of
 'Board::Timer'.
 
 The in-kernel handler of the timer interrupt invokes the thread scheduler
@@ -1296,7 +1283,7 @@ supports the model of a Genode kernel as described in Section
 
 :NOVA website:
 
-  [http://hypervisor.org]
+  [https://hypervisor.org]
 
 :NOVA kernel-interface specification:
 

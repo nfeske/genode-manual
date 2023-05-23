@@ -59,27 +59,29 @@ repository.
 Each source-code repository has the principle structure shown in Table
 [repository_overview].
 
-  Directory     | Description
- ------------------------------------------------------------
-  _doc/_        | Documentation, specific for the repository
- ------------------------------------------------------------
-  _etc/_        | Default configuration for the build system
- ------------------------------------------------------------
-  _mk/_         | Build-system supplements
- ------------------------------------------------------------
-  _include/_    | Globally visible header files
- ------------------------------------------------------------
-  _src/_        | Source codes and target build descriptions
- ------------------------------------------------------------
-  _lib/mk/_     | Library build descriptions
- ------------------------------------------------------------
-  _lib/import/_ | Library import descriptions
- ------------------------------------------------------------
-  _ports/_      | Port descriptions of 3rd-party software
- ------------------------------------------------------------
-  _recipes/_    | Package descriptions for depot content
- ------------------------------------------------------------
-  _run/_        | System scenarios in the form of run scripts
+  Directory      | Description
+ -------------------------------------------------------------
+  _doc/_         | Documentation, specific for the repository
+ -------------------------------------------------------------
+  _etc/_         | Default configuration for the build system
+ -------------------------------------------------------------
+  _mk/_          | Build-system supplements
+ -------------------------------------------------------------
+  _include/_     | Globally visible header files
+ -------------------------------------------------------------
+  _src/_         | Source codes and target build descriptions
+ -------------------------------------------------------------
+  _lib/mk/_      | Library build descriptions
+ -------------------------------------------------------------
+  _lib/import/_  | Library import descriptions
+ -------------------------------------------------------------
+  _lib/symbols/_ | Symbol lists provided by shared libraries
+ -------------------------------------------------------------
+  _ports/_       | Port descriptions of 3rd-party software
+ -------------------------------------------------------------
+  _recipes/_     | Package descriptions for depot content
+ -------------------------------------------------------------
+  _run/_         | System scenarios in the form of run scripts
 
 [table repository_overview]
   Structure of a source-code repository. Depending on the repository,
@@ -1464,7 +1466,7 @@ site:
 
 :GitHub project:
 
-  https://github.com/genodelabs/genode
+  [https://github.com/genodelabs/genode]
 
 
 Master and staging

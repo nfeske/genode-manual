@@ -72,8 +72,9 @@ A device driver translates a device interface to a Genode session interface.
 Figure [img/device_driver] illustrates the typical role of a device driver.
 
 [tikz img/device_driver]
-  A network device driver provides a NIC service to a single client and uses
-  core's IO-MEM and IRQ services to interact with the physical network adaptor.
+  A block-device driver provides a block service to a single client and uses
+  core's IO-MEM and IRQ services to interact with the physical block-device
+  controller.
 
 ; Raw device access
 
@@ -81,9 +82,13 @@ The device interface is defined by the device vendor and typically
 comprises the driving of state machines of the device, the
 notification of device-related events via interrupts, and the means to
 transfer data from and to the device.
-A device-driver component accesses the device interface via sessions to the
-core services IO_MEM, IO_PORT, and IRQ as described in
-Section [Access to device resources (IO_MEM, IO_PORT, IRQ)].
+In principle, a device-driver component may access device hardware via
+sessions to the low-level core services IO_MEM, IO_PORT, and IRQ as described
+in Section [Access to device resources (IO_MEM, IO_PORT, IRQ)].
+However, most practical scenarios benefit from the sandboxed operation of
+device drivers and the fine-grained segregation of device hardware between
+drivers, which is enabled by the platform driver covered in
+Section [Platform driver].
 
 ; Translator, not multiplexer
 
@@ -91,11 +96,18 @@ In general, a physical device cannot safely be driven by multiple users at the
 same time. If multiple users accessed one device concurrently, the device
 state would eventually become inconsistent.
 A device driver should not attempt to multiplex a hardware device.
-Instead, to keep its complexity low, it should act as a server that serves
+Instead, to keep its complexity low, it usually acts as a server that serves
 only a single client per physical device.
-Whereas a device driver for a simple device usually accepts only one client,
+Whereas a device driver for a simple device accepts only one client,
 a device driver for a complex device with multiple sub devices (such as
 a USB driver) may hand out each sub device to a different client.
+Whenever reasonably possible, a driver should best be implemented as a mere
+client, not as a server. For example, by asserting the role of a capture
+client at a GUI server, a display driver can be regarded as a disposable
+component that can be restarted or swapped out without affecting the GUI
+stack. The driver depends on the GUI server, but the GUI server does not
+depend on the driver, which helps to make the system resilient against driver
+failures.
 
 ; Void of built-in policy but enforces policy
 
@@ -916,17 +928,16 @@ Use cases
   represents each view as a window with window decorations and a placement
   policy. The resizing of a window by the user is reflected to the client as
   a screen-mode change.
-* A loader (Section [Loader]) virtualizes the GUI session interface for
-  the loaded subsystem.
 
 
 Platform
 ~~~~~~~~
 
-The platform session interface (on ARM-based devices) and the PCI session
-interface (on x86-based machines) provide the client with access to the
-devices present on the hardware platform. See Section [Platform driver]
-for more information on the role of platform drivers.
+The platform session interface provides the client with access to the
+devices present on the hardware platform and assigned to the client.
+One platform session may comprise multiple devices.
+See Section [Platform driver] for more information about the role of the
+platform driver.
 
 
 Block
@@ -1141,50 +1152,6 @@ Use cases
 * A pseudo file system may use the file-system interface as an hierarchic
   control interface. For example, a trace file system provides a pseudo
   file system as a front end to interact with core's TRACE service.
-
-
-Loader
-~~~~~~
-
-The loader session interface allows clients to dynamically create Genode
-subsystems to be hosted as children of a loader service. In contrast to a
-component that is spawning a new subsystem as an immediate child, a loader
-client has very limited control over the spawned subsystem. It can merely
-define the binaries and configuration to start, define the position where the
-loaded subsystem will appear on screen, and kill the subsystem. But it is not
-able to interfere with the operation of the subsystem during its lifetime.
-
-
-Session creation
-----------------
-
-At session-creation time, the client defines the amount of memory to be
-used for the new subsystem as session quota. Once the session is established,
-the client equips the loader session with ROM modules that will be presented
-to the loaded subsystem. From the perspective of the subsystem, those ROM
-modules can be requested in the form of ROM sessions from its parent.
-
-
-Visual integration of the subsystem
------------------------------------
-
-The loaded subsystem may implement a graphical user interface by creating
-a GUI session (Section [GUI]). The loader responds to such a
-session request by providing a locally implemented session. The loader
-subordinates the GUI session of the loaded subsystem to a GUI
-view (called parent view) defined by the loader client.
-The loader client can use the loader session interface to position the view
-relative to the parent-view position. Thereby, the graphical user interface
-of the loaded subsystem can be seamlessly integrated with the user interface
-of the loader client.
-
-
-Use case
---------
-
-The most illustrative use case is the execution of web-browser plugins where
-neither the browser trusts the plugin nor the plugin trusts the browser
-(Section [Ceding the parenthood]).
 
 
 Component configuration
@@ -1600,16 +1567,14 @@ complexity, the loader is a small component that is orders of magnitude less
 complex. Figure [img/arora_plugin] shows a scenario where a web browser is
 used as a shell to spawn a Genode subsystem.
 Instead of spawning the subsystem as the child of the browser, the browser
-creates a loader session. Using the loader-session interface described
-in Section [Loader], it can initially import the to-be-executed
-subsystem into the loader session and kick off the execution of the subsystem.
+creates a session to a trusted low-complexity loader service. The loader
+allows its client to import the to-be-executed subsystem into the loader
+session and kick off the execution of the subsystem.
 However, once the subsystem is running, the browser can no longer interfere
 with the subsystem's operation. So security-sensitive information processed within
 the loaded subsystem are no longer exposed to the browser. Still, the lifetime
 of the loaded subsystem depends on the browser. If it decides to close
 the loader session, the loader will destroy the corresponding subsystem.
-
-; XXX mention the alternative to the loader: reconfigure init at runtime
 
 By ceding the parenthood to a trusted component, the risks stemming from the
 complexity of various kinds of shells can be mitigated.
