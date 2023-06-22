@@ -1,0 +1,1439 @@
+Sticking together a little Unix
+===============================
+
+_This section is based on Norman Feske's_
+_[https://genodians.org/nfeske/2019-12-13-goa-unix-bash - article series]_
+_at [https://genodians.org]_.
+
+This tutorial takes you on a ride of creating a small Unix OS out of Genode's
+ready-to-use building blocks, publishing the result, and deploying it on
+top of Sculpt OS. It shows the fun and productive way of crafting component
+compositions out of Genode's readily available building blocks. What could be a
+better example than building an old-school operating system - Unix - that we all
+know and love? You can find the results of this tutorial in Norman's playground
+repository.
+
+:Norman's Goa playground repository:
+
+  [https://github.com/nfeske/goa-playground]
+
+_TODO: review text_
+
+
+Preparations
+------------
+
+Before continuing, please make sure to have installed the Goa tool, which
+is available at [https://github.com/genodelabs/goa]. If you have it installed
+already, please make sure the tool is up to date. You can issue the following
+command to update Goa to the latest version:
+
+! goa update-goa
+
+
+Hello bash
+----------
+
+As the first step, we want to get a life sign of the bash shell.
+We start with a new Goa project appropriately named 'unix' that hosts
+a runtime package but no source code.
+
+! $ mkdir unix
+! $ cd unix
+! $ mkdir -p pkg/unix
+
+Let's pretend we don't know what we are doing and create an _archives_
+file with only bash listed, and an almost empty _runtime_ file.
+
+The _pkg/unix/archives_ file:
+! genodelabs/src/bash
+
+The _pkg/unix/runtime_ file:
+! <runtime ram="100M" caps="5000" binary="init">
+! </runtime>
+
+Let's see what happens when issuing the 'run' command:
+
+! $ goa run
+
+! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz
+! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz.sig
+! download genodelabs/bin/x86_64/bash/2023-02-26.tar.xz
+! download genodelabs/bin/x86_64/bash/2023-02-26.tar.xz.sig
+! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz
+! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz.sig
+! download genodelabs/src/base-linux/2023-04-25.tar.xz
+! download genodelabs/src/base-linux/2023-04-25.tar.xz.sig
+! download genodelabs/src/bash/2023-02-26.tar.xz
+! download genodelabs/src/bash/2023-02-26.tar.xz.sig
+! download genodelabs/src/init/2023-04-25.tar.xz
+! download genodelabs/src/init/2023-04-25.tar.xz.sig
+! download genodelabs/api/base/2023-04-25.tar.xz
+! download genodelabs/api/base/2023-04-25.tar.xz.sig
+! download genodelabs/api/libc/2023-01-23.tar.xz
+! download genodelabs/api/libc/2023-01-23.tar.xz.sig
+! download genodelabs/api/noux/2023-02-26.tar.xz
+! download genodelabs/api/noux/2023-02-26.tar.xz.sig
+! download genodelabs/api/os/2023-04-16.tar.xz
+! download genodelabs/api/os/2023-04-16.tar.xz.sig
+! download genodelabs/api/posix/2020-05-17.tar.xz
+! download genodelabs/api/posix/2020-05-17.tar.xz.sig
+! download genodelabs/api/report_session/2023-03-12.tar.xz
+! download genodelabs/api/report_session/2023-03-12.tar.xz.sig
+! download genodelabs/api/sandbox/2021-06-24.tar.xz
+! download genodelabs/api/sandbox/2021-06-24.tar.xz.sig
+! download genodelabs/api/timer_session/2023-03-12.tar.xz
+! download genodelabs/api/timer_session/2023-03-12.tar.xz.sig
+! Error: runtime lacks a configuration
+!
+!  You may declare a 'config' attribute in the <runtime> node, or
+!  define a <config> node inside the <runtime> node.
+
+We can see that Goa automatically downloaded bash along with its dependencies
+such as the libc, and transitive dependencies such as Genode's base API.
+Besides the binaries, it also fetches all source codes. You can find all the
+downloads at _var/depot/_. One particularly interesting directory is the
+binary archive for bash:
+
+! $ ls var/depot/genodelabs/bin/x86_64/bash/2023-02-26/
+! bash.tar
+
+It contains a single tar archive, which in turn, contains all installation
+files of bash. Let's take a look inside:
+
+! $ tar tf var/depot/genodelabs/bin/x86_64/bash/2023-02-26/bash.tar
+! ./
+! ./share
+! ./share/doc
+! ...
+! ./bin/bashbug
+! ./bin/bash
+
+Of course, the most interesting bit is the 'bash' executable at _bin/bash_.
+When using the binary archive, the whole _bash.tar_ is supplemented to
+Genode as a single ROM module. Let's add it to the <content> of the
+_pkg/unix/runtime_:
+
+! <runtime ram="100M" caps="5000" binary="init">
+!   <content>
+!     <rom label="bash.tar"/>
+!   </content>
+! </runtime>
+
+After issuing 'goa run' again, you can find _bash.tar_ added to the _var/run/_
+directory, which comprises all the ROM modules of our Genode system.
+
+Of course, we cannot start a TAR archive. It is not an executable after
+all. We rather need to access the content of the archive. Here, the
+combination of three Genode components namely VFS, 'fs_rom', and init
+comes to the rescue.
+
+# The VFS server is able mount a TAR archive locally as a virtual file
+  system and offer its content as a _file-system service_.
+
+# The 'fs_rom' component provides a ROM service by fetching the content
+  of ROM modules from a file system. By connecting the 'fs_rom' with the VFS
+  component, the files of the _bash.tar_ archives become available as ROM
+  modules. With the bash executable binary accessible, we can execute it.
+
+# The init component allows us to stick components together and let the
+  result appear to the surrounding system as a single component. We can
+  use it to host the composition of the VFS, 'fs_rom', and bash.
+
+Note that our _pkg/unix/runtime_ refers to Genode's init component
+in the attribute 'binary="init"'. So as a whole, our subsystem will be an
+instance of init. Internally, init will host several child components
+and manage their resources and relationships according to its configuration.
+Let's start with a fresh init that hosts only the VFS server by
+placing the following <config> node inside the <runtime> node of the
+_pkg/unix/runtime_ file:
+
+! <config>
+!   <parent-provides>
+!     <service name="ROM"/>
+!     <service name="LOG"/>
+!     <service name="RM"/>
+!     <service name="CPU"/>
+!     <service name="PD"/>
+!     <service name="Timer"/>
+!   </parent-provides>
+!
+!   <start name="vfs" caps="100">
+!     <resource name="RAM" quantum="10M"/>
+!     <provides> <service name="File_system"/> </provides>
+!     <config>
+!       <vfs> <tar name="bash.tar"/> </vfs>
+!       <default-policy root="/" />
+!     </config>
+!     <route> <any-service> <parent/> </any-service> </route>
+!   </start>
+!
+! </config>
+
+The <default-policy> expresses that any client should be able to access
+the root of the virtual file system in a read-only fashion.
+
+When trying to 'run' the scenario now, we see a bunch of messages:
+
+! $ goa run
+! ... config <parent-provides> mentions a timer service;
+!     consider adding <timer/> as a required runtime service
+! Genode 20.11-251-g676fd7d884a <local changes>
+! 17592186044415 MiB RAM and 8997 caps assigned to init
+! [init -> unix] Error: vfs: environment ROM session denied ...
+
+The first message points out that init's '<parent-provides>' declaration
+refers to a service that should better also be announced as a requirement in the
+_runtime_ file. This can be done by adding the following '<requires>' node
+inside the '<runtime>' node.
+
+! <runtime>
+!   ...
+!   <requires>
+!     <timer/>
+!   </requires>
+!   ...
+! </runtime>
+
+The subsequent "Error:" messages tell us that init requested the ROM module
+'vfs' that is not available to the scenario, yet.
+To make both ingredients available to our scenario, we have to
+declare them in the _archives_ and as <content> in the _runtime_ file.
+Let's add the following lines to _pkg/unix/archive_:
+
+! genodelabs/src/vfs
+! genodelabs/src/init
+
+Also make sure to have the ROM modules listed as <content> in the
+_pkg/unix/runtime_ so that it looks as follows:
+
+! <content>
+!   <rom label="bash.tar"/>
+!   <rom label="init"/>
+!   <rom label="vfs"/>
+! </content>
+
+When issuing 'goa run' again, we can see Goa downloading the additional
+components. On the attempt to start the scenario, we are confronted with
+another error message:
+
+! [init -> unix -> vfs] Error: Could not open ROM session for "vfs.lib.so"
+
+This message tells us that the VFS server requests another ROM module, which
+is a shared library. The _vfs.lib.so_ contains the actual implementation
+of the virtual file system. It comes in the form of a library to enable its
+use either locally by an individual application or via the VFS server. The
+library is part of the 'genodelabs/src/vfs' archive that is already listed in our
+_archives_ file. So we can resolve this error by adding a corresponding <rom>
+entry to the _runtime_ file. The <content> should now look as follows:
+
+! <content>
+!   <rom label="bash.tar"/>
+!   <rom label="init"/>
+!   <rom label="vfs"/>
+!   <rom label="vfs.lib.so"/>
+! </content>
+
+When running the scenario again, we see a sign of hope:
+
+! goa run
+! Genode 23.02-146-g4bb4e60d8b0 <local changes>
+! 17592186044415 MiB RAM and 18997 caps assigned to init
+
+Not further errors! That means that the VFS server is running and has
+presumably mounted the _bash.tar_ archive. On a second terminal, you can
+indeed observe the VFS server showing up.
+
+$ ps u
+! ... [Genode] init
+! ... [Genode] init -> timer
+! ... [Genode] init -> unix
+! ... [Genode] init -> unix -> vfs
+
+The second piece of the puzzle is the 'fs_rom' server, which can be added
+to the <config> node of _pkg/unix/runtime_ with the following snippet:
+
+! <start name="vfs_rom" caps="100">
+!   <resource name="RAM" quantum="10M"/>
+!   <binary name="fs_rom"/>
+!   <provides> <service name="ROM"/> </provides>
+!   <config/>
+!   <route>
+!     <service name="File_system"> <child name="vfs"/> </service>
+!     <any-service> <parent/> </any-service>
+!   </route>
+! </start>
+
+By using the <binary> node, we can label the component in a meaningful
+way, calling it "vfs_rom". The first entry of the <route> node defines that
+the request for a file-system session should be routed to the "vfs" component.
+
+On the next attempt to issue 'goa run', we face an error message:
+
+! [init -> unix] Error: vfs_rom: environment ROM session denied
+
+By now, I'm sure you know how to resolve this one. Corresponding entries
+to your _archives_ file and the _runtime_ file's <content> are added swiftly.
+The fs_rom component gives us no life sign, which is normal. If you want to
+get a little bit more action on screen, you may add the 'verbose="yes"'
+attribute to init's <config> node. Another try of 'goa run' reveals the
+following output.
+
+! $ goa run
+
+! Genode 23.02-146-g4bb4e60d8b0 <local changes>
+! 17592186044415 MiB RAM and 18997 caps assigned to init
+! [init -> unix] parent provides
+! [init -> unix]   service "ROM"
+! [init -> unix]   service "LOG"
+! [init -> unix]   service "RM"
+! [init -> unix]   service "CPU"
+! [init -> unix]   service "PD"
+! [init -> unix]   service "Timer"
+! [init -> unix] child "vfs"
+! [init -> unix]   RAM quota:  9992K
+! [init -> unix]   cap quota:  66
+! [init -> unix]   ELF binary: vfs
+! [init -> unix]   priority:   0
+! [init -> unix]   provides service File_system
+! [init -> unix] child "vfs_rom"
+! [init -> unix]   RAM quota:  9992K
+! [init -> unix]   cap quota:  66
+! [init -> unix]   ELF binary: fs_rom
+! [init -> unix]   priority:   0
+! [init -> unix]   provides service ROM
+! [init -> unix] child "vfs" announces service "File_system"
+! [init -> unix] child "vfs_rom" announces service "ROM"
+
+That looks promising. Now with the bash executable available as ROM module,
+let's give the bash shell a spin:
+
+! <start name="/bin/bash" caps="1000">
+!   <resource name="RAM" quantum="10M" />
+!   <config>
+!     <libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+!           rtc="/dev/null"/>
+!     <vfs>
+!       <dir name="dev"> <null/> <log/> </dir>
+!     </vfs>
+!     <arg value="bash"/>
+!     <arg value="-c"/>
+!     <arg value="echo files at /dev: /dev/*"/>
+!   </config>
+!   <route>
+!     <service name="ROM" label_last="/bin/bash">
+!       <child name="vfs_rom"/> </service>
+!     <any-service> <parent/> </any-service>
+!   </route>
+! </start>
+
+The following parts are worth highlighting:
+
+* The bash has its own VFS! This has nothing to do with the VFS server
+  we started above. In fact, bash's VFS - as configured by the <vfs>
+  node - merely contains the two pseudo files _/dev/null_ and _/dev/log_.
+  The latter one is a LOG connection that enables the bash to write
+  messages to the outside world.
+
+* The <libc> node contains the configuration of the C runtime used by bash.
+  Here we say how the standard output should go, or that the C runtime
+  should obtain its "real-time-clock" information from _/dev/null_. No
+  time for you this time!
+
+* Via the sequence of <arg> nodes, we execute the command
+  ! echo files at /dev: /dev/*
+  It uses the shell's file globbing mechanism to obtain the list of files
+  matching the pattern "/dev/*" and prints it via the 'echo' built-in command.
+
+* The <route> rules explicitly tell init that the binary of the component
+  should be obtained from the "vfs_rom" component.
+
+When trying to 'goa run' the scenario now, we have to add a few more entries
+to our _archives_ and <content>, specifically because bash uses the C runtime
+(libc and libm) as well as the posix library. The full list of _archives_
+now looks as follows:
+
+! genodelabs/src/bash
+! genodelabs/src/vfs
+! genodelabs/src/init
+! genodelabs/src/fs_rom
+! genodelabs/src/libc
+! genodelabs/src/posix
+
+For reference, the <rom> modules listed in the _runtime_ file's <content>
+node:
+
+! <content>
+!   <rom label="init"/>
+!   <rom label="bash.tar"/>
+!   <rom label="vfs"/>
+!   <rom label="vfs.lib.so"/>
+!   <rom label="fs_rom"/>
+!   <rom label="libc.lib.so"/>
+!   <rom label="libm.lib.so"/>
+!   <rom label="posix.lib.so"/>
+! </content>
+
+Once these stumbling blocks are out of the way, 'goa run' greets us with the
+following output:
+
+! ...
+! [init -> unix] child "vfs" announces service "File_system"
+! [init -> unix] child "vfs_rom" announces service "ROM"
+! [init -> unix -> /bin/bash] files at /dev: /dev/log /dev/null
+! [init -> unix] child "/bin/bash" exited with exit value 0
+
+The message "files at /dev: /dev/log /dev/null"
+is the output of bash command we have hoped for!
+
+Granted, our scenario is still a far cry from being a Unix system.
+
+
+Some reorg is in order
+----------------------
+
+The scenario we just built was quite small. For such small
+scenarios, defining the <config> node right in the _runtime_ file is quite
+handy. Once the subsystem becomes bigger, however, its better to move
+the <config> into a dedicated ROM module. Let us create a new directory
+named _raw/_ inside the project directory, and move the <config> node from
+the _runtime_ file to a new file _raw/unix.config_. Goa will pick up all files
+contained in the _raw/_ directory and supply them as ROM modules to the Genode
+scenario.
+
+Since there is no longer a <config> provided in the _runtime_ file, we tell
+the runtime to use the "unix.config" as configuration by changing the <runtime>
+node as follows:
+
+! <runtime ram="100M" caps="5000" binary="init" config="unix.config">
+
+Since _unix.config_ is expected to be present as a ROM module, we have
+to declare via a <rom> node in the _runtime_ file.
+
+For reference, the _pkg/unix/runtime_ file should now look as follows:
+
+! <runtime ram="100M" caps="5000" binary="init" config="unix.config">
+!
+!   <content>
+!     <rom label="init"/>
+!     <rom label="bash.tar"/>
+!     <rom label="vfs"/>
+!     <rom label="vfs.lib.so"/>
+!     <rom label="fs_rom"/>
+!     <rom label="libc.lib.so"/>
+!     <rom label="libm.lib.so"/>
+!     <rom label="posix.lib.so"/>
+!     <rom label="unix.config"/>
+!   </content>
+!
+! </runtime>
+
+The _raw/unix.config_ file:
+
+! <config verbose="yes">
+!
+!   <parent-provides>
+!     <service name="ROM"/>
+!     <service name="LOG"/>
+!     <service name="RM"/>
+!     <service name="CPU"/>
+!     <service name="PD"/>
+!     <service name="Timer"/>
+!   </parent-provides>
+!
+!   <start name="vfs" caps="100">
+!     <resource name="RAM" quantum="10M"/>
+!     <provides> <service name="File_system"/> </provides>
+!     <config>
+!       <vfs> <tar name="bash.tar"/> </vfs>
+!       <default-policy root="/" />
+!     </config>
+!     <route> <any-service> <parent/> </any-service> </route>
+!   </start>
+!
+!   <start name="vfs_rom" caps="100">
+!     <resource name="RAM" quantum="10M"/>
+!     <binary name="fs_rom"/>
+!     <provides> <service name="ROM"/> </provides>
+!     <config/>
+!     <route>
+!       <service name="File_system"> <child name="vfs"/> </service>
+!       <any-service> <parent/> </any-service>
+!     </route>
+!   </start>
+!
+!   <start name="/bin/bash" caps="1000">
+!     <resource name="RAM" quantum="10M" />
+!     <config>
+!       <libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
+!             rtc="/dev/null"/>
+!       <vfs>
+!         <dir name="dev"> <null/> <log/> </dir>
+!       </vfs>
+!       <arg value="bash"/>
+!       <arg value="-c"/>
+!       <arg value="echo files at /dev: /dev/*"/>
+!     </config>
+!     <route>
+!       <service name="ROM" label_last="/bin/bash">
+!         <child name="vfs_rom"/> </service>
+!       <any-service> <parent/> </any-service>
+!     </route>
+!   </start>
+!
+! </config>
+
+This reorganization has two advantages. First, we save one indentation
+level for the <config> node. Second, by separating the _unix.config_ from
+the _runtime_ in the form of a dedicated ROM module, we can later reuse
+the same ROM module for other _runtime_ files. It is always good to have
+reusable building blocks.
+
+Let's give the new version a try by issuing 'goa run'. The output should
+look familiar to us.
+
+
+GUI stack
+---------
+
+Goa supports interactive system scenarios by looking at the requirements
+stated in the _runtime_ file. Right now, the runtime file merely states
+the amount of RAM and caps as a requirement. We can add the presence of
+a GUI service as an additional requirement by adding the following
+node inside the <runtime> node:
+
+! <requires>
+!   <gui/>
+!   <timer/>
+! </requires>
+
+When Goa processes the 'goa run' command, it evaluates this information.
+The <gui> node tells Goa that the scenario will request a
+session to a GUI server. When running the scenario on Linux,
+Goa will automatically integrate the components needed for such a GUI server.
+This includes a pseudo graphics driver, a pseudo input driver, and the
+[https://github.com/genodelabs/genode/tree/master/repos/os/src/server/nitpicker - nitpicker GUI server].
+
+Let's try 'goa run' after having added the <requires> definition to our
+_runtime_. We can see that Goa automatically downloads the basic components of
+the GUI stack. Not only that. When starting the scenario, a new window
+with a greenish background pops up. When hovering the mouse over the window,
+you can see a small mouse pointer. If you are curious how the system the
+GUI stack is assembled in detail, please have a look at _var/run/config_.
+But from the perspective of our Unix scenario, these exact details are not
+of interest. The only important point is that our scenario is now officially
+able to request a "Gui" and a "Timer" service from the underlying
+system.
+
+With these preconditions in place, we can start a graphical terminal
+in our _unix.config_ by adding the following <start> node:
+
+! <start name="terminal" caps="110">
+!   <resource name="RAM" quantum="10M"/>
+!   <provides> <service name="Terminal"/> </provides>
+!   <route>
+!     <service name="ROM" label="config">
+!       <parent label="terminal.config"/> </service>
+!     <any-service> <parent/> </any-service>
+!   </route>
+! </start>
+
+The
+[https://github.com/genodelabs/genode/tree/master/repos/gems/src/server/terminal - "terminal"]
+uses a GUI service to create a graphical terminal and provides the textual
+input and output in the form of a "Terminal" service. In the routing rules of
+the terminal, you can see that the terminal's configuration is fetched from a
+dedicated ROM module called "terminal.config". We have no such ROM module
+defined yet. However, let's still give it try:
+
+! [init -> unix] Error: terminal: environment ROM session denied (label="terminal" ...)
+! ...
+
+That's not surprising as we have not added 'terminal' to our
+_archives_ nor have we stated the <rom> modules in the runtime file's <content>.
+Let's do this now. While we are at it, let's also add a <rom> node for the
+"terminal.config" ROM.
+
+The following line must be added to _pkg/unix/archives_
+
+! genodelabs/src/terminal
+
+The following two lines must be added to the runtime file's <content>:
+
+! <content>
+!   ...
+!   <rom label="terminal"/>
+!   <rom label="terminal.config"/>
+! </content>
+
+When trying 'goa run' again, we see that we exchanged the previous errors
+with two new ones. Let's call it progress:
+
+! [init -> unix -> terminal] Error: ROM-session creation failed (label="config" ...)
+! ...
+
+The error is easy to explain. We have configured the "terminal"
+start node to fetch its configuration from a ROM called _terminal.config_
+but have not defined the ROM module so far. Let's add a new file
+_raw/terminal.config_ with an empty <config> node:
+
+! <config/>
+
+With the file added, our next call of 'goa run' is answered as follows.
+
+! [init -> unix -> terminal] Error: Uncaught exception of type
+!                            'Genode::Xml_node::Nonexistent_sub_node'
+! [init -> unix -> terminal] Warning: abort called - thread: ep
+
+Well, the terminal seems underwhelmed by us serving an empty <config/> as
+configuration. It is time to become more specific. Let's change the
+content of the _raw/terminal.config_ to something meaningful:
+
+! <config>
+!   <vfs>
+!     <rom name="VeraMono.ttf"/>
+!     <dir name="fonts">
+!       <dir name="monospace">
+!         <ttf name="regular" path="/VeraMono.ttf" size_px="16"/>
+!       </dir>
+!     </dir>
+!   </vfs>
+! </config>
+
+Wait a minute. How is this a terminal configuration?
+
+The terminal expects its font to be found at its local VFS at
+_/fonts/monospace_. The font has the form of a pseudo file system that
+provides the pixel data of the glyphs along with the font meta data as a bunch
+of pseudo files. So here, we mount a TrueType font with the 'ttf' file-system
+driver at _/fonts/monospace_. The font file is specified as 'path' attribute,
+which refers to "/VeraMono.ttf". This file, in turn, is backed by a <rom>
+session that requests the ROM module named "VeraMono.ttf".
+
+With this configuration in place, the next attempt of 'goa run' yields a
+quite predictable result:
+
+! [init -> unix -> terminal] Error: could not open ROM session for "VeraMono.ttf"
+! [init -> unix -> terminal] Error: failed to create <rom> VFS node
+! [init -> unix -> terminal] Error:     name="VeraMono.ttf"
+! [init -> unix -> terminal] Error: ROM-session creation failed (...)
+! [init -> unix -> terminal] Error: could not open ROM session for "vfs_ttf.lib.so"
+! [init -> unix -> terminal] Error: failed to create <ttf> VFS node
+! [init -> unix -> terminal] Error:     name="regular"
+! [init -> unix -> terminal] Error:     path="/VeraMono.ttf"
+! [init -> unix -> terminal] Error:     size_px="16"
+
+The terminal configuration refers to two ROM modules that we haven't yet
+included into the scenario. The "VeraMono.ttf" is the TrueType font data we
+tried to mount as <rom> node. The "vfs_ttf.lib.so" is the driver for the "ttf"
+pseudo file system. It is requested by the VFS when the <ttf> is encountered.
+The errors can be resolved by extending the _archives_ file and the _runtime_
+file's <content> node accordingly.
+
+The following lines must be added to _pkg/unix/archives_
+
+! genodelabs/raw/ttf-bitstream-vera-minimal
+! genodelabs/src/vfs_ttf
+
+The following lines must be added to the <content> node in _pkg/unix/runtime_
+
+! <content>
+!   ...
+!   <rom label="VeraMono.ttf"/>
+!   <rom label="vfs_ttf.lib.so"/>
+! </content>
+
+Good news! On the next try of 'goa run', we can see the error gone.
+However, as so often, the good news are accompanied with less good news, as
+seen in the log:
+
+! [init -> unix] Warning: terminal: no route to service "Gui" (...)
+! [init -> unix -> terminal] Error: Gui-session creation failed (...)
+
+It tells us that there is no way for the "terminal" to reach a
+"Gui" service. Let's take a look at the <route> rules for this component:
+
+! <route> <any-service> <parent/> </any-service> </route>
+
+This rule says that all service requests should directly go towards the
+surrounding Genode system, towards the parent of the component tree.
+However, in the <parent-provides> declaration at the beginning of the
+init <config> a "Gui" service is nowhere to be found. Hence, init
+refuses to ask the outside world for a "Gui" service on behalf of
+its child terminal. Let us enhance the <parent-provides> node with an entry
+for the GUI service:
+
+! <parent-provides>
+!   ...
+!   <service name="Gui"/>
+! </parent-provides>
+
+Now, when trying 'goa run' for the next time, we see that the complaint about
+the "Gui" service has vanished.
+We see the black screen and the log output of '/bin/bash' looks as usual.
+
+
+Connecting bash with the terminal
+---------------------------------
+
+With the current scenario, bash and the GUI stack are running peacefully
+side by side but they do not interact with each other. To connect them,
+we will do the following:
+
+# Mount a terminal session to the VFS of the VFS server at /dev/terminal.
+
+  This can be done by changing the content of the <start> node of the
+  VFS server. As a reminder, this is how it looks so far:
+
+  ! <config>
+  !   <vfs> <tar name="bash.tar"/> </vfs>
+  !   <default-policy root="/" />
+  ! </config>
+  ! <route> <any-service> <parent/> </any-service> </route>
+
+  We change it to the following:
+
+  ! <config>
+  !   <vfs>
+  !     <tar name="bash.tar"/>
+  !     <dir name="dev"> <terminal/> </dir>
+  !   </vfs>
+  !   <default-policy root="/" />
+  !   <policy label_prefix="/bin/bash" root="/" writeable="yes" />
+  ! </config>
+  ! <route>
+  !   <service name="Terminal"> <child name="terminal"/> </service>
+  !   <any-service> <parent/> </any-service>
+  ! </route>
+
+  The <vfs> node gained the configuration of _/dev/terminal_. When the
+  VFS encounters the <terminal> node upon initialization, it will request
+  a session to a "Terminal" service.
+  The added route tells init to route the terminal session
+  towards the "terminal" component.
+  The added <policy> node defines that a file-system client labeled as
+  "/bin/bash" is allowed to access the entirety of the VFS in a writeable
+  fashion.
+
+# Mount the file system as provided by the VFS server into the VFS of the
+  bash shell. This way, all files provided by the VFS server become
+  visible in the file name space of bash. This can be done by extending
+  the <vfs> of bash by adding an <fs/> node:
+
+  ! <vfs>
+  !   <dir name="dev"> <null/> <log/> </dir>
+  !   <fs/>
+  ! </vfs>
+
+  When the VFS of bash encounters the <fs/> node, it will request a session
+  to a "File_system" service. To let this request reach the VFS server,
+  we have to add a new entry to the <route> definition.
+
+  ! <route>
+  !   <service name="File_system"> <child name="vfs"/> </service>
+  !   ...
+  ! </route>
+
+To have a visible effect, let's redirect the output of the "echo" command
+executed by bash to the pseudo file _/dev/terminal_. Change the bash
+argument to the following (just appending the "> /dev/terminal"):
+
+! <arg value="echo files at /dev: /dev/* > /dev/terminal"/>
+
+Upon the next attempt of 'goa run', magic happens:
+
+[image goa_bash_terminal]
+
+We have just redirected the output of the bash command to our terminal, which
+used our TrueType pseudo-file-system driver to render glyphs on a pixel buffer
+that, in turn, was blitted by the nitpicker GUI server to screen. Could our
+day become any better? Sure! How about interacting with bash directly?
+
+Change the <libc> configuration of bash to the following:
+
+! <libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/terminal"
+!       rtc="/dev/null"/>
+
+This change wires up the standard input and output of bash with
+_/dev/terminal_. Let's also drop the '-c' arguments from the bash <config> so
+that bash will wait for a command typed in via stdin. The next 'goa run'
+will greet us with a shell prompt where we can type in bash commands like
+echo:
+
+[image goa_bash_interactive]
+
+Of course, we feel a sudden urge to also execute the 'ls' command.
+
+[image goa_ls_command_not_found]
+
+The 'ls' command is a separate Unix command that is not yet part of our
+scenario. It is covered by the following section.
+
+
+Adding GNU coreutils
+--------------------
+
+The 'ls' command - along with
+most others we commonly associate with Unix - are actually little programs
+that are spawned by the shell each time when used. When typing 'ls', bash
+doesn't actually know the purpose of 'ls'. It merely looks up a program named
+'ls' and executes it. The program 'ls', in turn, has the single purpose
+of printing directory contents. When executed, it takes a look at the file
+system, prints the gathered information, and exits. The 'ls' command together
+with its friends 'cp', 'mkdir', 'sort', and many others are the Unix core
+utilities. On a regular GNU/Linux system, they are provided by the
+[https://www.gnu.org/software/coreutils/coreutils.html - GNU coreutils]
+package.
+
+The GNU coreutils package is readily available for Genode. We can add it
+by appending the following line to our _pkg/unix/archives_ file:
+
+! genodelabs/src/coreutils
+
+After adding this line, the next invocation of 'goa run' will download
+the source code along with a ready-to-use binaries to _var/depot/_.
+In particular, you can find the binary at
+_var/depot/genodelabs/bin/x86_64/coreutils/<version>/_.
+Analogous to the bash package, described in section [Hello bash],
+there is a single TAR archive containing all the files that comprise the
+coreutils installation.
+
+! $ tar tf var/depot/genodelabs/bin/x86_64/coreutils/2023-02-26/coreutils.tar
+! ./
+! ./lib/
+! ...
+! ./share/
+! ...
+! ./bin/
+! ./bin/uname
+! ./bin/groups
+! ./bin/dircolors
+! ./bin/chcon
+! ./bin/nproc
+! ./bin/true
+! ./bin/mv
+! ...
+
+We follow the same pattern as previously used for integrating the _bash.tar_
+archive.
+
+# Declaring the use of 'coreutils.tar' as ROM module in the _pkg/unix/runtime_
+  file's <content> node:
+
+  ! <content>
+  !   ...
+  !   <rom label="coreutils.tar"/>
+  ! </content>
+
+# Mounting the 'coreutils.tar' as file system into the VFS of the VFS server.
+  The VFS server's <vfs> should now look as follows:
+
+  ! <vfs>
+  !   <tar name="bash.tar"/>
+  !   <tar name="coreutils.tar"/>
+  !   <dir name="dev"> <terminal/> </dir>
+  ! </vfs>
+
+  As you can see, the VFS supports the mounting any number of file systems
+  side by side as overlays, which is commonly known as
+  [https://en.wikipedia.org/wiki/Union_mount - union mounting].
+
+Remember from the end of the previous section that our attempt to issue
+'ls' resulted in the following message:
+
+[image goa_ls_command_not_found]
+
+Let's give 'goa run' another go now.
+
+[image goa_ls_no_such_file]
+
+Unlike before, bash has actually found the 'ls' binary on the file system. We
+mounted 'coreutils.tar' into the VFS after all, which you can easily reaffirm
+via 'cd bin; echo *'. However, bash still failed to spawn the 'ls' program.
+Genode's log output reveals why:
+
+! [init -> unix -> /bin/bash -> 1] Error: Could not open ROM session for "/bin/ls"
+! [init -> unix -> /bin/bash -> 1] Warning: execve: executable binary inaccessible as ROM module
+
+Remember from section [Hello bash]
+that we have to make a program's binary available as ROM module in order to
+execute it. We have accomplished this via the 'fs_rom' server handing out
+file-system content as ROM modules, and directing bash's request for the
+"/bin/bash" ROM module to 'fs_rom'. To recap, we defined the <route> rules for
+'bash' as follows:
+
+! <route>
+!   <service name="File_system"> <child name="vfs"/> </service>
+!   <service name="ROM" label_last="/bin/bash">
+!     <child name="vfs_rom"/> </service>
+!   <any-service> <parent/> </any-service>
+! </route>
+
+There is no valid route for a ROM service and the label "/bin/ls" yet.
+In principle, we could follow the pattern of the "/bin/bash" ROM.
+On the other hand, with many binaries installed at _/bin/_, the approach
+would become cumbersome. A better solution is adding a route that matches
+the label prefix "/bin". Changing the <route> of "/bin/bash" as follows
+does the trick (pay attention to the third <service> node).
+
+! <route>
+!   <service name="File_system"> <child name="vfs"/> </service>
+!   <service name="ROM" label_last="/bin/bash">
+!     <child name="vfs_rom"/> </service>
+!   <service name="ROM" label_prefix="/bin">
+!     <child name="vfs_rom"/> </service>
+!   <any-service> <parent/> <any-child/> </any-service>
+! </route>
+
+In the following, we don't want to refer to the Unix commands using their
+full paths but by their names. So let us set the 'PATH' environment variable
+in the '<config>' of bash's '<start>' node.
+
+! <config>
+!   ..
+!   <env key="PATH" value="/bin"/>
+! </config>
+
+The next try of 'goa run' yields the following result:
+
+[image goa_ls_working]
+
+A look at _/bin/_ reveals the wealth of commands that have just become
+available at our finger tips.
+
+[image goa_ls_bin]
+
+
+Plumbing pipes
+--------------
+
+Let us try to count'em via the 'wc -l' command ('wc -l' counts the number of
+lines).
+
+[image goa_pipe_error]
+
+With our attempt of using a pipe, feeding the output of 'ls -1' via the '|'
+symbol as input into 'wc -l', we seem to hit another brick wall.
+But that one isn't too bad. Until now, we haven't yet configured the
+C runtime of "/bin/bash" (and its child processes) for the use of a pipe
+mechanism. We can do so by adding a 'pipe' attribute to the <libc> node:
+
+! <libc stdin="/dev/terminal" stdout="/dev/terminal" stderr="/dev/terminal"
+!       rtc="/dev/null" pipe="/dev/pipe"/>
+
+But _/dev/pipe_ does not exist, you ask! Thanks for paying attention.
+On traditional Unix systems, the pipe mechanism is provided by the kernel.
+On Genode, we provide it via a pseudo file system that is shared by both
+ends of the pipe. The path _/dev/pipe/_ is the location of this pseudo
+file system. To make it easily available to all Unix processes, we have
+to mount it into the VFS of the VFS server. As a reminder, the <vfs> of the
+VFS server currently looks as follows.
+
+! <vfs>
+!   <tar name="bash.tar"/>
+!   <tar name="coreutils.tar"/>
+!   <dir name="dev"> <terminal/> </dir>
+! </vfs>
+
+With the addition of the pipe pseudo file system, we change the
+'<dir name="dev">' node into this:
+
+! <dir name="dev">
+!   <terminal/>
+!   <dir name="pipe"> <pipe/> </dir>
+! </dir>
+
+As usual after making such changes, the repeated use of 'goa run' guides us
+forward:
+
+! [init -> unix -> vfs] Error: Could not open ROM session for "vfs_pipe.lib.so"
+! [init -> unix -> vfs] Error: failed to create <pipe> VFS node
+
+I'm sure, you guess what comes next. Let's enhance _pkg/unix/archives_ with
+the following line:
+
+! genodelabs/src/vfs_pipe
+
+Also declare the "vfs_pipe.lib.so" ROM in our _pkg/unix/runtime_ file:
+
+! <content>
+!   ...
+!   <rom label="vfs_pipe.lib.so"/>
+! </content>
+
+With these minor tweaks in place, 'goa run' starts up successfully again.
+This time, our attempt to combine 'ls' with 'wc' works as intended!
+
+[image goa_ls_wc]
+
+
+Life is not complete without Vim
+--------------------------------
+
+To wrap up the Unix experience, let's add the Vim text editor to the scenario.
+The process is rather straight forward and follows exactly the pattern of the
+addition of coreutils. That is
+
+# Add vim to _pkg/unix/archives_
+
+  ! genodelabs/src/vim
+
+# Add the "vim.tar: ROM to _pkg/unix/runtime_
+
+  ! <rom label="vim.tar"/>
+
+# Mount "vim.tar" at the VFS server
+
+  ! <tar name="vim.tar"/>
+
+Another try of 'goa run' downloads the needed depot content and starts the
+scenario. The attempt to start 'vim' results in an error message in the
+Genode log:
+
+! [init -> unix -> /bin/bash -> 1] Error: Could not open ROM session for "ncurses.lib.so"
+
+Vim is the first Unix program that requires
+[https://en.wikipedia.org/wiki/Ncurses - ncurses], which is a library for
+interactive terminal applications. To make it available to our system,
+add 'genodelabs/src/ncurses' to _pkg/unix/archives_ and
+'<rom label="ncurses.lib.so"/>' to _pkg/unix/runtime_.
+
+The next test run looks much better. Vim starts up successfully but is not
+entirely happy:
+
+[image goa_vim_no_tmp]
+
+Vim relies on the presence of a _/tmp/_ directory. We can satisfy it by
+mounting a memory-backed <ram/> file system in our VFS server by adding
+the following line to its <vfs> configuration:
+
+! <dir name="tmp"> <ram/> </dir>
+
+Upon the next test run, we are greeted with another error message:
+
+[image goa_vim_no_sh]
+
+For some tasks like file globbing, Vim spawns a shell as child process and
+expects the shell being available as _/bin/sh_. This default can be overridden
+via the 'SHELL' environment variable. We can set the 'SHELL' environment
+variable to the value "bash" by adding the following line to <config> of the
+"/bin/bash" <start> node:
+
+! <env key="SHELL" value="bash"/>
+
+Furthermore, we can tame Vim by overriding its default configuration.
+
+Create a file _raw/vimrc_ with the following content:
+!set noloadplugins
+!set hls
+!set nocompatible
+!set laststatus=2
+!set noswapfile
+!set viminfo=
+
+Add a <rom label="vimrc"/> node to the <content> of _pkg/unix/runtime_.
+
+Mount the "vimrc" ROM as _/share/vim/vimrc_ file at the VFS server:
+
+! <dir name="share"> <dir name="vim"> <rom name="vimrc"/> </dir> </dir>
+
+Finally, we can make ncurses aware of the actual terminal protocol implemented
+by Genode's graphical terminal by setting the environment variable 'TERM'.
+This enables the use of colors in Vim. Add the following line to the <config>
+of the "/bin/bash" <start> node:
+
+! <env key="TERM" value="screen"/>
+
+With these changes, we are greeted with the following screen when starting
+'vim' from the bash shell in our little Unix environment:
+
+[image goa_vim_working]
+
+We have just crafted a little Unix out of Genode's generic building blocks.
+The result allows us to work with the time-tested an loved Unix core
+utilities, combine them with pipes, and edit files with the full
+comfort of Vim. All that has become possible with less than 150 lines of XML:
+
+! $ wc -l raw/unix.config raw/terminal.config pkg/unix/runtime
+!   89 raw/unix.config
+!   10 raw/terminal.config
+!   28 pkg/unix/runtime
+!  121 total
+
+
+Software-publishing prerequisites
+---------------------------------
+
+_TODO: simplify text since we already present an example in Getting Started_
+
+In order to provide packaged software to other Genode users, you will
+need the following prerequisites:
+
+# A publicly accessible place on the web where users can download
+  your software packages from.
+
+# A PGP key pair to protect the end-to-end integrity of your packages.
+
+This section does not cover the first point as there are so many options
+when it comes to web hosting. However, the use of PGP deserves an explanation.
+
+Genode's depot tools use Open-PGP signatures to ensure that the packages
+created by you are bit-for-bit identical to the packages arrived at the user's
+system. It works like this: You as the software provider create an Open-PGP
+key pair consisting of a private key and a matching public key. The private
+key must remain your secret. The public key should be made publicly available.
+
+You can use your private key to put _your_ digital signature on a package.
+Nobody else can forge your signature because the private key is known only
+to you. Once a user has downloaded the package, the signature attached to the
+package can be tested against the public key. If the package was mutated on
+the way to the user's machine, e.g., the web server was compromised by an
+attacker, this check would ultimately fail. The user is saved from the
+risk of running non-genuine or randomly broken software. Vice versa, if the
+signature check succeeds, the user can be certain to have obtained a
+bit-for-bit identical copy of the package created by the owner of the private
+key - the software provider.
+
+Since you are an aspiring software provider, you ought to have an Open-PGP
+key pair.
+
+
+Creating a key pair using GnuPG
+-------------------------------
+
+GnuPG is the go-to implementation of the Open-PGP standard. It is usually
+installed by default on GNU/Linux distributions. For reference, I'm currently
+using the version 2.2.4.
+
+! $ gpg --version
+! gpg (GnuPG) 2.2.4
+! libgcrypt 1.8.1
+! ...
+
+If you are already using GPG for encrypting/signing email, you may in
+principle use your existing key pair. If so, you may skip this section.
+
+To create a new key pair, one can use the following command:
+
+! $ gpg --full-generate-key
+! gpg (GnuPG) 2.2.4; Copyright (C) 2017 Free Software Foundation, Inc.
+! This is free software: you are free to change and redistribute it.
+! There is NO WARRANTY, to the extent permitted by law.
+! 
+! Please select what kind of key you want:
+!    (1) RSA and RSA (default)
+!    (2) DSA and Elgamal
+!    (3) DSA (sign only)
+!    (4) RSA (sign only)
+! Your selection? 
+
+Stick to the default (RSA) by hitting enter. Next, we are asked for the key
+size.
+
+! RSA keys may be between 1024 and 4096 bits long.
+! What keysize do you want? (3072)
+
+I was once told that 4096 is a good number. So let's put it in.
+Next, we are asked to decide for how long we want to use this key.
+
+! Please specify how long the key should be valid.
+!          0 = key does not expire
+!       <n>  = key expires in n days
+!       <n>w = key expires in n weeks
+!       <n>m = key expires in n months
+!       <n>y = key expires in n years
+! Key is valid for? (0)
+
+For our use case, there is no point in limiting the key's lifetime.
+Press enter to let the key never expire.
+
+! Key does not expire at all
+! Is this correct? (y/N)
+
+The tool apparently wants to have us think twice about it. Well, typing 'y'
+gives it the assurance it desires.
+
+Next, the question about our real name. Well, I'm calling myself "John K." now.
+
+! Real name: John K.
+
+When asked for the email address, it's technically fine to just fill-in some
+place holder.
+
+Should you intend to widely publish your public key, e.g., by uploading it to
+a key server, please consider using your real identity. You want to be trusted
+by the users of your software after all, don't you? A real identity is
+certainly more trustworthy than a random internet person hiding behind a
+pseudonym.
+
+! Email address: a@b.cd
+
+Next, we can leave a comment. But we can also leave it blank by pressing enter.
+
+! Comment:
+! You selected this USER-ID:
+!     "John K. <a@b.cd>"
+!
+! Change (N)ame, (C)omment, (E)mail or (O)kay/(Q)uit?
+
+After pressing 'o', we are greeted with a dialog asking for a new passphrase.
+This passphrase is used to encrypt your private key before storing it in a
+file. In the event of a leak of this file, your private key remains still a
+secret unless your passphrase becomes known. Hence, you should better not
+write down your passphrase but keep it in your head only. Once we supplied our
+passphrase, GPG confirms the creation of the new key pair with a message like
+this:
+
+! ...
+! public and secret key created and signed.
+!
+! pub   rsa4096 2020-01-16 [SC]
+!       96541E89AA71BAA88DF56C538ADB04B1F162AF2D
+! uid                      John K. <a@b.cd>
+! sub   rsa4096 2020-01-16 [E]
+
+When inspecting the GPG keyring via the command 'gpg --list-secret-keys', we
+can see the new key listed:
+
+! $ gpg --list-secret-keys
+! ...
+! sec   rsa4096 2020-01-16 [SC]
+!       96541E89AA71BAA88DF56C538ADB04B1F162AF2D
+! uid           [ultimate] John K. <a@b.cd>
+! ssb   rsa4096 2020-01-16 [E]
+
+
+A quick look back at the project we wish to publish
+---------------------------------------------------
+
+To publish the depot content for a given Goa project, first change to the
+project directory. For example, within the 'goa-playground' repository linked
+above, I'd change to the 'unix_3rd' directory.
+
+! git clone https://github.com/nfeske/goa-playground.git
+! cd goa-playground/intro/unix_3rd/
+
+Before proceeding, please make sure to use the latest version of the Goa tool.
+
+! goa update-goa
+
+It is always a good idea to give the project a quick try before publishing it.
+
+! goa run
+
+Goa will download all the components needed to build the scenario, and execute
+it directly on the GNU/Linux development machine. You should see the terminal
+window familiar from section [Plumbing pipes].
+
+When peeking at the _var/public/_ directory now, we see the downloaded
+archives and signatures. For example,
+
+! $ find var/public/genodelabs/bin/x86_64/terminal
+! var/public/genodelabs/bin/x86_64/terminal
+! var/public/genodelabs/bin/x86_64/terminal/2023-04-25.tar.xz.sig
+! var/public/genodelabs/bin/x86_64/terminal/2023-04-25.tar.xz
+
+The 'sig' file is the signature that I (Norman) created via my private PGP
+key when I originally published the terminal. After downloading, Goa verifies
+the signature using Genode Labs' public key that is provided at
+_var/depot/genodelabs/pubkey_.
+
+When taking a look at the _var/depot/_ directory, we see the depot
+content extracted from the corresponding 'tar.xz' archives.
+
+
+Exporting the project to a Genode depot
+---------------------------------------
+
+Genode package management organizes software in a so-called depot, which is a
+directory with a special structure explained in
+[https://genode.org/documentation/genode-foundations/22.05/development/Package_management.html - Genode's documentation].
+To create depot content for _our_ project, Goa features the 'goa export'
+command. Let's give it a try without a second thought.
+
+! $ goa export
+! Error: missing definition of depot user
+!
+!  You can define your depot user name by setting the 'depot_user' 
+!  variable in a .goarc file, or by specifing the '--depot-user <name>' 
+!  command-line argument.
+
+As hinted by the error message, Goa needs to know the name of us as the
+software provider. The depot user name will correspond to the sub directory
+within the depot that will host our content. Let us try the command again,
+but specifying the user name "john" this time.
+
+! $ goa export --depot-user john
+! Error: version for archive john/raw/unix_3rd undefined
+!
+!  Create a 'version' file in your project directory, or 
+!  define 'set version(john/raw/unix_3rd) <version>' in your .goarc file.
+
+This time, Goa seems to be happy about our depot user name but it apparently
+misses any version information about our project. Indeed, while following the
+steps of the previous sections, we did not talk or think about versions at
+all. Now it is time to make up our minds about a suitable version identifier.
+In principle, any character string will do, as long as it does not contain
+anything fancy like whitespace. It is generally a good practice to just use
+the current date. Hence, we write the version identifier into a new file
+called _version_:
+
+! $ echo 2023-05-02 > version
+
+Let's give 'goa export' another try.
+
+! $ goa export --depot-user john
+! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-05-02
+! Error: missing README file at pkg/unix_3rd/README
+
+This looks like a partial success! When inspecting _var/depot/_ now, we
+can indeed find content that looks pretty familiar.
+
+! $ ls var/depot/john/raw/unix_3rd/2023-05-02/
+! terminal.config  unix.config  vimrc
+
+However, let's pay attention to the 'Error:' part of the message. By
+convention, each depot package features a README file, and Goa nags us to
+follow this convention. We have to give in. Create a file at
+_pkg/unix_3rd/README_ with content of your choice. The README should contain
+a short description of the purpose of the package, along with instructions
+for using it.
+I recommend following the [https://github.com/nfeske/gosh - GOSH] markup
+syntax as consistently used throughout Genode's documentation. This will
+allow future versions of Sculpt OS to present your text nicely formatted
+to the user.
+
+With the README file in place, let's try again:
+
+! $ goa export --depot-user john
+! Error: archive john/raw/unix_3rd/2023-05-02 already exists in the depot
+!
+!  You may specify '--depot-overwrite' to replace the existing version.
+
+Goa wants to save us from accidentally overwriting existing depot content,
+which can happen, for example, if we made changes in the project but forgot to
+adjust the _version_ file. In our case just now, however, the message results
+from our partial success above. Remember that _raw/unix_3rd_ was actually
+exported already. So we are safe to specify the '--depot-overwrite' argument
+as suggested by Goa.
+
+! $ goa export --depot-user john --depot-overwrite
+! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-05-02
+! [unix_3rd] exported .../unix_3rd/var/depot/john/pkg/unix_3rd/2023-05-02
+
+This time, the command succeeded. To celebrate the success, review the
+content of our part our - john's part - of the depot.
+
+! $ find var/depot/john/
+! var/depot/john/
+! var/depot/john/raw
+! var/depot/john/raw/unix_3rd
+! var/depot/john/raw/unix_3rd/2023-05-02
+! var/depot/john/raw/unix_3rd/2023-05-02/terminal.config
+! var/depot/john/raw/unix_3rd/2023-05-02/vimrc
+! var/depot/john/raw/unix_3rd/2023-05-02/unix.config
+! var/depot/john/pkg
+! var/depot/john/pkg/unix_3rd
+! var/depot/john/pkg/unix_3rd/2023-05-02
+! var/depot/john/pkg/unix_3rd/2023-05-02/archives
+! var/depot/john/pkg/unix_3rd/2023-05-02/runtime
+! var/depot/john/pkg/unix_3rd/2023-05-02/README
+
+You can nicely see here how the _version_ file defines the name of the
+subdirectory of the content.
+
+
+Signing and archiving
+---------------------
+
+Even though the depot content looks good, it has not yet a suitable form
+for distributing it. We ultimately need to wrap the content in archive files
+and apply our digital signature to these archives. Fortunately, we don't
+need to do these steps manually. Goa assists us with the 'publish' command.
+This command implicitly executes the 'goa export' command. So we need to
+specify all information that we supplied to 'export'.
+
+! $ goa publish --depot-user john --depot-overwrite
+! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-05-02
+! [unix_3rd] exported .../unix_3rd/var/depot/john/pkg/unix_3rd/2023-05-02
+! Error: missing public key at .../unix_3rd/var/depot/john/pubkey
+!
+!  You may use the 'goa add-depot-user' command. 
+!  To learn more about this command:
+!
+!    goa help add-depot-user
+
+Goa cannot know which key to use for signing the depot content. It only knows
+the name of our made-up depot user "john". But we have not yet drawn the
+connection to the PGP key pair we have created.
+The 'goa add-depot-user' command closes the circle.
+
+! $ goa add-depot-user john --depot-url "https://your-domain/and/url" \
+!                           --gpg-user-id "a@b.cd" \
+!                           --depot-overwrite
+
+The URL specified as '--depot-url' argument should point to the designated
+location of the archives on your web server. For reference, my (Norman's)
+depot URL is [https://depot.genode.org/]. Note that the URL points to the
+root of the depot directory structure, not the depot user's sub directory.
+
+The '--gpg-user-id' can be any GPG user-ID string as understood by GPG.
+In the example above, we used the email address that we specified for the
+GPG key pair.
+
+The '--depot-overwrite' argument is specified because Goa tries to prevent us
+from accidentally overwriting information of existing depot content, like
+the content we just created with the 'goa export' command. It is interesting
+to take a look at the content of the depot user "john" now.
+
+! $ find var/depot/john/
+! var/depot/john/
+! var/depot/john/pubkey
+! var/depot/john/download
+
+The content we extracted before is no more. Instead, there is fresh
+subdirectory _john_ with the information we supplied to the 'goa add-depot-user'
+command. Take the time to look into both files. Goa extracted the
+ASCII-armored _pubkey_ from the GPG keyring by using the specified GPG user ID.
+
+With the connection between the depot user "john" and his key pair drawn,
+let us give Goa another chance to publish the project.
+
+! $ goa publish --depot-user john --depot-overwrite
+
+This time, Goa is able to proceed, as indicated by the following messages:
+
+! publish .../var/public/john/pkg/unix_3rd/2023-05-02.tar.xz
+! publish .../var/public/john/raw/unix_3rd/2023-05-02.tar.xz
+
+We are also asked by GPG for our passphrase for decrypting our private key.
+We obey.
+
+Once the command completed, we can find the archived and signed depot content
+at _var/public/john/:_
+
+! $ find var/public/john
+! var/public/john
+! var/public/john/raw
+! var/public/john/raw/unix_3rd
+! var/public/john/raw/unix_3rd/2023-05-02.tar.xz.sig
+! var/public/john/raw/unix_3rd/2023-05-02.tar.xz
+! var/public/john/pkg
+! var/public/john/pkg/unix_3rd
+! var/public/john/pkg/unix_3rd/2023-05-02.tar.xz.sig
+! var/public/john/pkg/unix_3rd/2023-05-02.tar.xz
+
+
+Syncing the public depot content to the web server
+--------------------------------------------------
+
+The entirety of the _var/public/john_ directory can now be copied as is
+to the web server. The way of how this content is uploaded is up to you.
+
+Personally, I'm using the fantastic [https://en.wikipedia.org/wiki/Rsync - rsync]
+tool with the following combination of arguments:
+
+! -rpltOvz --checksum --chmod=Dg+s,ug+w,o-w,+X
+
+You may not believe me but that's not my poor attempt at ASCII art.
+Please use 'man rsync' to decrypt this information.

@@ -1,0 +1,4 @@
+Library porting
+===============
+
+_LVGL library in Goa + system_info app_

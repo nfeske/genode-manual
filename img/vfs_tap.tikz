@@ -1,0 +1,171 @@
+\begin{tikzpicture}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1,
+	                        minimum width=12ex, minimum height=5ex]
+
+	\tikzstyle{puzzle} = [component, path fading=flow fade, align=center,
+	                      dropshadow, rounded corners=2]
+
+	\tikzstyle{lib} = [fill=white, opacity=0.5, draw]
+
+	\tikzstyle{dirs} = [scale=1.8, inner sep=1ex, align=left]
+
+	\tikzstyle{dirbox} = [rounded corners=2, densely dotted, fill=white,
+	                      inner sep=1ex, fill=white, fill opacity=0.2, draw,
+	                      minimum width=35ex]
+
+	%%
+	% Create rugged path
+	%
+	% argument 1:  number of saw tooths
+	% argument 2:  odd step of saw tooth
+	% argument 3:  even step of saw tooth
+	%
+	\newcommand{\ruggedpath}[3]{ \foreach \i in {1,2,...,#1} {
+		-- ++#2 -- ++#3 -- ++#3 -- ++#2}}
+
+	%
+	% VFS Library
+	%
+
+	\path (0,0) coordinate (vfsanchor);
+
+	\path[puzzle, rounded corners=0] (vfsanchor)
+		-- ++(0,-10ex)
+		{[sharp corners] \ruggedpath{12}{(1ex,-1ex)}{(1ex,1ex)}}
+		{[sharp corners] \ruggedpath{12}{(1ex,-1ex)}{(-1ex,-1ex)}}
+		-- ++(40ex,0)
+		{[sharp corners] \ruggedpath{12}{(1ex,1ex)}{(-1ex,1ex)}}
+		{[sharp corners] \ruggedpath{12}{(1ex,1ex)}{(1ex,-1ex)}}
+		-- ++(0,10ex)
+		--cycle;
+
+	\path (vfsanchor)+(5*12ex+8ex,-10ex) node[scale=3] (vfstitle) {VFS};
+
+	\path (vfstitle.south)
+		node[dirbox, below=8ex, anchor=north, minimum height=10ex] (vfsterminal) {};
+
+	\node[at=(vfsterminal.west), dirs, anchor=west] {
+			\texttt{/dev/terminal} \\
+			\texttt{\ \ \ \ \ .terminal/}
+		};
+
+
+	\path (vfsterminal.south)
+		node[dirbox, below=1ex, anchor=north, minimum height=10ex] (vfstap0) {};
+
+	\node[at=(vfstap0.west), dirs, anchor=west] {
+			\texttt{/dev/tap0} \\
+			\texttt{\ \ \ \ \ .tap0/}
+		};
+
+	%
+	% C Runtime
+	%
+
+	\definecolor{libccolor} {rgb}{0.7,0.7,0.7}
+
+	\path[puzzle, rounded corners=0, bottom color=libccolor] (vfsanchor)
+		-- ++(0,20ex)
+		-- ++(5*24ex + 16ex,0)
+		-- ++(0,-20ex)
+		--cycle;
+
+	\path (vfsanchor)+(5*12ex + 8ex,10ex) node[scale=3] (libctitle) {C Runtime};
+
+	\draw[arrow, sloped=false, line width=2] (libctitle.south)
+	       -- node[anchor=east, scale=2] {write, queue\_read, complete\_read, } node[anchor=west, scale=2] {read\_ready, notify\_read\_ready} (libctitle.south |- vfsanchor);
+
+	\path (libctitle.south |- vfsanchor) node[lib, anchor=north, scale=1.5] (fileio) {File I/O Service};
+
+	%
+	% Network application
+	%
+
+	\path (vfsanchor)+(0,20ex) coordinate (appanchor);
+
+	\definecolor{appcolor} {rgb}{1,1,0.7}
+
+	\path[puzzle, bottom color=appcolor] (appanchor)
+		-- ++(0,20ex)
+		-- ++(5*24ex + 16ex,0)
+		-- ++(0,-20ex)
+		--cycle;
+
+	\path (appanchor)+(5*12ex + 8ex,10ex) node[scale=3] (apptitle) {Application};
+
+	\draw[arrow, sloped=false, line width=2] (apptitle.south)
+	       -- node[anchor=west, scale=2] {open, ioctl, read, write, close} (apptitle.south |- appanchor);
+
+
+	%
+	% Terminal VFS Plugin
+	%
+
+	\definecolor{plugincolor} {rgb}{0.65,0.7,0.9}
+
+	\path (vfsanchor)+(-5ex,-15ex) coordinate (terminalvfsanchor);
+	\path[puzzle, bottom color=plugincolor] (terminalvfsanchor)
+		{[sharp corners] \ruggedpath{12}{(1ex,-1ex)}{(1ex,1ex)}}
+		{[sharp corners] \ruggedpath{12}{(1ex,-1ex)}{(-1ex,-1ex)}}
+		-- ++(-48ex,0)
+		--cycle;
+
+	\path (terminalvfsanchor)+(2*12ex,-10ex) node[scale=3] (terminalvfstitle) {Terminal Plugin};
+
+	\path (terminalvfstitle.south)
+		node[dirbox, below=1ex, anchor=north, minimum width=42ex, minimum height=28ex] (terminalvfsbox) {};
+
+	\path (terminalvfsbox.west)
+		node[dirs, below=1ex, anchor=west] (terminalfs) {
+			\texttt{/terminal} \\
+			\texttt{/.terminal/info} \\
+			\texttt{\ \ \ \ \ \ \ \ \ \ \ columns} \\
+			\texttt{\ \ \ \ \ \ \ \ \ \ \ rows} \\
+			\texttt{\ \ \ \ \ \ \ \ \ \ \ interrupts}
+		};
+
+
+	%
+	% Tap VFS Plugin
+	%
+
+	\path (vfsanchor)+(21ex + 3*24ex,-15ex) coordinate (tap0vfsanchor);
+
+	\path[puzzle, bottom color=plugincolor] (tap0vfsanchor)
+		{[sharp corners] \ruggedpath{12}{(1ex,1ex)}{(1ex,-1ex)}}
+		-- ++(0,-48ex)
+		-- ++(-48ex,0)
+		{[sharp corners] \ruggedpath{12}{(1ex,1ex)}{(-1ex,1ex)} --cycle};
+
+	\path (tap0vfsanchor)+(2*12ex,-10ex) node[scale=3] (tap0vfstitle) {Tap Plugin};
+
+	\path (tap0vfstitle.south)
+		node[dirbox, below=1ex, anchor=north, minimum height=28ex] (tap0vfsbox) {};
+
+	\path (tap0vfsbox.west)
+		node[dirs, below=1ex, anchor=west] (tap0fs) {
+			\texttt{/tap0} \\
+			\texttt{/.tap0/info} \\
+			\texttt{\ \ \ \ \ \ \ ...}
+		};
+
+	\path[dirbox, fill opacity=0.2, fill=black] (vfstap0.north east) -- (vfstap0.south east)
+	   -- (tap0vfsbox.south west) -- (tap0vfsbox.north west);
+
+	\path[dirbox, fill opacity=0.2, fill=black] (vfsterminal.north west) -- (vfsterminal.south west)
+	   -- (terminalvfsbox.south east) -- (terminalvfsbox.north east);
+
+	\path (vfstitle)+(-110ex,-40ex) node[treenode, scale=3] (terminal) {Terminal};
+
+	\path (vfstitle)+(110ex,-40ex) node[treenode, scale=3] (router) {NIC Router};
+
+
+	\draw[arrow, sloped=false, line width=2] (tap0vfsbox.south)
+	       .. controls +(10ex,-20ex) and +(-10ex, -20ex)  .. node[scale=2, below] {nic/uplink session} (router.south);
+
+	\draw[arrow, sloped=false, line width=2] (terminalvfsbox.south)
+	       .. controls +(-10ex,-20ex) and +(10ex, -20ex) .. node[scale=2, below] {terminal session} (terminal.south);
+
+\end{tikzpicture}

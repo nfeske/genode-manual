@@ -1,0 +1,4 @@
+App development with Qt/Lomiri
+==============================
+
+_Lomiri Calculator App_

@@ -1,0 +1,16 @@
+Introduction
+############
+
+This document complements the Genode Foundations book with high-level
+application-related topics. It is primarily intended for application
+developers. Before studying the Genode Applications material, it is
+recommended to give the Genode Foundations book a read. The book can be
+downloaded at [https://genode.org].
+
+The document features a practical guide for developing and porting applications
+to Genode. The content bases on stories around the Goa tool, which streamlines
+the application development for the Genode OS Framework.
+
+:Goa tool:
+
+  [https://github.com/genodelabs/goa]

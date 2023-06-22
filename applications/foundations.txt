@@ -1,0 +1,30 @@
+Foundations
+###########
+
+This section summarizes the most essential foundations of the Genode OS
+Framework and Sculpt OS.
+
+Genode architecture
+===================
+
+_TODO: relate to getting started example(s)_
+
+Genode's system architecture follows a recursive structure in which a component
+may invest a part of its resource budget in order to start child components. A
+detailed account of this is given in Chapter "Recursive system structure" of the
+Genode Foundations book.
+
+The standard component used for nesting subsystems in Genode is the _init_
+component. The configuration of the init component determines what child
+components to start and how resources are assigned to them. A detailed account
+of init's configuration is given in Chapter "System configuration" of the
+Genode Foundations book.
+
+Besides starting components and delegating resources, a parent component such
+as init also establishes communication channels between its child components.
+Any component may inform its parent about a service that it provides. Other
+components are then able to request access to this service. Both sides adhere
+to a predetermined session interfaces. A list of common session interfaces is
+provided in Chapter "Common session interfaces" of the Genode Foundations book.
+
+_TODO: distinguish native, libc and posix components_
