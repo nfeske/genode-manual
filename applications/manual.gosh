@@ -1,0 +1,39 @@
+
+source "../foundations/manual.gosh"
+
+proc title_tikz {} { return {\input{img/applications_title.tikz}} }
+
+### IMAGE ###
+proc process_image_latex {txtblock} {
+	set img_info ""
+	set img_size 80
+	set img_angle "0"
+	set img_star ""
+	set img_relw "columnwidth"
+	regexp {\[(image \w+.*)\]} [lindex $txtblock 0] dummy img_info
+	if {$img_info == ""} return
+	set img_name [lindex $img_info 1]
+	regexp { (\d+)%} $img_info dummy img_size
+	regexp { (\d+)°} $img_info dummy img_angle
+	if {[regexp {full-span} $img_info dummy]} {
+		set img_star "*"
+		set img_relw "textwidth"
+	}
+	
+	set img_cap ""
+	foreach img_capline $txtblock {
+		set txt [linetxt $img_capline]
+		regsub {^\[.*\]} $txt "" txt
+		regsub {^ *}     $txt "" txt
+		append img_cap $txt " "
+	}
+	regsub { *$} $img_cap "" img_cap
+	
+	printline ""
+	printline "\\begin{center}"
+	printline "  \\epsfig{file=$img_name,angle=$img_angle,width=[expr $img_size.0/100]\\$img_relw}"
+	printline "  \\captionof{figure}{[out_latex $img_cap]}"
+	printline "  \\label{[label_latex $img_name]}"
+	printline " \\end{center}\n"
+	
+}

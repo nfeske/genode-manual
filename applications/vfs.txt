@@ -1,0 +1,56 @@
+C runtime and virtual file system
+=================================
+
+_TODO: write out bullet points in full_
+
+* Genode has a C runtime based on FreeBSD libc.
+* Suitable for running Unix/POSIX-like applications, however:
+  * There is no global virtual file-system in Genode. Every component has its own
+    (sandboxed) view.
+  * Files in Genode are no first-level citizen. Special files and sockets must
+    thus be emulated.
+* The individual virtual file-system (vfs) of a component is provided by 
+  Genode's vfs library. It evalutes the '<vfs>' node of the component's
+  configuration and instantiates the file-system structures accordingly. Vfs
+  plugins are loaded on demand, e.g. to emulate special files (see section
+  below).
+* We have already seen '<libc>', '<vfs>' and '<arg>' nodes being used in section
+  [A second example, using CMake]. The following sections explain their use in
+  greater detail.
+
+
+Passing arguments to POSIX programs
+-----------------------------------
+
+_TODO: Explain '<arg>' node_
+
+
+Libc configuration
+------------------
+
+Genode's libc library evaluates the '<libc>' node of the component's
+configuration.
+
+_TODO: Explain <libc> node in config_
+
+_TODO: Explain socket-call emulation__
+
+_TODO: Explain ioctl emulation__
+
+
+Virtual-file-system configuration
+---------------------------------
+
+_This section is based on Martin Stein's_
+_[http://genodians.org/m-stein/2021-06-21-vfs-1 - article series]_
+_at [https://genodians.org]_.
+
+_TODO: insert text from articles_
+
+Example: Terminal emulation
+---------------------------
+
+* crosslink
+* pipe
+* bash and other binaries
+* reference unix tutorial

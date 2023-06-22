@@ -1,0 +1,9 @@
+Tutorials
+#########
+
+This section provides a collection of tutorials that focus on certain aspects
+during application development for Genode.
+
+As preparatory steps, make sure you have the latest Genode tool chain and Goa
+installed (see Section [Getting started with Goa]).
+

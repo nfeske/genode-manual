@@ -1,0 +1,19 @@
+Development & Debugging
+#######################
+
+Backtrace tool
+==============
+
+- no-omit-frame-pointer
+- ld_verbose
+- ...
+
+Debugging with Goa on base-linux
+================================
+
+Using Sculpt as a remote test target
+====================================
+
+On-target debugging with GDB
+============================
+

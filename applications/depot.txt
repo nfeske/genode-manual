@@ -1,0 +1,11 @@
+Package management
+==================
+
+* clarify depot nomenclature
+  * more details in Genode Foundations
+
+* binary compatiblity
+  * Genode can run on different kernels
+  * same components can be deployed on top of all kernels (same architecture)
+
+* relate depot-archive types to Goa project structure

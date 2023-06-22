@@ -1,0 +1,20 @@
+
+
+
+                    =================================
+                    Genode Operating System Framework
+                               Platforms
+                    =================================
+
+                            Johannes Schlatow
+
+
+
+: \vfill \epsfig{file=img/by-sa,angle=0,width=0.2\textwidth} \hspace{0.3cm}
+: \begin{minipage}[b]{0.8\textwidth} \raggedright \small
+: This work is licensed under the Creative Commons Attribution + ShareAlike
+: License (CC-BY-SA). To view a copy of the license, visit
+: http://creativecommons.org/licenses/by-sa/4.0/legalcode
+: \end{minipage}
+
+
