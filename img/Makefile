@@ -13,6 +13,14 @@ invoke_pdflatex = lualatex -jobname $* \
 	$(invoke_pdflatex)
 	$(invoke_pdflatex)
 
+flyer.pdf: flyer.tex
+	lualatex $<
+	lualatex $<
+	lualatex $<
+
+flyer.pdf: app_specific_tcb.pdf
+
+
 #
 # Make each target depend on common included files and the Makefile
 #
