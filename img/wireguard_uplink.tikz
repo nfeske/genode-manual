@@ -1,0 +1,50 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{api} = [anchor=west, sloped=false, pos=0.8, scale=0.7]
+
+	\tikzstyle{appnode}      = [treenode, bottom color=appcolor]
+	\tikzstyle{cryptonode}   = [treenode, bottom color=criticalcolor]
+	\tikzstyle{protocolnode} = [treenode, bottom color=kernelcolor, minimum width=18ex]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\node[protocolnode] (uplinkrouter) {Uplink Router};
+	\path (uplinkrouter.north) node[service, scale=0.4, xshift=-8ex] (driveruplink) {};
+	\path (uplinkrouter.north) node[service, scale=0.4, xshift=8ex] (wgnic) {};
+
+	\node[protocolnode, right=4ex of uplinkrouter] (nicrouter) {NIC Router};
+	\path (nicrouter.north) node[service, scale=0.4, xshift=-8ex] (wguplink) {};
+	\path (nicrouter.north) node[service, scale=0.4, xshift=8ex] (appnic) {};
+
+	\path (uplinkrouter) -- node (midrouters) { } (nicrouter);
+
+	\node[cryptonode, minimum width=18ex, above=8ex of midrouters, align=center]
+	     (wireguard) {};
+	\path (wireguard) node[align=center] {WireGuard};
+	\path[treesessionarrow] (wgnic    |- wireguard.south) -- node[api] {nic} (wgnic);
+	\path[treesessionarrow] (wguplink |- wireguard.south) -- node[api] {uplink} (wguplink);
+
+	\node[protocolnode, minimum width=18ex, above=16ex of driveruplink, align=center]
+	     (usbnet) {};
+	\path (usbnet) node[align=center] {Mobile data\\ network driver};
+	\path[treesessionarrow] (usbnet) -- node[api] {uplink} (driveruplink);
+
+	\node[appnode, minimum width=18ex, above=16ex of appnic, align=center]
+	     (app) {};
+	\path (app) node[align=center] {Networking\\ application};
+	\path[treesessionarrow] (app) -- node[api] {nic} (appnic);
+
+\end{tikzpicture}
+

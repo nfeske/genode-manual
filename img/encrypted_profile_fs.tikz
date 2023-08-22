@@ -1,0 +1,101 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{api} = [anchor=west, sloped=false, pos=0.8, scale=0.7]
+
+	\tikzstyle{appnode}      = [treenode, bottom color=appcolor]
+	\tikzstyle{cryptonode}   = [treenode, bottom color=criticalcolor]
+	\tikzstyle{protocolnode} = [treenode, bottom color=kernelcolor, minimum width=18ex]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	%
+	% Components
+	%
+
+	% core / init
+	\node[protocolnode] (fs) {Plain file system};
+	\path (fs.north) node[service, scale=0.4] (filesystem) {};
+
+	\path (fs.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		on Sculpt \\
+		partition
+		};
+
+	\node[protocolnode, minimum width=18ex, above=4ex of fs, align=center]
+	     (chroot) {};
+	\path (chroot) node[align=center] {chroot\\ /profile/a5cb7efc/};
+	\path (chroot.north) node[service, scale=0.4]  (chrootfs) {};
+	\path[treesessionarrow] (chroot) -- node[api] {file system} (filesystem);
+
+	\path (chroot.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		user-specific profile \\
+		keyed by $hash(passphrase)$
+		};
+
+	\node[protocolnode, minimum width=18ex, above=4ex of chroot, align=center]
+	     (vfsblock) {};
+	\path (vfsblock) node[align=center] {VFS block};
+	\path (vfsblock.north) node[service, scale=0.4]  (block) {};
+	\path[treesessionarrow] (vfsblock) -- node[api] {file system} (chrootfs);
+
+	\node[cryptonode, minimum width=18ex, above=4ex of vfsblock, align=center]
+	     (tresor) {};
+	\path (tresor) node[align=center] {Block encrypter};
+	\path (tresor.north) node[service, scale=0.4]  (tresorblock) {};
+	\path[treesessionarrow] (tresor) -- node[api] {block} (block);
+
+	\path (tresor.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		AES CBC \\
+		salted $hash(passphrase)$ as key
+		};
+
+	\node[protocolnode, minimum width=18ex, above=4ex of tresor, align=center]
+	     (profile) {};
+	\path (profile) node[align=center] {Profile file system};
+	\path (profile.north) node[service, scale=0.4]  (profilefs) {};
+	\path[treesessionarrow] (profile) -- node[api] {block} (tresorblock);
+
+	\path (profile.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		Traditional \\
+		file system
+		};
+
+	\node[protocolnode, minimum width=18ex, above=4ex of profile, align=center]
+	     (dynchroot) {};
+	\path (dynchroot) node[align=center] {Dynamic chroot};
+	\path (dynchroot.north) node[service, scale=0.4]  (appfs) {};
+	\path[treesessionarrow] (dynchroot) -- node[api] {file system} (profilefs);
+
+	\path (dynchroot.east)+(3ex,0ex)
+		node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+		Application-specific \\
+		sub directory
+		};
+
+	\node[appnode, minimum width=18ex, above=4ex of dynchroot, align=center]
+	     (app) {};
+	\path (app) node[align=center] {Application};
+	\path[treesessionarrow] (app) -- node[api] {file system} (appfs);
+
+\end{tikzpicture}
+
