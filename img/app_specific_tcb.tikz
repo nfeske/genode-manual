@@ -70,7 +70,7 @@
 	% Outline around the TCB of the appnode
 	%
 
-	\tikzstyle{outline} = [inner sep=0ex]
+	\tikzstyle{outline} = [inner sep=0ex, outer sep=1.5ex]
 
 	\node[outline, fit=(init)]  (oinit) {};
 	\node[outline, fit=(a1)]    (o1)    {};
