@@ -1,10 +1,15 @@
 \documentclass{scrartcl}
 
 %% support for CMYK color model. However, colors become bland when enabled
-%\usepackage[natural]{xcolor}
-%\usepackage[rgb]{pgf-cmykshadings}
+\usepackage[rgb]{xcolor}
+\usepackage[rgb]{pgf-cmykshadings}
 
 \input{tikz-preamble.tex}
+
+\begin{tikzfadingfrompicture}[name=flow fade]
+	\shade[left color=white,
+	       right color=transparent!15] (0,0) rectangle (2,2);
+\end{tikzfadingfrompicture}
 
 % A4: 21.0 × 29.7
 \usepackage[paperwidth=21cm, paperheight=29.7cm]{geometry}
@@ -28,12 +33,10 @@
 	\tikzstyle{section} = [minimum width=21cm, outer sep=0]
 	\tikzstyle{user}    = [minimum width=5.25cm, minimum height=4cm, outer sep=0]
 
-	\definecolor{techcolor}        {rgb}{0.6,0.7,0.9}
-	\definecolor{sculptcolor}      {rgb}{0.4,0.3,0.4}
-	\definecolor{innersculptcolor} {rgb}{0.5,0.4,0.5}
-	\definecolor{ecosystemcolor}   {rgb}{0.7,0.9,0.6}
-	\definecolor{usercolor}      {rgb}{0.8,0.45,0.52}
-	\definecolor{innerusercolor} {rgb}{0.9,0.55,0.6}
+	\definecolor{techcolor}      {rgb}{0.721,0.767,0.855}
+	\definecolor{sculptcolor}    {rgb}{0.691,0.658,0.691}
+	\definecolor{ecosystemcolor} {rgb}{0.74,0.825,0.691}
+	\definecolor{usercolor}      {rgb}{0.784,0.614,0.601}
 	\definecolor{linkcolor}      {rgb}{0.0,0.1,0.6}
 
 	%
@@ -49,8 +52,8 @@
 	\path (techoutline.south)+(0,5ex)  coordinate (southup);
 	\path (techoutline.south)+(0,-0ex) coordinate (southdown);
 
-	\tikzstyle{land} = [fill, inner color=white, path fading=flow fade, rounded corners=0]
-	\path[land, opacity=0.4, outer color=techcolor]
+	\tikzstyle{land} = [fill, left color=white, right color=white, inner color=white, path fading=flow fade, rounded corners=0]
+	\path[land, opacity=1, inner color=techcolor!50!white, outer color=techcolor]
 		(techoutline.north west) --
 		(techoutline.north east) --
 		(techoutline.south east)
@@ -71,7 +74,7 @@
 	\path (sculptoutline.south)+(0,5ex)  coordinate (southup);
 	\path (sculptoutline.south)+(0,-0ex) coordinate (southdown);
 
-	\path[land, opacity=0.4, inner color=innersculptcolor, outer color=sculptcolor]
+	\path[land, opacity=1, inner color=sculptcolor!70!white, outer color=sculptcolor]
 		(sculptoutline.north west)
 		.. controls +(6ex,0ex) and +(-6ex, 0ex) .. (lefty  |- northdown)
 		.. controls +(6ex,0ex) and +(-6ex, 0ex) .. (mid    |- northup)
@@ -119,7 +122,7 @@
 	\path (p4west) -- coordinate[pos=0.25] (p4lefty)  (p4east);
 	\path (p4west) -- coordinate[pos=0.75] (p4righty) (p4east);
 
-	\path[land, opacity=0.4, outer color=ecosystemcolor]
+	\path[land, opacity=1, inner color=ecosystemcolor!50!white, outer color=ecosystemcolor]
 		(ecooutline.north west)
 		.. controls +(6ex,0ex) and +(-6ex, 0ex) .. (lefty  |- northdown)
 		.. controls +(6ex,0ex) and +(-6ex, 0ex) .. (mid    |- northup)
@@ -158,7 +161,7 @@
 	\path (vendoroutline.north)+(0,5ex)  coordinate (northup);
 	\path (vendoroutline.north)+(0,-0ex) coordinate (northdown);
 
-	\path[land, opacity=0.5, inner color=innerusercolor, outer color=usercolor]
+	\path[land, opacity=1, inner color=usercolor!75!white, outer color=usercolor]
 		(vendoroutline.north west)
 		.. controls +(4ex,0ex) and +(-4ex, 0ex) .. (p1lefty  |- northdown)
 		.. controls +(4ex,0ex) and +(-4ex, 0ex) .. (p1mid    |- northup)
@@ -167,7 +170,7 @@
 		(vendoroutline.north east) -- (vendoroutline.south east) --
 		(vendoroutline.south west) --cycle;
 
-	\path[land, opacity=0.48, inner color=innerusercolor, outer color=usercolor]
+	\path[land, opacity=1, inner color=usercolor!75!white, outer color=usercolor]
 		(oemoutline.north west)
 		.. controls +(4ex,0ex) and +(-4ex, 0ex) .. (p2lefty  |- northdown)
 		.. controls +(4ex,0ex) and +(-4ex, 0ex) .. (p2mid    |- northup)
@@ -176,7 +179,7 @@
 		(oemoutline.north east) -- (oemoutline.south east) --
 		(oemoutline.south west) --cycle;
 
-	\path[land, opacity=0.45, inner color=innerusercolor, outer color=usercolor]
+	\path[land, opacity=1, inner color=usercolor!75!white, outer color=usercolor]
 		(productoutline.north west)
 		.. controls +(4ex,0ex) and +(-4ex, 0ex) .. (p3lefty  |- northdown)
 		.. controls +(4ex,0ex) and +(-4ex, 0ex) .. (p3mid    |- northup)
@@ -185,7 +188,7 @@
 		(productoutline.north east) -- (productoutline.south east) --
 		(productoutline.south west) --cycle;
 
-	\path[land, opacity=0.4, inner color=innerusercolor, outer color=usercolor]
+	\path[land, opacity=1, inner color=usercolor!75!white, outer color=usercolor]
 		(researchoutline.north west)
 		.. controls +(4ex,0ex) and +(-4ex, 0ex) .. (p4lefty  |- northdown)
 		.. controls +(4ex,0ex) and +(-4ex, 0ex) .. (p4mid    |- northup)
@@ -197,7 +200,7 @@
 
 	\path (techoutline.north west)
 		node[inner sep=2ex, anchor=north west, font=\normalsize \sffamily, color=white,
-			 opacity=1, scale=2] (genodetitle) {Genode Operating System Framework};
+			 opacity=1, scale=2] (genodetitle) {GENODE Operating System Framework};
 
 	\path (techoutline.north east)
 		node[inner sep=2ex, anchor=north east, font=\normalsize \sffamily, color=black,
