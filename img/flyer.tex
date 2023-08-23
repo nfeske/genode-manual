@@ -9,6 +9,10 @@
 % A4: 21.0 × 29.7
 \usepackage[paperwidth=21cm, paperheight=29.7cm]{geometry}
 
+% clickable URLs
+\usepackage[pdftex,hidelinks=true]{hyperref}
+\urlstyle{same}
+
 \begin{document}
 
 \input{tikz-common.tex}
@@ -276,13 +280,13 @@
 	\path (banchor.south west) node[bullet] (banchor) { Interoperable with POSIX, C++, Qt, GNU, Chromium engine, OpenGL, Java ... };
 	\path (banchor.south west) node[bullet] (banchor) { Existing OSes usable as virtual machines };
 	\path (banchor.south west) node[bullet] (banchor) { Quarterly releases };
-	\path (ecooutline.east |- banchor) node[wwwlink] { https://genode.org };
+	\path (ecooutline.east |- banchor) node[wwwlink] { \url{https://genode.org} };
 	\path (banchor.south west) node[bullet] (banchor) { Driven by small team in Germany since 2008 };
-	\path (ecooutline.east |- banchor) node[wwwlink] { https://genode-labs.com };
+	\path (ecooutline.east |- banchor) node[wwwlink] { \url{https://genode-labs.com} };
 	\path (banchor.south west) node[bullet] (banchor) { Open Source and commercial licensing };
-	\path (ecooutline.east |- banchor) node[wwwlink] { https://github.com/genodelabs };
+	\path (ecooutline.east |- banchor) node[wwwlink] { \url{https://github.com/genodelabs} };
 	\path (banchor.south west) node[bullet] (banchor) { International community };
-	\path (ecooutline.east |- banchor) node[wwwlink] { https://genodians.org };
+	\path (ecooutline.east |- banchor) node[wwwlink] { \url{https://genodians.org} };
 
 	\tikzstyle{userrole} = [inner ysep=3ex, anchor=north, inner xsep=4ex, font=\normalsize \sffamily,
 	                      color=white, opacity=1, scale=1.5]
