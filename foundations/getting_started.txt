@@ -20,7 +20,8 @@ use the latest long-term support (LTS) version of Ubuntu. Make sure that your
 installation satisfies the following requirements:
 
 * GNU Make version 3.81 (or newer) needed by the build system,
-* _libSDL-dev_ needed to run system scenarios directly on Linux,
+* _libsdl2-dev_, _libdrm-dev, and _libgbm-dev_ needed to run interactive
+  system scenarios directly on Linux,
 * _tclsh_ and _expect_ needed by test-automation and work-flow tools,
 * _xmllint_ for validating configurations,
 * _qemu_, _xorriso_, _sgdisk_, and _e2tools_ needed for running
