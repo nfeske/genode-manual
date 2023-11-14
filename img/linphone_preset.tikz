@@ -1,0 +1,108 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{syscolor}        {rgb}{0.5,0.6,0.7}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{api} = [anchor=west, sloped=false, pos=0.8, scale=0.7]
+
+	\tikzstyle{appnode}      = [treenode, bottom color=appcolor]
+	\tikzstyle{cryptonode}   = [treenode, bottom color=criticalcolor]
+	\tikzstyle{protocolnode} = [treenode, bottom color=kernelcolor, minimum width=18ex]
+	\tikzstyle{sysnode}      = [treenode, bottom color=syscolor, minimum width=72ex]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	%
+	% Nodes
+	%
+
+	\node[sysnode] (sys) {Sculpt OS Base System};
+
+	\path (sys.north) node[service, scale=0.4, xshift=-80ex] (event) {};
+	\path (sys.north) node[service, scale=0.4, xshift=-40ex] (gui) {};
+	\path (sys.north) node[service, scale=0.4, xshift=0ex] (platform) {};
+	\path (sys.north) node[service, scale=0.4, xshift=40ex] (nic) {};
+	\path (sys.north) node[service, scale=0.4, xshift=80ex] (fs) {};
+
+	\path (nic.south) node[anchor=north, scale=0.4] {NIC};
+	\path (gui.south) node[anchor=north, scale=0.4] {GUI};
+	\path (platform.south) node[anchor=north, scale=0.4] {Platform};
+	\path (event.south) node[anchor=north, scale=0.4] {Event};
+	\path (fs.south) node[anchor=north, scale=0.4] {FS};
+
+	\node[protocolnode, minimum width=10ex, above=6ex of fs, align=center, xshift=-8ex]
+	            (dynchroot) {};
+	\path (dynchroot) node[align=center] {Dynamic\\ chroot};
+	\path (dynchroot.north) node[service, scale=0.4]  (appfs) {};
+	
+	%\path (dynchroot.east)+(3ex,0ex)
+	%        node [details, anchor=west, callout relative pointer={(-3ex,0ex)}, align=left] {
+	%        Application-specific \\
+	%        sub directory
+	%        };
+
+	\node[appnode, minimum width=15ex, above=32ex of gui, align=center]
+	            (linphoneapp) {Linphone\\ App};
+
+	\node[cryptonode, minimum width=15ex, above=32ex of nic, align=center]
+	            (daemon) {Linphone\\ Daemon};
+
+	\node[appnode, minimum width=10ex, above=6ex of event, align=center, xshift=8ex]
+	            (touchkeyboard) {Touch\\ keyboard};
+
+	\node[protocolnode, minimum width=10ex, above=6ex of nic, align=center, xshift=-4ex]
+	            (sntp) {SNTP};
+	\path (sntp.north) node[service, scale=0.4]  (rtc) {};
+	\path (rtc.south) node[anchor=north, scale=0.4] {RTC};
+
+	\node[protocolnode, minimum width=10ex, above=6ex of platform, align=center, xshift=-12ex]
+	            (gpudriver) {GPU\\ driver};
+	\path (gpudriver.north) node[service, scale=0.4]  (gpu) {};
+	\path (gpu.south) node[anchor=north, scale=0.4] {GPU};
+
+	\node[protocolnode, minimum width=10ex, above=6ex of platform, align=center, xshift=0ex]
+	            (audiodriver) {Audio\\ driver};
+	\path (audiodriver.north) node[service, scale=0.4]  (audio) {};
+	\path (audio.south) node[anchor=north, scale=0.4] {Audio};
+
+	\node[protocolnode, minimum width=10ex, above=6ex of audio, align=center, xshift=0ex]
+	            (terminalcross) {Terminal\\ crosslink};
+	\path (terminalcross.north) node[service, scale=0.4]  (terminal) {};
+	\path (terminal.south) node[anchor=north, scale=0.4] {Terminal};
+
+
+	%
+	% Connections
+	%
+
+	\path[treesessionarrow] (touchkeyboard.300) .. controls +(0,-6ex) and +(0,3ex) .. node[api, xshift=-8ex] {GUI} (gui.120);
+	\path[treesessionarrow] (touchkeyboard.240) .. controls +(0,-6ex) and +(0,3ex) .. node[api, xshift=2ex] {Event} (event);
+	\path[treesessionarrow] (linphoneapp.240) .. controls +(0,-6ex) and +(-3ex,6ex) .. node[api, pos=0.5] {GUI} (gui);
+	\path[treesessionarrow] (dynchroot) .. controls +(0,-6ex) and +(0,3ex) .. node[api, pos=0.4] {file system} (fs);
+	\path[treesessionarrow] (daemon) .. controls +(0,-10ex) and +(0,10ex) ..  node[api] {RTC} (rtc);
+	\path[treesessionarrow] (daemon.300) .. controls +(0,-6ex) and +(4ex,10ex) .. node[api, pos=0.5] {NIC} (nic);
+	\path[treesessionarrow] (daemon.320) .. controls +(0,-6ex) and +(0ex,6ex) .. node[api] {settings} (appfs);
+	\path[treesessionarrow] (linphoneapp) .. controls +(0,-6ex) and +(0,6ex) .. node[api] {GPU} (gpu);
+	\path[treesessionarrow] (daemon.240) .. controls +(0,-12ex) and +(0ex,6ex) .. node[api] {Audio} (audio);
+	\path[treesessionarrow] (linphoneapp.300) .. controls +(0,-3ex) and +(-2ex,3ex) .. node[api, align=center, yshift=2ex] {Control\\ channel\\ } (terminal);
+	\path[treesessionarrow] (daemon.220) .. controls +(0,-3ex) and +(2ex,3ex) .. node[api] {} (terminal);
+	\path[treesessionarrow] (sntp) .. controls +(0,-6ex) and +(0,3ex) .. node[api, pos=0.6, xshift=-5ex] {NIC} (nic);
+	\path[treesessionarrow] (audiodriver) -- node[api, xshift=-5ex, pos=0.3] {Mic}
+	                                         node[api, xshift=0ex, pos=0.3] {Speaker} (platform);
+	\path[treesessionarrow] (gpudriver) .. controls +(0,-6ex) and +(0,3ex) .. node[api, pos=0.3, yshift=-2ex] {GPU} (platform);
+
+\end{tikzpicture}
+
