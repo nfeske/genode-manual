@@ -1,0 +1,85 @@
+\begin{tikzpicture}
+
+	\definecolor{arrowcol} {rgb}{0.7,0.8,0.9}
+
+	\tikzstyle{bubble} = [fill, fill opacity=0.3, text opacity=1, shape=circle,
+	                      top color=white,
+	                      bottom color=black!5,
+	                      align=center, minimum size=12ex,
+	                      path fading=flow fade]
+
+	\node (user) { };
+	\path (user)+(18.5ex,0) node (dev) { };
+	\path (user) -- node (mid) { } (dev);
+	\path (mid)+(0,-16ex) node (osimage) { };
+
+	\path (user)    node[bubble] { User };
+	\path (dev)     node[bubble] { Developer };
+	\path (osimage) node[bubble] { System \\ image };
+
+	% stable margins
+	\path (user)+(-15ex,0) node { };
+	\path (dev)+(15ex,0)   node { };
+
+	\tikzstyle{arrow} = [draw, dropshadow, path fading=flow fade, shape=single arrow,
+	                     opacity=0.7, draw opacity=0.4,
+	                     top color=arrowcol, bottom color=black!50!arrowcol,
+	                     inner xsep=2ex, inner ysep=1ex]
+
+	\path (user)    -- node[arrow, pos=0.45] { } (dev);
+	\path (dev)     -- node[arrow, pos=0.45, rotate=240] { } (osimage);
+	\path (osimage) -- node[arrow, pos=0.45, rotate=120] { } (user);
+
+
+	\path (user)    -- node[yshift=4ex]                         { \emph{feedback} } (dev);
+	\path (dev)     -- node[xshift=5ex,  yshift=-2ex] (publish) { \emph{publish} } (osimage);
+	\path (osimage) -- node[xshift=-5ex, yshift=-2ex] (install) { \emph{install} } (user);
+
+	\tikzstyle{risk} = [rectangle callout, fill=red!80!black, rounded corners=3, text=white]
+
+	\path (install.west)+(-4ex,-5ex)
+		node [risk, callout relative pointer={(3ex,3ex)}, scale=0.75, align=center] {
+		Trust? \\
+		Regressions? \\
+		Effort?
+	};
+
+	\path (publish.east)+(4ex,-5ex)
+		node [risk, callout relative pointer={(-3ex,3ex)}, scale=0.75, align=center] {
+		Labour? \\
+		Build time? \\
+		Hosting costs?
+	};
+
+%	\tikzstyle{info} = [rectangle callout, fill=green!50!black, rounded corners=3, text=white]
+%
+%	\path (user.west)+(-4.5ex,-3.5ex)
+%		node [info, callout relative pointer={(3ex,3ex)}, scale=0.75, align=center] {
+%		Instant rollback
+%	};
+%
+%	\path (install.west)+(-3ex,-4.5ex)
+%		node [info, callout relative pointer={(3ex,3ex)}, scale=0.75, align=center] {
+%		Transparency \\
+%		Matter of seconds
+%	};
+%
+%	\path (dev.east)+(7ex,-4.5ex)
+%		node [info, callout relative pointer={(-3ex,3ex)}, scale=0.75, align=center] {
+%		5-20 sec test cycle \\
+%		(laptop)
+%	};
+%
+%	\path (publish.east)+(3.5ex,-4.5ex)
+%		node [info, callout relative pointer={(-3ex,3ex)}, scale=0.75, align=center] {
+%		3 min (incremental) \\
+%		30 min (full release)
+%	};
+%
+%	\path (osimage.east)+(6ex,-4ex)
+%		node [info, callout relative pointer={(-3ex,3ex)}, scale=0.75, align=center] {
+%		16 MiB \\
+%		Integrity-protected
+%	};
+
+\end{tikzpicture}
