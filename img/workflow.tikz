@@ -1,0 +1,75 @@
+\begin{tikzpicture}
+
+	\definecolor{arrowcol} {rgb}{0.7,0.8,0.9}
+	\definecolor{col1} {rgb}{0.1,0.2,0.6}
+	\definecolor{col2} {rgb}{0.6,0.2,0.3}
+	\definecolor{col3} {rgb}{0.3,0.5,0.1}
+
+	\tikzstyle{bubble} = [text opacity=1,
+	                      align=center, minimum width=12ex, rounded corners=5,
+	                      draw, opacity=0.6]
+	\node (pos) { };
+
+	% stable margins
+	\path (pos)+(-25ex,0ex) node { };
+	\path (pos)+(25ex,0ex)  node { };
+
+	\path (pos) node[bubble, col1] (import) {Importing};
+
+	\path (pos)+(0,-5ex) node (pos) { };
+	\path (pos) node[bubble, col1] (patch)  {Patching};
+	\path[draw, arrow] (import) -- (patch);
+
+	\node[bubble, draw opacity=0.2, fit=(import) (patch)] (portcycle) { };
+
+	\path (pos)+(0,-7ex) node (pos) { };
+	\path (pos) node[bubble, col2] (dev) {Development};
+
+	\path (pos)+(-8ex,0) coordinate (devleft) { };
+
+	\path (pos)+(0,-5ex) node (pos) { };
+	\path (pos) node[bubble, col2] (int) {Integration};
+
+	\path (pos)+(0,-5ex) node (pos) { };
+	\path (pos) node[bubble, col2] (test) {Testing};
+
+	\path (pos)+(0,-5ex) node (pos) { };
+	\path (pos) node[bubble, col2] (debug) {Debugging};
+	\path (pos)+(-8ex,0) coordinate (debugleft) { };
+
+	\path[draw, arrow, rounded corners=3] (debug) -- (debugleft) -- (devleft) -- (dev);
+
+	\node[bubble, draw opacity=0.2, fit=(devleft) (dev) (debug)] (devcycle) { };
+
+	\path[draw, arrow] (patch |- portcycle.south) -- (patch |- devcycle.north);
+	\path[draw, arrow] (dev) -- (int);
+	\path[draw, arrow] (int) -- (test);
+	\path[draw, arrow] (test) -- (debug);
+
+	\path (pos)+(0,-6ex) node (pos) { };
+	\path (pos) node[bubble, col3] (pkg) {Packaging};
+
+	\path[draw, arrow] (debug |- devcycle.south) -- (debug |- pkg.north);
+
+	\path (pos)+(0,-5ex) node (pos) { };
+	\path (pos) node[bubble, col3] (pub) {Publishing};
+
+	\path[draw, arrow] (pkg) -- (pub);
+
+	\node[fit=(pkg) (pub)] (pkgpub) { };
+
+%	\tikzstyle{info} = [umlinfo, anchor=west, align=left, scale=0.8]
+%
+%	\node[info, right=6ex of portcycle, yshift=-0.5ex] { git \\ svn \\ tar archives \\ zip archives \\ integrity? };
+%	\node[info, right=6ex of devcycle]  { make \\ autoconf \\ cmake \\ qmake \\ cargo \\ config? \\ dependencies? \\ test env?};
+%	\node[info, right=6ex of pkgpub, yshift=0.5ex] { versioning \\ assembling \\ archiving \\ signing };
+
+	\tikzstyle{cmd} = [color=white, fill=black, anchor=west, dropshadow]
+
+	\path (portcycle.east)+(3ex,0) node[cmd] {\texttt{\$ goa import}};
+	\path (devcycle.east)+(3ex,0)  node[cmd] {\texttt{\$ goa run}};
+
+	\path (pkg.east)+(4ex,0)  node[cmd] {\texttt{\$ goa export}};
+	\path (pub.east)+(4ex,0)  node[cmd] {\texttt{\$ goa publish}};
+
+\end{tikzpicture}
