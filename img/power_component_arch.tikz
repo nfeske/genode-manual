@@ -1,0 +1,105 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=4ex]
+
+	\tikzstyle{drivernode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=4ex, opacity=0.5, text opacity=1]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{api} = [anchor=west, sloped=false, pos=0.8, scale=0.7]
+
+	\tikzstyle{appnode}      = [treenode, bottom color=appcolor]
+	\tikzstyle{rednode}      = [treenode, bottom color=criticalcolor]
+	\tikzstyle{protocolnode} = [treenode, bottom color=kernelcolor, minimum width=7ex]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	\tikzstyle{cpusplit} = [draw, very thick, densely dashed]
+	\tikzstyle{kernelusersplit} = [draw, densely dashed, opacity=0.8, text opacity=0.5]
+
+	\node (cpubase) { };
+	\path (cpubase)+(0,16ex) coordinate (kerneluserbase);
+	\path (cpubase)+(0,8ex) coordinate (normalworldbase);
+
+	\path [cpusplit] (cpubase)+(-50ex,0) -- node[above] (ap) { Application Processor } (cpubase);
+	\path [cpusplit] (cpubase)+(25ex,0) -- node[above] (scp) { System-Control Processor } (cpubase);
+	\path [cpusplit] (cpubase)+(0,40ex) -- (cpubase);
+
+	\path (ap)+(0,12ex) node (kernel) { };
+
+	\path [kernelusersplit] (normalworldbase)+(-50ex,0) --
+		node[below, xshift=-1ex] { Trustzone secure world } (normalworldbase);
+	\path [kernelusersplit] (kerneluserbase)+(-50ex,0) --
+		node[above] { User space }  node[below] { Kernel } (kerneluserbase);
+
+	\path (cpubase)+(0,21ex) node[draw, fill=white, circle,minimum size=1ex, inner sep=0, align=center] (mbox) { mbox \\ shm };
+
+	\path (cpubase)+(10ex,-7ex) node[draw, fill=white, minimum size=1ex, inner sep=1ex, align=center] (pmic) { PMIC };
+
+	\path (pmic.0)+(1ex,0) node[align=left, anchor=west, scale=0.8] { Voltages \\ Battery \\ Power button };
+
+	\node[rednode,left=3ex of mbox, minimum width=18ex] (platformdrv) { Platform driver };
+	\node[rednode,left=3ex of platformdrv, minimum width=18ex] (guiserver)  { GUI server };
+	\path (normalworldbase)+(-25ex,3ex) node[drivernode] (microkernel)  { Microkernel };
+
+	\node[drivernode,right=3ex of mbox] (forth)  { Forth \\ Interpreter };
+
+	\path (cpubase)+(-9ex,4ex) node[drivernode] (atf)  { ATF };
+
+	\path (guiserver)+(-10ex,15ex) node[appnode] (app1) { App };
+	\path (guiserver)+(-2ex,15ex)  node[appnode] (app2) { App };
+	\path (guiserver)+(6ex,15ex)   node[appnode] (app3) { App };
+	\path (guiserver)+(14ex,15ex)  node[protocolnode] (displaydrv) { Display \\ driver };
+	\path (guiserver)+(22ex,15ex)  node[protocolnode] (inputdrv) { Input \\ driver };
+	\path (guiserver)+(30ex,15ex)  node[protocolnode] (powerdrv) { Power \\ driver };
+
+	\path (guiserver.north)   node[service, scale=0.4, xshift=-10ex] (gui) {};
+	\path (guiserver.north)   node[service, scale=0.4] (capture) {};
+	\path (guiserver.north)   node[service, scale=0.4, xshift=10ex] (event) {};
+	\path (platformdrv.north) node[service, scale=0.4, xshift=-8ex] (platform) {};
+	\path (platformdrv.north) node[service, scale=0.4, xshift=+8ex] (scp) {};
+
+	\path (gui.south)      node[anchor=north, scale=0.4] {GUI};
+	\path (capture.south)  node[anchor=north, scale=0.4] {Capture};
+	\path (event.south)    node[anchor=north, scale=0.4] {Event};
+	\path (platform.south) node[anchor=north, scale=0.4] {Platform};
+	\path (scp.south)      node[anchor=north, scale=0.4] {SCP};
+
+	\path[treesessionarrow] (app1)       .. controls +(0,-6ex) and +(0,3ex) .. (gui.120);
+	\path[treesessionarrow] (app2)       .. controls +(0,-6ex) and +(0,3ex) .. (gui.90);
+	\path[treesessionarrow] (app3)       .. controls +(0,-6ex) and +(0,3ex) .. (gui.60);
+	\path[treesessionarrow] (displaydrv) .. controls +(0,-6ex) and +(0,3ex) .. (capture);
+	\path[treesessionarrow] (inputdrv)   .. controls +(0,-6ex) and +(0,3ex) .. (event);
+
+	\path[treesessionarrow] (displaydrv) .. controls +(0,-6ex) and +(0,3ex) .. (platform.120);
+	\path[treesessionarrow] (inputdrv)   .. controls +(0,-6ex) and +(0,3ex) .. (platform.90);
+	\path[treesessionarrow] (powerdrv)   .. controls +(0,-6ex) and +(0,3ex) .. (platform.60);
+	\path[treesessionarrow] (powerdrv)   .. controls +(0,-6ex) and +(0,3ex) .. (scp);
+
+	\path[treesessionarrow] (forth) .. controls +(0,-7ex) and +(0,17ex) .. (pmic.60);
+
+	\path[treesessionarrow, dotted] (atf) .. controls +(10ex,0ex) and +(-5ex,-5ex) ..
+		node[below,pos=0.15] { \emph{load} } (forth.220);
+
+	\path[treesessionarrow, dotted] (powerdrv.270) .. controls +(-4ex,-14ex) and +(-6ex,5ex) ..
+		node[above,pos=0.9] { \emph{extend} } (forth.150);
+
+	\path[treesessionarrow, <->] (platformdrv) -- (mbox);
+	\path[treesessionarrow, <->] (forth) -- (mbox);
+
+	\node[left=30ex of pmic, scale=1.3] { Power draw $\approx 2.5$ W };
+
+\end{tikzpicture}
+

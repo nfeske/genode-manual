@@ -1,0 +1,82 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=4ex]
+
+	\tikzstyle{drivernode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=4ex, opacity=0.5, text opacity=1]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{api} = [anchor=west, sloped=false, pos=0.8, scale=0.7]
+
+	\tikzstyle{appnode} = [treenode, bottom color=appcolor]
+	\tikzstyle{rednode} = [treenode, bottom color=criticalcolor]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	\tikzstyle{cpusplit} = [draw, very thick, densely dashed]
+	\tikzstyle{kernelusersplit} = [draw, densely dashed, opacity=0.8, text opacity=0.5]
+
+	\node (cpubase) { };
+	\path (cpubase)+(0,20ex) coordinate (kerneluserbase);
+	\path (cpubase)+(0,8ex) coordinate (normalworldbase);
+
+	\path [cpusplit] (cpubase)+(-50ex,0) -- node[above] (ap) { Application Processor } (cpubase);
+	\path [cpusplit] (cpubase)+(25ex,0) -- node[above] (scp) { System-Control Processor } (cpubase);
+	\path [cpusplit] (cpubase)+(0,40ex) -- (cpubase);
+
+	\path (ap)+(0,12ex) node (kernel) { };
+
+	\path [kernelusersplit] (normalworldbase)+(-50ex,0) -- node[below, xshift=-1ex] { Trustzone secure world } (normalworldbase);
+	\path [kernelusersplit] (kerneluserbase)+(-50ex,0) -- node[above] { User space }  node[below] { Kernel } (kerneluserbase);
+
+	\path (cpubase |- kernel) node[draw, fill=white, circle,minimum size=1ex, inner sep=0, align=center] (mbox) { mbox \\ shm };
+
+	\path (cpubase)+(0,-7ex) node[draw, fill=white, minimum size=1ex, inner sep=1ex, align=center] (pmic) { PMIC };
+
+	\path (pmic.0)+(1ex,0) node[align=left, anchor=west, scale=0.8] { Voltages \\ Battery \\ Power button };
+
+	\node[drivernode,left=3ex of mbox] (mboxdrv) { Mbox \\ driver };
+	\node[drivernode,left=1ex of mboxdrv] (rsbdrv)  { RSB \\ driver };
+	\node[drivernode,left=1ex of rsbdrv] (ccudrv)  { CCU \\ driver };
+	\node[left=1ex of ccudrv] (space)  { ... };
+	\node[drivernode,left=1ex of space] (inputdrv)  { Input \\ driver };
+	\node[drivernode,left=1ex of inputdrv] (displaydrv)  { Display \\ driver };
+
+	\node[drivernode,right=3ex of mbox] (crust)  { Crust \\ Firmware };
+
+	\path (cpubase)+(-9ex,4ex) node[drivernode] (atf)  { ATF };
+
+	\path (kernel)+(0,15ex) node[rednode] (guiserver) { Display Server };
+
+	\path (guiserver)+(-10ex,8ex) node[appnode] (app1) { App };
+	\path (guiserver)+(0ex,8ex)  node[appnode] (app2) { App };
+	\path (guiserver)+(10ex,8ex)  node[appnode] (app3) { App };
+
+	\path[treesessionarrow] (app1) .. controls +(0,-3ex) and +(0,3ex) .. (guiserver.120);
+	\path[treesessionarrow] (app2) .. controls +(0,-3ex) and +(0,3ex) .. (guiserver.90);
+	\path[treesessionarrow] (app3) .. controls +(0,-3ex) and +(0,3ex) .. (guiserver.60);
+
+	\path[treesessionarrow] (guiserver.230) .. controls +(0,-3ex) and +(0,13ex) .. (displaydrv);
+	\path[treesessionarrow] (guiserver.270) .. controls +(0,-3ex) and +(0,13ex) .. (inputdrv);
+
+	\path[treesessionarrow] (rsbdrv) .. controls +(0,-20ex) and +(0,5ex) .. (pmic.120);
+	\path[treesessionarrow] (crust) .. controls +(0,-7ex) and +(0,17ex) .. (pmic.60);
+
+	\path[treesessionarrow, dotted] (atf) .. controls +(5ex,0ex) and +(-5ex,-5ex) .. node[below,pos=0.3] { \emph{load} } (crust.220);
+
+	\path[treesessionarrow, <->] (mboxdrv) -- (mbox);
+	\path[treesessionarrow, <->] (crust) -- (mbox);
+
+\end{tikzpicture}
+
