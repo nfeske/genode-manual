@@ -61,8 +61,6 @@
 	\path (guiserver)+(-10ex,15ex) node[appnode] (app1) { App };
 	\path (guiserver)+(-2ex,15ex)  node[appnode] (app2) { App };
 	\path (guiserver)+(6ex,15ex)   node[appnode] (app3) { App };
-	\path (guiserver)+(14ex,15ex)  node[protocolnode] (displaydrv) { Display \\ driver };
-	\path (guiserver)+(22ex,15ex)  node[protocolnode] (inputdrv) { Input \\ driver };
 	\path (guiserver)+(30ex,15ex)  node[protocolnode] (powerdrv) { Power \\ driver };
 
 	\path (guiserver.north)   node[service, scale=0.4, xshift=-10ex] (gui) {};
@@ -80,11 +78,7 @@
 	\path[treesessionarrow] (app1)       .. controls +(0,-6ex) and +(0,3ex) .. (gui.120);
 	\path[treesessionarrow] (app2)       .. controls +(0,-6ex) and +(0,3ex) .. (gui.90);
 	\path[treesessionarrow] (app3)       .. controls +(0,-6ex) and +(0,3ex) .. (gui.60);
-	\path[treesessionarrow] (displaydrv) .. controls +(0,-6ex) and +(0,3ex) .. (capture);
-	\path[treesessionarrow] (inputdrv)   .. controls +(0,-6ex) and +(0,3ex) .. (event);
 
-	\path[treesessionarrow] (displaydrv) .. controls +(0,-6ex) and +(0,3ex) .. (platform.120);
-	\path[treesessionarrow] (inputdrv)   .. controls +(0,-6ex) and +(0,3ex) .. (platform.90);
 	\path[treesessionarrow] (powerdrv)   .. controls +(0,-6ex) and +(0,3ex) .. (platform.60);
 	\path[treesessionarrow] (powerdrv)   .. controls +(0,-6ex) and +(0,3ex) .. (scp);
 
@@ -99,7 +93,8 @@
 	\path[treesessionarrow, <->] (platformdrv) -- (mbox);
 	\path[treesessionarrow, <->] (forth) -- (mbox);
 
-	\node[left=30ex of pmic, scale=1.3] { Power draw $\approx 2.5$ W };
+	%\node[left=30ex of pmic, scale=1.3] { Power draw $\approx 2.5$ W };
+	\node[left=30ex of pmic, scale=1.3] { Power draw $\approx 1$ W };
 
 \end{tikzpicture}
 
