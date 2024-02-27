@@ -1,0 +1,84 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=7ex, minimum width=9ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{api} = [anchor=west, sloped=false, pos=0.8, scale=0.7]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+	\tikzstyle{drivernode} = [treenode, bottom color=kernelcolor, minimum width=9ex]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	\tikzstyle{cpusplit} = [draw, very thick, densely dashed]
+	\tikzstyle{kernelusersplit} = [draw, densely dashed, opacity=0.8, text opacity=0.5]
+
+	\node (base) { };
+
+	\path (base)+(-20ex,0) coordinate (left)  { };
+	\path (base)+(20ex,0)  coordinate (right) { };
+
+	%
+	% Left: original layered architecture
+	%
+
+	\node[drivernode,at=(left)] (driver) { Audio\\ driver };
+	\path (driver.north) node[service, scale=0.4, xshift=-5ex] (driverout) {};
+	\path (driver.north) node[service, scale=0.4, xshift=5ex]  (driverin)  {};
+	\path (driverout.south) node[anchor=north, scale=0.4] {Audio Out};
+	\path (driverin.south) node[anchor=north, scale=0.4] {Audio In};
+
+	\node[muxnode,above=5ex of driver] (mixer) { Mixer };
+	\path (mixer.north)    node[service, scale=0.4, xshift=-5ex] (mixerout) {};
+	\path (mixer.north)    node[service, scale=0.4, xshift=5ex]  (mixerin)  {};
+	\path (mixerout.south) node[anchor=north, scale=0.4] {Audio Out};
+	\path (mixerin.south)  node[anchor=north, scale=0.4] {Audio In};
+
+	\node[appnode,above=5ex of mixer,xshift=-7ex] (player) { Audio\\ player };
+	\node[appnode,above=5ex of mixer,xshift=7ex]  (chat)   { Voice\\ chat };
+
+	\path[treesessionarrow] (player.south) .. controls +(0,-2ex) and +(-1ex,2ex) .. (mixerout.120);
+
+	\path[treesessionarrow] (chat.240) .. controls +(0,-2ex) and +(1ex,2ex) .. (mixerout.60);
+	\path[treesessionarrow] (chat.300) .. controls +(0,-2ex) and +(1ex,2ex) .. (mixerin.60);
+
+	\path[treesessionarrow] (driverout |- mixer.south) -- (driverout);
+	\path[treesessionarrow] (driverin  |- mixer.south) -- (driverin);
+
+	%
+	% Right: new pluggable architecture
+	%
+
+	\node[muxnode,at=(right)] (mixer) { Mixer };
+	\path (mixer.north)  node[service, scale=0.4, xshift=-5ex] (play) {};
+	\path (mixer.north)  node[service, scale=0.4, xshift=5ex]  (record)  {};
+	\path (play.south)   node[anchor=north, scale=0.4] {Play};
+	\path (record.south) node[anchor=north, scale=0.4] {Record};
+
+	\node[appnode,above=10ex of mixer,xshift=-12ex] (player) { Audio\\ player };
+	\node[appnode,above=10ex of mixer,xshift=0ex]  (chat)   { Voice\\ chat };
+	\node[drivernode,above=10ex of mixer,xshift=12ex] (driver) { Audio\\ driver };
+
+	\path[treesessionarrow] (player.south) .. controls +(0,-4ex) and +(-1ex,4ex) .. (play.120);
+
+	\path[treesessionarrow] (play   |- chat.south) -- (play.north);
+	\path[treesessionarrow] (record |- chat.south) -- (record.north);
+
+	\path[treesessionarrow] (driver.240) .. controls +(0,-4ex) and +(1ex,4ex) .. (play.60);
+	\path[treesessionarrow] (driver.300) .. controls +(0,-4ex) and +(1ex,4ex) .. (record.60);
+
+\end{tikzpicture}
+
