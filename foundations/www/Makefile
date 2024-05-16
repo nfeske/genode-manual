@@ -9,7 +9,7 @@ CHAPTERS := introduction \
             development \
             system_configuration \
             under_the_hood \
-            functional_specification
+            api
 
 REPO_URL := https://github.com/genodelabs/genode/blob/23.05
 

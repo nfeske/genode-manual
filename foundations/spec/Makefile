@@ -224,6 +224,6 @@ ALL_CLASS_NAMES = $(foreach C,$(CLASSES),${CLASS_NAME($C)})
 
 check_spec_complete: class_index.mk
 	@$(foreach C,$(ALL_CLASS_NAMES),\
-	    (grep "$C" ../functional_specification.txt > /dev/null || \
+	    (grep "$C" ../api.txt > /dev/null || \
 	     echo "missing class description for '$C'");)
 
