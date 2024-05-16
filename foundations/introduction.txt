@@ -291,10 +291,10 @@ stacks.
 :Virtualization:
 
   Genode supports virtualization at different levels:
-  * On NOVA, faithful virtualization via VirtualBox allows the execution of
-    unmodified guest operating systems as Genode subsystems. Alternatively,
-    the Seoul virtual machine monitor can be used to run unmodified
-    Linux-based guest OSes.
+  * Using NOVA or Genode's custom kernel, faithful virtualization via VirtualBox
+    allows for the execution of unmodified guest operating systems as Genode
+    subsystems. Alternatively, the Seoul virtual machine monitor can be used
+    to run unmodified Linux-based guest OSes.
   * On ARM, Genode can be used as TrustZone monitor, or as a virtual machine
     monitor that facilitates ARM's virtualization extensions.
 
@@ -302,7 +302,7 @@ stacks.
 
   There exist hundreds of ready-to-use components such as
   * Device drivers for most common PC peripherals including networking,
-    storage, display, USB, PS/2, Intel wireless, and audio output.
+    storage, display, USB, PS/2, Intel wireless, Intel GPUs, and audio.
   * Device drivers for a variety of ARM-based SoCs, in particular the NXP i.MX
     family.
   * A GUI stack including a low-complexity GUI server, window management,

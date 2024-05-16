@@ -940,6 +940,32 @@ See Section [Platform driver] for more information about the role of the
 platform driver.
 
 
+Pin state and control
+~~~~~~~~~~~~~~~~~~~~~
+
+The pin-state and pin-control session interfaces are designated for
+interacting with general-purpose I/O (GPIO) pins. Each session corresponds to
+an individual pin. A pin-state client is able to monitor the state of an input
+pin whereas a pin-control client can define the digital signal level of an
+output pin. Even though a client of a pin session is able to interact with a
+pin, it has no authority over system-critical pin configurations nor does it
+need to refer to any physical properties of the pin like the GPIO bank or pin
+number.
+
+The assignment of sessions to physical pins is in the hands of the pin driver
+and defined by the pin-driver's configuration.
+As each pin corresponds to a separate session, per-pin access control
+is naturally attained by Genode's regular session-routing and server-side
+policy-selection paradigms (Section [Server-side policy selection]).
+The pin-driver's policy maps the session labels of its clients to physical pins
+and guards the configuration the physical pins regarding the I/O direction,
+pull up/down, or special-function selection.
+
+A pin driver usually provides an IRQ service in addition to the pin-state and
+pin-control services. This IRQ service allows a client to receive notifications
+of a change of the signal level of a GPIO pin.
+
+
 Block
 ~~~~~
 
@@ -1030,87 +1056,52 @@ Use cases
 * A network driver connects to a NIC router to appear as uplink.
 
 
-Audio output
-~~~~~~~~~~~~
+Audio recording and playing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The audio output interface allows for the transfer of audio data from the
-client to the server.
-One session corresponds to one channel. I.e., for
-stereo output, two audio-out sessions are required.
+The record and play session interfaces enable audio-processing components to
+stream audio data across component boundaries. A record session is used to
+obtain audio whereas a play session is used to submit generated audio data.
+Both session interfaces use shared memory for the transfer of audio data.
+The services are typically provided by a mixer component.
+The mixer routes and mixes audio signals produced by play clients to record
+clients according to its configuration. Typical play clients are an audio
+player or a microphone driver whereas typical record clients are an audio
+recorder or an audio-output driver.
+Note that audio drivers as well as audio applications are mere clients of the
+mixer. A driver depends on the mixer but the mixer does not depend on the
+driver. This architecture allows for the dynamic starting, removal, and
+restarting of a driver, of even multiple drivers.
 
+Both play and record clients are expected to operate periodically. The number
+of samples produced per period is up to each client and does not need to be
+constant over time. The mixer infers the used sample rates and periods by
+observing the behavior of the clients. Sample rates between play and record
+clients are converted automatically.
+
+Multi-channel playing and recording are realized by one session per channel
+whereas one channel is used to drive the time allocation while all further
+channels merely enqueue/obtain data into/from their respective sessions
+without any synchronous interplay with the mixer.
 
 Session construction
 --------------------
 
 At session-construction time, the client specifies the type of channel
-(e.g., front left) as session argument.
-
-
-Interface design
-----------------
-
-For the output of streamed audio data, a codec typically decodes a relatively
-large portion of an audio stream and submits the sample data to a mixer. The
-mixer, in turn, mixes the samples of multiple sources and forwards the result
-to the audio driver. The codec, the mixer, and the
-audio driver are separate components. By using large buffer sizes between
-them, there is only very little context-switching overhead. Also, the driver
-can submit large buffers of sample data to the sound device without any
-further intervention needed.
-In contrast, sporadic sounds are used to inform the user about an immediate
-event. An example is the acoustic feedback to certain user input in games.
-The user ultimately expects that such sounds are played back without much
-latency. Otherwise the interactive experience would suffer.
-Hence, using large buffers between the audio source, the mixer, and the driver
-is not an option.
-The audio-out session interface was specifically designed to
-accommodate both corner cases of audio output.
-
-[tikz img/audio_out_session]
-  The time-driven audio-out session interface uses shared memory to transfer
-  audio frames and propagate progress information.
-
-Similarly to the packet-stream mechanism described in Section
-[Asynchronous bulk transfer - packet streams],
-the audio-out session interface depicted in Figure [img/audio_out_session]
-employs a combination of shared memory and asynchronous notifications.
-However, in contrast to the packet-stream mechanism, it has no notion of
-ownership of packets. When using the normal packet-stream protocol,
-either the source or the sink is in charge of handling a given packet at a
-given time, not both. The audio-out session interface weakens this notion of
-ownership by letting the source update once submitted audio frames even after
-submitting them.
-If there are solely continuous streams of audio arriving at the mixer,
-the mixer can mix those large batches of audio samples at once and pass the
-result to the driver.
-
-[tikz img/mixer_streaming]
-  The mixer processes batches of incoming audio frames from multiple sources.
-
-Now, if a sporadic sound comes in, the mixer checks the
-current output position reported by the audio driver, and re-mixes those
-portions that haven't been played back yet by incorporating the sporadic sound.
-So the buffer consumed by the driver gets updated with new data.
-
-[tikz img/mixer_sporadic]
-  A sporadic occurring sound prompts the mixer to remix packets that were
-  already submitted in the output queue.
-
-Besides the way of how packets are populated with data, the second
-major difference to the packet-stream mechanism is its time-triggered
-mode of operation. The
-driver produces periodic signals that indicate the completeness of a
-played-back audio packet. This signal triggers the mixer to become active,
-which in turn serves as a time base for its clients. The current playback
-position is denoted alongside the sample data as a field in the memory buffer
-shared between source and sink.
+(e.g., "left") as session argument.
 
 Use cases
 ---------
 
-* The audio-out session interface is provided by audio drivers.
-* An audio mixer combines incoming audio streams of multiple clients into
-  one audio stream transferred to an audio driver.
+* The record and play session interfaces are provided by an audio mixer.
+* An audio-output driver obtains sample data from the mixer using two
+  record sessions for the left and right channels respectively, and
+  converts the sample data into the format expected by the hardware.
+* An audio-input driver submits data sampled from the microphone to
+  the mixer via a play session.
+* A multi-channel audio player uses one play session for each channel.
+* A graphical oscilloscope uses a record session to get hold of the
+  data to display.
 
 
 File system

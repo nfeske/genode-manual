@@ -830,22 +830,27 @@ NIC and uplink session interfaces
 
 [raw spec/clearpage]
 
-Audio-out session interface
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Record and play session interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-; XXX description, reference to components section
+The record and play session (Section [Audio recording and playing]) interfaces
+allow for the streaming of audio data between components. Each session
+corresponds to a channel. Hence, stereo output requires two play sessions.
+Both services are typically provided by a mixer that routes data streams from
+play clients to record clients. Sample values are represented as
+floating-point numbers and communicated over shared memory.
 
-; XXX Audio_out::Signal
-; XXX Audio_out::Session_client
-; XXX Audio_out::Packet
-; XXX Audio_out::Stream
-; XXX Audio_out::Session_rpc_object
+; XXX Play::Session
+; XXX Play::Connection
+[raw spec/classes/play/session/description]
+[raw spec/classes/play/connection/description]
 
-; Audio_out::Session
-[raw spec/classes/audio_out/session/description]
+[raw spec/clearpage]
 
-; Audio_out::Connection
-[raw spec/classes/audio_out/connection/description]
+; XXX Record::Session
+; XXX Record::Connection
+[raw spec/classes/record/session/description]
+[raw spec/classes/record/connection/description]
 
 
 [raw spec/clearpage]
@@ -902,6 +907,40 @@ retrieved by reading a directory node is defined by the 'Directory_entry'.
 
 
 [raw spec/clearpage]
+
+
+Pin state and control session interfaces
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A pin-state or pin-control session (Section [Pin state and control])
+allows its client to interact with an individual GPIO pin. The pin is
+referred to by the client's session label.
+
+; Pin_state::Session_component
+; Pin_state::Session
+[raw spec/classes/pin_state/session/description]
+
+; Pin_state::Connection
+[raw spec/classes/pin_state/connection/description]
+
+Pin control
+-----------
+
+The 'state' RPC function sets the digital output to high or low, which is the
+most common use.
+
+To accommodate the time-multiplexed operation of a pin as output and input,
+the 'yield' RPC function switches the pin to high-impedance. It can thereby be
+driven as input pin and its state can be monitored via a separate pin-state
+session referring to the same pin as the pin-control session. This is
+useful for implementing two-wire protocols like I2C in software.
+
+; Pin_control::Session_component
+; Pin_control::Session
+[raw spec/classes/pin_control/session/description]
+
+; Pin_control::Connection
+[raw spec/classes/pin_control/connection/description]
 
 
 ;GPIO session interface
@@ -1214,6 +1253,7 @@ and the 'with_any_element' interface supports the orderly destruction of all
 dictionary items. These patterns limit the exposure of individual dictionary
 elements to a local scope at the caller.
 
+; Genode::Dictionary
 [raw spec/classes/genode/dictionary/description]
 
 
@@ -1594,6 +1634,58 @@ newline character.
 
 ; Genode::Buffered_output
 ; Genode::Log_tsc_probe
+
+
+Obtaining backtraces
+~~~~~~~~~~~~~~~~~~~~
+
+As debugging aid, it is sometimes insightful to obtain call graphs of executed
+code. Such backtraces can be generated via the utilities provided by
+_os/backtrace.h_. As a precondition for getting useful output, make sure to
+have compiled your executable binary with frame pointers. By adding the
+following line to the _etc/build.conf_ file of the build directory, one can
+instruct the build system to produce binaries in the needed form.
+
+! CC_OPT += -fno-omit-frame-pointer
+
+The general mechanism for generating a backtrace has the form of the printable
+'Backtrace' class. An object of this type can be passed to any of the 'log',
+'warning', 'error', or 'trace' functions to output the backtrace of the point
+of call. As a convenient shortcut for the common case of printing a backtrace
+to the log, one can call the 'backtrace()' function instead. The output looks
+like in the following example.
+
+! [init -> test-log] backtrace "ep"
+! [init -> test-log]   401ff89c   10014f4
+! [init -> test-log]   401ff90c   1001637
+! [init -> test-log]   401ff94c   10006e2
+! [init -> test-log]   401ffaec  5008aa9f
+! [init -> test-log]   401ffc6c  50048dbb
+! [init -> test-log]   401ffc8c  5004be41
+! [init -> test-log]   401ffcdc  5003a04d
+! [init -> test-log]   401ffe6c  50065218
+! [init -> test-log]   401fff7c  50079d54
+
+The first line contains the thread name of the caller, which is followed by
+one line per stack frame. The first number is the stack address whereas the
+second line is the return address of the stack frame, both given in
+hexadecimal format. The latter can be correlated to source code by inspecting
+the disassembled binary using the 'objdump' utility. In practice, however, one
+may prefer the convenience of the _tool/backtrace_ utility to streamline this
+procedure.
+
+# Execute the backtrace tool with the debug version of your executable as
+  argument. For example, after having observed a backtrace printed by the
+  test-log program, one may issue:
+
+  ! build/x86_64$ ../../tool/backtrace debug/test-log
+
+# Once started, the tool waits for you pasting the logged backtrace into the
+  terminal. For each stack frame, it then prints the corresponding function
+  name and source-code location.
+
+; Genode::Backtrace
+; [raw spec/classes/backtrace/description]
 
 [raw spec/clearpage]
 
@@ -2257,16 +2349,59 @@ XML generation
 XML-based data models
 ~~~~~~~~~~~~~~~~~~~~~
 
-The 'List_model' utility eases the implementation of component-internal data
-models created and updated from XML. The transformation is defined by the
-implementation of the 'Update_policy' interface. As a low-level mechanism,
-the list model is not thread safe.
+List-based data model created and updated from XML
+---------------------------------------------------
+
+The 'List_model' defined at _base/include/util/list_model.h_ stores a
+component-internal representation of XML-node content. It keeps XML sub-nodes
+of a matching type in an internal list of C++ objects of type 'ELEM'.
+An 'ELEM' type carries two methods 'matches' and 'type_matches' that
+define the relation of the elements to XML nodes. E.g.,
+
+! struct Item : List_model<Item>::Element
+! {
+!   static bool type_matches(Xml_node const &);
+!
+!   bool matches(Xml_node const &) const;
+!   ...
+! };
+
+The class function 'type_matches' returns true if the specified XML node
+matches the 'Item' type. It can thereby be used to control the creation
+of 'ELEM' nodes by responding to specific XML tags while ignoring unrelated
+XML tags.
+
+The 'matches' method returns true if the concrete element instance matches
+the given XML node. It is used to correlate existing 'ELEM' objects with
+new versions of XML nodes to update the 'ELEM' objects.
+
+The functor arguments 'create_fn', 'destroy_fn', and 'update_fn' for the
+'update_from_xml' method define how objects are created, destructed, and
+updated. E.g.,
+
+! _list_model.update_from_xml(node,
+!
+!   [&] (Xml_node const &node) -> Item & {
+!     return *new (alloc) Item(node); },
+!
+!   [&] (Item &item) { destroy(alloc, &item); },
+!
+!   [&] (Item &item, Xml_node const &node) { item.update(node); }
+! );
+
+The elements are ordered according to the order of XML nodes.
+
+The list model is a container owning the elements. Before destructing a
+list model, its elements must be removed by calling 'update_from_xml'
+with an 'Xml_node("<empty/>")' as argument, which results in the call
+of 'destroy_fn' for each element.
 
 ; Genode::List_model
 [raw spec/classes/genode/list_model/description]
 
-; Genode::List_model::Update_policy
-[raw spec/classes/genode/list_model/update_policy/description]
+
+XML buffering
+-------------
 
 In some situations, it is convenient to keep a verbatim copy of XML input as
 part of the internal data model. As the 'Xml_node' is merely a light-weight
@@ -2620,6 +2755,7 @@ verbatim description of how the device is used. For example:
 ; Genode::Arg
 ; Genode::Arg_string
 ; Genode::Register_set_plain_access
+; Genode::Register_set_base
 ; Genode::Register_set
 ; File_system::Connection_base
 ; Genode::Xml_node_label_score
@@ -2664,6 +2800,7 @@ verbatim description of how the device is used. For example:
 ; Genode::File_content
 ; Genode::Watcher
 ; Genode::Watch_handler
+; Genode::Io::Watch_handler
 ; Pin::Driver
 ; Pin::Assignment
 ; Pin::Root
@@ -2677,8 +2814,28 @@ verbatim description of how the device is used. For example:
 ; Genode::Repeated
 ; Genode::Left_aligned
 ; Genode::Right_aligned
+; Genode::Hex_dump
 ; Genode::Trace::Checkpoint
 ; Genode::Trace::Ethernet_packet
 ; Genode::Writeable_file
 ; Genode::Append_file
-; Usb::Isoc_transfer
+; Usb::Client
+; Usb::Endpoint
+; Usb::Urb_handler
+; Usb::Interface
+; Usb::Device
+; Usb::Interface::Alt_setting
+; genode_usb_isoc_descriptor
+; genode_usb_isoc_transfer_header
+; genode_usb_device_descriptor
+; genode_usb_config_descriptor
+; genode_usb_interface_descriptor
+; genode_usb_endpoint_descriptor
+; Usb::Tagged_packet
+; Usb::Interface_session
+; Usb::Device_session
+; Genode::Page_flags
+; Genode::Page_table_allocator
+; Genode::Page_table_allocator::Array
+; Genode::Page_table_allocator::Array::Allocator
+

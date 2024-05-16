@@ -74,7 +74,7 @@ Git checks out the most recent Genode master branch commit, so, let's
 now switch to the version used in this manual:
 
 ! cd <genode-dir>
-! git checkout -b 23.05 23.05
+! git checkout -b 24.05 24.05
 
 
 Source-tree structure
@@ -298,10 +298,12 @@ the following command from within the build directory:
 The argument "init" refers to the path relative to the _src/_ subdirectory.
 The build system determines and builds all targets found under this path in
 all source-code repositories.
-When the build the is finished, the resulting executable binary can be found
+When the build is finished, the resulting executable binary can be found
 in a subdirectory that matches the target's path. Additionally, the build
 system installs a symbolic link in the _bin/_ subdirectory that points to the
-executable binary.
+executable binary. It also installs symbolic links to the debug version of
+the executable binary along with its symbol information at the _bin/debug/_
+subdirectory.
 
 If the specified path contains multiple _target.mk_ files in different
 subdirectories, the build system builds all of them. For example, the
@@ -310,10 +312,20 @@ _<repo>/src/drivers/_ subdirectories:
 
 ! make drivers
 
-Furthermore, it is possible to specify multiple targets at once. The following
-command builds both the init component and the nitpicker GUI server component:
+Static libraries are implicitly built whenever needed by a dependent target.
+Shared libraries can be built by specifying 'lib/<name>' as target where
+'<name>' corresponds to the name of the library. For example, the following
+command builds the vfs library from the build-description file at
+_repos/os/lib/mk/vfs.mk_. The result can be found within the build directory
+at _var/libcache/vfs/_.
 
-! make init server/nitpicker
+! make lib/vfs
+
+Furthermore, it is possible to specify multiple targets at once. The following
+command builds the init component, the nitpicker GUI server component,
+and the vfs library at once:
+
+! make init server/nitpicker lib/vfs
 
 
 A simple system scenario
@@ -399,10 +411,9 @@ microhypervisor, the following preparatory steps are needed:
 # To handle USB devices, a device-driver environment for executing a Linux
   kernel subsystem as a user-level component is used. Download the 3rd-party
   source code of the _dde_linux_ repository:
-  ! <genode-dir>/tool/ports/prepare_port dde_linux linux
+  ! <genode-dir>/tool/ports/prepare_port linux jitterentropy
 
   The source code will be downloaded to
-  _<genode-dir>/contrib/dde_linux-<hash>/_ and
   _<genode-dir>/contrib/linux-<hash>/_ respectively.
 
 # To boot the scenario as an operating system on a PC, a boot loader is
@@ -428,11 +439,15 @@ script from within the build directory:
 ! make run/demo KERNEL=nova BOARD=pc
 
 This time, an instance of Qemu will be started to execute the demo scenario.
-The Qemu command-line arguments appear in the log output. As suggested
-by the arguments, the scenario is supplied to Qemu as an ISO image residing
-at _var/run/demo.iso_. This ISO image can not only be used with Qemu but
-also with a real machine. For example, creating a bootable USB stick with
-the system scenario is as simple as writing the ISO image onto an USB stick:
+The Qemu command-line arguments appear in the log output. Depending on the
+used Qemu version, one may need to tweak some of those arguments, for example
+by removing the '-display sdl' option in your _etc/build.conf_ file.
+
+As suggested by the arguments, the scenario is supplied to Qemu as an ISO
+image residing at _var/run/demo.iso_.
+The ISO image can not only be used with Qemu but also with a real machine.
+Creating a bootable USB stick with the system scenario is as simple as writing
+the ISO image onto a USB stick:
 ! sudo dd if=var/run/demo.iso of=/dev/<usb-device> bs=8M conv=fsync
 
 Note that _<usb-device>_ refers to the device node of an USB stick. It can be
@@ -560,7 +575,7 @@ need to create a _lab/run/_ subdirectory:
 Within this directory, we create the file
 _<genode-dir>/repos/lab/run/hello.run_ with the following content:
 
-!build "core init app/hello"
+!build { core init lib/ld app/hello }
 !create_boot_directory
 !install_config {
 ! <config>
@@ -579,13 +594,14 @@ _<genode-dir>/repos/lab/run/hello.run_ with the following content:
 !   </start>
 ! </config>
 !}
-!build_boot_image "core ld.lib.so init hello"
+!build_boot_image [build_artifacts]
 !append qemu_args "-nographic -m 64"
 !run_genode_until {Hello world.*\n} 10
 
 This run script performs the following steps:
 
-# It builds the components core, init, and app/hello.
+# It builds the components core, init, the dynamic linker lib/ld,
+  and app/hello.
 ; XXX references to the Sections about core and init
 
 # It creates a fresh boot directory at _<build-dir>/var/run/hello_.
@@ -598,9 +614,9 @@ This run script performs the following steps:
   towards the parent of init, which is core. The '<default>' node declares
   that each component may consume up to 100 capabilities.
 
-# It assembles a boot image with the executable ELF binaries core,
-  ld.lib.so (the dynamic linker), init, and hello. The binaries are picked up
-  from the _<build-dir>/bin/_ subdirectory.
+# It assembles a boot image with the executable ELF binaries produced by
+  the build step. The binaries are picked up from the _<build-dir>/bin/_
+  subdirectory.
 
 # It instructs Qemu (if used) to disable the graphical output.
 
@@ -703,7 +719,7 @@ of 1 second.
 
 The following remarks are worth noting:
 
-* The programming style expresses what the component _is_ rather than what
+* The programming style emphasizes what the component _is_ rather than what
   the component _does_.
 
 * The component does not perform any dynamic memory allocation.
@@ -723,7 +739,7 @@ The following remarks are worth noting:
 To execute the new version of the component, we need to slightly modify the
 run script.
 
-!build "core init timer app/hello"
+!build { core init lib/ld timer app/hello }
 !create_boot_directory
 !install_config {
 ! <config>
@@ -746,7 +762,7 @@ run script.
 !   </start>
 ! </config>
 !}
-!build_boot_image "core ld.lib.so init timer hello"
+!build_boot_image [build_artifacts]
 !append qemu_args "-nographic -m 64"
 !run_genode_until forever
 
@@ -754,7 +770,7 @@ The modifications are as follows:
 
 * Since the hello component now relies on a timer service, we need to
   build and integrate a timer driver into the scenario by extending
-  the 'build' and 'build_boot_image' steps accordingly.
+  the 'build' step accordingly.
 
 * We instruct init to spawn the timer driver as an additional component
   by adding a '<start>' node to init's configuration. Within this node,

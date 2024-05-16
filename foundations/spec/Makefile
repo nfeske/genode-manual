@@ -81,7 +81,6 @@ define BASE_INCLUDE_DIRS
 endef
 
 define OS_INCLUDE_DIRS
-  audio_out_session
   block_session
   block
   file_system_session
@@ -104,6 +103,10 @@ define OS_INCLUDE_DIRS
   terminal_session
   uart_session
   usb_session
+  record_session
+  play_session
+  pin_state_session
+  pin_control_session
   util
 endef
 
