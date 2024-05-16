@@ -18,8 +18,8 @@ VERBOSE ?= @
 # download is triggered via the class_index.mk dependency.
 #
 
-GENODE_GIT_URL := https://github.com/genodelabs/genode.git
-GENODE_GIT_REV := 23.05
+GENODE_GIT_URL := ~/src/genode
+GENODE_GIT_REV := 24_05
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
