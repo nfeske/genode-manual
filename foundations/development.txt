@@ -598,33 +598,6 @@ tool is executed, the 'log/serial' module may be used instead of 'log/amt':
 
 ! --include log/serial --log-serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
 
-Executing base-hw on a Raspberry Pi
------------------------------------
-
-The following example boots a system scenario based on the base-hw kernel on
-a Raspberry Pi that is powered via a network-controllable power plug (netio).
-The Raspberry Pi is connected to a JTAG debugger, which is used to load the
-system image onto the device.
-
-!RUN_OPT = --include boot_dir/hw \
-!          --include power_on/netio \
-!                  --power-on-netio-ip 10.23.42.5 \
-!                  --power-on-netio-user admin \
-!                  --power-on-netio-password secret \
-!                  --power-on-netio-port 1 \
-!          --include power_off/netio \
-!                  --power-off-netio-ip 10.23.42.5 \
-!                  --power-off-netio-user admin \
-!                  --power-off-netio-password secret \
-!                  --power-off-netio-port 1 \
-!          --include load/jtag \
-!          --load-jtag-debugger \
-!              /usr/share/openocd/scripts/interface/flyswatter2.cfg \
-!          --load-jtag-board \
-!              /usr/share/openocd/scripts/interface/raspberrypi.cfg \
-!          --include log/serial \
-!                  --log-serial-cmd 'picocom -b 115200 /dev/ttyUSB0'
-
 
 Meaningful default behaviour
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -941,9 +914,9 @@ called 'used_apis', which contains a list of API-archive names with each
 name on a separate line. For example, the 'used_apis' file of the 'report_rom'
 source archive looks as follows:
 
-! base/2017-05-14
-! os/2017-05-13
-! report_session/2017-05-13
+! base/2024-04-11
+! os/2024-04-11
+! report_session/2023-05-26
 
 The 'used_apis' file declares the APIs needed to incorporate into the build
 process when building the source archive. Hence, they represent _build-time_
@@ -951,9 +924,9 @@ _dependencies_ on the specific API versions.
 
 A source archive may be equipped with a top-level file called 'api' containing
 the name of exactly one API archive. If present, it declares that the source
-archive _implements_ the specified API. For example, the 'libc/2017-05-14'
+archive _implements_ the specified API. For example, the 'libc/2024-04-18'
 source archive contains the actual source code of the libc and libm as well as
-an 'api' file with the content 'libc/2017-04-13'. The latter refers to the API
+an 'api' file with the content 'libc/2024-04-11'. The latter refers to the API
 implemented by this version of the libc source package (note the differing
 versions of the API and source archives)
 
@@ -982,13 +955,12 @@ Package archive
 A package archive contains an 'archives' file with a list of archive names
 that belong together at runtime. Each listed archive appears on a separate line.
 For example, the 'archives' file of the package archive for the window
-manager 'wm/2018-02-26' looks as follows:
+manager 'wm/2024-04-11' looks as follows:
 
-! genodelabs/raw/wm/2018-02-14
-! genodelabs/src/wm/2018-02-26
-! genodelabs/src/report_rom/2018-02-26
-! genodelabs/src/decorator/2018-02-26
-! genodelabs/src/floating_window_layouter/2018-02-26
+! genodelabs/raw/wm/2020-06-21
+! genodelabs/src/wm/2024-04-11
+! genodelabs/src/report_rom/2024-04-11
+! genodelabs/src/init/2024-04-11
 
 In contrast to the list of 'used_apis' of a source archive, the content of
 the 'archives' file denotes the origin of the respective archives
@@ -996,8 +968,8 @@ the 'archives' file denotes the origin of the respective archives
 archive.
 
 An 'archives' file may specify raw archives, source archives, or package
-archives (as type 'pkg'). It thereby allows the expression of _runtime
-dependencies_. If a package archive lists another package archive, it inherits
+archives (as type 'pkg'). It thereby allows the expression of _runtime_
+_dependencies_. If a package archive lists another package archive, it inherits
 the content of the listed archive. This way, a new package archive may easily
 customize an existing package archive.
 
@@ -1026,7 +998,7 @@ subdirectory.
 Subsuming archives in a subdirectory that correspond to their origin
 (user) serves two purposes. First, it provides a user-local name space for
 versioning archives. E.g., there might be two versions of a
-'nitpicker/2017-04-15' source archive, one by "genodelabs" and one by
+'nitpicker/2024-04-11' source archive, one by "genodelabs" and one by
 "nfeske". However, since each version resides in its origin's subdirectory,
 version-naming conflicts between different origins cannot happen. Second, by
 allowing multiple archive origins in the depot side-by-side, package archives
@@ -1083,7 +1055,7 @@ official "genodelabs" depot user is located at _gems/sculpt/depot/genodelabs/_.
 If both the public key and the download locations are defined, the download
 tool can be used as follows:
 
-! ./tool/depot/download genodelabs/src/zlib/2022-02-27
+! ./tool/depot/download genodelabs/src/zlib/2024-04-11
 
 The tool automatically downloads the specified archives and their
 dependencies. For example, as the zlib depends on the libc API, the libc API
@@ -1095,7 +1067,7 @@ all binary archives, for the 64-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
-! ./tool/depot/download genodelabs/pkg/x86_64/wm/2022-04-12
+! ./tool/depot/download genodelabs/pkg/x86_64/wm/2024-04-11
 
 Archive content is not downloaded directly to the depot. Instead, the
 individual archives and signature files are downloaded to a quarantine area in
@@ -1122,7 +1094,7 @@ CPU architecture. For example, the following command builds the 'zlib'
 library for the 64-bit x86 architecture. It executes four concurrent jobs
 during the build process.
 
-! ./tool/depot/build genodelabs/bin/x86_64/zlib/2022-02-27 -j4
+! ./tool/depot/build genodelabs/bin/x86_64/zlib/2024-04-11 -j4
 
 Note that the command expects a specific version of the source archive as
 argument. The depot may contain several versions. So the user has to decide,
@@ -1160,7 +1132,7 @@ GNU privacy guard.
 To publish archives, one needs to provide the specific version to publish.
 For example:
 
-! ./tool/depot/publish <you>/pkg/x86_64/wm/2022-04-12
+! ./tool/depot/publish <you>/pkg/x86_64/wm/2024-04-11
 
 To accommodate the common case of publishing the current version of the source
 tree, there exists the following shortcut:
@@ -1170,25 +1142,16 @@ tree, there exists the following shortcut:
 The command checks that the specified archive and all dependencies are present
 in the depot. It then proceeds with the archiving and signing operations. For
 the latter, the pass phrase for your private key will be requested. The
-publish tool outputs the information about the processed archives, e.g.:
+publish tool then outputs the information about the processed archives, e.g.:
 
-! publish /.../public/<you>/api/framebuffer_session/2020-06-28.tar.xz
-! publish /.../public/<you>/api/gems/2022-02-14.tar.xz
-! publish /.../public/<you>/api/gui_session/2020-06-28.tar.xz
-! publish /.../public/<you>/api/input_session/2022-02-14.tar.xz
-! publish /.../public/<you>/api/os/2022-04-12.tar.xz
-! publish /.../public/<you>/api/report_session/2020-03-25.tar.xz
-! publish /.../public/<you>/api/sandbox/2021-06-24.tar.xz
-! publish /.../public/<you>/api/timer_session/2021-04-19.tar.xz
-! publish /.../public/<you>/bin/x86_64/init/2022-04-12.tar.xz
-! publish /.../public/<you>/bin/x86_64/report_rom/2022-04-12.tar.xz
-! publish /.../public/<you>/bin/x86_64/wm/2022-04-12.tar.xz
-! publish /.../public/<you>/pkg/wm/2022-04-12.tar.xz
-! publish /.../public/<you>/raw/wm/2020-06-21.tar.xz
-! publish /.../public/<you>/src/init/2022-04-12.tar.xz
-! publish /.../public/<you>/src/report_rom/2022-04-12.tar.xz
-! publish /.../public/<you>/src/wm/2022-04-12.tar.xz
-
+! publish /.../public/<you>/api/gems/2023-11-29.tar.xz
+! publish /.../public/<you>/bin/x86_64/init/2024-04-11.tar.xz
+! publish /.../public/<you>/bin/x86_64/report_rom/2024-04-11.tar.xz
+! publish /.../public/<you>/bin/x86_64/wm/2024-04-11.tar.xz
+! publish /.../public/<you>/pkg/wm/2024-04-11.tar.xz
+! publish /.../public/<you>/src/init/2024-04-11.tar.xz
+! publish /.../public/<you>/src/report_rom/2024-04-11.tar.xz
+! publish /.../public/<you>/src/wm/2024-04-11.tar.xz
 
 According to the output, the tool populates a directory called _public/_
 at the root of the Genode source tree with the to-be-published archives.
@@ -1388,7 +1351,7 @@ component, one may combine the following lines in one run script:
 ! import_from_depot genodelabs/pkg/terminal
 ! ...
 ! build { server/terminal }
-! build_boot_image { terminal }
+! build_boot_image [build_artifacts]
 
 Since, the _pkg/terminal_ package is imported from the depot, the scenario
 obtains all ingredients needed to spawn a graphical terminal such as font and
@@ -1407,7 +1370,7 @@ and integrate the resulting _ld.lib.so_ binary as boot module:
 ! import_from_depot genodelabs/src/[base_src]
 ! ...
 ! build { lib/ld }
-! build_boot_image { ld.lib.so }
+! build_boot_image [build_artifacts]
 
 
 Static code analysis
@@ -1517,7 +1480,7 @@ Release version
 
 The version number of a Genode release refers to the release date. The
 two-digit major number corresponds to the last two digits of the year and
-the two-digit minor number corresponds to the month. For example, "17.02".
+the two-digit minor number corresponds to the month. For example, "24.05".
 
 Each Genode release represents a snapshot of the master branch taken at
 release time. It is complemented by the following commits:

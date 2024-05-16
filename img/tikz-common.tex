@@ -489,51 +489,6 @@
                                     pattern color=black]
 
 %%
-%% Wheel used for illustrating the audio-out session interface
-%%
-
-\newenvironment{wheel}[1] {
-
-	%%
-	% Draw slices
-	%
-	% argument 1: range to iterate over the angles, in steps of 10
-	% argument 2: style used for drawing the slices
-	%
-	\newcommand{\slices}[2]{
-		\foreach \i in {##1} {
-			\path[##2]
-				(\i + 2:#1*0.2)  -- (\i + 2:#1*0.95) --
-				(\i + 8:#1*0.95) -- (\i + 8:#1*0.2) --cycle;
-		}
-	}
-
-	%%
-	% Remember slice as tikz coordinate
-	%
-	% argument 1: angle
-	% argument 2: name of coordinate
-	% 
-	\newcommand{\rememberouter}[2]{
-		\path (##1 + 5:#1*0.95) coordinate (##2) {}; }
-
-	\newcommand{\rememberinner}[2]{
-		\path (##1 + 5:#1*0.85) coordinate (##2) {}; }
-
-	\begin{tikzpicture}
-
-		\path[draw, draw opacity=0.4, inner color=white, outer color=white!80!black, even odd rule]
-			(0,0) circle (#1);
-
-		\foreach \i in {0, 10,...,350} {
-			\path[white, draw, draw opacity=0.5] (0,0) -- (\i:#1); }
-
-} {
-	\end{tikzpicture}
-}
-
-
-%%
 %% API specification
 %%
 
