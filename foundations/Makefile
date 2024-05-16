@@ -22,7 +22,7 @@ development
 system_configuration
 under_the_hood
 part_2
-functional_specification
+api
 endef
 
 default: $(PDF)

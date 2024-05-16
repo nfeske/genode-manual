@@ -1,5 +1,5 @@
-Functional specification
-########################
+API
+###
 
 This chapter complements the architectural information of Chapters
 [Architecture] and [Components] with a thorough description of the
