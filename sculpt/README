@@ -1,0 +1,11 @@
+This directory contains the document source for the PDF version of the
+Sculpt OS documentation, the HTML version hosted at genode.org, as well
+as the README shipped with the Sculpt image.
+
+The genode.org content is generated from a copy of sculpt.txt mirrored at
+_repos/gems/recipes/sculpt/README_ in the Genode repository. When modifying
+the source, keep in mind to stay compatible with gosh's HTML backend.
+In particular, don't insert any LaTeX code.
+
+To keep .png files reasonably small, please always use the 'pngquant'
+utility as a post-processing step.
