@@ -1,16 +1,110 @@
+; vim: tw=80 et ts=2 sw=2
+
 Graphical User Interfaces
 =========================
 
+Since its first release, Genode came with its own low-level GUI stack centered
+around a component called _Nitpicker GUI server_. Nitpicker provides three types
+of session interfaces: GUI, Capture and Event. Similar to the NIC router,
+Nitpicker is a resource multiplexer. It mediates between framebuffer driver,
+input drivers and applications. Applications use the GUI session interface,
+which provides low-level access for writing to the framebuffer and receiving
+input events. Rather than sticking to low-level drawing methods, GUI frameworks
+provide a more suitable level of abstraction for application development.
+
+This section provides an overview of the available GUI frameworks for Genode.
+For a more detailed explanation of Genode's low-level GUI stack, please refer to
+the corresponding article on genodians.org.
+
+:GUI stack on genodians.org:
+
+  [http://genodians.org/nfeske/2020-06-23-gui-stack]
+
 Dialog API
-----------
+~~~~~~~~~~
 
-- mention only, API not stable and only for internal use
+; @nfeske: mention dialog API at all (with disclaimer for genode-internal use)?
+; [https://genode.org/documentation/release-notes/23.11#Dialog_API_for_low-complexity_interactive_applications]
 
-Qt5 applications
-----------------
 
-Mobile SDK based on Lomiri UI Toolkit
--------------------------------------
+Qt5
+~~~
 
-LVGL
-----
+Qt is a popular cross-platform application development framework. Early
+versions of Genode already included a port of Qt4 that was later updated to Qt5.
+Since Genode's port of the Falkon browser bases on Qt, and QtWebengine in
+particular, this is the best supported GUI framework for Genode applications.
+
+:Qt5 examples and tutorials:
+
+  [https://doc.qt.io/qt-5/qtexamplesandtutorials.html]
+
+Genode applications examples
+----------------------------
+
+:Falkon web browser:
+
+  [https://github.com/genodelabs/genode-world/tree/master/recipes/pkg/falkon]
+
+:Qt textedit:
+
+  [https://github.com/genodelabs/genode/tree/master/repos/libports/recipes/pkg/qt5_textedit]
+
+
+Mobile SDK based on Ubuntu/Lomiri UI Toolkit
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Ubuntu UI Toolkit bases on Qt5 and particularly targets
+touchscreen-optimized application development. Since UBports resumed the
+development for Ubuntu Touch after Canonical dropped support, the toolkit was
+renamed from _Ubuntu UI Toolkit_ to _Lomiri UI Toolkit_.
+
+:Port of Ubuntu UI Toolkit:
+
+  [https://github.com/genodelabs/genode-world/tree/master/recipes/pkg/ubuntu_ui_toolkit]
+
+:Porting the calculator app from Lomiri UI Toolkit:
+
+  see Section [Porting Lomiri Calculator App]
+
+:UBports website:
+
+  [https://ubports.com/]
+
+Genode applications examples
+----------------------------
+
+:Morph browser:
+
+  [https://github.com/genodelabs/genode-world/tree/master/recipes/pkg/morph_browser]
+
+:Linphone app:
+
+  [http://genodians.org/jws/2023-11-16-sip-client-for-genode]
+
+
+Light and Versatile Graphics Library (LVGL)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+LVGL is a popular graphics library to create modern UIs for embedded devices.
+Being optimized for embedded devices, LVGL comes with a small memory footprint.
+This makes it a perfect fit for rather simple Genode applications.
+
+Since LVGL targets embedded devices, it is typically used as a statically linked
+library and stripped down to the particular needs. For Genode, however, LVGL
+is available as a shared library (api/lvgl) with almost all features enabled. The
+LVGL library is accompanied by a support library (api/lvgl_support) providing
+the LVGL driver backends that interact with Genode's GUI session. Both libraries
+are still in experimental state.
+
+:LVGL documentation:
+
+  [https://docs.lvgl.io/master/]
+
+:Porting LVGL to Genode:
+
+  see Section [Porting LVGL to Genode]
+
+:Dynamic desktop background "system info":
+
+  [http://genodians.org/jschlatow/2024-02-07-system-info]

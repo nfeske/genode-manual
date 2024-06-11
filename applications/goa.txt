@@ -5,12 +5,10 @@ _This section is based on Norman Feske's_
 _[https://genodians.org/nfeske/2019-11-24-goa - Goa article]_
 _at [https://genodians.org]_.
 
-_TODO: review copied text_
-
 The development of applications for Genode used to require a lot of learning
 about Genode's way of organizing source code, our custom build system,
-and the use of run scripts. With Goa, I introduce a new tool that aims at
-largely removing these burdens from application developers.
+and the use of run scripts. The Goa tool aims at largely removing these burdens
+from application developers.
 
 In contrast to the tools that come with Genode, which were designed for
 developing complete systems, [https://github.com/genodelabs/goa - Goa] is
@@ -25,7 +23,7 @@ it streamlines the following tasks:
 
 # Building software using standard build tools like CMake, alleviating
   the need to deal with Genode's custom build system.
-  Goa takes care of automatically installing of the required Genode APIs
+  Goa takes care of automatically installing the required Genode APIs
   and supplying the right parameters to the build system so that Genode
   executables are produced.
 
@@ -52,6 +50,10 @@ Installation
   * _libSDL-dev_ needed to run system scenarios directly on your host OS,
   * _tclsh_ and _expect_ needed by the tools,
   * _xmllint_ for validating configurations,
+
+  Instructions for installing the Genode tool chain are available at
+  [https://genode.org/download/tool-chain].
+
 
 # Clone the Goa repository:
 
@@ -85,16 +87,16 @@ be the built-in help command:
 A first example, using a plain old Makefile
 ===========================================
 
-Let's say, we want to build a hello-world application that uses the raw
+Let's say, you want to build a hello-world application that uses the raw
 Genode API with no libc whatsoever.
 
 First, create a project directory, let's call it "hello":
 
-! mkdir hello
-! cd hello
+! $ mkdir hello
+! hello$ cd hello
 
 By convention, the project name corresponds to the name of the directory.
-Source codes are stored in a _src/_ sub directory. Let's create a
+Source codes are stored in a _src/_ subdirectory. Let's create a
 file at _src/hello.cc_ with the following content:
 
 ! #include <base/log.h>
@@ -114,10 +116,26 @@ Now, let's give 'goa' a first try:
 
 ! hello$ goa build
 
-This command prompts Goa to create a new directory called _var/_ within the
-project directory. The _var/_ directory is the designated place for generated
-files such as the build directory. However, upon the attempt to compile the
-program, disaster strikes:
+Goa responds with the following message:
+
+! [hello] Error: hello has a 'src' directory but lacks an 'artifacts' file.
+!                You may start with an empty file.
+
+The so-called artifacts file tells Goa about the expected end result of
+the build process. Even though we already know from our _Makefile_ that our
+only build artifact will be the executable binary called "hello", let's
+follow Goa's advise of starting with an empty _artifacts_ file. Note, you may
+consult 'goa help artifacts' for more details on the artifacts file.
+
+! hello$ touch artifacts
+
+As a notable side effect of the 'goa build' command, Goa has created a new
+directory called _var/_ within the project directory. The _var/_ directory is
+the designated place for generated files such as the build directory.
+
+Upon the next attempt of issuing the 'goa build' command, now with an
+_artifacts_ file in place, Goa attempts to compile our program but with
+pretty limited success:
 
 ! hello.cc:1:10: fatal error: base/log.h: No such file or directory
 !  #include <base/log.h>
@@ -128,39 +146,40 @@ program, disaster strikes:
 ! Error: build via make failed
 
 Our program tries to include a header file that is nowhere to be found.
-To resolve this problem, we can tell Goa that our project needs to use the
+To resolve this problem, one can tell Goa that a project needs to use the
 Genode base API, by placing a file named _used_apis_ with the following
 content into the project directory.
 
 ! genodelabs/api/base
 
-This line tells Goa that our project depends on Genode's base API that
+This line tells Goa that the project depends on Genode's base API, which
 features the _base/log.h_ and _base/component.h_ headers. When issuing
-the command 'goa build' again, we see the following message:
+the command 'goa build' again, you see the following message:
 
-! download genodelabs/api/base/2023-04-25.tar.xz
-! download genodelabs/api/base/2023-04-25.tar.xz.sig
+! download genodelabs/api/base/2023-10-24.tar.xz
+! download genodelabs/api/base/2023-10-24.tar.xz.sig
 
-Goa automatically downloaded the base API for us and installed it into a fresh
-depot at var/depot/genodelabs/api/base/2023-04-25/. But not only that, it also
-re-attempted the build of the program. If we take a look at
-_var/build/x86_64/_, we see the 'hello' executable. If the output was too
+Goa automatically downloaded the base API and installed it into a fresh
+depot at var/depot/genodelabs/api/base/2023-10-24/. But not only that, it also
+re-attempted the build of the program. If you take a look at
+_var/build/x86_64/_, you will see the 'hello' executable. If the output was too
 unspectacular for your taste, you may append the '--verbose' argument to the
 'goa build' command to see more details about the steps taken.
 
-To run the program, we need to tell Goa, which part of the build artifacts
-are relevant to us. In our case, it's the 'hello' executable binary. We
-can declare this information in a file called 'artifacts' with the following
-content in the project directory.
+To run the program, one needs to tell Goa, which part of the build artifacts
+are relevant. In our case, it's the 'hello' executable binary. You
+can declare this information in your _artifacts_ file by adding the following
+line. It refers to the respective file relative to the _var/build/x86_64/_
+directory.
 
 ! hello
 
-If we issue the 'goa build' command again, we can see that this file
-appears at _var/bin/x86_64/hello_. The content of the _bin_ directory
-is meant for the integration into a Genode scenario.
+If you issue the 'goa build' command again, you can see that this file appears
+at _var/bin/x86_64/hello_. The content of the _bin_ directory is meant for the
+integration into a Genode scenario.
 
 Speaking of a Genode scenario, to run the program within a Genode system,
-we have to define the "contract" between the program and the surrounding
+you have to define the "contract" between the program and the surrounding
 system. This contract has the form of a runtime package. Let's create one
 with the name "hello":
 
@@ -179,36 +198,41 @@ content:
 !   </content>
 ! </runtime>
 
-Here we declare the binary we want to start, how much RAM and capabilities
+This file declares the binary you want to start, how much RAM and capabilities
 the subsystem expects, configuration information passed to the subsystem, and
-the content of the package. In this case, we only have a single ROM module
-called "hello", which is our binary.
+the content of the package. In this case, you only have a single ROM module
+for the binary called "hello".
 
-For running the scenario, we can use the 'goa run' command:
+Note that Goa's built-in help command provides more details on the structure of
+runtime files.
+
+! goa help runtime
+
+For running the scenario, one can use the 'goa run' command:
 
 ! hello$ goa run
 
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz.sig
-! download genodelabs/src/base-linux/2023-04-25.tar.xz
-! download genodelabs/src/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/src/init/2023-04-25.tar.xz
-! download genodelabs/src/init/2023-04-25.tar.xz.sig
-! download genodelabs/api/os/2023-04-16.tar.xz
-! download genodelabs/api/os/2023-04-16.tar.xz.sig
-! download genodelabs/api/report_session/2023-03-12.tar.xz
-! download genodelabs/api/report_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/sandbox/2021-06-24.tar.xz
-! download genodelabs/api/sandbox/2021-06-24.tar.xz.sig
-! download genodelabs/api/timer_session/2023-03-12.tar.xz
-! download genodelabs/api/timer_session/2023-03-12.tar.xz.sig
-! Genode 23.02-146-g4bb4e60d8b0 <local changes>
+! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz.sig
+! download genodelabs/src/base-linux/2023-10-24.tar.xz
+! download genodelabs/src/base-linux/2023-10-24.tar.xz.sig
+! download genodelabs/src/init/2023-10-24.tar.xz
+! download genodelabs/src/init/2023-10-24.tar.xz.sig
+! download genodelabs/api/os/2023-08-21.tar.xz
+! download genodelabs/api/os/2023-08-21.tar.xz.sig
+! download genodelabs/api/report_session/2023-05-26.tar.xz
+! download genodelabs/api/report_session/2023-05-26.tar.xz.sig
+! download genodelabs/api/sandbox/2023-10-03.tar.xz
+! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
+! download genodelabs/api/timer_session/2023-10-03.tar.xz
+! download genodelabs/api/timer_session/2023-10-03.tar.xz.sig
+! Genode sculpt-23.10
 ! 17592186044415 MiB RAM and 18997 caps assigned to init
 ! [init -> hello] Hello
 
-We can see that Goa automatically installed the dependencies needed to
+You can see that Goa automatically installed the dependencies needed to
 execute the runtime package, integrates a Genode scenario, and executes
 it directly on Linux. If you switch to another terminal, you can see
 the Genode processes:
@@ -231,7 +255,8 @@ Let's call the project "cmake_step2".
 Instead of copying the code into the _cmake_step2/src/_ directory, let us
 better tell Goa to download the code from the original tutorial. This can
 be done by creating an _import_ file in the project directory. Create the
-file _cmake_step2/import_ with the following content:
+file _cmake_step2/import_ with the following content. Please have a look
+at 'goa help import' for a detailed explanation.
 
 ! LICENSE   := BSD
 ! VERSION   := master
@@ -242,29 +267,30 @@ file _cmake_step2/import_ with the following content:
 ! DIR(cmake_step2) := src
 ! SPARSE_PATH(cmake_step2) := Help/guide/tutorial/Step2
 
-This import file describes the download of only the specified sub
-directory of the CMake project from GitHub. Let's give it a try:
+This import file describes the download of only the specified subdirectory
+of the CMake project from GitHub. Let's give it a try:
 
 ! cmake_step2$ goa import
 ! import  download https://github.com/Kitware/CMake/trunk/Help/guide/tutorial/Step2
 ! import  generate import.hash
 
-After the command finished, we find the source code sitting nicely in a new
-_src/_ directory. Let's try to build it:
+After the command finished, you find the source code sitting nicely in a new
+_src/_ directory. Let's try to build it just after creating an empty _artifacts_ file.
+
+! cmake_step2$ touch artifacts
 
 ! cmake_step2$ goa build
-! [cmake_step2:cmake] -- The C compiler identification is GNU 8.3.0
-! [cmake_step2:cmake] -- The CXX compiler identification is GNU 8.3.0
-! [cmake_step2:cmake] -- Check for working C compiler: /usr/local/genode/tool/19.05/bin/genode-x86-gcc
-! [cmake_step2:cmake] -- Check for working C compiler: /usr/local/genode/tool/19.05/bin/genode-x86-gcc -- works
+
+! [cmake_step2:cmake] -- The C compiler identification is GNU 12.3.0
+! [cmake_step2:cmake] -- The CXX compiler identification is GNU 12.3.0
 ! [cmake_step2:cmake] -- Detecting C compiler ABI info
 ! [cmake_step2:cmake] -- Detecting C compiler ABI info - done
+! [cmake_step2:cmake] -- Check for working C compiler: /usr/local/genode/tool/23.05/bin/genode-x86-gcc - skipped
 ! [cmake_step2:cmake] -- Detecting C compile features
 ! [cmake_step2:cmake] -- Detecting C compile features - done
-! [cmake_step2:cmake] -- Check for working CXX compiler: /usr/local/genode/tool/19.05/bin/genode-x86-g++
-! [cmake_step2:cmake] -- Check for working CXX compiler: /usr/local/genode/tool/19.05/bin/genode-x86-g++ -- works
 ! [cmake_step2:cmake] -- Detecting CXX compiler ABI info
 ! [cmake_step2:cmake] -- Detecting CXX compiler ABI info - done
+! [cmake_step2:cmake] -- Check for working CXX compiler: /usr/local/genode/tool/23.05/bin/genode-x86-g++ - skipped
 ! [cmake_step2:cmake] -- Detecting CXX compile features
 ! [cmake_step2:cmake] -- Detecting CXX compile features - done
 ! [cmake_step2:cmake] -- Configuring done
@@ -273,11 +299,11 @@ _src/_ directory. Let's try to build it:
 ! [cmake_step2:cmake] Scanning dependencies of target Tutorial
 ! [cmake_step2:cmake] [ 50%] Building CXX object CMakeFiles/Tutorial.dir/tutorial.cxx.obj
 ! .../cmake_step2/src/tutorial.cxx:2:10: fatal error: cmath: No such file or directory
-!  #include <cmath>
-!           ^~~~~~~
+!     2 | #include <cmath>
+!       |          ^~~~~~~
 ! compilation terminated.
 
-Apparently, the example requires the standard C++ library. We can supply
+Apparently, the example requires the standard C++ library. You can supply
 this API to the project by creating a _used_apis_ file with the following
 content:
 
@@ -287,19 +313,19 @@ content:
 
 The 'posix' API is needed because - unlike a raw Genode component - the program
 starts at a 'main' function. The libc is needed as a dependency of the
-Standard C++ library.
+standard C++ library.
 
-When issuing the 'goa build' command again, we see that Goa downloads the
+When issuing the 'goa build' command again, you see that Goa downloads the
 required APIs and successfully builds the example program:
 
 ! cmake_step2$ goa build
 
-! download genodelabs/api/libc/2023-01-23.tar.xz
-! download genodelabs/api/libc/2023-01-23.tar.xz.sig
+! download genodelabs/api/libc/2023-10-03.tar.xz
+! download genodelabs/api/libc/2023-10-03.tar.xz.sig
 ! download genodelabs/api/posix/2020-05-17.tar.xz
 ! download genodelabs/api/posix/2020-05-17.tar.xz.sig
-! download genodelabs/api/stdcxx/2022-04-27.tar.xz
-! download genodelabs/api/stdcxx/2022-04-27.tar.xz.sig
+! download genodelabs/api/stdcxx/2023-10-24.tar.xz
+! download genodelabs/api/stdcxx/2023-10-24.tar.xz.sig
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
 ! [cmake_step2:cmake] -- Build files have been written to: .../cmake_step2/var/build/x86_64
@@ -308,14 +334,14 @@ required APIs and successfully builds the example program:
 ! [cmake_step2:cmake] [100%] Built target Tutorial
 
 The resulting executable binary can be found at _var/build/x86_64/Tutorial_.
-Let's declare it a build artifact by mentioning it a new 'artifacts' file with
-the following content.
+Let's declare it a build artifact by mentioning it the _artifacts_ by adding
+the following line.
 
 ! Tutorial
 
-To run the program, we need a runtime package that is slightly more advanced
-than the first hello example. This time, we need declare that our runtime
-requires content from other depot archives in addition to our program by
+To run the program, you need a runtime package that is slightly more advanced
+than the first hello example. This time, you need to declare that the runtime
+requires content from other depot archives in addition to your program by
 creating a file _pkg/cmake_step2/archives_ with the following content:
 
 ! genodelabs/src/posix
@@ -323,7 +349,7 @@ creating a file _pkg/cmake_step2/archives_ with the following content:
 ! genodelabs/src/vfs
 ! genodelabs/src/stdcxx
 
-This way, our sub system incorporates the shared libraries found in those
+This way, the subsystem incorporates the shared libraries found in those
 depot archives. A suitable _pkg/cmake_step2/runtime_ for running the program
 within a Genode scenario looks like this:
 
@@ -350,11 +376,11 @@ within a Genode scenario looks like this:
 !   </content>
 ! </runtime>
 
-Since the tutorial uses the C runtime, we have to supply a configuration
+Since the tutorial uses the C runtime, you have to supply a configuration
 that defines how the virtual file system of the component looks like, and
-where the program's standard output should go. We also specify the first
+where the program's standard output should go. The runtime also specifies the first
 and second arguments of the POSIX program as "Tutorial" (name of the program)
-and "24" its actual argument. The '<content>' lists all ROM modules required.
+and "24" as its actual argument. The '<content>' lists all ROM modules required.
 
 With this runtime package in place, let's give the Tutorial a run:
 
@@ -364,69 +390,570 @@ With this runtime package in place, let's give the Tutorial a run:
 ! [cmake_step2:cmake] -- Generating done
 ! [cmake_step2:cmake] -- Build files have been written to: .../cmake_step2/var/build/x86_64
 ! [cmake_step2:cmake] [100%] Built target Tutorial
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/libc/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/libc/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/posix/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/posix/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/stdcxx/2023-01-23.tar.xz
-! download genodelabs/bin/x86_64/stdcxx/2023-01-23.tar.xz.sig
-! download genodelabs/bin/x86_64/vfs/2023-04-27.tar.xz
-! download genodelabs/bin/x86_64/vfs/2023-04-27.tar.xz.sig
-! download genodelabs/src/base-linux/2023-04-25.tar.xz
-! download genodelabs/src/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/src/init/2023-04-25.tar.xz
-! download genodelabs/src/init/2023-04-25.tar.xz.sig
-! download genodelabs/src/libc/2023-04-25.tar.xz
-! download genodelabs/src/libc/2023-04-25.tar.xz.sig
-! download genodelabs/src/posix/2023-04-25.tar.xz
-! download genodelabs/src/posix/2023-04-25.tar.xz.sig
-! download genodelabs/src/stdcxx/2023-01-23.tar.xz
-! download genodelabs/src/stdcxx/2023-01-23.tar.xz.sig
-! download genodelabs/src/vfs/2023-04-27.tar.xz
-! download genodelabs/src/vfs/2023-04-27.tar.xz.sig
-! download genodelabs/api/base/2023-04-25.tar.xz
-! download genodelabs/api/base/2023-04-25.tar.xz.sig
-! download genodelabs/api/block_session/2023-03-12.tar.xz
-! download genodelabs/api/block_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/file_system_session/2023-03-12.tar.xz
-! download genodelabs/api/file_system_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/net/2023-04-25.tar.xz
-! download genodelabs/api/net/2023-04-25.tar.xz.sig
-! download genodelabs/api/os/2023-04-16.tar.xz
-! download genodelabs/api/os/2023-04-16.tar.xz.sig
-! download genodelabs/api/report_session/2023-03-12.tar.xz
-! download genodelabs/api/report_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/rtc_session/2023-03-12.tar.xz
-! download genodelabs/api/rtc_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/sandbox/2021-06-24.tar.xz
-! download genodelabs/api/sandbox/2021-06-24.tar.xz.sig
+! download genodelabs/bin/x86_64/libc/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/libc/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/posix/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/posix/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/stdcxx/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/stdcxx/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/vfs/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/vfs/2023-10-24.tar.xz.sig
+! download genodelabs/src/libc/2023-10-24.tar.xz
+! download genodelabs/src/libc/2023-10-24.tar.xz.sig
+! download genodelabs/src/posix/2023-10-24.tar.xz
+! download genodelabs/src/posix/2023-10-24.tar.xz.sig
+! download genodelabs/src/stdcxx/2023-10-24.tar.xz
+! download genodelabs/src/stdcxx/2023-10-24.tar.xz.sig
+! download genodelabs/src/vfs/2023-10-24.tar.xz
+! download genodelabs/src/vfs/2023-10-24.tar.xz.sig
+! download genodelabs/api/base/2023-10-24.tar.xz
+! download genodelabs/api/base/2023-10-24.tar.xz.sig
+! download genodelabs/api/block_session/2023-05-26.tar.xz
+! download genodelabs/api/block_session/2023-05-26.tar.xz.sig
+! download genodelabs/api/file_system_session/2023-05-26.tar.xz
+! download genodelabs/api/file_system_session/2023-05-26.tar.xz.sig
+! download genodelabs/api/net/2023-07-13.tar.xz
+! download genodelabs/api/net/2023-07-13.tar.xz.sig
+! download genodelabs/api/os/2023-08-21.tar.xz
+! download genodelabs/api/os/2023-08-21.tar.xz.sig
+! download genodelabs/api/report_session/2023-05-26.tar.xz
+! download genodelabs/api/report_session/2023-05-26.tar.xz.sig
+! download genodelabs/api/rtc_session/2023-05-26.tar.xz
+! download genodelabs/api/rtc_session/2023-05-26.tar.xz.sig
 ! download genodelabs/api/so/2020-05-17.tar.xz
 ! download genodelabs/api/so/2020-05-17.tar.xz.sig
-! download genodelabs/api/terminal_session/2023-03-12.tar.xz
-! download genodelabs/api/terminal_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/timer_session/2023-03-12.tar.xz
-! download genodelabs/api/timer_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/vfs/2023-02-26.tar.xz
-! download genodelabs/api/vfs/2023-02-26.tar.xz.sig
-! Genode 23.02-146-g4bb4e60d8b0 <local changes>
+! download genodelabs/api/terminal_session/2023-05-26.tar.xz
+! download genodelabs/api/terminal_session/2023-05-26.tar.xz.sig
+! download genodelabs/api/timer_session/2023-10-03.tar.xz
+! download genodelabs/api/timer_session/2023-10-03.tar.xz.sig
+! download genodelabs/api/vfs/2023-05-26.tar.xz
+! download genodelabs/api/vfs/2023-05-26.tar.xz.sig
+! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz.sig
+! download genodelabs/src/base-linux/2023-10-24.tar.xz
+! download genodelabs/src/base-linux/2023-10-24.tar.xz.sig
+! download genodelabs/src/init/2023-10-24.tar.xz
+! download genodelabs/src/init/2023-10-24.tar.xz.sig
+! download genodelabs/api/sandbox/2023-10-03.tar.xz
+! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
+! Genode sculpt-23.10
 ! 17592186044415 MiB RAM and 18997 caps assigned to init
 ! [init -> cmake_step2] The square root of 24 is 4.89898
 ! [init] child "cmake_step2" exited with exit value 0
 
-We see that Goa takes care of downloading all dependencies needed to
+You see that Goa takes care of downloading all dependencies needed to
 host the subsystem and subsequently executes the scenario. The program
 built by the tutorial prints the result "The square root of 24 is 4.89898".
 
 Exporting and publishing
 ========================
 
-_TODO: re-use text from http://genodians.org/nfeske/2020-01-16-goa-publish_
+_This section is based on Norman Feske's article_
+_[https://genodians.org/nfeske/2020-01-16-goa-publish - Goa - publishing packets]_
+_at [https://genodians.org]_.
+
+Let's fast-forward and assume you have already followed the tutorial from
+Section [Sticking together a little Unix], in which
+we create a minimalistic Unix system by combining Genode's ready-to-use
+building blocks with universally loved GNU software. In this section, we
+are going to export and publish the result in form of a ready-to-use depot
+archive.
+
+In Norman's Goa playground repository, you can find the results of the Unix
+tutorial in the _intro_ directory. This section uses the
+[https://github.com/nfeske/goa-playground/tree/master/intro/unix_3rd - unix_3rd]
+subdirectory as the basis for the steps described below.
+
+:Norman's Goa playground repository:
+
+  [https://github.com/nfeske/goa-playground]
+
+Software-publishing prerequisites
+---------------------------------
+
+In order to provide packaged software to other Genode users, you will
+need the following prerequisites:
+
+# A publicly accessible place on the web where users can download
+  your software packages from.
+
+# A PGP key pair to protect the end-to-end integrity of your packages.
+
+This article does not cover the first point as there are so many options
+when it comes to web hosting. However, the use of PGP deserves an explanation.
+
+Genode's depot tools use Open-PGP signatures to ensure that the packages
+created by you are bit-for-bit identical to the packages arrived at the user's
+system. It works like this: You as the software provider create an Open-PGP
+key pair consisting of a private key and a matching public key. The private
+key must remain your secret. The public key should be made publicly available.
+
+You can use your private key to put _your_ digital signature on a package.
+Nobody else can forge your signature because the private key is known only
+to you. Once a user has downloaded the package, the signature attached to the
+package can be tested against the public key. If the package was mutated on
+the way to the user's machine, e.g., the web server was compromised by an
+attacker, this check would ultimately fail. The user is saved from the
+risk of running non-genuine or randomly broken software. Vice versa, if the
+signature check succeeds, the user can be certain to have obtained a
+bit-for-bit identical copy of the package created by the owner of the private
+key - the software provider.
+
+Since you are an aspiring software provider, you ought to have an Open-PGP
+key pair.
+
+
+Creating a key pair using GnuPG
+-------------------------------
+
+GnuPG is the go-to implementation of the Open-PGP standard. It is usually
+installed by default on GNU/Linux distributions. If you are already using GPG
+for encrypting/signing email, you may, in principle, use your existing key pair.
+If so, you may skip this section.
+
+To create a new key pair, you can use the following command:
+
+! $ gpg --full-generate-key
+! gpg (GnuPG) 2.2.4; Copyright (C) 2017 Free Software Foundation, Inc.
+! This is free software: you are free to change and redistribute it.
+! There is NO WARRANTY, to the extent permitted by law.
+! 
+! Please select what kind of key you want:
+!    (1) RSA and RSA (default)
+!    (2) DSA and Elgamal
+!    (3) DSA (sign only)
+!    (4) RSA (sign only)
+! Your selection? 
+
+Stick to the default (RSA) by hitting enter. Next, you are asked for the key
+size.
+
+! RSA keys may be between 1024 and 4096 bits long.
+! What keysize do you want? (3072)
+
+GnuPG suggests a default key size of 3072 bits. You can add a safety margin
+by raising the size to 4096. Next, you are asked to decide for how long you
+want to use this key.
+
+! Please specify how long the key should be valid.
+!          0 = key does not expire
+!       <n>  = key expires in n days
+!       <n>w = key expires in n weeks
+!       <n>m = key expires in n months
+!       <n>y = key expires in n years
+! Key is valid for? (0)
+
+For our use case, there is no point in limiting the key's lifetime.
+Press enter to let the key never expire.
+
+! Key does not expire at all
+! Is this correct? (y/N)
+
+The tool apparently wants to have us think twice about it. Well, typing 'y'
+gives it the assurance it desires.
+
+Next, the question about your real name. Well, for the purpose of this tutorial,
+let's use "John K.".
+
+! Real name: John K.
+
+When asked for the email address, it's technically fine to just fill-in some
+place holder.
+
+Should you intend to widely publish your public key, e.g., by uploading it to
+a key server, please consider using your real identity. You want to be trusted
+by the users of your software after all, don't you? A real identity is
+certainly more trustworthy than a random internet person hiding behind a
+pseudonym.
+
+! Email address: a@b.cd
+
+Next, you can leave a comment or leave it blank by pressing enter.
+
+! Comment:
+! You selected this USER-ID:
+!     "John K. <a@b.cd>"
+!
+! Change (N)ame, (C)omment, (E)mail or (O)kay/(Q)uit?
+
+After pressing 'o', you are greeted with a dialog asking for a new passphrase.
+This passphrase is used to encrypt your private key before storing it in a
+file. In the event of a leak of this file, your private key remains still a
+secret unless your passphrase becomes known. Hence, you should better not
+write down your passphrase but keep it in your head only. Once you supplied your
+passphrase, GPG confirms the creation of the new key pair with a message like
+this:
+
+! ...
+! public and secret key created and signed.
+!
+! pub   rsa4096 2020-01-16 [SC]
+!       96541E89AA71BAA88DF56C538ADB04B1F162AF2D
+! uid                      John K. <a@b.cd>
+! sub   rsa4096 2020-01-16 [E]
+
+When inspecting the GPG keyring via the command 'gpg --list-secret-keys', you
+can see the new key listed:
+
+! $ gpg --list-secret-keys
+! ...
+! sec   rsa4096 2020-01-16 [SC]
+!       96541E89AA71BAA88DF56C538ADB04B1F162AF2D
+! uid           [ultimate] John K. <a@b.cd>
+! ssb   rsa4096 2020-01-16 [E]
+
+
+A quick look back at the project we wish to publish
+---------------------------------------------------
+
+To publish the depot content for a given Goa project, first change to the
+project directory. For example, within the 'goa-playground' repository linked
+above, you would change to the 'unix_3rd' directory.
+
+! $ git clone https://github.com/nfeske/goa-playground.git
+
+! $ cd goa-playground/intro/unix_3rd/
+
+Before proceeding, please make sure to use the latest version of the Goa tool.
+
+! $ goa update-goa
+
+It is always a good idea to give the project a quick try before publishing it.
+
+! $ goa run
+
+Goa will download all the components needed to build the scenario, and execute
+it directly on the GNU/Linux development machine. You should see a terminal
+window with a bash prompt.
+
+When peeking at the _var/public/_ directory now, you see the downloaded
+archives and signatures. For example,
+
+! $ find var/public/genodelabs/bin/x86_64/terminal
+
+! var/public/genodelabs/bin/x86_64/terminal
+! var/public/genodelabs/bin/x86_64/terminal/2023-10-24.tar.xz.sig
+! var/public/genodelabs/bin/x86_64/terminal/2023-10-24.tar.xz
+
+The 'sig' file is the signature that was created via the private PGP
+key of Genode Labs when terminal was originally published.
+After downloading, Goa verifies the signature using Genode Labs' public key
+that is provided at _var/depot/genodelabs/pubkey_.
+
+When taking a look at the _var/depot/_ directory, you see the depot
+content extracted from the corresponding 'tar.xz' archives.
+
+
+Exporting the project to a Genode depot
+---------------------------------------
+
+Genode's package management organizes software in a so-called depot, which is a
+directory with a special structure explained in Secion [Package management].
+To create depot content for a project, Goa features the 'goa export'
+command. Let's give it a try without a second thought.
+
+! $ goa export
+
+! Error: missing definition of depot user
+!
+!  You can define your depot user name by setting the 'depot_user' 
+!  variable in a .goarc file, or by specifing the '--depot-user <name>' 
+!  command-line argument.
+
+As hinted by the error message, Goa needs to know the name of us as the
+software provider. The depot user name will correspond to the subdirectory
+within the depot that will host your content. Let us try the command again,
+but specifying the user name "john" this time.
+
+! $ goa export --depot-user john
+
+! Error: version for archive john/raw/unix_3rd undefined
+!
+!  Create a 'version' file in your project directory, or 
+!  define 'set version(john/raw/unix_3rd) <version>' in your .goarc file.
+
+This time, Goa seems to be happy about the depot user name, but it apparently
+misses any version information about the project. Indeed, while following the
+steps of Section [Sticking together a little Unix], we did not talk or think
+about versions at all. Now it is time to make up our minds about a suitable
+version identifier.
+In principle, any character string will do, as long as it does not contain
+anything fancy like whitespace. It is generally a good practice to just use
+the current date. Hence, let's write the version identifier into a new file
+called _version_:
+
+! $ echo 2023-11-15 > version
+
+Let's give 'goa export' another try.
+
+! $ goa export --depot-user john
+
+! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-11-15
+! Error: missing README file at pkg/unix_3rd/README
+
+This looks like a partial success! When inspecting _var/depot/_ now, you
+can indeed find content that looks pretty familiar.
+
+! $ ls var/depot/john/raw/unix_3rd/2023-11-15/
+
+! terminal.config  unix.config  vimrc
+
+However, let's pay attention to the 'Error:' part of the message. By
+convention, each depot package features a README file, and Goa nags us to
+follow this convention. We have to give in. Create a file at
+_pkg/unix_3rd/README_ with content of your choice. The README should contain
+a short description of the purpose of the package, along with instructions
+for using it.
+Note that future versions of Sculpt OS will present README texts nicely
+formatted to the user. We therefore recommend following the
+[https://github.com/nfeske/gosh - GOSH] markup syntax, which is consistently
+used throughout Genode's documentation.
+
+With the README file in place, let's try again:
+
+! $ goa export --depot-user john
+! Error: archive john/raw/unix_3rd/2023-11-15 already exists in the depot
+!
+!  You may specify '--depot-overwrite' to replace the existing version.
+
+Goa wants to save us from accidentally overwriting existing depot content,
+which can happen, for example, if you made changes in the project but forgot to
+adjust the _version_ file. In this case, however, the message results
+from the partial success above that already exported _raw/unix_3rd_.
+So you are safe to specify the '--depot-overwrite' argument as suggested by Goa.
+
+Note, you may alternatively use Goa's 'bump-version' change the version. This
+command sets the version file to the current date or, if this would not change
+the version, adds/increments an alphabetical suffix.
+
+! $ goa export --depot-user john --depot-overwrite
+
+! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-11-15
+! [unix_3rd] exported .../unix_3rd/var/depot/john/pkg/unix_3rd/2023-11-15
+
+This time, the command succeeded. To celebrate the success, review the
+content of your part - john's part - of the depot.
+
+! $ find var/depot/john/
+! var/depot/john/
+! var/depot/john/raw
+! var/depot/john/raw/unix_3rd
+! var/depot/john/raw/unix_3rd/2023-11-15
+! var/depot/john/raw/unix_3rd/2023-11-15/terminal.config
+! var/depot/john/raw/unix_3rd/2023-11-15/vimrc
+! var/depot/john/raw/unix_3rd/2023-11-15/unix.config
+! var/depot/john/pkg
+! var/depot/john/pkg/unix_3rd
+! var/depot/john/pkg/unix_3rd/2023-11-15
+! var/depot/john/pkg/unix_3rd/2023-11-15/archives
+! var/depot/john/pkg/unix_3rd/2023-11-15/runtime
+! var/depot/john/pkg/unix_3rd/2023-11-15/README
+
+You can nicely see here how the _version_ file defines the name of the
+subdirectory of the content.
+
+
+Signing and archiving
+---------------------
+
+Even though the depot content looks good, it has not yet a suitable form
+for distributing it. We ultimately need to wrap the content in archive files
+and apply our digital signature to these archives. Fortunately, you don't
+need to do these steps manually since Goa assists with the 'publish' command.
+This command implicitly executes the 'goa export' command. So you need to
+specify all information that you supplied to 'export'.
+
+! $ goa publish --depot-user john --depot-overwrite
+
+! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-11-15
+! [unix_3rd] exported .../unix_3rd/var/depot/john/pkg/unix_3rd/2023-11-15
+! Error: missing public key at .../unix_3rd/var/depot/john/pubkey
+!
+!  You may use the 'goa add-depot-user' command. 
+!  To learn more about this command:
+!
+!    goa help add-depot-user
+
+Goa cannot know which key to use for signing the depot content. It only knows
+the name of our made-up depot user "john". But you have not yet drawn the
+connection to the PGP key pair you have created at the beginning of this
+article. The 'goa add-depot-user' command closes the circle.
+
+! $ goa add-depot-user john --depot-url "https://your-domain/and/url" \
+!                           --gpg-user-id "a@b.cd" \
+!                           --depot-overwrite
+
+The URL specified as '--depot-url' argument should point to the designated
+location of the archives on your web server. For reference, Genode Labs'
+depot URL is [https://depot.genode.org/]. Note that the URL points to the
+root of the depot directory structure, not the depot user's subdirectory.
+
+The '--gpg-user-id' can be any GPG user-ID string as understood by GPG.
+In the example above, we used the email address that we specified for the
+GPG key pair.
+
+The '--depot-overwrite' argument is specified because Goa tries to prevent us
+from accidentally overwriting information of existing depot content, like
+the content you just created with the 'goa export' command. It is interesting
+to take a look at the content of the depot user "john" now.
+
+! $ find var/depot/john/
+
+! var/depot/john/
+! var/depot/john/pubkey
+! var/depot/john/download
+
+The content you extracted before is no more. Instead, there is a fresh
+subdirectory _john_ with the information you supplied to the 'goa add-depot-user'
+command. Take the time to look into both files. Goa extracted the
+ASCII-armored _pubkey_ from the GPG keyring by using the specified GPG user ID.
+
+With the connection between the depot user "john" and his key pair drawn,
+let us give Goa another chance to publish the project.
+
+! $ goa publish --depot-user john --depot-overwrite
+
+This time, Goa is able to proceed, as indicated by the following messages:
+
+! publish .../var/public/john/pkg/unix_3rd/2023-11-15.tar.xz
+! publish .../var/public/john/raw/unix_3rd/2023-11-15.tar.xz
+
+You are also asked by GPG for your passphrase for decrypting your private key.
+
+Once the command completed, you can find the archived and signed depot content
+at _var/public/john/:_
+
+! $ find var/public/john
+
+! var/public/john
+! var/public/john/raw
+! var/public/john/raw/unix_3rd
+! var/public/john/raw/unix_3rd/2023-11-15.tar.xz.sig
+! var/public/john/raw/unix_3rd/2023-11-15.tar.xz
+! var/public/john/pkg
+! var/public/john/pkg/unix_3rd
+! var/public/john/pkg/unix_3rd/2023-11-15.tar.xz.sig
+! var/public/john/pkg/unix_3rd/2023-11-15.tar.xz
+
+
+Syncing the public depot content to the web server
+--------------------------------------------------
+
+The entirety of the _var/public/john_ directory can now be copied as is
+to the web server. The way of how this content is uploaded is up to you.
+
+The fantastic [https://en.wikipedia.org/wiki/Rsync - rsync]
+tool has proven to be useful for this purpose. You may use the following
+combination of arguments:
+
+! -rpltOvz --checksum --chmod=Dg+s,ug+w,o-w,+X
+
+Please use 'man rsync' to decrypt this information.
+
 
 Deployment on Sculpt OS
 =======================
 
-_TODO_
+Now that you have published your first Goa project in your depot, you probably
+want to give it a spin on Sculpt OS. There are two practical options for this:
+You can either create a launcher file at _/config/launcher/_ or you may publish
+a depot index referring to your depot package.
+
+For both options, you need to let Sculpt OS know about from where to download
+your depot archives. For a quick test, you may type in your depot URL in
+the "Add" tab of the "+" menu. Be aware, however, that this circumvents any
+integrity checks of the downloaded archives as your public key still remains
+unknown to Sculpt.
+
+_TODO add screenshot_
+
+In order to add your public key to sculpt, you first need to export it from
+gpg in ASCII-armored form.
+
+! $ gpg --export John > pubkey
+
+The resulting _pubkey_ needs to be placed alongside the _download_ file that
+was created by Sculpt in the _depot/john/_ directory when you typed in the
+URL via the Sculpt UI.
+You may use the "window manager" preset, which includes the "system shell"
+terminal application for this purpose. In the system shell, you find the user
+depot at _/rw/depot/john/_.
+
+Writing a launcher file
+-----------------------
+
+Manually creating a launcher file is a good option for testing. The file
+captures the integration of the deployed component into Sculpt and makes it
+easy to adapt the archive version.
+
+Using the system shell or the inspect view in Sculpt, you can create the
+file _/config/launcher/unix_ with the following content:
+
+! <launcher pkg="john/pkg/unix_3rd/2023-11-15">
+!   <route>
+!     <service name="Gui">
+!        <child name="wm"/>
+!     </service>
+!   </route>
+! </launcher>
+
+The scenario merely requires a Gui service that we route to the "wm" component
+that is deployed by the "window manager" preset. Once the launcher file is in
+place, the scenario can be enabled/disabled in the "Options" tab of the
+"+" menu.
+
+For more details, please consult the
+[https://genode.org/documentation/articles/sculpt-24-04#Runtime_management - Sculpt OS documentation].
+
+Publishing a depot index
+------------------------
+
+A user's depot index is a curated list of the packages and their versions
+provided by the user. Sculpt OS downloads the index and presents the users with
+a UI for deploying the referred packages.
+
+Fortunately, Goa assists with managing and publishing a depot index. Let's
+give it a try!
+
+In the Goa playground repository, change into the _intro/_ directory and create
+the following index file.
+
+! <index>
+!   <supports arch="x86_64"/>
+!
+!   <index name="Tutorial">
+!     <pkg path="unix_3rd" info="Unix terminal from tutorial"/>
+!   </index>
+! </index>
+
+This file almost represents your depot index as expected by Sculpt but misses
+the user and version information. Goa takes care of adding this information.
+Please consult 'goa help index' for more details on the structure of index
+files.
+
+Placing the index file above the _unix_3rd/_ directory in the hierarchy enables
+Goa to look up the version information from the _version_ file and publish the
+referenced Goa projects if necessary. Goa simply scans the subdirectories of
+the current working directory for looking up related Goa projects. You can
+therefore publish your depot index together with the unix_3rd package with a
+single command.
+
+! intro$ goa publish
+! [intro] exporting project .../intro/unix_3rd
+! [unix_3rd] exported .../intro/var/depot/john/raw/unix_3rd/2023-11-15
+! [unix_3rd] exported .../intro/var/depot/john/pkg/unix_3rd/2023-11-15
+! ...
+! [intro] exported .../intro/var/depot/john/index/24.04
+! publish .../intro/var/public/john/pkg/unix_3rd/2023-11-15.tar.xz
+! publish .../intro/var/public/john/raw/unix_3rd/2023-11-15.tar.xz
+! publish .../intro/var/public/john/index/24.04.xz
+
+After syncing your depot content to the web server. Users are able to
+install your unix_3rd package via the Sculpt UI. Please refer to the Sculpt
+documentation for more details.
+
+:Sculpt OS documentation:
+
+  [https://genode.org/documentation/articles/sculpt-24-04]

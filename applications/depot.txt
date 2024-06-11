@@ -1,11 +1,77 @@
+; vim: tw=80 et ts=2 sw=2
+
 Package management
 ==================
 
-* clarify depot nomenclature
-  * more details in Genode Foundations
+When speaking about "package management", one has to clarify what a "package" in
+the context of an operating system represents. Traditionally, a package is the
+unit of delivery of a bunch of "dumb" files, usually wrapped up in a compressed
+archive. A package may depend on the presence of other packages. Thereby, a
+dependency graph is formed. To express how packages fit with each other, a
+package is usually accompanied by meta data (description). Depending on the
+package manager, package descriptions follow certain formalisms (e.g.,
+package-description language) and express more-or-less complex concepts such as
+versioning schemes or the distinction between hard and soft dependencies.
 
-* binary compatiblity
-  * Genode can run on different kernels
-  * same components can be deployed on top of all kernels (same architecture)
+Genode's package management does not follow this notion of a "package". Instead
+of subsuming all deliverable content under one term, we distinguish different
+kinds of content, each in a tailored and simple form. To avoid the clash of the
+notions of the common meaning of a "package", we speak of "archives" as the
+basic unit of delivery. Archives are named with their version as suffix,
+appended via a slash. This results in the following scheme for
+architecture-independent archives:
 
-* relate depot-archive types to Goa project structure
+! <type>/<name>/<version>
+
+Binary archives, on the other hand, are architecture-specific and adhere to a
+slightly different scheme that includes the target architecture:
+
+! <type>/<name>/<arch>/<version>
+
+In this section, we focus on depot-archive management with Goa. For a more
+general explanation of archive categories, please refer to Section "Package
+management" in the Genode Foundations book.
+
+Since Goa is also used for publishing depot archives the project directory is
+structured following the depot nomenclature:
+
+:raw archive:
+
+  A raw-data archive contains arbitrary data that is independent of the
+  processor architecture. If there is a _raw/_ subdirectory, Goa takes its
+  entire content to create a raw archive named after the project.
+
+:src archive:
+
+  A source archive contains to-be-compiled source code. Goa creates a source
+  archive for a project if there exists a _src/_ subdirectory. The directory
+  content can either be manually managed or imported as described in the next
+  section. Goa also creates a corresponding, equally-named, binary archive
+  containing the build artifacts as specified in the project's _artifacts_ file
+  (see 'goa help artifacts'). A binary archive is 
+
+:api archive:
+
+  An API archive is typically associated with a shared library and is meant
+  to provide all the ingredients for building components that use this library.
+  The archive contains header files and the library's binary
+  interface in the form of an ABI-symbols file. Unless it is a header-only
+  library, the API archive is accompanied by an equally-named source and binary
+  archive. Goa creates an API archive if there is an _api_ file in the
+  project directory (see 'goa help api').
+
+:pkg archive:
+
+  A package archive specifies what ingredients are needed to deploy and execute
+  a certain scenario. It comprises three files: _archives_, _runtime_ and
+  _README_. The _archives_ file lists the names of all required raw, source, or
+  package archives. The _runtime_ file describes the required/provided services
+  and the subsystem configuration (see Section [Runtime configuration]). Goa
+  allows maintaining multiple package archives in the same project directory. It
+  expects the content of each package archive in a _pkg/<name>/_ subdirectory.
+
+:index:
+
+  An index describes the available package archives within a depot. Goa creates
+  a depot index if there is an _index_ file present in the project directory
+  (see 'goa help index').

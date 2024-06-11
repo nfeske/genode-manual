@@ -1,4 +1,47 @@
-Runtime configurations
-======================
+; vim: tw=80 et sw=2 ts=2
 
-_TODO: explain syntax of a runtime file_
+Runtime configuration
+=====================
+
+The _runtime_ file of a package archive specifies the ingredients that are
+needed to deploy the archive on a Genode system. A _runtime_ file has the
+following structure:
+
+! <runtime ram="..." caps="..." binary="...">
+!   <requires>
+!     <!-- required session interfaces -->
+!     <nic/>
+!   </requires>
+!
+!   <provides>
+!     <!-- provided sessions interfaces -->
+!   </provides>
+!
+!   <content>
+!     <!-- required ROM modules -->
+!     <rom label="..."/>
+!   </content>
+!
+!   <config>
+!     <!-- component config -->
+!   </config>
+! </runtime>
+
+The runtime must define the amount of RAM, the number of capabilities and
+the binary name. It also lists the required and provided session interfaces.
+Note that the sub-nodes of the <requires> and <provides> are the lower-case
+service names. The <content> node contains a list of required ROM modules
+(e.g. binaries, libraries, config files). Furthermore, the component's config
+can be added via a <config> node. For more details, please consult Goa's
+built-in help:
+
+! $ goa help runtime
+
+The _runtime_ file is also evaluated by 'goa run' in order to set up a suitable
+Genode environment on the host system.
+Section [Example: Virtual networking with Goa] has illustrated how Goa uses
+additional attributes and content of a <nic> node to set up virtual networking.
+Please consult Goa's built-in help for an explanation of how the other services
+are emulated by Goa.
+
+! $ goa help targets

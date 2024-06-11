@@ -17,8 +17,6 @@ repository.
 
   [https://github.com/nfeske/goa-playground]
 
-_TODO: review text_
-
 
 Preparations
 ------------
@@ -28,7 +26,7 @@ is available at [https://github.com/genodelabs/goa]. If you have it installed
 already, please make sure the tool is up to date. You can issue the following
 command to update Goa to the latest version:
 
-! goa update-goa
+! $ goa update-goa
 
 
 Hello bash
@@ -40,68 +38,67 @@ a runtime package but no source code.
 
 ! $ mkdir unix
 ! $ cd unix
-! $ mkdir -p pkg/unix
+! unix$ mkdir -p pkg/unix
 
 Let's pretend we don't know what we are doing and create an _archives_
-file with only bash listed, and an almost empty _runtime_ file.
+file with only bash listed, and an almost empty _runtime_ file. The runtime
+starts the binary 'init', which is supposed to be a ROM module. Please have
+a look at 'goa help runtime' for more details on how to write runtime files.
 
 The _pkg/unix/archives_ file:
 ! genodelabs/src/bash
 
 The _pkg/unix/runtime_ file:
 ! <runtime ram="100M" caps="5000" binary="init">
+!   <content>
+!     <rom label="init"/>
+!   </content>
 ! </runtime>
 
 Let's see what happens when issuing the 'run' command:
 
-! $ goa run
+! unix$ goa run
 
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/bash/2023-02-26.tar.xz
-! download genodelabs/bin/x86_64/bash/2023-02-26.tar.xz.sig
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz.sig
-! download genodelabs/src/base-linux/2023-04-25.tar.xz
-! download genodelabs/src/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/src/bash/2023-02-26.tar.xz
-! download genodelabs/src/bash/2023-02-26.tar.xz.sig
-! download genodelabs/src/init/2023-04-25.tar.xz
-! download genodelabs/src/init/2023-04-25.tar.xz.sig
-! download genodelabs/api/base/2023-04-25.tar.xz
-! download genodelabs/api/base/2023-04-25.tar.xz.sig
-! download genodelabs/api/libc/2023-01-23.tar.xz
-! download genodelabs/api/libc/2023-01-23.tar.xz.sig
-! download genodelabs/api/noux/2023-02-26.tar.xz
-! download genodelabs/api/noux/2023-02-26.tar.xz.sig
-! download genodelabs/api/os/2023-04-16.tar.xz
-! download genodelabs/api/os/2023-04-16.tar.xz.sig
+! download genodelabs/bin/x86_64/bash/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/bash/2023-10-24.tar.xz.sig
+! download genodelabs/src/bash/2023-10-24.tar.xz
+! download genodelabs/src/bash/2023-10-24.tar.xz.sig
+! download genodelabs/api/libc/2023-10-03.tar.xz
+! download genodelabs/api/libc/2023-10-03.tar.xz.sig
+! download genodelabs/api/noux/2023-06-15.tar.xz
+! download genodelabs/api/noux/2023-06-15.tar.xz.sig
 ! download genodelabs/api/posix/2020-05-17.tar.xz
 ! download genodelabs/api/posix/2020-05-17.tar.xz.sig
-! download genodelabs/api/report_session/2023-03-12.tar.xz
-! download genodelabs/api/report_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/sandbox/2021-06-24.tar.xz
-! download genodelabs/api/sandbox/2021-06-24.tar.xz.sig
-! download genodelabs/api/timer_session/2023-03-12.tar.xz
-! download genodelabs/api/timer_session/2023-03-12.tar.xz.sig
-! Error: runtime lacks a configuration
+! [unix] Error: runtime lacks a configuration
 !
-!  You may declare a 'config' attribute in the <runtime> node, or
+!  You may declare a 'config' attribute in the <runtime> node, or 
 !  define a <config> node inside the <runtime> node.
 
-We can see that Goa automatically downloaded bash along with its dependencies
-such as the libc, and transitive dependencies such as Genode's base API.
+Let's follow the advice by adding an empty '<config>' node to our
+_pkg/unix/runtime_ file:
+
+! <runtime ram="100M" caps="5000" binary="init">
+!   <config/>
+!   <content>
+!     <rom label="init"/>
+!   </content>
+! </runtime>
+
+Besides the error message, you could see that Goa automatically downloaded bash
+along with its dependencies such as the libc.
 Besides the binaries, it also fetches all source codes. You can find all the
 downloads at _var/depot/_. One particularly interesting directory is the
 binary archive for bash:
 
-! $ ls var/depot/genodelabs/bin/x86_64/bash/2023-02-26/
+! unix$ ls var/depot/genodelabs/bin/x86_64/bash/2023-10-24/
+!
 ! bash.tar
 
 It contains a single tar archive, which in turn, contains all installation
 files of bash. Let's take a look inside:
 
-! $ tar tf var/depot/genodelabs/bin/x86_64/bash/2023-02-26/bash.tar
+! unix$ tar tf var/depot/genodelabs/bin/x86_64/bash/2023-10-24/bash.tar
+
 ! ./
 ! ./share
 ! ./share/doc
@@ -115,20 +112,47 @@ Genode as a single ROM module. Let's add it to the <content> of the
 _pkg/unix/runtime_:
 
 ! <runtime ram="100M" caps="5000" binary="init">
+!   <config/>
 !   <content>
+!     <rom label="init"/>
 !     <rom label="bash.tar"/>
 !   </content>
 ! </runtime>
 
-After issuing 'goa run' again, you can find _bash.tar_ added to the _var/run/_
-directory, which comprises all the ROM modules of our Genode system.
+After issuing 'goa run' again, Goa downloads the additional packages
+needed to run our _pkg/unix_ on Linux, integrates the scenario, and starts it.
+
+! unix$ goa run
+! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz.sig
+! download genodelabs/src/base-linux/2023-10-24.tar.xz
+! download genodelabs/src/base-linux/2023-10-24.tar.xz.sig
+! download genodelabs/src/init/2023-10-24.tar.xz
+! download genodelabs/src/init/2023-10-24.tar.xz.sig
+! download genodelabs/api/base/2023-10-24.tar.xz
+! download genodelabs/api/base/2023-10-24.tar.xz.sig
+! download genodelabs/api/os/2023-08-21.tar.xz
+! download genodelabs/api/os/2023-08-21.tar.xz.sig
+! download genodelabs/api/report_session/2023-05-26.tar.xz
+! download genodelabs/api/report_session/2023-05-26.tar.xz.sig
+! download genodelabs/api/sandbox/2023-10-03.tar.xz
+! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
+! download genodelabs/api/timer_session/2023-10-03.tar.xz
+! download genodelabs/api/timer_session/2023-10-03.tar.xz.sig
+! Genode sculpt-23.10
+! 17592186044415 MiB RAM and 18997 caps assigned to init
+
+You can find _bash.tar_ added to the _var/run/_ directory, which comprises all
+the ROM modules of our Genode system.
 
 Of course, we cannot start a TAR archive. It is not an executable after
 all. We rather need to access the content of the archive. Here, the
 combination of three Genode components namely VFS, 'fs_rom', and init
-comes to the rescue.
+come to the rescue.
 
-# The VFS server is able mount a TAR archive locally as a virtual file
+# The VFS server is able to mount a TAR archive locally as a virtual file
   system and offer its content as a _file-system service_.
 
 # The 'fs_rom' component provides a ROM service by fetching the content
@@ -145,8 +169,8 @@ in the attribute 'binary="init"'. So as a whole, our subsystem will be an
 instance of init. Internally, init will host several child components
 and manage their resources and relationships according to its configuration.
 Let's start with a fresh init that hosts only the VFS server by
-placing the following <config> node inside the <runtime> node of the
-_pkg/unix/runtime_ file:
+replacing our empty <config/> in our _pkg/unix/runtime_ file by the
+following configuration.
 
 ! <config>
 !   <parent-provides>
@@ -173,13 +197,14 @@ _pkg/unix/runtime_ file:
 The <default-policy> expresses that any client should be able to access
 the root of the virtual file system in a read-only fashion.
 
-When trying to 'run' the scenario now, we see a bunch of messages:
+When trying to 'run' the scenario now, you see a bunch of messages:
 
-! $ goa run
-! ... config <parent-provides> mentions a timer service;
-!     consider adding <timer/> as a required runtime service
-! Genode 20.11-251-g676fd7d884a <local changes>
-! 17592186044415 MiB RAM and 8997 caps assigned to init
+! unix$ goa run
+!
+! [unix] config <parent-provides> mentions a timer service;
+!        consider adding <timer/> as a required runtime service
+! Genode sculpt-23.10
+! 17592186044415 MiB RAM and 18997 caps assigned to init
 ! [init -> unix] Error: vfs: environment ROM session denied ...
 
 The first message points out that init's '<parent-provides>' declaration
@@ -197,8 +222,10 @@ inside the '<runtime>' node.
 
 The subsequent "Error:" messages tell us that init requested the ROM module
 'vfs' that is not available to the scenario, yet.
-To make both ingredients available to our scenario, we have to
-declare them in the _archives_ and as <content> in the _runtime_ file.
+To make this ingredient available to our scenario, we have to
+declare it in the _archives_ and as <content> in the _runtime_ file.
+While we are at it, lets also capture the need for 'init' because our entire
+scenario is based on this component.
 Let's add the following lines to _pkg/unix/archive_:
 
 ! genodelabs/src/vfs
@@ -208,8 +235,8 @@ Also make sure to have the ROM modules listed as <content> in the
 _pkg/unix/runtime_ so that it looks as follows:
 
 ! <content>
-!   <rom label="bash.tar"/>
 !   <rom label="init"/>
+!   <rom label="bash.tar"/>
 !   <rom label="vfs"/>
 ! </content>
 
@@ -228,19 +255,20 @@ _archives_ file. So we can resolve this error by adding a corresponding <rom>
 entry to the _runtime_ file. The <content> should now look as follows:
 
 ! <content>
-!   <rom label="bash.tar"/>
 !   <rom label="init"/>
+!   <rom label="bash.tar"/>
 !   <rom label="vfs"/>
 !   <rom label="vfs.lib.so"/>
 ! </content>
 
 When running the scenario again, we see a sign of hope:
 
-! goa run
-! Genode 23.02-146-g4bb4e60d8b0 <local changes>
+! unix$ goa run
+
+! Genode sculpt-23.10
 ! 17592186044415 MiB RAM and 18997 caps assigned to init
 
-Not further errors! That means that the VFS server is running and has
+No further errors! That means that the VFS server is running and has
 presumably mounted the _bash.tar_ archive. On a second terminal, you can
 indeed observe the VFS server showing up.
 
@@ -279,9 +307,9 @@ get a little bit more action on screen, you may add the 'verbose="yes"'
 attribute to init's <config> node. Another try of 'goa run' reveals the
 following output.
 
-! $ goa run
-
-! Genode 23.02-146-g4bb4e60d8b0 <local changes>
+! unix$ goa run
+!
+! Genode sculpt-23.10
 ! 17592186044415 MiB RAM and 18997 caps assigned to init
 ! [init -> unix] parent provides
 ! [init -> unix]   service "ROM"
@@ -384,9 +412,7 @@ following output:
 ! [init -> unix] child "/bin/bash" exited with exit value 0
 
 The message "files at /dev: /dev/log /dev/null"
-is the output of bash command we have hoped for!
-
-Granted, our scenario is still a far cry from being a Unix system.
+is the output of the bash command we have hoped for!
 
 
 Some reorg is in order
@@ -489,8 +515,8 @@ the _runtime_ in the form of a dedicated ROM module, we can later reuse
 the same ROM module for other _runtime_ files. It is always good to have
 reusable building blocks.
 
-Let's give the new version a try by issuing 'goa run'. The output should
-look familiar to us.
+You may give the new version a try by issuing 'goa run'. The output should
+look familiar.
 
 
 GUI stack
@@ -499,8 +525,8 @@ GUI stack
 Goa supports interactive system scenarios by looking at the requirements
 stated in the _runtime_ file. Right now, the runtime file merely states
 the amount of RAM and caps as a requirement. We can add the presence of
-a GUI service as an additional requirement by adding the following
-node inside the <runtime> node:
+a GUI service as an additional requirement by adding a <gui> node
+inside the <runtime> node:
 
 ! <requires>
 !   <gui/>
@@ -515,12 +541,29 @@ This includes a pseudo graphics driver, a pseudo input driver, and the
 [https://github.com/genodelabs/genode/tree/master/repos/os/src/server/nitpicker - nitpicker GUI server].
 
 Let's try 'goa run' after having added the <requires> definition to our
-_runtime_. We can see that Goa automatically downloads the basic components of
-the GUI stack. Not only that. When starting the scenario, a new window
-with a greenish background pops up. When hovering the mouse over the window,
-you can see a small mouse pointer. If you are curious how the system the
+_runtime_. Goa responds with the following message:
+
+! [unix] Error: runtime requires <gui/>,
+!               which is not mentioned in <parent-provides>
+
+It points out the fact that the runtime file pretends to require a <gui>
+service but according to init configuration in _unix.config_ no such
+service is actually obtained from the parent. So either the <requires>
+definition is superfluous or the init configuration is wrong or incomplete.
+To satisfy this sanity check, let's add the following line to the
+<parent-provides> declarations in the _raw/unix.config_ file.
+
+! <parent-provides>
+!   ...
+!   <service name="Gui"/>
+! </parent-provides>
+
+Upon the next 'goa run', we can see that Goa automatically downloads the
+basic components of the GUI stack. Not only that. When starting the scenario,
+a new window with a greenish background pops up. When hovering the mouse over the window,
+you can see a small mouse pointer. If you are curious how the
 GUI stack is assembled in detail, please have a look at _var/run/config_.
-But from the perspective of our Unix scenario, these exact details are not
+Yet, from the perspective of our Unix scenario, these exact details are not
 of interest. The only important point is that our scenario is now officially
 able to request a "Gui" and a "Timer" service from the underlying
 system.
@@ -544,7 +587,7 @@ uses a GUI service to create a graphical terminal and provides the textual
 input and output in the form of a "Terminal" service. In the routing rules of
 the terminal, you can see that the terminal's configuration is fetched from a
 dedicated ROM module called "terminal.config". We have no such ROM module
-defined yet. However, let's still give it try:
+defined yet. However, let's still give it a try:
 
 ! [init -> unix] Error: terminal: environment ROM session denied (label="terminal" ...)
 ! ...
@@ -567,10 +610,12 @@ The following two lines must be added to the runtime file's <content>:
 ! </content>
 
 When trying 'goa run' again, we see that we exchanged the previous errors
-with two new ones. Let's call it progress:
+with a new one. Let's call it progress:
 
-! [init -> unix -> terminal] Error: ROM-session creation failed (label="config" ...)
-! ...
+! [unix] Error: Unable to find content ROM module 'terminal.config'.
+
+!  You either need to add it to the 'raw/' directory 
+!  or add the corresponding dependency to the 'archives' file.
 
 The error is easy to explain. We have configured the "terminal"
 start node to fetch its configuration from a ROM called _terminal.config_
@@ -643,34 +688,9 @@ The following lines must be added to the <content> node in _pkg/unix/runtime_
 !   <rom label="vfs_ttf.lib.so"/>
 ! </content>
 
-Good news! On the next try of 'goa run', we can see the error gone.
-However, as so often, the good news are accompanied with less good news, as
-seen in the log:
-
-! [init -> unix] Warning: terminal: no route to service "Gui" (...)
-! [init -> unix -> terminal] Error: Gui-session creation failed (...)
-
-It tells us that there is no way for the "terminal" to reach a
-"Gui" service. Let's take a look at the <route> rules for this component:
-
-! <route> <any-service> <parent/> </any-service> </route>
-
-This rule says that all service requests should directly go towards the
-surrounding Genode system, towards the parent of the component tree.
-However, in the <parent-provides> declaration at the beginning of the
-init <config> a "Gui" service is nowhere to be found. Hence, init
-refuses to ask the outside world for a "Gui" service on behalf of
-its child terminal. Let us enhance the <parent-provides> node with an entry
-for the GUI service:
-
-! <parent-provides>
-!   ...
-!   <service name="Gui"/>
-! </parent-provides>
-
-Now, when trying 'goa run' for the next time, we see that the complaint about
-the "Gui" service has vanished.
-We see the black screen and the log output of '/bin/bash' looks as usual.
+Good news! On the next try of 'goa run', you can see the error gone and are
+greeted with a black screen instead.
+The log output of '/bin/bash' looks as usual.
 
 
 Connecting bash with the terminal
@@ -678,7 +698,7 @@ Connecting bash with the terminal
 
 With the current scenario, bash and the GUI stack are running peacefully
 side by side but they do not interact with each other. To connect them,
-we will do the following:
+we do the following:
 
 # Mount a terminal session to the VFS of the VFS server at /dev/terminal.
 
@@ -794,11 +814,11 @@ After adding this line, the next invocation of 'goa run' will download
 the source code along with a ready-to-use binaries to _var/depot/_.
 In particular, you can find the binary at
 _var/depot/genodelabs/bin/x86_64/coreutils/<version>/_.
-Analogous to the bash package, described in section [Hello bash],
+Analogous to the bash package, described in Section [Hello bash],
 there is a single TAR archive containing all the files that comprise the
 coreutils installation.
 
-! $ tar tf var/depot/genodelabs/bin/x86_64/coreutils/2023-02-26/coreutils.tar
+! unix$ tar tf var/depot/genodelabs/bin/x86_64/coreutils/2023-10-24/coreutils.tar
 ! ./
 ! ./lib/
 ! ...
@@ -855,7 +875,7 @@ Genode's log output reveals why:
 ! [init -> unix -> /bin/bash -> 1] Error: Could not open ROM session for "/bin/ls"
 ! [init -> unix -> /bin/bash -> 1] Warning: execve: executable binary inaccessible as ROM module
 
-Remember from section [Hello bash]
+Remember from Section [Hello bash]
 that we have to make a program's binary available as ROM module in order to
 execute it. We have accomplished this via the 'fs_rom' server handing out
 file-system content as ROM modules, and directing bash's request for the
@@ -1061,379 +1081,10 @@ comfort of Vim. All that has become possible with less than 150 lines of XML:
 !  121 total
 
 
-Software-publishing prerequisites
----------------------------------
-
-_TODO: simplify text since we already present an example in Getting Started_
-
-In order to provide packaged software to other Genode users, you will
-need the following prerequisites:
-
-# A publicly accessible place on the web where users can download
-  your software packages from.
-
-# A PGP key pair to protect the end-to-end integrity of your packages.
-
-This section does not cover the first point as there are so many options
-when it comes to web hosting. However, the use of PGP deserves an explanation.
-
-Genode's depot tools use Open-PGP signatures to ensure that the packages
-created by you are bit-for-bit identical to the packages arrived at the user's
-system. It works like this: You as the software provider create an Open-PGP
-key pair consisting of a private key and a matching public key. The private
-key must remain your secret. The public key should be made publicly available.
-
-You can use your private key to put _your_ digital signature on a package.
-Nobody else can forge your signature because the private key is known only
-to you. Once a user has downloaded the package, the signature attached to the
-package can be tested against the public key. If the package was mutated on
-the way to the user's machine, e.g., the web server was compromised by an
-attacker, this check would ultimately fail. The user is saved from the
-risk of running non-genuine or randomly broken software. Vice versa, if the
-signature check succeeds, the user can be certain to have obtained a
-bit-for-bit identical copy of the package created by the owner of the private
-key - the software provider.
-
-Since you are an aspiring software provider, you ought to have an Open-PGP
-key pair.
-
-
-Creating a key pair using GnuPG
--------------------------------
-
-GnuPG is the go-to implementation of the Open-PGP standard. It is usually
-installed by default on GNU/Linux distributions. For reference, I'm currently
-using the version 2.2.4.
-
-! $ gpg --version
-! gpg (GnuPG) 2.2.4
-! libgcrypt 1.8.1
-! ...
-
-If you are already using GPG for encrypting/signing email, you may in
-principle use your existing key pair. If so, you may skip this section.
-
-To create a new key pair, one can use the following command:
-
-! $ gpg --full-generate-key
-! gpg (GnuPG) 2.2.4; Copyright (C) 2017 Free Software Foundation, Inc.
-! This is free software: you are free to change and redistribute it.
-! There is NO WARRANTY, to the extent permitted by law.
-! 
-! Please select what kind of key you want:
-!    (1) RSA and RSA (default)
-!    (2) DSA and Elgamal
-!    (3) DSA (sign only)
-!    (4) RSA (sign only)
-! Your selection? 
-
-Stick to the default (RSA) by hitting enter. Next, we are asked for the key
-size.
-
-! RSA keys may be between 1024 and 4096 bits long.
-! What keysize do you want? (3072)
-
-I was once told that 4096 is a good number. So let's put it in.
-Next, we are asked to decide for how long we want to use this key.
-
-! Please specify how long the key should be valid.
-!          0 = key does not expire
-!       <n>  = key expires in n days
-!       <n>w = key expires in n weeks
-!       <n>m = key expires in n months
-!       <n>y = key expires in n years
-! Key is valid for? (0)
-
-For our use case, there is no point in limiting the key's lifetime.
-Press enter to let the key never expire.
-
-! Key does not expire at all
-! Is this correct? (y/N)
-
-The tool apparently wants to have us think twice about it. Well, typing 'y'
-gives it the assurance it desires.
-
-Next, the question about our real name. Well, I'm calling myself "John K." now.
-
-! Real name: John K.
-
-When asked for the email address, it's technically fine to just fill-in some
-place holder.
-
-Should you intend to widely publish your public key, e.g., by uploading it to
-a key server, please consider using your real identity. You want to be trusted
-by the users of your software after all, don't you? A real identity is
-certainly more trustworthy than a random internet person hiding behind a
-pseudonym.
-
-! Email address: a@b.cd
-
-Next, we can leave a comment. But we can also leave it blank by pressing enter.
-
-! Comment:
-! You selected this USER-ID:
-!     "John K. <a@b.cd>"
-!
-! Change (N)ame, (C)omment, (E)mail or (O)kay/(Q)uit?
-
-After pressing 'o', we are greeted with a dialog asking for a new passphrase.
-This passphrase is used to encrypt your private key before storing it in a
-file. In the event of a leak of this file, your private key remains still a
-secret unless your passphrase becomes known. Hence, you should better not
-write down your passphrase but keep it in your head only. Once we supplied our
-passphrase, GPG confirms the creation of the new key pair with a message like
-this:
-
-! ...
-! public and secret key created and signed.
-!
-! pub   rsa4096 2020-01-16 [SC]
-!       96541E89AA71BAA88DF56C538ADB04B1F162AF2D
-! uid                      John K. <a@b.cd>
-! sub   rsa4096 2020-01-16 [E]
-
-When inspecting the GPG keyring via the command 'gpg --list-secret-keys', we
-can see the new key listed:
-
-! $ gpg --list-secret-keys
-! ...
-! sec   rsa4096 2020-01-16 [SC]
-!       96541E89AA71BAA88DF56C538ADB04B1F162AF2D
-! uid           [ultimate] John K. <a@b.cd>
-! ssb   rsa4096 2020-01-16 [E]
-
-
-A quick look back at the project we wish to publish
----------------------------------------------------
-
-To publish the depot content for a given Goa project, first change to the
-project directory. For example, within the 'goa-playground' repository linked
-above, I'd change to the 'unix_3rd' directory.
-
-! git clone https://github.com/nfeske/goa-playground.git
-! cd goa-playground/intro/unix_3rd/
-
-Before proceeding, please make sure to use the latest version of the Goa tool.
-
-! goa update-goa
-
-It is always a good idea to give the project a quick try before publishing it.
-
-! goa run
-
-Goa will download all the components needed to build the scenario, and execute
-it directly on the GNU/Linux development machine. You should see the terminal
-window familiar from section [Plumbing pipes].
-
-When peeking at the _var/public/_ directory now, we see the downloaded
-archives and signatures. For example,
-
-! $ find var/public/genodelabs/bin/x86_64/terminal
-! var/public/genodelabs/bin/x86_64/terminal
-! var/public/genodelabs/bin/x86_64/terminal/2023-04-25.tar.xz.sig
-! var/public/genodelabs/bin/x86_64/terminal/2023-04-25.tar.xz
-
-The 'sig' file is the signature that I (Norman) created via my private PGP
-key when I originally published the terminal. After downloading, Goa verifies
-the signature using Genode Labs' public key that is provided at
-_var/depot/genodelabs/pubkey_.
-
-When taking a look at the _var/depot/_ directory, we see the depot
-content extracted from the corresponding 'tar.xz' archives.
-
-
-Exporting the project to a Genode depot
----------------------------------------
-
-Genode package management organizes software in a so-called depot, which is a
-directory with a special structure explained in
-[https://genode.org/documentation/genode-foundations/22.05/development/Package_management.html - Genode's documentation].
-To create depot content for _our_ project, Goa features the 'goa export'
-command. Let's give it a try without a second thought.
-
-! $ goa export
-! Error: missing definition of depot user
-!
-!  You can define your depot user name by setting the 'depot_user' 
-!  variable in a .goarc file, or by specifing the '--depot-user <name>' 
-!  command-line argument.
-
-As hinted by the error message, Goa needs to know the name of us as the
-software provider. The depot user name will correspond to the sub directory
-within the depot that will host our content. Let us try the command again,
-but specifying the user name "john" this time.
-
-! $ goa export --depot-user john
-! Error: version for archive john/raw/unix_3rd undefined
-!
-!  Create a 'version' file in your project directory, or 
-!  define 'set version(john/raw/unix_3rd) <version>' in your .goarc file.
-
-This time, Goa seems to be happy about our depot user name but it apparently
-misses any version information about our project. Indeed, while following the
-steps of the previous sections, we did not talk or think about versions at
-all. Now it is time to make up our minds about a suitable version identifier.
-In principle, any character string will do, as long as it does not contain
-anything fancy like whitespace. It is generally a good practice to just use
-the current date. Hence, we write the version identifier into a new file
-called _version_:
-
-! $ echo 2023-05-02 > version
-
-Let's give 'goa export' another try.
-
-! $ goa export --depot-user john
-! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-05-02
-! Error: missing README file at pkg/unix_3rd/README
-
-This looks like a partial success! When inspecting _var/depot/_ now, we
-can indeed find content that looks pretty familiar.
-
-! $ ls var/depot/john/raw/unix_3rd/2023-05-02/
-! terminal.config  unix.config  vimrc
-
-However, let's pay attention to the 'Error:' part of the message. By
-convention, each depot package features a README file, and Goa nags us to
-follow this convention. We have to give in. Create a file at
-_pkg/unix_3rd/README_ with content of your choice. The README should contain
-a short description of the purpose of the package, along with instructions
-for using it.
-I recommend following the [https://github.com/nfeske/gosh - GOSH] markup
-syntax as consistently used throughout Genode's documentation. This will
-allow future versions of Sculpt OS to present your text nicely formatted
-to the user.
-
-With the README file in place, let's try again:
-
-! $ goa export --depot-user john
-! Error: archive john/raw/unix_3rd/2023-05-02 already exists in the depot
-!
-!  You may specify '--depot-overwrite' to replace the existing version.
-
-Goa wants to save us from accidentally overwriting existing depot content,
-which can happen, for example, if we made changes in the project but forgot to
-adjust the _version_ file. In our case just now, however, the message results
-from our partial success above. Remember that _raw/unix_3rd_ was actually
-exported already. So we are safe to specify the '--depot-overwrite' argument
-as suggested by Goa.
-
-! $ goa export --depot-user john --depot-overwrite
-! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-05-02
-! [unix_3rd] exported .../unix_3rd/var/depot/john/pkg/unix_3rd/2023-05-02
-
-This time, the command succeeded. To celebrate the success, review the
-content of our part our - john's part - of the depot.
-
-! $ find var/depot/john/
-! var/depot/john/
-! var/depot/john/raw
-! var/depot/john/raw/unix_3rd
-! var/depot/john/raw/unix_3rd/2023-05-02
-! var/depot/john/raw/unix_3rd/2023-05-02/terminal.config
-! var/depot/john/raw/unix_3rd/2023-05-02/vimrc
-! var/depot/john/raw/unix_3rd/2023-05-02/unix.config
-! var/depot/john/pkg
-! var/depot/john/pkg/unix_3rd
-! var/depot/john/pkg/unix_3rd/2023-05-02
-! var/depot/john/pkg/unix_3rd/2023-05-02/archives
-! var/depot/john/pkg/unix_3rd/2023-05-02/runtime
-! var/depot/john/pkg/unix_3rd/2023-05-02/README
-
-You can nicely see here how the _version_ file defines the name of the
-subdirectory of the content.
-
-
-Signing and archiving
----------------------
-
-Even though the depot content looks good, it has not yet a suitable form
-for distributing it. We ultimately need to wrap the content in archive files
-and apply our digital signature to these archives. Fortunately, we don't
-need to do these steps manually. Goa assists us with the 'publish' command.
-This command implicitly executes the 'goa export' command. So we need to
-specify all information that we supplied to 'export'.
-
-! $ goa publish --depot-user john --depot-overwrite
-! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-05-02
-! [unix_3rd] exported .../unix_3rd/var/depot/john/pkg/unix_3rd/2023-05-02
-! Error: missing public key at .../unix_3rd/var/depot/john/pubkey
-!
-!  You may use the 'goa add-depot-user' command. 
-!  To learn more about this command:
-!
-!    goa help add-depot-user
-
-Goa cannot know which key to use for signing the depot content. It only knows
-the name of our made-up depot user "john". But we have not yet drawn the
-connection to the PGP key pair we have created.
-The 'goa add-depot-user' command closes the circle.
-
-! $ goa add-depot-user john --depot-url "https://your-domain/and/url" \
-!                           --gpg-user-id "a@b.cd" \
-!                           --depot-overwrite
-
-The URL specified as '--depot-url' argument should point to the designated
-location of the archives on your web server. For reference, my (Norman's)
-depot URL is [https://depot.genode.org/]. Note that the URL points to the
-root of the depot directory structure, not the depot user's sub directory.
-
-The '--gpg-user-id' can be any GPG user-ID string as understood by GPG.
-In the example above, we used the email address that we specified for the
-GPG key pair.
-
-The '--depot-overwrite' argument is specified because Goa tries to prevent us
-from accidentally overwriting information of existing depot content, like
-the content we just created with the 'goa export' command. It is interesting
-to take a look at the content of the depot user "john" now.
-
-! $ find var/depot/john/
-! var/depot/john/
-! var/depot/john/pubkey
-! var/depot/john/download
-
-The content we extracted before is no more. Instead, there is fresh
-subdirectory _john_ with the information we supplied to the 'goa add-depot-user'
-command. Take the time to look into both files. Goa extracted the
-ASCII-armored _pubkey_ from the GPG keyring by using the specified GPG user ID.
-
-With the connection between the depot user "john" and his key pair drawn,
-let us give Goa another chance to publish the project.
-
-! $ goa publish --depot-user john --depot-overwrite
-
-This time, Goa is able to proceed, as indicated by the following messages:
-
-! publish .../var/public/john/pkg/unix_3rd/2023-05-02.tar.xz
-! publish .../var/public/john/raw/unix_3rd/2023-05-02.tar.xz
-
-We are also asked by GPG for our passphrase for decrypting our private key.
-We obey.
-
-Once the command completed, we can find the archived and signed depot content
-at _var/public/john/:_
-
-! $ find var/public/john
-! var/public/john
-! var/public/john/raw
-! var/public/john/raw/unix_3rd
-! var/public/john/raw/unix_3rd/2023-05-02.tar.xz.sig
-! var/public/john/raw/unix_3rd/2023-05-02.tar.xz
-! var/public/john/pkg
-! var/public/john/pkg/unix_3rd
-! var/public/john/pkg/unix_3rd/2023-05-02.tar.xz.sig
-! var/public/john/pkg/unix_3rd/2023-05-02.tar.xz
-
-
-Syncing the public depot content to the web server
---------------------------------------------------
-
-The entirety of the _var/public/john_ directory can now be copied as is
-to the web server. The way of how this content is uploaded is up to you.
-
-Personally, I'm using the fantastic [https://en.wikipedia.org/wiki/Rsync - rsync]
-tool with the following combination of arguments:
-
-! -rpltOvz --checksum --chmod=Dg+s,ug+w,o-w,+X
-
-You may not believe me but that's not my poor attempt at ASCII art.
-Please use 'man rsync' to decrypt this information.
+Further reading
+---------------
+
+- Getting Started section for publishing and deployment
+- goa articles on genodians.org [http://genodians.org/topics-goa]
+- porting guide
+- ...

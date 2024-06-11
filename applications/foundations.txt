@@ -1,17 +1,17 @@
 Foundations
 ###########
 
-This section summarizes the most essential foundations of the Genode OS
-Framework and Sculpt OS.
+This chapter summarizes the most essential foundations of the Genode OS
+Framework. For a more detailed view, please refer to the Genode Foundations
+book available at genode.org.
 
-Genode architecture
-===================
 
-_TODO: relate to getting started example(s)_
+Genode's init component
+=======================
 
 Genode's system architecture follows a recursive structure in which a component
 may invest a part of its resource budget in order to start child components. A
-detailed account of this is given in Chapter "Recursive system structure" of the
+detailed account of this is given in Section "Recursive system structure" of the
 Genode Foundations book.
 
 The standard component used for nesting subsystems in Genode is the _init_
@@ -20,11 +20,147 @@ components to start and how resources are assigned to them. A detailed account
 of init's configuration is given in Chapter "System configuration" of the
 Genode Foundations book.
 
+When executing 'goa run' or installing a runtime package on Sculpt OS, the
+binary specified in its runtime file is added as a child component to a
+Goa-managed or Sculpt-managed init component. The runtime package may either
+consist of a single component binary or make use of the init component itself
+to start multiple components in its subsystem. See Section
+[Sticking together a little Unix] for an example.
+
 Besides starting components and delegating resources, a parent component such
 as init also establishes communication channels between its child components.
 Any component may inform its parent about a service that it provides. Other
 components are then able to request access to this service. Both sides adhere
-to a predetermined session interfaces. A list of common session interfaces is
-provided in Chapter "Common session interfaces" of the Genode Foundations book.
+to a predetermined session interface. A list of common session interfaces is
+provided in Section "Common session interfaces" of the Genode Foundations book.
 
-_TODO: distinguish native, libc and posix components_
+One of the most basic session interfaces is the ROM session. It provides
+read-only access to binary or textual data. For instance, executable binaries
+and shared libraries are provided as ROM modules. Moreover, Genode components
+typically access a "config" ROM module, which contains the component's
+configuration as XML. The configuration of Genode's init component, e.g.,
+contains a <start> node for each child component to be started. For
+illustration, let's have a look at a simple example:
+
+! <start name="fs_rom">
+!   <resource name="RAM" quantum="10M"/>
+!   <provides>
+!     <service name="ROM"/>
+!   </provides>
+!   <config/>
+!   <route>
+!     <service name="File_system"> <child name="vfs"/> </service>
+!     <any-service> <parent/> </any-service>
+!   </route>
+! </start>
+
+* The _name_ attribute of the <start> node refers the name of the child
+  component and is identical to the binary name.
+  (A different binary name can be specified by adding a <binary> sub node.)
+* The <resource> node specifies the amount of RAM delegated to the component.
+* The <provides> node contains the list of session interfaces provided by
+  the component.
+* The <config> node specifies the content of the component's config ROM.
+* The <route> node contains routing information for the requested services.
+  In this example, the _File_system_ session is routed to the child component
+  names "vfs". All other services are routed to the parent component.
+
+Note that session requests are accompanied by a session label. In order to make
+session requests distinguishable by the providing component, init adds the
+name of the requesting component as a prefix to the session label and separates
+the parts by '" -> "'. One may use session labels to apply more fine-grained
+routing rules.
+
+Further reading
+---------------
+
+For more details, please consult the following sections of the Genode
+Foundations book available on [https://www.genode.org].
+
+* Section "Recursive system structure"
+* Section "The init component"
+* Section "Common session interfaces"
+
+Component API
+=============
+
+Genode components can be classified into the following categories depending on
+the used API: native, libc and POSIX.
+
+Native Genode components
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+! #include <base/component.h>
+! #include <base/log.h>
+!
+! void Component::construct(Genode::Env &)
+! {
+!   Genode::log("Hello world");
+! }
+
+The _base/component.h_ header contains the interface each component must
+implement.
+The 'construct' function is called by the component’s execution environment to
+initialize the component. The interface to the execution environment is passed
+as argument. This interface allows the application code to interact with the
+outside world. The simple example above merely produces a log message. The log
+function is defined in the _base/log.h_ header.
+The component does not exit after the 'construct' function returns. Instead, it
+becomes ready to respond to requests or signals originating from other
+components. The example above does not interact with other components though.
+Hence, it will just keep waiting infinitely.
+
+Libc components
+~~~~~~~~~~~~~~~
+
+A libc-based component is not different from a regular Genode component and
+reacts on events from the surrounding system. The crucial difference lies in the
+semantics of the POSIX file operations, which may block on read or select.
+Therefore, the 'Component::construct' function is not implemented in the
+component code but in the libc. On startup, this function prepares the C
+runtime, including the virtual file system, before executing the application (or
+libc-using component) code. The actual application is then entered via
+'Libc::Component::construct' on its own application context (stack and register
+set). Consequently, Genode components that use the libc have to implement the
+'Libc::Component::construct' function. The application context enables the libc
+to suspend and resume the execution of the application at any appropriate time,
+e.g., when waiting in select for a file descriptor to become readable.
+
+! #include <libc/component.h>
+! #include <stdio.h>
+!
+! void Libc::Component::construct(Libc::Env &)
+! {
+!   Libc::with_libc([] () {
+!     printf("Hello world\n");
+!   });
+! }
+
+When using libc functions in the component, the code must indicate this
+intention by wrapping code into 'Libc::with_libc' defined as a function
+taking a lambda-function argument in _libc/component.h_. This ensures that
+code from the libc is executed exclusively by the application context and,
+therefore, is suspendable.
+
+Section [C runtime and virtual file system] provides more details on Genode's
+C runtime and virtual file system.
+
+POSIX components
+~~~~~~~~~~~~~~~~
+
+By using Genode's _posix_ library, it is possible to build applications that
+use the well-known 'main()' function.
+
+! #include <stdio.h>
+!
+! int main(int argc, char **argv)
+! {
+!   printf("Hello POSIX\n");
+!   return 0;
+! }
+
+Internally, the _posix_ library uses _libc/component.h_ and therefore requires
+configuration of the C runtime and virtual file system as explained in the
+following section. In addition, the _posix_ libary looks for <arg> nodes in
+the component's config ROM in order to fill the 'argv' array.
+Section [A second example, using CMake] has already shown an example for this.

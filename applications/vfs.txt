@@ -1,56 +1,391 @@
 C runtime and virtual file system
 =================================
 
-_TODO: write out bullet points in full_
+Genode's C runtime bases on FreeBSD libc and allows running Unix/POSIX-like
+applications. However, as a consequence of Genode's architecture, there is no
+global file system in Genode. Instead, every component has its own virtual file
+system, i.e. its own sandboxed view. Moreover, since files in Genode are no
+first-level citizens, special files such as sockets must be emulated.
 
-* Genode has a C runtime based on FreeBSD libc.
-* Suitable for running Unix/POSIX-like applications, however:
-  * There is no global virtual file-system in Genode. Every component has its own
-    (sandboxed) view.
-  * Files in Genode are no first-level citizen. Special files and sockets must
-    thus be emulated.
-* The individual virtual file-system (vfs) of a component is provided by 
-  Genode's vfs library. It evalutes the '<vfs>' node of the component's
-  configuration and instantiates the file-system structures accordingly. Vfs
-  plugins are loaded on demand, e.g. to emulate special files (see section
-  below).
-* We have already seen '<libc>', '<vfs>' and '<arg>' nodes being used in section
-  [A second example, using CMake]. The following sections explain their use in
-  greater detail.
+The individual virtual file system (VFS) of a component is provided by Genode's
+_vfs_ library. This library evaluates the <vfs> node of the component's
+configuration and instantiates the file-system structures accordingly. A plugin
+mechanism allows on-demand loading of VFS plugins, which are used to emulate
+special files or file systems.
 
-
-Passing arguments to POSIX programs
------------------------------------
-
-_TODO: Explain '<arg>' node_
+If you have followed the tutorial in Section [A second example, using CMake],
+you will have already seen the <libc> and <vfs> configuration nodes in action.
+This section explains their use in greater detail. For more information on
+writing VFS plugins, please refer to the tutorial in
+Section [Writing a VFS plugin for network-packet access].
 
 
 Libc configuration
-------------------
+~~~~~~~~~~~~~~~~~~
 
-Genode's libc library evaluates the '<libc>' node of the component's
-configuration.
+Genode's libc library evaluates the <libc> node of the component's
+configuration. The <libc> node supports the following (optional) attributes:
 
-_TODO: Explain <libc> node in config_
+:stdout:
 
-_TODO: Explain socket-call emulation__
+  The _stdout_ attribute defines the file path in the component's VFS that is
+  used for standard output. It is typically directed to a <log/>, <null/> or
+  <terminal/> file.
 
-_TODO: Explain ioctl emulation__
+:stderr:
+
+  The _stderr_ attribute defines the file path in the component's VFS that is
+  used for error messages from libc code.
+
+:stdin:
+
+  The _stdin_ attribute defines the file path in the component's VFS that is
+  used for standard input. It is typically directed to a <log/>, <null/> or
+  <terminal/> file.
+
+:rtc:
+
+  The _rtc_ attribute defines a file path in the component's VFS that provides
+  real-time-clock data. It is typically directed to an <rtc/> file or an
+  <inline/> file.
+
+:pipe:
+
+  The _pipe_ attribute defines a path to a <pipe/> plugin in the component's VFS
+  and thereby enables the use of POSIX pipes for inter-component communication.
+
+:socket:
+
+  The _socket_ attribute defines a path to a socket file system in the
+  component's VFS. Genode's C runtime maps the BSD socket API to VFS operations
+  in the socket file system as provided by the IP-stack VFS plugins <lwip> and
+  <lxip>.
+
+In addition to these attributes, the <libc> node supports the following
+(optional) sub nodes.
+
+:<pthread>:
+
+  The <pthread> sub node defines the placement strategy of pthreads to CPUs. By
+  default, the libc uses round-robin assignment of pthreads to CPUs. This is
+  equal to '<pthread placement="all-cpus"/>'. By using the "manual" placement
+  strategy, one can manually tune the placement, e.g.:
+
+  ! <libc>
+  !   <pthread placement="manual">
+  !     <thread id="0" cpu="0"/> <!-- pthread.0 placed on CPU 0 -->
+  !     <thread id="1" cpu="2"/> <!-- pthread.1 placed on CPU 2 -->
+  !   </pthread>
+  ! </libc>
+
+; @nfeske: Do we need/want to mention <stack> and <heap>?
 
 
-Virtual-file-system configuration
----------------------------------
+VFS configuration
+~~~~~~~~~~~~~~~~~
 
-_This section is based on Martin Stein's_
-_[http://genodians.org/m-stein/2021-06-21-vfs-1 - article series]_
-_at [https://genodians.org]_.
+Genode's VFS library evaluates the <vfs> node within the component's
+configuration. Inside the <vfs> node, one can specify an arbitrary directory
+structure by using nested <dir> nodes. On each level, files and subordinate
+file systems can be instantiated. The most basic types of these are <inline>,
+<rom> and <ram>. Let's have a look at an example:
 
-_TODO: insert text from articles_
+! <config>
+!   <vfs>
+!     <dir name="tmp">
+!       <inline name="foobar">Hello!</inline>
+!       <rom name="config" binary="false"/>
+!       <ram/>
+!     </dir>
+!   </vfs>
+! </config>
 
-Example: Terminal emulation
----------------------------
+The above config specifies a _/tmp/_ directory with a file _foobar_ that has
+the statically defined content "Hello!". Moreover, the directory also contains
+the read-only _config_ file, which gets its content from the config ROM module.
+The <ram> node instructs the VFS library to also set up a RAM file system inside
+_/tmp/_, much like the well-known tmpfs from Unix-like systems.
 
-* crosslink
-* pipe
-* bash and other binaries
-* reference unix tutorial
+The above example illustrates, how the VFS is able to provide access to Genode
+session interfaces (here: ROM session) via well-known file operations. As
+another example, one can also integrate a file-system session into a VFS by
+using the <fs> node:
+
+! <config>
+!   <vfs> <fs/> </vfs>
+! </config>
+
+Vice versa, the VFS component provides its VFS in form of a file-system session
+to other components. This enables sharing of a particular VFS between several
+components and even allows cascading VFS components.
+
+; @jschlatow: refer to (or include) example for a VFS server
+;
+;! <start name="vfs">
+;!   <resource name="RAM" quantum="2M"/>
+;!   <provides>
+;!     <service name="File_system"/>
+;!   </provides>
+;!   <config>
+;!     <vfs>
+;!       <inline name="foobar">Hi there!</inline>
+;!       <ram/>
+;!     </vfs>
+;!     <default-policy root="/" writeable="yes"/>
+;!   </config>
+;! </start>
+;!
+;! <start name="client1">
+;!   <binary name="fs_query"/>
+;!   <resource name="RAM" quantum="2M"/>
+;!   <config>
+;!     <vfs> <fs/> </vfs>
+;!     <query path="/" content="yes" size="yes"/>
+;!   </config>
+;!   <route>
+;!     <service name="File_system"> <child name="vfs"> </service>
+;!     <any-service> <parent/> </any-service>
+;!   </route>
+;! </start>
+;!
+;! <start name="client2">
+;!   <binary name="fs_query"/>
+;!   <resource name="RAM" quantum="2M"/>
+;!   <config>
+;!     <vfs> <fs/> </vfs>
+;!     <query path="/" content="yes" size="yes"/>
+;!   </config>
+;!   <route>
+;!     <service name="File_system"> <child name="vfs"> </service>
+;!     <any-service> <parent/> </any-service>
+;!   </route>
+;! </start>
+
+
+VFS plugins
+~~~~~~~~~~~
+
+The VFS library comes with various built-in file-system plugins and, moreover,
+is extensible via a plugin-loading mechanism.
+
+Built-in VFS plugins
+--------------------
+
+The VFS library has the following built-in single-file systems. Every
+single-file system has an optional _name_ attribute that specifies the name
+of the file. If this attribute is omitted, the XML node type will be used as
+file name.
+
+:<inline name="inline"></inline>:
+
+  Adds a read-only text file. The content of the <inline> node specifies the
+  file content.
+
+:<rom name="rom" label="<name>" binary="yes"/>:
+
+  Includes a ROM module as a read-only file. The _label_ attribute specifies
+  the ROM session label. If omitted, the file name will be used as ROM label.
+
+:<log name="log" label=""/>:
+
+  Makes a LOG session available as a file. A _label_ attribute specifies the
+  session label. Note, read operations on the log file will block indefinitely.
+
+:<null name="null"/>:
+
+  Instantiates a file that mimics the behaviour of _/dev/null_ known from
+  Unix-like systems.
+
+:<zero name="zero" size="0"/>:
+
+  Instantiates a file that mimics the behaviour of _/dev/zero_ known from
+  Unix-like systems. The optional _size_ attribute limits the number of bytes
+  that can be read from the file. A value of 0 indicates there is no limit.
+
+:<rtc name="rtc"/>:
+
+  Makes an RTC session available as a read-only file. Read operations to this
+  file will return the current date and time in the format
+  '%Y-%m-%d %H:%M:%S\n'.
+
+:<terminal name="terminal" label="" raw="no"/>:
+
+  Makes a Terminal session available as a file. The _label_ attribute specifies
+  the optional session label. The _raw_ attribute can be set to "yes" in order
+  to ignore control characters.
+
+:<symlink name="symlink" target=""/>:
+
+  Adds a symbolic link to the file specified by the _target_ attribute.
+
+:<block name="block" label="" block_buffer_count="1"/>:
+
+  Makes a Block session available as a file. The _label_ attribute specifies
+  the optional session label. The _block_buffer_count_ attribute sets the
+  size of the internal block buffer.
+
+Furthermore, the VFS library has the following built-in subordinate file
+systems:
+
+:<ram>:
+
+  Instantiates a temporary file system that stores all data in RAM much like
+  a _tmpfs_ known from Unix-like systems.
+
+:<fs label="" root="/" writeable="yes" buffer_size="128K">:
+
+  Makes a file-system session available. The _label_ attributes specifies the
+  optional session label. The _root_ attribute specifies the root directory
+  of the session. Furthermore, the file system can be set to read only via
+  the _writeable_ attribute. The _buffer_size_ attribute sets the size of the
+  session's TX buffer.
+
+:<tar name="">:
+
+  Makes the content of a tar archive available as a read-only file system.
+  The _name_ attribute specifies the label of the ROM module providing the
+  archive data.
+
+
+External VFS plugins
+--------------------
+
+In addition to the aforementioned built-in plugins, the VFS library tries to
+load additional plugins from shared libraries. For any unknown XML node found
+in its configuration, the VFS library looks for a shared library file named
+_vfs_<node_name>.lib.so_. The VFS plugin libraries are typically found in
+similarly named depot archives _src/vfs_<node_name>_.
+A tutorial for writing VFS plugins is available in
+Section [Writing a VFS plugin for network-packet access].
+
+; @nfeske: single exception is src/rump, rename to src/vfs_rump?
+
+There are the following single-file system plugins. As above, the optional _name_
+attribute can be used to change the file name.
+
+:<jitterentropy name="jitterentropy"/>:
+
+  Provides a random number generator based on CPU jitter. It is typically used
+  for emulation of _/dev/random_ and _/dev/urandom_.
+
+:<oss name="oss" play_enabled="yes" record_enabled="yes"/>:
+
+  Makes Record and Play sessions available as a file suitable for emulation of
+  _/dev/dsp_. For more details, please consult its README.
+
+  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/oss/README]
+
+:<gpu/>:
+
+  Makes GPU session signalling available as file operations. This is currently
+  used by the Mesa library. Any Mesa application must therefore have a
+  _/dev/gpu_ in its VFS.
+
+:<capture name="capture" label=""/>:
+
+  Provides access to a Capture session. Reading from this file delivers the
+  pixel data of a 640x480 image with 4 bytes per pixel, which is mainly useful
+  to receive images from a webcam. The optional _label_ attribute specifies
+  the session label.
+
+:<tap name="tap" label="" mode="nic" mac="..."/>:
+
+  Makes a NIC or Uplink session available as a file for emulation of _/dev/tap_
+  devices. The _label_ attribute specifies an optional session label. When
+  setting the _mode_ attribute to "uplink", the plugin opens an Uplink session
+  instead of a NIC session. In this case, the _mac_ attribute should be used
+  to set the default MAC address. For more details, please refer to
+  Section [Writing a VFS plugin for network-packet access] or the plugin's
+  README.
+
+  [https://github.com/genodelabs/genode/blob/master/repos/os/src/lib/vfs/tap/README]
+
+Furthermore, the following plugins for subordinate file systems are available:
+
+:<import overwrite="no"></import>:
+
+  The import plugin defines an entire temporary file system that is copied
+  to the root of the main VFS. Existing files remain untouched unless the
+  _overwrite_ attribute has been set to "yes".
+
+:<audit label="audit" path="..."/>:
+
+  The audit plugin relays all file system accesses to the specified _path_
+  while writing a corresponding message to a LOG session. The plugin uses
+  the value of the _label_ attribute as LOG session label.
+
+:<pipe/>:
+
+  The pipe plugin provides a VFS backend for supporting POSIX pipes and for
+  inter-component communication. Named pipes can be created by adding
+  '<fifo name="..."/>' nodes inside the <pipe> node. For more details, please
+  refer to the plugin's README.
+
+  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/pipe/README]
+
+:<trace ram="..."/>:
+
+  The trace plugin provides access to Genode's TRACE session. The mandatory
+  _ram_ attribute specifies the session quota. For more details, please refer
+  to the plugin's README.
+
+  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/trace/README]
+
+:<ttf path="..." size_px="16.0" cache=""/>:
+
+  The ttf plugin provides the pixel data of a TTF font. The _path_ attribute
+  specifies the path to the ttf file inside the VFS. The _cache_ attribute
+  can be used to limit the maximum number of cached bytes. For a usage example,
+  please have a look at the fonts_fs archive.
+
+  [https://github.com/genodelabs/genode/blob/master/repos/gems/recipes/raw/fonts_fs/fonts_fs.config]
+
+:<lxip dhcp="false" ip_addr="..." netmask="..." gateway="..." nameserver="..."/>:
+
+  The lxip plugin provides a socket file system and maps its file operations
+  to the Linux IP stack backed by a NIC session. The plugin either uses DHCP
+  or a static configuration according to the provided attributes.
+
+:<lwip dhcp="false" label="lwip" .../>:
+
+  The lwip plugin provides a socket file system and maps its file operations
+  to the Lightweight IP stack backed by a NIC session. The plugin accepts the
+  same attributes as the lxip plugin to enable DHCP or set a static IP
+  configuration. In addition, the _label_ attribute can be used to change
+  the NIC session label.
+
+:<rump fs="..." ram="..." writeable="yes"/>:
+
+  The rump plugin provides a persistent file system that is backed by a Block
+  session. The _fs_ attribute determines the type of the file system ("ext2fs",
+  "msdos" or "cd9660"). The mandatory _ram_ attribute limits the amount of RAM
+  that is used by the plugin. The file system can be set to read-only via the
+  _writeable_ attribute.
+
+:<fatfs/>:
+
+  The fatfs plugin provides a persistent file system that is backed by a Block
+  session. It currently supports FAT and exFAT file systems.
+
+
+; @nfeske: Shall we also add vfs_libusb?
+
+
+Further reading
+---------------
+
+:Unix tutorial:
+
+  Section [Sticking together a little Unix] demonstrates the use of the terminal
+  and pipe plugins.
+
+:VFS plugin tutorial:
+
+  Section [Writing a VFS plugin for network-packet access] shows how to write
+  VFS plugins.
+
+:VFS article series on genodians.org:
+
+  [http://genodians.org/m-stein/2021-06-21-vfs-1]
+
+; @jschlatow: VFS examples in goa-projects

@@ -1,0 +1,111 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{servercolor}     {rgb}{0.6,0.7,0.9}
+	\definecolor{multicolor}      {rgb}{0.9,0.7,0.6}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{drivercolor}     {rgb}{0.6,0.7,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=6ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{servernode} = [treenode, bottom color=servercolor]
+	\tikzstyle{drivernode} = [treenode, bottom color=drivercolor]
+
+	%
+	% Components
+	%
+
+	\coordinate (anchor);
+
+	% USB host driver
+	\node[drivernode, minimum width=26ex, at=(anchor)] (usbdrv)  {USB Host Driver};
+	\path (usbdrv.north) node[service, scale=0.4] (usbservice) {};
+	\path (usbservice) node[scale=0.7, yshift=-2ex] {USB};
+
+
+	% USB modem driver
+	\node[drivernode, minimum width=26ex, above=4ex of usbdrv] (modemdrv)  {USB Modem Driver};
+%	\path (modemdrv.north) node[service, scale=0.4] (terminalservice) {};
+%	\path (terminalservice) node[scale=0.7, yshift=-2ex] {Terminal};
+
+	% NIC router
+	\node[servernode, minimum width=26ex, above=4ex of modemdrv] (nicrouter)  {NIC Router};
+	\path (nicrouter.-90) node[service, rotate=180, scale=0.4] (uplinkservice) {};
+	\path (uplinkservice) node[scale=0.7, yshift=2ex] {Uplink};
+	\path (nicrouter.90) node[service, scale=0.4] (nicservice) {};
+	\path (nicservice) node[scale=0.7, yshift=-2ex] {NIC};
+
+	% NIC router 2
+	\node[servernode, minimum width=26ex, right=6ex of nicrouter] (nicrouter2)  {NIC Router};
+	\path (nicrouter2.180) node[service, rotate=90, scale=0.4] (downlinkservice) {};
+	\path (downlinkservice) node[scale=0.7, anchor=west, xshift=2px] {NIC};
+	\path (nicrouter2.90) node[service, scale=0.4] (nicservice2) {};
+	\path (nicservice2) node[scale=0.7, yshift=-2ex] {NIC};
+	\path (nicrouter2.-90) node[service, rotate=180, scale=0.4] (uplinkservice2) {};
+	\path (uplinkservice2) node[scale=0.7, yshift=2ex] {Uplink};
+
+	% platform driver
+	\node[drivernode, minimum width=26ex, below=30ex of nicrouter, xshift=16ex] (platformdrv) {Platform Driver};
+	\path (platformdrv.north) node[service, scale=0.4] (platformservice) {};
+	\path (platformdrv.north) node[scale=0.7, yshift=-1.5ex] {Platform};
+
+	% NIC driver
+	\node[drivernode, minimum width=26ex, below=4ex of nicrouter2] (nicdriver)  {NIC Driver};
+
+%	% app 1
+%	\node[appnode, minimum width=26ex, minimum height=12ex, above=20ex of nicservice, xshift=-20ex] (nicapp) {};
+%	\path (nicapp.north)+(0,-3ex) node {Network Application};
+%
+%	\node[draw, draw opacity=0.2, fill=black, fill opacity=0.1,
+%	      text opacity=1, rounded corners=2, anchor=south, at=(nicapp.south),
+%	      yshift=1ex] (tcpip) {TCP/IP Stack};
+%
+%	\node[scale=0.7, at=(tcpip.north), anchor=south] {Socket API};
+
+	% app 2
+	\node[appnode, minimum width=26ex, minimum height=12ex, above=12ex of nicservice2, xshift=-16ex] (nicapp2) {};
+	\path (nicapp2.north)+(0,-3ex) node {Network Application};
+
+	\node[draw, draw opacity=0.2, fill=black, fill opacity=0.1,
+	      text opacity=1, rounded corners=2, anchor=south, at=(nicapp2.south),
+	      yshift=1ex] (tcpip2) {TCP/IP Stack};
+
+	\node[scale=0.7, at=(tcpip2.north), anchor=south] {Socket API};
+
+	% config / state information flow
+	\tikzstyle{infoflow} = [opacity=0.5,
+	                        decoration={markings,
+	                        mark=between positions 0.03 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	%
+	% Sessions
+	%
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+%	\path[treesessionarrow] (tcpip) .. controls +(0,-10ex) and +(0,10ex) .. (nicservice);
+	\path[treesessionarrow] (tcpip2) .. controls +(0,-10ex) and +(0,10ex) .. (nicservice2);
+	\path[treesessionarrow] (modemdrv) -- (usbservice);
+	\path[treesessionarrow] (modemdrv) -- (uplinkservice);
+	\path[treesessionarrow] (nicrouter.east) -- coordinate (annotation) (downlinkservice);
+	\path[treesessionarrow] (nicdriver) -- (uplinkservice2);
+	\path[treesessionarrow] (usbdrv.south) .. controls +(0,-8ex) and +(0,8ex) .. (platformservice);
+	\path[treesessionarrow] (nicdriver.south) .. controls +(0,-8ex) and +(0,8ex) .. (platformservice);
+
+	%
+	% Annotations
+	%
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=0.5, rounded corners=2, draw]
+
+	\path (annotation)+(3.5ex,6ex)
+		node [details, anchor=south, callout relative pointer={(-2.5ex, -6ex)}, align=left] {
+		<nic\_client/>
+		};
+
+\end{tikzpicture}

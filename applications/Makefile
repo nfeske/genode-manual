@@ -25,8 +25,8 @@ debug
 tutorials
 unix
 library_porting
-qt_porting
 vfs_plugin
+lomiri_calculator
 endef
 
 default: $(PDF)

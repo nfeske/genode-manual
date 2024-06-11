@@ -1,13 +1,148 @@
 Networking
 ==========
 
+As a result of Genode's architecture, there is no centralized IP stack.
+Instead, every component (that requires network access) must have its own IP
+stack and IP address. Consequently, virtual-networking infrastructure is
+required for on-system routing, forwarding and network address translation.
+This is conducted by the NIC router.
+
 
 TCP/IP stacks
 ~~~~~~~~~~~~~
 
-_TODO_
+[tikz img/socket_fs]
+
+In Genode, two different IP stacks are available as VFS plugins: the Linux
+TCP/IP stack (lxip) and the lightweight IP (lwIP) stack. These plugins implement
+a socket file system that translates file operations into network packets
+transmitted via a NIC session. By pointing Genode's C runtime to this socket
+file system, the BSD socket API becomes available to the application.
+
+Below is a minimal configuration example. For more details, please refer
+to Section [C runtime and virtual file system].
+
+! <start name="...">
+!   <config>
+!     <libc socket="/sockets"/>
+!     <vfs>
+!       <dir name="sockets">
+!         <lwip dhcp="yes"/>
+!       </dir>
+!     </vfs>
+!   </config>
+! </start>
+
 
 NIC Router
 ~~~~~~~~~~
 
-_TODO_
+The NIC router is a central building block of Genode's networking
+infrastructure. It acts as a resource multiplexer in order to provide multiple
+application components with a NIC session so that they can host their individual
+IP stacks. Moreover, driver components are able to connect via Uplink sessions
+to the NIC router as well. Having both, application components and driver
+components, act as client component has the benefit that the NIC router does not
+depend on any other component. As a consequence, driver components can be
+restarted or exchanged independently.
+
+Internally, the NIC router performs network address translation and port
+forwarding according to its configuration. The below figure illustrates a
+configuration example with an NTP and HTTP server in separate virtual networks.
+
+[image img/nic_router_servers]
+
+Here is the corresponding configuration snippet for the NIC router:
+
+! <config>
+!   <policy label_prefix="virtnet_a" domain="virtnet_a" />
+!   <policy label_prefix="virtnet_b" domain="virtnet_b" />
+!
+!   <domain name="uplink" interface="10.0.2.55/24" gateway="10.0.2.1" />
+!      <tcp-forward port="443" domain="virtnet_a" to="192.168.1.2" />
+!      <udp-forward port="123" domain="virtnet_b" to="192.168.2.2" />
+!   </domain>
+!
+!   <domain name="virtnet_a" interface="192.168.1.1/24" />
+!   <domain name="virtnet_b" interface="192.168.2.1/24" />
+! </config>
+
+
+The <domain> nodes define the virtual networks. The <policy> nodes assign the
+clients based on their session label to the defined domains. Each domain may
+further have its own port-forwarding rules. For a more details explanation
+on the NIC router configuration, please refer to the component's README.
+
+:NIC router README:
+
+  [https://github.com/genodelabs/genode/blob/master/repos/os/src/server/nic_router/README]
+
+
+Example: Virtual networking with Goa
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, 'goa run' executes the Genode binaries as Linux processes on the
+host system. For every NIC session required by the runtime, Goa starts a
+NIC router and a Linux NIC driver. The latter connects to an existing Linux
+tap device, which is a virtual network interface.
+
+You can add a _tap0_ device with IP address 10.0.100.1 using the following
+commands:
+
+! $ sudo ip tuntap add dev tap0 mode tap user $(whoami)
+! $ sudo ip address flush dev tap0
+! $ sudo ip addr add 10.0.100.1/24 dev tap0
+! $ sudo ip link set dev tap0 up
+
+Since the Goa-managed NIC router issues DHCP requests to configure its uplink
+domain, you also require a DHCP server listening on the _tap0_ device. There
+are several options for this depending on your Linux distribution. A lightweight
+DHCP server is _dnsmasq_. An exemplary configuration file _dnsmasq.conf_ could
+look like this:
+
+! port=5353
+! interface=tap0
+! domain=lan
+! dhcp-range=10.0.100.2,10.0.100.2,12h
+
+With this file, you are able to start the DHCP server from the command line:
+
+! $ sudo dnsmasq -C dnsmasq.conf
+
+In the _runtime_ file of a Goa project, you are further able to set the name of
+the tap device and also specify additional domains and forwarding rules for the
+NIC router:
+
+! <runtime>
+!   <requires>
+!     <nic tap_name="tap0">
+!       <!-- additional NIC router <domain> and <policy> nodes -->
+!       <!-- <tcp-forward> and <udp-forward> nodes are inserted into
+!            uplink domain -->
+!     </nic>
+!   </requires>
+! </runtime>
+
+Please refer to Section [Runtime configuration] for a more detailed explanation
+of the _runtime_ file syntax.
+
+
+Example: Cascaded NIC routers
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The NIC router can itself act as a NIC session client. This enables cascading
+router setups. For example, let's assume we start a subsystem with an LTE modem
+and its own NIC router. Now, we want to route network traffic from application
+components to the mobile network instead of a wired network. Application
+components that are already connected to another NIC router would, however,
+require a restart if we changed their service routing. By letting the
+NIC router in our subsystem act as a NIC client, we are able to route network
+packets between the NIC routers. The figure below illustrates this setup. For a
+more detailed explanation, please refer to the corresponding article on
+genodians.org.
+
+[tikz img/mobile_network]
+
+:Mobile-networking article on genodians.org:
+
+  [http://genodians.org/jschlatow/2021-07-21-mobile-network]

@@ -1,0 +1,99 @@
+\begin{tikzpicture}[remember picture,overlay]
+
+	\definecolor{titlecolor}   {rgb}{0.85,0.85,0.75}
+
+	\draw [top color=black!70, bottom color=titlecolor]
+		(current page.south west) rectangle (current page.north east);
+
+	%%
+	% Calculate coordinates for a single logo stripe
+	%
+	% argument 1: base angle of the stripe
+	% argument 2: fan angle
+	%
+	% In addition to the arguments, the function relies on the prior
+	% definition of the coordinates 'leftbase', 'rightbase', and 'righttop'.
+	%
+	\newcommand\calccoordinates[2]{
+
+		\def\baseangle{#1}
+		\def\steepangle{#2}
+
+		\path (rightbase)+(\baseangle+90:10cm) coordinate (rightfarup);
+
+		\path (lefttop)+(\steepangle+\baseangle+270:100cm) coordinate (tmp);
+		\coordinate (touchpoint) at (intersection of leftbase--rightbase
+		                                         and lefttop--tmp);
+
+		\path (touchpoint)+(\steepangle+\baseangle:100cm) coordinate (tmp);
+		\coordinate (righttop) at (intersection of rightbase--rightfarup
+		                                         and touchpoint--tmp);
+	}
+
+	\tikzstyle{logospike} = [fill, black, opacity=0.9,
+	                         path fading=flow fade]
+
+	\path (current page.south west) -- coordinate[pos=0.15] (midleft) (current page.north west);
+	\path (current page.south east) -- coordinate[pos=0.15] (midright) (current page.north east);
+
+	\path (midleft)           coordinate (leftbase);
+	\path (midright)          coordinate (rightbase);
+	\path (leftbase)+(90:7cm) coordinate (lefttop);
+
+	\def\maxiterations{5}
+	\foreach \i in {0,...,\maxiterations} {
+
+		\calccoordinates{0 + \i*11}{11}
+
+		% draw polygon
+		\ifthenelse{\i = 0} {
+			% let lowest spoke go right to the bottom of the page
+			\path[logospike]
+			                 (current page.south west)
+			              -- (current page.south east)
+			              -- (righttop) -- (touchpoint)
+			              -- (lefttop) --cycle;
+		} {
+			\path[logospike]
+				(leftbase) -- (rightbase) -- (righttop) -- (touchpoint)
+				           -- (lefttop) --cycle;
+		}
+
+		% init coordinates for next iteration
+
+		\def\nextangle{0 + 11 + \i*11}
+		\def\nextspace{2cm - \i*0.3cm}
+
+		\path (touchpoint) -- ++(\nextangle:\nextspace)
+		                   -- ++(\nextangle + 90:\nextspace)
+		                   coordinate (leftbase);
+
+		\path (righttop) -- ++(\nextangle + 90:\nextspace)
+		                 coordinate (rightbase);
+
+		\path (lefttop) -- ++(\nextangle:\nextspace)
+		                -- ++(\nextangle + 90:0.6*\nextspace)
+		                coordinate (lefttop);
+	}
+
+	\definecolor{titlecol} {rgb}{1,1,1}
+
+	\path (current page.north)
+		node[below=1cm, font=\normalsize \sffamily, color=titlecol, scale=10,
+		     opacity=0.8] (genode) {GENODE};
+
+	\path (genode)
+		node[below=2cm, font=\normalsize \sffamily, color=titlecol,
+		     opacity=0.8, scale=2.65] (osf) {Operating System Framework 24.xx};
+
+	\definecolor{subtitlecol} {rgb}{0.85, 0.90, 0.6}
+
+	\path (current page.south)
+		node[above=1.8cm, font=\normalsize \sffamily, color=subtitlecol,
+		     scale=5] (subtitle) {Applications};
+
+	\path (current page.south)+(0cm,0.8cm)
+		node[anchor=south, font=\normalsize \sffamily, color=black,
+		     opacity=0.7, scale=2] {Johannes Schlatow};
+
+\end{tikzpicture}
