@@ -285,17 +285,19 @@ _src/_ directory. Let's try to build it just after creating an empty _artifacts_
 ! [cmake_step2:cmake] -- The CXX compiler identification is GNU 12.3.0
 ! [cmake_step2:cmake] -- Detecting C compiler ABI info
 ! [cmake_step2:cmake] -- Detecting C compiler ABI info - done
-! [cmake_step2:cmake] -- Check for working C compiler: /usr/local/genode/tool/23.05/bin/genode-x86-gcc - skipped
+! [cmake_step2:cmake] -- Check for working C compiler: 
+!              /usr/local/genode/tool/23.05/bin/genode-x86-gcc - skipped
 ! [cmake_step2:cmake] -- Detecting C compile features
 ! [cmake_step2:cmake] -- Detecting C compile features - done
 ! [cmake_step2:cmake] -- Detecting CXX compiler ABI info
 ! [cmake_step2:cmake] -- Detecting CXX compiler ABI info - done
-! [cmake_step2:cmake] -- Check for working CXX compiler: /usr/local/genode/tool/23.05/bin/genode-x86-g++ - skipped
+! [cmake_step2:cmake] -- Check for working CXX compiler:
+!              /usr/local/genode/tool/23.05/bin/genode-x86-g++ - skipped
 ! [cmake_step2:cmake] -- Detecting CXX compile features
 ! [cmake_step2:cmake] -- Detecting CXX compile features - done
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
-! [cmake_step2:cmake] -- Build files have been written to: .../cmake_step2/var/build/x86_64
+! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
 ! [cmake_step2:cmake] Scanning dependencies of target Tutorial
 ! [cmake_step2:cmake] [ 50%] Building CXX object CMakeFiles/Tutorial.dir/tutorial.cxx.obj
 ! .../cmake_step2/src/tutorial.cxx:2:10: fatal error: cmath: No such file or directory
@@ -328,7 +330,7 @@ required APIs and successfully builds the example program:
 ! download genodelabs/api/stdcxx/2023-10-24.tar.xz.sig
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
-! [cmake_step2:cmake] -- Build files have been written to: .../cmake_step2/var/build/x86_64
+! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
 ! [cmake_step2:cmake] [ 50%] Building CXX object CMakeFiles/Tutorial.dir/tutorial.cxx.obj
 ! [cmake_step2:cmake] [100%] Linking CXX executable Tutorial
 ! [cmake_step2:cmake] [100%] Built target Tutorial
@@ -388,7 +390,7 @@ With this runtime package in place, let's give the Tutorial a run:
 
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
-! [cmake_step2:cmake] -- Build files have been written to: .../cmake_step2/var/build/x86_64
+! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
 ! [cmake_step2:cmake] [100%] Built target Tutorial
 ! download genodelabs/bin/x86_64/libc/2023-10-24.tar.xz
 ! download genodelabs/bin/x86_64/libc/2023-10-24.tar.xz.sig
@@ -398,45 +400,7 @@ With this runtime package in place, let's give the Tutorial a run:
 ! download genodelabs/bin/x86_64/stdcxx/2023-10-24.tar.xz.sig
 ! download genodelabs/bin/x86_64/vfs/2023-10-24.tar.xz
 ! download genodelabs/bin/x86_64/vfs/2023-10-24.tar.xz.sig
-! download genodelabs/src/libc/2023-10-24.tar.xz
-! download genodelabs/src/libc/2023-10-24.tar.xz.sig
-! download genodelabs/src/posix/2023-10-24.tar.xz
-! download genodelabs/src/posix/2023-10-24.tar.xz.sig
-! download genodelabs/src/stdcxx/2023-10-24.tar.xz
-! download genodelabs/src/stdcxx/2023-10-24.tar.xz.sig
-! download genodelabs/src/vfs/2023-10-24.tar.xz
-! download genodelabs/src/vfs/2023-10-24.tar.xz.sig
-! download genodelabs/api/base/2023-10-24.tar.xz
-! download genodelabs/api/base/2023-10-24.tar.xz.sig
-! download genodelabs/api/block_session/2023-05-26.tar.xz
-! download genodelabs/api/block_session/2023-05-26.tar.xz.sig
-! download genodelabs/api/file_system_session/2023-05-26.tar.xz
-! download genodelabs/api/file_system_session/2023-05-26.tar.xz.sig
-! download genodelabs/api/net/2023-07-13.tar.xz
-! download genodelabs/api/net/2023-07-13.tar.xz.sig
-! download genodelabs/api/os/2023-08-21.tar.xz
-! download genodelabs/api/os/2023-08-21.tar.xz.sig
-! download genodelabs/api/report_session/2023-05-26.tar.xz
-! download genodelabs/api/report_session/2023-05-26.tar.xz.sig
-! download genodelabs/api/rtc_session/2023-05-26.tar.xz
-! download genodelabs/api/rtc_session/2023-05-26.tar.xz.sig
-! download genodelabs/api/so/2020-05-17.tar.xz
-! download genodelabs/api/so/2020-05-17.tar.xz.sig
-! download genodelabs/api/terminal_session/2023-05-26.tar.xz
-! download genodelabs/api/terminal_session/2023-05-26.tar.xz.sig
-! download genodelabs/api/timer_session/2023-10-03.tar.xz
-! download genodelabs/api/timer_session/2023-10-03.tar.xz.sig
-! download genodelabs/api/vfs/2023-05-26.tar.xz
-! download genodelabs/api/vfs/2023-05-26.tar.xz.sig
-! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz.sig
-! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz.sig
-! download genodelabs/src/base-linux/2023-10-24.tar.xz
-! download genodelabs/src/base-linux/2023-10-24.tar.xz.sig
-! download genodelabs/src/init/2023-10-24.tar.xz
-! download genodelabs/src/init/2023-10-24.tar.xz.sig
-! download genodelabs/api/sandbox/2023-10-03.tar.xz
+! ...
 ! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
 ! Genode sculpt-23.10
 ! 17592186044415 MiB RAM and 18997 caps assigned to init

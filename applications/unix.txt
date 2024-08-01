@@ -780,11 +780,11 @@ that bash will wait for a command typed in via stdin. The next 'goa run'
 will greet us with a shell prompt where we can type in bash commands like
 echo:
 
-[image goa_bash_interactive]
+[image goa_bash_interactive 60%]
 
 Of course, we feel a sudden urge to also execute the 'ls' command.
 
-[image goa_ls_command_not_found]
+[image goa_ls_command_not_found 50%]
 
 The 'ls' command is a separate Unix command that is not yet part of our
 scenario. It is covered by the following section.
@@ -861,19 +861,19 @@ archive.
 Remember from the end of the previous section that our attempt to issue
 'ls' resulted in the following message:
 
-[image goa_ls_command_not_found]
+[image goa_ls_command_not_found 50%]
 
 Let's give 'goa run' another go now.
 
-[image goa_ls_no_such_file]
+[image goa_ls_no_such_file 60%]
 
 Unlike before, bash has actually found the 'ls' binary on the file system. We
 mounted 'coreutils.tar' into the VFS after all, which you can easily reaffirm
 via 'cd bin; echo *'. However, bash still failed to spawn the 'ls' program.
 Genode's log output reveals why:
 
-! [init -> unix -> /bin/bash -> 1] Error: Could not open ROM session for "/bin/ls"
-! [init -> unix -> /bin/bash -> 1] Warning: execve: executable binary inaccessible as ROM module
+! [init -> ...] Error: Could not open ROM session for "/bin/ls"
+! [init -> ...] Warning: execve: executable binary inaccessible as ROM module
 
 Remember from Section [Hello bash]
 that we have to make a program's binary available as ROM module in order to
@@ -916,7 +916,7 @@ in the '<config>' of bash's '<start>' node.
 
 The next try of 'goa run' yields the following result:
 
-[image goa_ls_working]
+[image goa_ls_working 40%]
 
 A look at _/bin/_ reveals the wealth of commands that have just become
 available at our finger tips.
@@ -930,7 +930,7 @@ Plumbing pipes
 Let us try to count'em via the 'wc -l' command ('wc -l' counts the number of
 lines).
 
-[image goa_pipe_error]
+[image goa_pipe_error 70%]
 
 With our attempt of using a pipe, feeding the output of 'ls -1' via the '|'
 symbol as input into 'wc -l', we seem to hit another brick wall.
@@ -984,7 +984,7 @@ Also declare the "vfs_pipe.lib.so" ROM in our _pkg/unix/runtime_ file:
 With these minor tweaks in place, 'goa run' starts up successfully again.
 This time, our attempt to combine 'ls' with 'wc' works as intended!
 
-[image goa_ls_wc]
+[image goa_ls_wc 50%]
 
 
 Life is not complete without Vim
@@ -1010,7 +1010,7 @@ Another try of 'goa run' downloads the needed depot content and starts the
 scenario. The attempt to start 'vim' results in an error message in the
 Genode log:
 
-! [init -> unix -> /bin/bash -> 1] Error: Could not open ROM session for "ncurses.lib.so"
+! [init -> ...] Error: Could not open ROM session for "ncurses.lib.so"
 
 Vim is the first Unix program that requires
 [https://en.wikipedia.org/wiki/Ncurses - ncurses], which is a library for
@@ -1021,7 +1021,7 @@ add 'genodelabs/src/ncurses' to _pkg/unix/archives_ and
 The next test run looks much better. Vim starts up successfully but is not
 entirely happy:
 
-[image goa_vim_no_tmp]
+[image goa_vim_no_tmp 60%]
 
 Vim relies on the presence of a _/tmp/_ directory. We can satisfy it by
 mounting a memory-backed <ram/> file system in our VFS server by adding
@@ -1031,7 +1031,7 @@ the following line to its <vfs> configuration:
 
 Upon the next test run, we are greeted with another error message:
 
-[image goa_vim_no_sh]
+[image goa_vim_no_sh 70%]
 
 For some tasks like file globbing, Vim spawns a shell as child process and
 expects the shell being available as _/bin/sh_. This default can be overridden
@@ -1079,12 +1079,3 @@ comfort of Vim. All that has become possible with less than 150 lines of XML:
 !   10 raw/terminal.config
 !   28 pkg/unix/runtime
 !  121 total
-
-
-Further reading
----------------
-
-- Getting Started section for publishing and deployment
-- goa articles on genodians.org [http://genodians.org/topics-goa]
-- porting guide
-- ...
