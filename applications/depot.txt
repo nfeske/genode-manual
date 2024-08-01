@@ -46,9 +46,12 @@ structured following the depot nomenclature:
   A source archive contains to-be-compiled source code. Goa creates a source
   archive for a project if there exists a _src/_ subdirectory. The directory
   content can either be manually managed or imported as described in the next
-  section. Goa also creates a corresponding, equally-named, binary archive
+  section. Goa also creates a corresponding, equally-named, binary (bin) archive
   containing the build artifacts as specified in the project's _artifacts_ file
-  (see 'goa help artifacts'). A binary archive is 
+  (see 'goa help artifacts'). Genode binaries are stripped from debug
+  information. Instead, this information is made available in separate debug
+  info files. Goa deals with downloading, exporting and publishing of the
+  corresponding debug (dbg) archives when provided with the '--debug' switch.
 
 :api archive:
 
