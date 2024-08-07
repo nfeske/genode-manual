@@ -39,8 +39,8 @@ particular, this is the best supported GUI framework for Genode applications.
 
   [https://doc.qt.io/qt-5/qtexamplesandtutorials.html]
 
-Genode applications examples
-----------------------------
+Genode application examples
+---------------------------
 
 :Falkon web browser:
 
@@ -71,8 +71,8 @@ renamed from _Ubuntu UI Toolkit_ to _Lomiri UI Toolkit_.
 
   [https://ubports.com/]
 
-Genode applications examples
-----------------------------
+Genode application examples
+---------------------------
 
 :Morph browser:
 
@@ -100,10 +100,6 @@ are still in experimental state.
 :LVGL documentation:
 
   [https://docs.lvgl.io/master/]
-
-:Porting LVGL to Genode:
-
-  see Section [Porting LVGL to Genode]
 
 :Dynamic desktop background "system info":
 

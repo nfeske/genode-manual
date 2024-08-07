@@ -1,4 +1,0 @@
-Porting LVGL to Genode
-======================
-
-_LVGL library in Goa + system_info app_
