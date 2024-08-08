@@ -1,4 +1,606 @@
+; vim: tw=80 et ts=2 sw=2
+
 Porting Lomiri Calculator App
 =============================
 
-_Lomiri Calculator App_
+_This section is based on the_
+_[https://genodians.org/jschlatow/2024-01-11-lomiri-calculator-porting - article]_
+_at [https://genodians.org]._
+
+Since the
+[https://genodians.org/ssumpf/2023-05-06-ubunutu_ui - port of Ubuntu UI Toolkit to Genode],
+Ubuntu Touch apps can be ported to Genode. After Canonical dropped support for
+Ubuntu Touch, the toolkit was adopted by _UBports_ as a community project and
+renamed to _Lomiri UI Toolkit_.
+
+The port of the toolkit is available in the genode-world repository
+(see Section [Mobile SDK based on Ubuntu/Lomiri UI Toolkit]).
+Ready-to-use depot archives can be found in Sebastians Sumpf's depot.
+
+:Sebastian's depot archives:
+
+  [https://depot.genode.org/ssumpf]
+
+This section walks through the porting procedure of the
+[https://gitlab.com/ubports/development/apps/lomiri-calculator-app/ - Lomiri Calculator App]
+and thereby serves as a blueprint for porting other apps from the toolkit.
+
+
+Creating a new Goa project
+--------------------------
+
+Every Goa project resides in a separate directory (they can be nested, though).
+Goa automatically determines whether a directory is a project directory based
+on its content. Goa uses the name of the directory as a project name.
+
+Starting a new Goa project merely consists in creating a separate directory
+at an arbitrary location and supplementing directory content that is considered
+by Goa.
+
+! $ mkdir calculator
+
+Importing the source code
+-------------------------
+
+As a first step, you need to import the app's source code. For this, you simply
+create an _import_ file with the following content:
+
+! LICENSE   := GPLv3
+! VERSION   := 3.3.7
+! DOWNLOADS := calc.archive
+!
+! APPS_URL  := https://gitlab.com/ubports/development/apps/
+! BASE_URL  := $(APPS_URL)/lomiri-calculator-app/-/archive/
+! URL(calc) := $(BASE_URL)/v$(VERSION)/lomiri-calculator-app-v$(VERSION).tar.gz
+! SHA(calc) := 821f045e9cdb5f26145f60c53bf92f96ba81a563c0a0fec72ee1cdfccc0a9f88
+! DIR(calc) := src
+
+Syntactically, the file is a makefile that merely defines a couple of variables
+documented by 'goa help import'. With the above definitions, you are importing the
+source code from a tar archive. The tool also supports git and svn. Note that
+the app version 3.3.7 was the last version before Ubuntu UI Toolkit got renamed
+to Lomiri.
+
+With the _import_ file present, you are able to run 'goa import', which places
+the source code into the _src/_ subdirectory.
+
+! calculator$ goa import
+! import  download https://gitlab.com/ubports/[...]/lomiri-calculator-app
+!                  /-/archive//v3.3.7/lomiri-calculator-app-v3.3.7.tar.gz
+! import  extract lomiri-calculator-app-v3.3.7.tar.gz (calc)
+! import  generate import.hash
+
+In case the source code needs some adaptations, Goa is able to apply patches
+during import (see 'goa help import' for more details). For convenience,
+'goa diff' lets you easily create a patch for your local modifications.
+
+
+Building the application
+------------------------
+
+Goa supports various commodity build systems such as GNU Make, autoconf, CMake,
+qmake and Cargo (see 'goa help build-systems' for more details). Fortunately,
+the calculator app is based on CMake, hence let's try running 'goa build':
+
+! calculator$ goa build
+! [calculator] Error: [...] has a 'src' directory but lacks an 'artifacts' file.
+!              You may start with an empty file.
+
+As mentioned in Section [Package management], Goa requires an _artifacts_ file
+to build a binary archive so let's do as suggested and create an empty one.
+
+! calculator$ touch artifacts
+! calculator$ goa build
+! ...
+! CMake Error at CMakeLists.txt:16 (find_package):
+!   By not providing "FindQt5Core.cmake" in CMAKE_MODULE_PATH this project has
+!   asked CMake to find a package configuration file provided by "Qt5Core", but
+!   CMake did not find one.
+! 
+!   Could not find a package configuration file provided by "Qt5Core" with any
+!   of the following names:
+! 
+!     Qt5CoreConfig.cmake
+!     qt5core-config.cmake
+! 
+!   Add the installation prefix of "Qt5Core" to CMAKE_PREFIX_PATH or set
+!   "Qt5Core_DIR" to a directory containing one of the above files.  If
+!   "Qt5Core" provides a separate development package or SDK, be sure it has
+!   been installed.
+! 
+! 
+! [calculator:cmake] -- Configuring incomplete, errors occurred!
+
+Apparently, CMake is unable to locate Qt5Core. The error message suggests
+providing a file named _FindQt5Core.cmake_. Goa is able to locate these files
+in the used API archives. Knowing that Qt5Core is part of the _qt5_base_ archive,
+let's add this to the _used_apis_ file.
+
+! calculator$ echo 'ssumpf/api/qt5_base' > used_apis
+! [lomiri-calculator-app] Error: no version defined for depot
+!                         archive 'ssumpf/api/qt5_base'
+
+Well, since Goa only comes with the version information of official archives
+from the genodelabs depot, you have to provide the version information. This
+is achieved by adding the version definition in a _goarc_ file:
+
+! calculator$ echo 'set version(ssumpf/api/qt5_base) 2024-04-18' >> goarc
+! calculator$ goa build
+! ...
+! CMake Error at CMakeLists.txt:17 (find_package):
+!   By not providing "FindQt5Qml.cmake" in CMAKE_MODULE_PATH this project has
+!   asked CMake to find a package configuration file provided by "Qt5Qml", but
+!   CMake did not find one.
+! 
+!   Could not find a package configuration file provided by "Qt5Qml" with any
+!   of the following names:
+! 
+!     Qt5QmlConfig.cmake
+!     qt5qml-config.cmake
+! 
+!   Add the installation prefix of "Qt5Qml" to CMAKE_PREFIX_PATH or set
+!   "Qt5Qml_DIR" to a directory containing one of the above files.  If "Qt5Qml"
+!   provides a separate development package or SDK, be sure it has been
+!   installed.
+! 
+! 
+! [calculator:cmake] -- Configuring incomplete, errors occurred!
+
+Qt5Qml is part of the _qt5_declarative_ archive. Let's add the corresponding
+API archive and version information:
+
+! calculator$ echo 'ssumpf/api/qt5_declarative' >> used_apis
+! calculator$ echo 'set version(ssumpf/api/qt5_declarative) 2024-02-25' >> goarc
+! calculator$ goa build
+! ...
+! [calculator:cmake] -- Build files have been written to:
+!                       /.../goa-projects/calculator/var/build/x86_64
+! ...
+! [calculator:cmake] [ 98%] Built target com_ubuntu_calculator_translation_files
+! [calculator:cmake] [100%] Built target pofiles_84
+! [calculator:cmake] Install the project...
+! [calculator:cmake] -- Install configuration: ""
+! [calculator:cmake] -- Installing: //manifest.json
+! CMake Error at cmake_install.cmake:49 (file):
+!   file INSTALL cannot copy file
+!   "/.../goa-projects/calculator/var/build/x86_64/manifest.json" to
+!   "//manifest.json": Permission denied.
+! 
+! 
+! make: *** [Makefile:110: install] Error 1
+! [calculator] Error: install via cmake failed:
+!  child process exited abnormally
+
+Yikes, the build succeeded but the installation failed writing to the
+file-system root. This is puzzling because Goa calls 'cmake install' with
+'CMAKE_INSTALL_PREFIX= /.../var/build/<arch>/install/'. Looking at
+_src/CMakeFile.txt_ reveals the 'CLICK_MODE' option, which sets
+'CMAKE_PREFIX_PATH' to '/'. Fortunately, Goa allows providing arbitrary
+arguments to CMake via a _cmake_args_ file. Setting 'CLICK_MODE=0' should do
+the trick:
+
+! calculator$ echo '-DCLICK_MODE=0' > cmake_args
+! calculator$ goa build
+! ...
+! CMake Error at tests/autopilot/cmake_install.cmake:49 (file):
+!   file INSTALL cannot make directory
+!   "/usr/lib/python3.11/site-packages/ubuntu_calculator_app": Permission
+!   denied.
+! Call Stack (most recent call first):
+!   tests/cmake_install.cmake:42 (include)
+!   cmake_install.cmake:59 (include)
+
+Apparently, there are some testing-related python files to be installed. Looking
+at _src/CMakeFiles.txt_ again reveals that unsetting the 'INSTALL_TESTS'
+options prevents this.
+
+! calculator$ echo '-DINSTALL_TESTS=0' >> cmake_args
+! calculator$ goa build
+! 
+! ...
+! [calculator:cmake] -- Up-to-date: /.../goa-projects/calculator/var/build
+!   /x86_64/install/bin/ubuntu-calculator-app
+! ...
+! [calculator:cmake] -- Installing: /.../goa-projects/calculator/var/build
+!   /x86_64/install/share/locale/zh_TW/LC_MESSAGES/com.ubuntu.calculator.mo
+
+Very nice! You got past all build and installation errors. The environment for
+Ubuntu UI Toolkit apps is set up by the _ubuntu-ui-toolkit-launcher_, which
+expects the application files in its VFS. Since the VFS allows importing files
+from a tar archive, wrapping the application files into a tar archive is the
+best option. You can achieve this by adding the following line the _artifacts_
+file. For more details, please refer to 'goa help artifacts':
+
+! ubuntu-calculator-app.tar: install/
+
+Next task is defining the runtime scenario.
+
+
+Writing the package runtime
+---------------------------
+
+In order to run the just built component with Goa or on Sculpt, you need a
+corresponding package archive defining the runtime. Goa expects the default
+package archive of a project to be named after the project, hence you need to
+create a _pkg/calculator_ directory.
+
+! calculator$ mkdir pkg/calculator
+
+Since the _runtime_ file for Ubuntu UI Toolkit applications comprises mostly
+boilerplate code, you may use any existing application as blueprint and modify
+a few lines as indicated by the inline comments:
+
+! <runtime ram="200M" caps="1000" binary="ubuntu-ui-toolkit-launcher">
+!
+!   <requires>
+!     <gui/>
+!     <rom label="mesa_gpu_drv.lib.so"/>
+!     <gpu/>
+!     <rtc/>
+!     <timer/>
+!     <report label="shape"/>
+!   </requires>
+!
+!   <config>
+!     <vfs>
+!       <dir name="dev">
+!         <log/> <gpu/> <rtc/>
+!       </dir>
+!       <dir name=".local"> <ram/> </dir>
+!       <dir name="pipe"> <pipe/> </dir>
+!       <tar name="qt5_declarative_qml.tar"/>
+!       <tar name="qt5_dejavusans.tar"/>
+!       <tar name="qt5_graphicaleffects_qml.tar"/>
+!       <tar name="qt5_libqgenode.tar"/>
+!       <tar name="qt5_libqjpeg.tar"/>
+!       <tar name="qt5_libqsvg.tar"/>
+!       <tar name="ubuntu-ui-toolkit_qml.tar"/>
+!       <tar name="ubuntu-themes.tar"/>
+!
+!       <!-- change to you projects tar file here -->
+!       <tar name="ubuntu-calculator-app.tar"/>
+!
+!     </vfs>
+!     <libc stdout="/dev/log" stderr="/dev/log" pipe="/pipe" rtc="/dev/rtc"/>
+!     <arg value="ubuntu-ui-toolkit-launcher"/>
+!
+!     <!-- add your startup QML file here -->
+!     <arg value="/share/ubuntu-calculator-app/ubuntu-calculator-app.qml"/>
+!
+!     <env key="QT_SCALE_FACTOR" value="1"/>
+!   </config>
+!
+!   <content>
+!     <!-- adjust to your tar -->
+!     <rom label="ubuntu-calculator-app.tar"/>
+!   </content>
+! </runtime>
+
+With this _runtime_ file at _pkg_calculator_, you are able to execute 'goa run'.
+Note that Goa automatically executes all the required stages such as importing
+and building so that you don't need to worry about invoking these manually.
+
+! calculator$ goa run
+! ...
+! [calculator] Error: Binary 'ubuntu-ui-toolkit-launcher' not mentioned as
+!              content ROM module. 
+! 
+!  You either need to add '<rom label="ubuntu-ui-toolkit-launcher"/>' to the
+!  content ROM list 
+!  or add a pkg archive to the 'archives' file from which to inherit.
+
+Oops! We missed putting the Ubuntu UI Toolkit package archive into the _archives_
+file. Let's amend this:
+
+! calculator$ echo "ssumpf/pkg/ubuntu_ui_toolkit" > pkg/calculator/archives
+! calculator$ echo 'set version(ssumpf/pkg/ubuntu_ui_toolkit) 2024-06-03' \
+! >> goarc
+! calculator$ goa run
+! ...
+! [init -> calculator] QQmlComponent: Component is not ready
+! [init -> calculator] file:///[...]/ubuntu-calculator-app.qml:23
+!                      module "QtQuick.Controls.Suru" is not installed
+! [init -> calculator] 
+! [init -> calculator] QThread: Destroyed while thread is still running
+! [init -> calculator] Error: raise(ABRT)
+! [init] child "calculator" exited with exit value -1
+
+Alright, Goa was actually able to start the scenario, yet the component seems to
+miss a QtQuick style module. The Suru style package is
+[https://gitlab.com/ubports/development/core/qqc2-suru-style - available at UBports].
+
+In order to make Suru available on Genode, you need to create a separate Goa
+project.
+
+Porting QtQuick Controls Suru Style
+-----------------------------------
+
+Following the steps already taken for the calculator app, you create the project
+directory _qt5_quickcontrols2_suru/_ with the following _import_ file:
+
+! LICENSE   := GPLv2
+! VERSION   := main
+! DOWNLOADS := suru.git
+! 
+! URL(suru) := https://gitlab.com/ubports/development/core/qqc2-suru-style.git
+! REV(suru) := c0cf2007
+! DIR(suru) := src
+
+These definitions create a clone of the specified git repository at the _src/_
+subdirectory during import. Create an empty _artifacts_ file and give 'goa run'
+a try:
+
+! qt5_quickcontrols2_suru$ touch artifacts
+! qt5_quickcontrols2_suru$ goa build
+! import  download https://gitlab.com/ubports/[...]/qqc2-suru-style.git
+! import  git Cloning into 'src'...
+! import  update src
+! import  generate import.hash
+! [qt5_quickcontrols2_suru] Error: could not find matching qt5_base API in depot
+
+Goa detected that this is a qmake project and is therefore looking for a
+_qt5_base_ API archive. However, you haven't defined this in the _used_apis_
+file yet. Let's fix this:
+
+! qt5_quickcontrols2_suru$ echo "genodelabs/api/qt5_base" > used_apis
+
+Note that you can benefit from the version information already
+specified in the calculator's _goarc_ file. Goa reads all _goarc_ files it finds
+along the path from the project directory to your home directory. You may thus
+move the _goarc_ file in the directory hierarchy to share it between both
+projects.
+
+! qt5_quickcontrols2_suru$ goa build
+! ...
+! /[...]/depot/genodelabs/api/qt5_base/[...]/include/QtCore/qglobal.h:45:12:
+!       fatal error: type_traits: No such file or directory
+!    45 | #  include <type_traits>
+!       |            ^~~~~~~~~~~~~
+! compilation terminated.
+! make[1]: *** [Makefile.suru:1175: .obj/qquicksurustyle.o] Error 1
+! make[1]: *** Waiting for unfinished jobs....
+! make[1]: *** [Makefile.suru:1425: .obj/qquicksuruanimations.o] Error 1
+! make[1]: *** [Makefile.suru:1598: .obj/qquicksuruunits.o] Error 1
+! make[1]: *** [Makefile.suru:1370: .obj/qquicksurutheme.o] Error 1
+! make: *** [Makefile:47: sub-qqc2-suru-suru-pro-make_first] Error 2
+! [qt5_quickcontrols2_suru] Error: build via qmake failed:
+!  child process exited abnormally
+
+The build failed with the above error, which reminds us of adding
+'genodelabs/api/stdcxx' and 'genodelabs/api/libc' to the _used_apis_ file.
+Note that this may require adding the '--rebuild' argument to 'goa build' to
+force Goa and qmake to re-create the build directory:
+
+! qt5_quickcontrols2_suru$ echo "genodelabs/api/stdcxx" >> used_apis
+! qt5_quickcontrols2_suru$ echo "genodelabs/api/libc" >> used_apis
+! qt5_quickcontrols2_suru$ goa build --rebuild
+! ...
+! /[...]/depot/genodelabs/api/qt5_base/[...]/include/QtGui/qopengl.h:141:13:
+!       fatal error: GL/gl.h: No such file or directory
+!   141 | #   include <GL/gl.h>
+!       |             ^~~~~~~~~
+! compilation terminated.
+! make[1]: *** [Makefile.suru:1370: .obj/qquicksurutheme.o] Error 1
+! make: *** [Makefile:47: sub-qqc2-suru-suru-pro-make_first] Error 2
+! [qt5_quickcontrols2_suru] Error: build via qmake failed:
+!  child process exited abnormally
+
+Alright, this looks like we also need 'genodelabs/api/mesa'.
+
+! qt5_quickcontrols2_suru$ echo "genodelabs/api/mesa" >> used_apis
+! qt5_quickcontrols2_suru$ goa build --rebuild
+! [qt5_quickcontrols2_suru:qmake] Info: creating stash file /[...]/.qmake.stash
+! /[...]/x86_64-pc-elf/bin/ld:
+!   cannot find -l:ldso_so_support.lib.a: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld:
+!   cannot find -l:qt5_component.lib.so: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld: cannot find
+!   /[...]/libQt5Quick.lib.so: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld: cannot find 
+!   /[...]/libQt5QmlModels.lib.so: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld: cannot find 
+!   /[...]/libQt5Qml.lib.so: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld: cannot find 
+!   /[...]/libQt5QuickControls2.lib.so: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld: cannot find 
+!   /[...]/libQt5QuickTemplates2.lib.so: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld: cannot find 
+!   /[...]/libQt5Quick.lib.so: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld: cannot find 
+!   /[...]/libQt5QmlModels.lib.so: No such file or directory
+! /[...]/x86_64-pc-elf/bin/ld: cannot find 
+!   /[...]/libQt5Qml.lib.so: No such file or directory
+! collect2: error: ld returned 1 exit status
+! ...
+
+There are a bunch of library files missing. Goa creates these from the symbol
+files found in the used API archives. 'ldso_so_support' is provided by
+'genodelabs/api/so', 'qt5_component' is provided by
+'genodelabs/api/qt5_component', and the Qt5 libraries are provided by
+'ssumpf/api/qt5_declarative' and 'ssumpf/api/qt5_quickcontrols2'. The resulting
+_used_apis_ file should therefore look like this:
+
+! genodelabs/api/qt5_base
+! genodelabs/api/stdcxx
+! genodelabs/api/libc
+! genodelabs/api/mesa
+! genodelabs/api/so
+! genodelabs/api/qt5_component
+! ssumpf/api/qt5_declarative
+! ssumpf/api/qt5_quickcontrols2/2023-05-26
+
+Note that Goa allows specifying version information directly in the _used_apis_
+file as done for 'ssumpf/api/qt5_quickcontrol2'.
+
+After executing 'goa build' successfully, you may have a look at the build
+directory at _var/build/x86_64_ to identify the build artifacts. For QML
+modules, we need the qml files in a tar archive to be able to populate the
+ubuntu-ui-toolkit-launcher's VFS. Moreover, we need the _*.lib.so_
+file. Your _artifacts_ file should look like this:
+
+! qt5_quickcontrols2_suru_qml.tar/qt/: qmake_root/qml
+! qmake_root/qml/QtQuick/Controls.2/Suru/libqtquickcontrols2surustyleplugin.lib.so
+
+Let's give 'goa build' another try:
+
+! qt5_quickcontrols2_suru$ goa build
+! [qt5_quickcontrols2_suru] Error: missing symbols file
+!                           'libqtquickcontrols2surustyleplugin'
+!
+! You can generate this file by running 'goa extract-abi-symbols'
+
+Goa recognized that you are building a library and therefore expects a symbol
+file. Let's follow the advice given by Goa:
+
+! qt5_quickcontrols2_suru$ goa extract-abi-symbols
+! The following library symbols file(s) were created:
+!   > `symbols/libqtquickcontrols2surustyleplugin
+! Please review the symbols files(s) and add them to your repository.
+
+After removing the comment from the generated symbol file, you should be able
+to run 'goa build' successfully. In a last step, you need to export the
+resulting archive into your depot. Let's assume your depot user is "joe" and
+that you are using _~/depot_ as a shared depot directory:
+
+! qt5_quickcontrols2_suru$ goa export --depot-user joe --depot-dir ~/depot
+! [qt5_quickcontrols2_suru] Error: cannot export src archive because the
+!                           license is undefined
+!  
+!  Create a 'LICENSE' file for the project, or 
+!  define 'set license <path>' in your goarc file, or 
+!  specify '--license <path>' as argument.
+
+Fortunately, Goa reminds us of adding a _LICENSE_ file. Since
+the file is already present in the _src/_ directory, you point Goa to it using
+this _goarc_ line:
+
+! set license src/LICENSE.GPL-2
+
+Let's run 'goa export' again:
+
+! qt5_quickcontrols2_suru$ goa export --depot-user joe --depot-dir ~/depot
+! [qt5_quickcontrols2_suru] Error: version for
+!                           archive joe/src/qt5_quickcontrols2_suru undefined
+!  
+!  Create a 'version' file in your project directory, or 
+!  define 'set version(jschlatow/src/qt5_quickcontrols2_suru) <version>'
+!  in your goarc file.
+
+Goa features a 'bump-version' command to create/update the version file. It
+simply sets the version to the current date or appends/increases a letter suffix
+if the version was already set to this date.
+
+! qt5_quickcontrols2_suru$ goa bump-version
+! qt5_quickcontrols2_suru$ goa export --depot-user joe --depot-dir ~/depot
+! [qt5_quickcontrols2_suru] exported .../src/qt5_quickcontrols2_suru/...
+! [qt5_quickcontrols2_suru] exported .../bin/x86_64/qt5_quickcontrols2_suru/...
+
+All done, back to the calculator project.
+
+
+Revising the package runtime
+----------------------------
+
+In order to utilize the just created Suru module, you need to add the tar file
+to the calculator runtime. More precisely, add a '<tar>' node to the vfs and
+a '<rom>' node to the list of content ROM modules.
+
+! <config>
+!   <vfs>
+!     ...
+!     <tar name="qt5_quickcontrols2_suru_qml.tar"/>
+!     ...
+!   </vfs>
+! </config>
+!
+! <content>
+!     ...
+!     <rom label="qt5_quickcontrol2_suru_qml.tar"/>
+!     ...
+! </content>
+
+Before giving 'goa run' a go, don't forget to add the corresponding depot
+archive to the _archives_ file.
+
+! calculator$ echo "joe/src/qt5_quickcontrols2_suru" >> pkg/calculator/archives
+! calculator$ goa run
+! ...
+! [calculator] Error: no version defined for depot
+!              archive 'joe/src/qt5_quickcontrols2_suru'
+
+Goa is unable to find any version information for the archive. Instead of adding
+the version definition to a _goarc_ file, you may use Goa's ability to locate
+the corresponding project directory in order to find its version information.
+By default, Goa uses the working directory as a starting point for locating
+those dependencies. This can be changed by adding a '--search-dir' argument or
+by setting the 'search_dir' variable in a _goarc_ file. Let's opt for the latter
+and also set the 'depot_dir' variable to point Goa to the depot directory to
+which you exported the _qt5_quickcontrols2_suru_ project.
+
+! calculator$ echo "set search_dir ../" >> goarc
+! calculator$ echo "set depot_dir ~/depot" >> goarc
+! calculator$ goa run
+! ...
+! [init -> calculator] Error: ROM-session creation failed
+!                      (label="libqtquickcontrols2surustyleplugin.lib.so",...)
+! [init -> calculator] Error: could not open ROM session
+!                      for "libqtquickcontrols2surustyleplugin.lib.so"
+! [init -> calculator] QQmlComponent: Component is not ready
+! ...
+
+The library file is provided by the _qt5_quickcontrols2_suru_ archive, however,
+the runtime error indicates that we missed adding it to the content section of
+the _runtime_ file.
+
+! <content>
+!     ...
+!     <rom label="libqtquickcontrols2surustyleplugin.lib.so"/>
+!     ...
+! </content>
+
+Giving 'goa run' another shot reveals another issue:
+
+! calculator$ goa run
+! ...
+! [init -> calculator] QSqlDatabase: QSQLITE driver not loaded
+! [init -> calculator] QSqlDatabase: available drivers:
+! [init -> calculator] Warning: chmod: chmod not implemented
+! [init -> calculator] QSqlQuery::prepare: database not open
+! [init -> calculator] file:///[...]/engine/CalculationHistory.qml:82:
+!                      Error: Driver not loaded Driver not loaded
+
+Apparently, we need a database driver. Fortunately, _qt5_libsqlite.tar_ and
+_libqsqlite.lib.so_ are part of the _qt5_base_ binary archive. Let's add them
+to the _runtime_ file:
+
+! <config>
+!   <vfs>
+!     ...
+!     <tar name="qt5_libqsqlite.tar"/>
+!     ...
+!   </vfs>
+! </config>
+!
+! <content>
+!     ...
+!     <rom label="qt5_libqsqlite.tar"/>
+!     <rom label="libqsqlite.lib.so"/>
+!     ...
+! </content>
+
+Finally, 'goa run' is able to start up the calculator app successfully. The
+_fb_sdl_ window may remain white though. A random mouse click into the window,
+however, lets the GUI pop up as shown below. That's good enough for now.
+
+[image lomiri-calculator] Calculator app running on base-linux with Goa
+
+Unfortunately, you will notice substantial delays when interacting with the GUI
+due to the lack of hardware acceleration with Goa on Linux. Please refer to
+Section [Using Sculpt as a remote test target] for running Goa scenarios on a
+remote Sculpt target to mitigate this limitation.
+
+The complete code is available in Johannes' goa-projects repository.
+
+:Ported Lomiri Calculator App:
+
+  [https://github.com/jschlatow/goa-projects/tree/master/lomiri]
