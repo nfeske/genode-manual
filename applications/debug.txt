@@ -12,12 +12,9 @@ Adding debug info files
 =======================
 
 Binary depot archives merely contain stripped binaries.
-Release 23.11 added the option to build and publish _dbg_ archives that contain
+[https://genode.org/documentation/release-notes/23.11#Debug_information_for_depot_binaries - Release 23.11]
+added the option to build and publish _dbg_ archives that contain
 the corresponding debug info files along with the binary archives.
-
-:Release Notes 23.11 - Debug information for depot binaries:
-
-  [https://genode.org/documentation/release-notes/23.11#Debug_information_for_depot_binaries]
 
 When provided with the '--debug' switch, Goa takes care of _dbg_ archives. A
 'goa run --debug' will thus try downloading required _dbg_ archives before
@@ -573,4 +570,4 @@ refer to these articles at genodians.org.
 
 :Identifying network-throughput bottlenecks with trace recording:
 
-  [http://genodians.org/jschlatow/2022-08-29-trace-recorder]
+  [https://genodians.org/jschlatow/2022-08-29-trace-recorder]

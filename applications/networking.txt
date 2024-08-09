@@ -71,11 +71,8 @@ Here is the corresponding configuration snippet for the NIC router:
 The <domain> nodes define the virtual networks. The <policy> nodes assign the
 clients based on their session label to the defined domains. Each domain may
 further have its own port-forwarding rules. For a more details explanation
-on the NIC router configuration, please refer to the component's README.
-
-:NIC router README:
-
-  [https://github.com/genodelabs/genode/blob/master/repos/os/src/server/nic_router/README]
+on the NIC router configuration, please refer to the component's
+[https://github.com/genodelabs/genode/blob/master/repos/os/src/server/nic_router/README - README].
 
 
 Example: Virtual networking with Goa
@@ -138,11 +135,7 @@ components that are already connected to another NIC router would, however,
 require a restart if we changed their service routing. By letting the
 NIC router in our subsystem act as a NIC client, we are able to route network
 packets between the NIC routers. The figure below illustrates this setup. For a
-more detailed explanation, please refer to the corresponding article on
-genodians.org.
+more detailed explanation, please refer to the corresponding
+[https://genodians.org/jschlatow/2021-07-21-mobile-network - article on genodians.org].
 
 [tikz img/mobile_network]
-
-:Mobile-networking article on genodians.org:
-
-  [http://genodians.org/jschlatow/2021-07-21-mobile-network]

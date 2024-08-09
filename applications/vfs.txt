@@ -1,7 +1,7 @@
 C runtime and virtual file system
 =================================
 
-Genode's C runtime bases on FreeBSD libc and allows running Unix/POSIX-like
+Genode's C runtime bases on FreeBSD's libc and allows running Unix/POSIX-like
 applications. However, as a consequence of Genode's architecture, there is no
 global file system in Genode. Instead, every component has its own virtual file
 system, i.e. its own sandboxed view. Moreover, since files in Genode are no
@@ -29,8 +29,8 @@ configuration. The <libc> node supports the following (optional) attributes:
 :stdout:
 
   The _stdout_ attribute defines the file path in the component's VFS that is
-  used for standard output. It is typically directed to a <log/>, <null/> or
-  <terminal/> file.
+  used for standard output. It is typically directed to a <log>, <null> or
+  <terminal> file.
 
 :stderr:
 
@@ -40,18 +40,18 @@ configuration. The <libc> node supports the following (optional) attributes:
 :stdin:
 
   The _stdin_ attribute defines the file path in the component's VFS that is
-  used for standard input. It is typically directed to a <log/>, <null/> or
-  <terminal/> file.
+  used for standard input. It is typically directed to a <log>, <null> or
+  <terminal> file.
 
 :rtc:
 
   The _rtc_ attribute defines a file path in the component's VFS that provides
-  real-time-clock data. It is typically directed to an <rtc/> file or an
-  <inline/> file.
+  real-time-clock data. It is typically directed to an <rtc> file or an
+  <inline> file.
 
 :pipe:
 
-  The _pipe_ attribute defines a path to a <pipe/> plugin in the component's VFS
+  The _pipe_ attribute defines a path to a <pipe> plugin in the component's VFS
   and thereby enables the use of POSIX pipes for inter-component communication.
 
 :socket:
@@ -119,7 +119,7 @@ Vice versa, the VFS component provides its VFS in form of a file-system session
 to other components. This enables sharing of a particular VFS between several
 components and even allows cascading VFS components.
 
-; @jschlatow: refer to (or include) example for a VFS server
+; @jschlatow: refer to VFS server example (once transferred to Goa)
 ;
 ;! <start name="vfs">
 ;!   <resource name="RAM" quantum="2M"/>
@@ -184,7 +184,7 @@ file name.
 :<rom name="rom" label="<name>" binary="yes"/>:
 
   Includes a ROM module as a read-only file. The _label_ attribute specifies
-  the ROM session label. If omitted, the file name will be used as ROM label.
+  the ROM session label. If omitted, the name will be used as ROM label.
 
 :<log name="log" label=""/>:
 
@@ -271,9 +271,8 @@ attribute can be used to change the file name.
 :<oss name="oss" play_enabled="yes" record_enabled="yes"/>:
 
   Makes Record and Play sessions available as a file suitable for emulation of
-  _/dev/dsp_. For more details, please consult its README.
-
-  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/oss/README]
+  _/dev/dsp_. For more details, please consult its
+  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/oss/README - README].
 
 :<gpu/>:
 
@@ -296,9 +295,7 @@ attribute can be used to change the file name.
   instead of a NIC session. In this case, the _mac_ attribute should be used
   to set the default MAC address. For more details, please refer to
   Section [Writing a VFS plugin for network-packet access] or the plugin's
-  README.
-
-  [https://github.com/genodelabs/genode/blob/master/repos/os/src/lib/vfs/tap/README]
+  [https://github.com/genodelabs/genode/blob/master/repos/os/src/lib/vfs/tap/README - README].
 
 Furthermore, the following plugins for subordinate file systems are available:
 
@@ -319,26 +316,23 @@ Furthermore, the following plugins for subordinate file systems are available:
   The pipe plugin provides a VFS backend for supporting POSIX pipes and for
   inter-component communication. Named pipes can be created by adding
   '<fifo name="..."/>' nodes inside the <pipe> node. For more details, please
-  refer to the plugin's README.
-
-  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/pipe/README]
+  refer to the plugin's
+  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/pipe/README - README].
 
 :<trace ram="..."/>:
 
   The trace plugin provides access to Genode's TRACE session. The mandatory
   _ram_ attribute specifies the session quota. For more details, please refer
-  to the plugin's README.
-
-  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/trace/README]
+  to the plugin's
+  [https://github.com/genodelabs/genode/blob/master/repos/gems/src/lib/vfs/trace/README - README].
 
 :<ttf path="..." size_px="16.0" cache=""/>:
 
   The ttf plugin provides the pixel data of a TTF font. The _path_ attribute
   specifies the path to the ttf file inside the VFS. The _cache_ attribute
   can be used to limit the maximum number of cached bytes. For a usage example,
-  please have a look at the fonts_fs archive.
-
-  [https://github.com/genodelabs/genode/blob/master/repos/gems/recipes/raw/fonts_fs/fonts_fs.config]
+  please have a look at the fonts_fs
+  [https://github.com/genodelabs/genode/blob/master/repos/gems/recipes/raw/fonts_fs/fonts_fs.config - raw archive].
 
 :<lxip dhcp="false" ip_addr="..." netmask="..." gateway="..." nameserver="..."/>:
 
@@ -386,6 +380,6 @@ Further reading
 
 :VFS article series on genodians.org:
 
-  [http://genodians.org/m-stein/2021-06-21-vfs-1]
+  [https://genodians.org/m-stein/2021-06-21-vfs-1]
 
 ; @jschlatow: VFS examples in goa-projects

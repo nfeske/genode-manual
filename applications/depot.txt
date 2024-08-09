@@ -28,7 +28,7 @@ slightly different scheme that includes the target architecture:
 
 ! <type>/<name>/<arch>/<version>
 
-In this section, we focus on depot-archive management with Goa. For a more
+This section focuses on depot-archive management with Goa. For a more
 general explanation of archive categories, please refer to Section "Package
 management" in the Genode Foundations book.
 
@@ -45,8 +45,8 @@ structured following the depot nomenclature:
 
   A source archive contains to-be-compiled source code. Goa creates a source
   archive for a project if there exists a _src/_ subdirectory. The directory
-  content can either be manually managed or imported as described in the next
-  section. Goa also creates a corresponding, equally-named, binary (bin) archive
+  content can either be manually managed or imported (see 'goa help import').
+  Goa also creates a corresponding, equally-named, binary (bin) archive
   containing the build artifacts as specified in the project's _artifacts_ file
   (see 'goa help artifacts'). Genode binaries are stripped from debug
   information. Instead, this information is made available in separate debug

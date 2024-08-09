@@ -14,11 +14,9 @@ provide a more suitable level of abstraction for application development.
 
 This section provides an overview of the available GUI frameworks for Genode.
 For a more detailed explanation of Genode's low-level GUI stack, please refer to
-the corresponding article on genodians.org.
+the corresponding
+[https://genodians.org/nfeske/2020-06-23-gui-stack - article on genodians.org].
 
-:GUI stack on genodians.org:
-
-  [http://genodians.org/nfeske/2020-06-23-gui-stack]
 
 Dialog API
 ~~~~~~~~~~
@@ -80,7 +78,7 @@ Genode application examples
 
 :Linphone app:
 
-  [http://genodians.org/jws/2023-11-16-sip-client-for-genode]
+  [https://genodians.org/jws/2023-11-16-sip-client-for-genode]
 
 
 Light and Versatile Graphics Library (LVGL)
@@ -103,4 +101,4 @@ are still in experimental state.
 
 :Dynamic desktop background "system info":
 
-  [http://genodians.org/jschlatow/2024-02-07-system-info]
+  [https://genodians.org/jschlatow/2024-02-07-system-info]

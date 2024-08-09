@@ -1,8 +1,8 @@
 Introduction
 ############
 
-This document complements the Genode Foundations book with high-level
-application-related topics. It is primarily intended for application
+This document complements the Genode Foundations book with
+application-level topics. It is primarily intended for application
 developers. Before studying the Genode Applications material, it is
 recommended to give the Genode Foundations book a read. The book can be
 downloaded at [https://genode.org].

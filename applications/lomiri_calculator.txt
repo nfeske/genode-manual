@@ -15,11 +15,8 @@ renamed to _Lomiri UI Toolkit_.
 
 The port of the toolkit is available in the genode-world repository
 (see Section [Mobile SDK based on Ubuntu/Lomiri UI Toolkit]).
-Ready-to-use depot archives can be found in Sebastians Sumpf's depot.
-
-:Sebastian's depot archives:
-
-  [https://depot.genode.org/ssumpf]
+Ready-to-use depot archives can be found in
+[https://depot.genode.org/ssumpf - Sebastian Sumpf's depot].
 
 This section walks through the porting procedure of the
 [https://gitlab.com/ubports/development/apps/lomiri-calculator-app/ - Lomiri Calculator App]
@@ -459,10 +456,10 @@ file. Let's follow the advice given by Goa:
 
 After removing the comment from the generated symbol file, you should be able
 to run 'goa build' successfully. In a last step, you need to export the
-resulting archive into your depot. Let's assume your depot user is "joe" and
+resulting archive into your depot. Let's assume your depot user is "john" and
 that you are using _~/depot_ as a shared depot directory:
 
-! qt5_quickcontrols2_suru$ goa export --depot-user joe --depot-dir ~/depot
+! qt5_quickcontrols2_suru$ goa export --depot-user john --depot-dir ~/depot
 ! [qt5_quickcontrols2_suru] Error: cannot export src archive because the
 !                           license is undefined
 !  
@@ -478,9 +475,9 @@ this _goarc_ line:
 
 Let's run 'goa export' again:
 
-! qt5_quickcontrols2_suru$ goa export --depot-user joe --depot-dir ~/depot
+! qt5_quickcontrols2_suru$ goa export --depot-user john --depot-dir ~/depot
 ! [qt5_quickcontrols2_suru] Error: version for
-!                           archive joe/src/qt5_quickcontrols2_suru undefined
+!                           archive john/src/qt5_quickcontrols2_suru undefined
 !  
 !  Create a 'version' file in your project directory, or 
 !  define 'set version(jschlatow/src/qt5_quickcontrols2_suru) <version>'
@@ -491,7 +488,7 @@ simply sets the version to the current date or appends/increases a letter suffix
 if the version was already set to this date.
 
 ! qt5_quickcontrols2_suru$ goa bump-version
-! qt5_quickcontrols2_suru$ goa export --depot-user joe --depot-dir ~/depot
+! qt5_quickcontrols2_suru$ goa export --depot-user john --depot-dir ~/depot
 ! [qt5_quickcontrols2_suru] exported .../src/qt5_quickcontrols2_suru/...
 ! [qt5_quickcontrols2_suru] exported .../bin/x86_64/qt5_quickcontrols2_suru/...
 
@@ -522,11 +519,11 @@ a '<rom>' node to the list of content ROM modules.
 Before giving 'goa run' a go, don't forget to add the corresponding depot
 archive to the _archives_ file.
 
-! calculator$ echo "joe/src/qt5_quickcontrols2_suru" >> pkg/calculator/archives
+! calculator$ echo "john/src/qt5_quickcontrols2_suru" >> pkg/calculator/archives
 ! calculator$ goa run
 ! ...
 ! [calculator] Error: no version defined for depot
-!              archive 'joe/src/qt5_quickcontrols2_suru'
+!              archive 'john/src/qt5_quickcontrols2_suru'
 
 Goa is unable to find any version information for the archive. Instead of adding
 the version definition to a _goarc_ file, you may use Goa's ability to locate

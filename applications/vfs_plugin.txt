@@ -100,11 +100,9 @@ address or get the device name for instance. Let's look at an example:
 This application code receives Ethernet frames from tap0 and
 prints out the data. For demonstrative purpose, there is also an ioctl call for
 getting the MAC address of tap0. A detailed description of TAP devices in
-FreeBSD is given in the corresponding man page.
+FreeBSD is given in the corresponding
+[https://man.freebsd.org/cgi/man.cgi?tap(4) - man page].
 
-:FreeBSD tap(4) man page:
-
-  [https://man.freebsd.org/cgi/man.cgi?tap(4)]
 
 Architecture
 ------------
@@ -121,15 +119,10 @@ file operations on these files. The VFS plugin typically translates these
 operations into operations on a particular session interface. The C runtime also
 emulates ioctl by mapping these to read/write
 accesses of pseudo files (e.g. _/dev/.tap0/..._) as described in the
-corresponding release notes and commit message.
-
-:Release Notes 20.11 - Streamlined ioctl handling:
-
-  [https://genode.org/documentation/release-notes/20.11#Streamlined_ioctl_handling_in_the_C_runtime___VFS]
-
-:libc: support for ioctls via ioctl directory:
-
-  [https://github.com/genodelabs/genode/commit/7ac32ea60]
+corresponding
+[https://genode.org/documentation/release-notes/20.11#Streamlined_ioctl_handling_in_the_C_runtime___VFS - release notes]
+and
+[https://github.com/genodelabs/genode/commit/7ac32ea60 - commit message].
 
 By convention, an info file (e.g. _/dev/.tap0/info_) hosts an XML
 report containing a single XML node named after the plugin type. The node may
@@ -711,14 +704,14 @@ following lines to the _goarc_ file:
 ! vfs_tap$ echo "set public_dir ./var/public" >> goarc
 
 With these settings in place, you are able to export your _vfs_tap_ archive.
-Let's assume your depot user is "joe". Don't forget to initialize the version
+Let's assume your depot user is "john". Don't forget to initialize the version
 file and to add a _LICENSE_ file. You may start with an empty file for testing:
 
 ! vfs_tap$ goa bump-version
 ! vfs_tap$ touch LICENSE
-! vfs_tap$ goa export --depot-user joe
-! [vfs_tap] exported [...]/var/depot/joe/src/vfs_tap/2024-08-02
-! [vfs_tap] exported [...]/var/depot/joe/bin/x86_64/vfs_tap/2024-08-02
+! vfs_tap$ goa export --depot-user john
+! [vfs_tap] exported [...]/var/depot/john/src/vfs_tap/2024-08-02
+! [vfs_tap] exported [...]/var/depot/john/bin/x86_64/vfs_tap/2024-08-02
 
 Now, you need to add some code for the test application. Simply use the example
 code from the very beginning of this section and place it in the file
@@ -811,7 +804,7 @@ file at _test-vfs_tap/pkg/test-vfs_tap_:
 ! genodelabs/src/vfs
 ! genodelabs/src/posix
 ! genodelabs/src/nic_router
-! joe/src/vfs_tap
+! john/src/vfs_tap
 ! jschlatow/src/ping/2024-04-11
 
 Now, you can give the test scenario a try:

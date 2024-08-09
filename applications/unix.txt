@@ -10,12 +10,8 @@ ready-to-use building blocks, publishing the result, and deploying it on
 top of Sculpt OS. It shows the fun and productive way of crafting component
 compositions out of Genode's readily available building blocks. What could be a
 better example than building an old-school operating system - Unix - that we all
-know and love? You can find the results of this tutorial in Norman's playground
-repository.
-
-:Norman's Goa playground repository:
-
-  [https://github.com/nfeske/goa-playground]
+know and love? You can find the results of this tutorial in
+[https://github.com/nfeske/goa-playground - Norman's playground repository].
 
 
 Preparations
@@ -589,7 +585,8 @@ the terminal, you can see that the terminal's configuration is fetched from a
 dedicated ROM module called "terminal.config". We have no such ROM module
 defined yet. However, let's still give it a try:
 
-! [init -> unix] Error: terminal: environment ROM session denied (label="terminal" ...)
+! [init -> unix] Error: terminal: environment ROM session denied
+!                (label="terminal" ...)
 ! ...
 
 That's not surprising as we have not added 'terminal' to our
@@ -658,15 +655,15 @@ session that requests the ROM module named "VeraMono.ttf".
 With this configuration in place, the next attempt of 'goa run' yields a
 quite predictable result:
 
-! [init -> unix -> terminal] Error: could not open ROM session for "VeraMono.ttf"
-! [init -> unix -> terminal] Error: failed to create <rom> VFS node
-! [init -> unix -> terminal] Error:     name="VeraMono.ttf"
-! [init -> unix -> terminal] Error: ROM-session creation failed (...)
-! [init -> unix -> terminal] Error: could not open ROM session for "vfs_ttf.lib.so"
-! [init -> unix -> terminal] Error: failed to create <ttf> VFS node
-! [init -> unix -> terminal] Error:     name="regular"
-! [init -> unix -> terminal] Error:     path="/VeraMono.ttf"
-! [init -> unix -> terminal] Error:     size_px="16"
+! [... unix -> terminal] Error: could not open ROM session for "VeraMono.ttf"
+! [... unix -> terminal] Error: failed to create <rom> VFS node
+! [... unix -> terminal] Error:     name="VeraMono.ttf"
+! [... unix -> terminal] Error: ROM-session creation failed (...)
+! [... unix -> terminal] Error: could not open ROM session for "vfs_ttf.lib.so"
+! [... unix -> terminal] Error: failed to create <ttf> VFS node
+! [... unix -> terminal] Error:     name="regular"
+! [... unix -> terminal] Error:     path="/VeraMono.ttf"
+! [... unix -> terminal] Error:     size_px="16"
 
 The terminal configuration refers to two ROM modules that we haven't yet
 included into the scenario. The "VeraMono.ttf" is the TrueType font data we

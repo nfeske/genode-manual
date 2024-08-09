@@ -3,7 +3,7 @@ Foundations
 
 This chapter summarizes the most essential foundations of the Genode OS
 Framework. For a more detailed view, please refer to the Genode Foundations
-book available at genode.org.
+book available at https://genode.org.
 
 
 Genode's init component
@@ -63,7 +63,7 @@ illustration, let's have a look at a simple example:
 * The <config> node specifies the content of the component's config ROM.
 * The <route> node contains routing information for the requested services.
   In this example, the _File_system_ session is routed to the child component
-  names "vfs". All other services are routed to the parent component.
+  named "vfs". All other services are routed to the parent component.
 
 Note that session requests are accompanied by a session label. In order to make
 session requests distinguishable by the providing component, init adds the
@@ -75,7 +75,7 @@ Further reading
 ---------------
 
 For more details, please consult the following sections of the Genode
-Foundations book available on [https://www.genode.org].
+Foundations book available on [https://genode.org].
 
 * Section "Recursive system structure"
 * Section "The init component"
@@ -108,7 +108,7 @@ function is defined in the _base/log.h_ header.
 The component does not exit after the 'construct' function returns. Instead, it
 becomes ready to respond to requests or signals originating from other
 components. The example above does not interact with other components though.
-Hence, it will just keep waiting infinitely.
+Hence, it will just keep waiting indefinitely.
 
 Libc components
 ~~~~~~~~~~~~~~~

@@ -160,7 +160,7 @@ the command 'goa build' again, you see the following message:
 ! download genodelabs/api/base/2023-10-24.tar.xz.sig
 
 Goa automatically downloaded the base API and installed it into a fresh
-depot at var/depot/genodelabs/api/base/2023-10-24/. But not only that, it also
+depot at _var/depot/genodelabs/api/base/2023-10-24/_. But not only that, it also
 re-attempted the build of the program. If you take a look at
 _var/build/x86_64/_, you will see the 'hello' executable. If the output was too
 unspectacular for your taste, you may append the '--verbose' argument to the
@@ -185,8 +185,8 @@ with the name "hello":
 
 ! hello$ mkdir -p pkg/hello
 
-A runtime package needs at least two files, a README file and a _runtime_
-file. The README file should give brief information about the purpose
+A runtime package needs at least two files, a _README_ file and a _runtime_
+file. The _README_ file should give brief information about the purpose
 of the Genode subsystem for human readers. The runtime file contains the
 contractual information. Create a file _pkg/hello/runtime_ with the following
 content:
@@ -278,7 +278,6 @@ After the command finished, you find the source code sitting nicely in a new
 _src/_ directory. Let's try to build it just after creating an empty _artifacts_ file.
 
 ! cmake_step2$ touch artifacts
-
 ! cmake_step2$ goa build
 
 ! [cmake_step2:cmake] -- The C compiler identification is GNU 12.3.0
@@ -299,8 +298,10 @@ _src/_ directory. Let's try to build it just after creating an empty _artifacts_
 ! [cmake_step2:cmake] -- Generating done
 ! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
 ! [cmake_step2:cmake] Scanning dependencies of target Tutorial
-! [cmake_step2:cmake] [ 50%] Building CXX object CMakeFiles/Tutorial.dir/tutorial.cxx.obj
-! .../cmake_step2/src/tutorial.cxx:2:10: fatal error: cmath: No such file or directory
+! [cmake_step2:cmake] [ 50%] Building CXX object
+!                     CMakeFiles/Tutorial.dir/tutorial.cxx.obj
+!  .../cmake_step2/src/tutorial.cxx:2:10: fatal error:
+!  cmath: No such file or directory
 !     2 | #include <cmath>
 !       |          ^~~~~~~
 ! compilation terminated.
@@ -331,12 +332,13 @@ required APIs and successfully builds the example program:
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
 ! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
-! [cmake_step2:cmake] [ 50%] Building CXX object CMakeFiles/Tutorial.dir/tutorial.cxx.obj
+! [cmake_step2:cmake] [ 50%] Building CXX object
+!                     CMakeFiles/Tutorial.dir/tutorial.cxx.obj
 ! [cmake_step2:cmake] [100%] Linking CXX executable Tutorial
 ! [cmake_step2:cmake] [100%] Built target Tutorial
 
 The resulting executable binary can be found at _var/build/x86_64/Tutorial_.
-Let's declare it a build artifact by mentioning it the _artifacts_ by adding
+Let's declare it a build artifact by mentioning it in the _artifacts_ by adding
 the following line.
 
 ! Tutorial
@@ -596,7 +598,6 @@ When peeking at the _var/public/_ directory now, you see the downloaded
 archives and signatures. For example,
 
 ! $ find var/public/genodelabs/bin/x86_64/terminal
-
 ! var/public/genodelabs/bin/x86_64/terminal
 ! var/public/genodelabs/bin/x86_64/terminal/2023-10-24.tar.xz.sig
 ! var/public/genodelabs/bin/x86_64/terminal/2023-10-24.tar.xz
@@ -688,7 +689,7 @@ adjust the _version_ file. In this case, however, the message results
 from the partial success above that already exported _raw/unix_3rd_.
 So you are safe to specify the '--depot-overwrite' argument as suggested by Goa.
 
-Note, you may alternatively use Goa's 'bump-version' change the version. This
+Note, you may alternatively use Goa's 'bump-version' to change the version. This
 command sets the version file to the current date or, if this would not change
 the version, adds/increments an alphabetical suffix.
 
@@ -764,7 +765,6 @@ the content you just created with the 'goa export' command. It is interesting
 to take a look at the content of the depot user "john" now.
 
 ! $ find var/depot/john/
-
 ! var/depot/john/
 ! var/depot/john/pubkey
 ! var/depot/john/download
@@ -790,7 +790,6 @@ Once the command completed, you can find the archived and signed depot content
 at _var/public/john/:_
 
 ! $ find var/public/john
-
 ! var/public/john
 ! var/public/john/raw
 ! var/public/john/raw/unix_3rd
@@ -830,8 +829,6 @@ your depot archives. For a quick test, you may type in your depot URL in
 the "Add" tab of the "+" menu. Be aware, however, that this circumvents any
 integrity checks of the downloaded archives as your public key still remains
 unknown to Sculpt.
-
-_TODO add screenshot_
 
 In order to add your public key to sculpt, you first need to export it from
 gpg in ASCII-armored form.
@@ -879,10 +876,8 @@ provided by the user. Sculpt OS downloads the index and presents the users with
 a UI for deploying the referred packages.
 
 Fortunately, Goa assists with managing and publishing a depot index. Let's
-give it a try!
-
-In the Goa playground repository, change into the _intro/_ directory and create
-the following index file.
+give it a try! In the Goa playground repository, change into the _intro/_
+directory and create the following index file.
 
 ! <index>
 !   <supports arch="x86_64"/>
