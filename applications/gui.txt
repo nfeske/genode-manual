@@ -5,9 +5,9 @@ Graphical User Interfaces
 
 Since its first release, Genode came with its own low-level GUI stack centered
 around a component called _Nitpicker GUI server_. Nitpicker provides three types
-of session interfaces: GUI, Capture and Event. Similar to the NIC router,
+of session interfaces: GUI, Capture, and Event. Similar to the NIC router,
 Nitpicker is a resource multiplexer. It mediates between framebuffer driver,
-input drivers and applications. Applications use the GUI session interface,
+input drivers, and applications. Applications use the GUI session interface,
 which provides low-level access for writing to the framebuffer and receiving
 input events. Rather than sticking to low-level drawing methods, GUI frameworks
 provide a more suitable level of abstraction for application development.

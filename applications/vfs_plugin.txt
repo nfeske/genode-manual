@@ -110,7 +110,7 @@ Architecture
 Before diving into the VFS, let's draw a high-level picture of how Genode's
 C runtime maps file operations to the VFS.
 
-[image img/vfs_tap]
+[tikz img/vfs_tap]
 
 The figure above illustrates the plugin structure of the VFS. A plugin provides
 one or multiple files (e.g. _/dev/tap0) that are incorporated into the

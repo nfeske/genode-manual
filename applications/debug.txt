@@ -400,7 +400,7 @@ run directory need to be (re-)uploaded via HTTP PUT.
 In addition to lighttpd, the testbed runs a sub-init that reacts
 to changes to the config file from the synchronised run directory. Once all
 prerequisites have been synchronised, starting a scenario on the remote system
-merely consists in uploading the config file. By deleting the config file from
+comes down to uploading the config file. By deleting the config file from
 the remote system, the scenario is killed.
 
 Log output is made available via telnet using an integrated TCP terminal

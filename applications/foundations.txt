@@ -56,7 +56,7 @@ illustration, let's have a look at a simple example:
 
 * The _name_ attribute of the <start> node refers the name of the child
   component and is identical to the binary name.
-  (A different binary name can be specified by adding a <binary> sub node.)
+  A different binary name can be specified by adding a <binary> sub node.
 * The <resource> node specifies the amount of RAM delegated to the component.
 * The <provides> node contains the list of session interfaces provided by
   the component.

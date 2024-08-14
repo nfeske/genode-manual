@@ -8,17 +8,17 @@ recommended to give the Genode Foundations book a read. The book can be
 downloaded at [https://genode.org].
 
 The document features a practical guide for developing and porting applications
-to Genode. The content bases on stories around the Goa tool, which streamlines
+to Genode. The material facilitates the Goa software development kit (SDK), which streamlines
 the application development for the Genode OS Framework and Sculpt OS in
 particular.
 
-:Goa tool:
+:Goa SDK tool:
 
   [https://github.com/genodelabs/goa]
 
 Chapter [Getting started with Goa] demonstrates the use of the Goa tool in form
 of a Getting Started guide. Chapter [Foundations] recapitulates the principles
-of Genode's architecture as well as its most essential libraries, components and
+of Genode's architecture as well as its most essential libraries, components, and
 tooling for application developers. Chapter [Development & Debugging] provides
 assistance when it comes to debugging Genode applications. Finally,
 Chapter [Tutorials] completes the document by a collection of tutorials and

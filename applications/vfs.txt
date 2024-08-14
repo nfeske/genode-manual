@@ -106,7 +106,7 @@ the read-only _config_ file, which gets its content from the config ROM module.
 The <ram> node instructs the VFS library to also set up a RAM file system inside
 _/tmp/_, much like the well-known tmpfs from Unix-like systems.
 
-The above example illustrates, how the VFS is able to provide access to Genode
+The above example illustrates how the VFS is able to provide access to Genode
 session interfaces (here: ROM session) via well-known file operations. As
 another example, one can also integrate a file-system session into a VFS by
 using the <fs> node:

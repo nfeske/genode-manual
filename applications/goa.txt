@@ -6,7 +6,7 @@ _[https://genodians.org/nfeske/2019-11-24-goa - Goa article]_
 _at [https://genodians.org]_.
 
 The development of applications for Genode used to require a lot of learning
-about Genode's way of organizing source code, our custom build system,
+about Genode's way of organizing source code, the framework's custom build system,
 and the use of run scripts. The Goa tool aims at largely removing these burdens
 from application developers.
 
@@ -32,8 +32,8 @@ it streamlines the following tasks:
   scenario.
 
 # Since Genode executables are binary-compatible between Linux and microkernels,
-  the same software as just tested on Linux can be deployed on top of the
-  other kernels. Goa takes care of exporting the software in the format
+  the same binaries as tested on Linux can be deployed on top of the
+  other kernels supported by Genode. Goa takes care of exporting the software in the format
   expected by Genode's package management.
 
 # Publishing (archiving and cryptographically signing) the software so that
@@ -146,7 +146,7 @@ pretty limited success:
 ! Error: build via make failed
 
 Our program tries to include a header file that is nowhere to be found.
-To resolve this problem, one can tell Goa that a project needs to use the
+To resolve this problem, one can tell Goa that the project needs to use the
 Genode base API, by placing a file named _used_apis_ with the following
 content into the project directory.
 
