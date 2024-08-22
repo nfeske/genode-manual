@@ -24,6 +24,7 @@ gui
 debug
 tutorials
 unix
+unix_publish
 vfs_plugin
 lomiri_calculator
 endef
