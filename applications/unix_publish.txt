@@ -399,7 +399,7 @@ Please use 'man rsync' to decrypt this information.
 
 
 Deployment on Sculpt OS
-=======================
+-----------------------
 
 Now that you have published your first Goa project in your depot, you probably
 want to give it a spin on Sculpt OS. There are two practical options for this:

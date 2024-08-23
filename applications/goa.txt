@@ -389,7 +389,6 @@ and "24" as its actual argument. The '<content>' lists all ROM modules required.
 With this runtime package in place, let's give the Tutorial a run:
 
 ! cmake_step2/$ goa run
-
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
 ! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
@@ -413,4 +412,34 @@ You see that Goa takes care of downloading all dependencies needed to
 host the subsystem and subsequently executes the scenario. The program
 built by the tutorial prints the result "The square root of 24 is 4.89898".
 
+Running the scenario on Sculpt OS
+=================================
 
+As icing on the cake, let's give the scenario a spin on Sculpt OS. The official
+Sculpt image is equipped with a specifically tailored preset called
+"goa testbed" which allows Goa to use the system as a remote test target.
+
+Simply hook up the Sculpt system to your wifi or your wired network, and enable
+the _goa testbed_ preset. Note down the IP address and execute the following
+command on your development system:
+
+! cmake_step2/$ goa run --target sculpt --target-opt-sculpt-server <sculpt-ip>
+! [cmake_step2:cmake] -- Configuring done (0.0s)
+! [cmake_step2:cmake] -- Generating done (0.0s)
+! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
+! [cmake_step2:cmake] [100%] Built target Tutorial
+! uploaded libm.lib.so (local change)
+! uploaded stdcxx.lib.so (local change)
+! uploaded vfs.lib.so (local change)
+! uploaded Tutorial (local change)
+! uploaded posix.lib.so (local change)
+! uploaded libc.lib.so (local change)
+! uploaded config (local change)
+! Trying 10.0.1.1...
+! Connected to 10.0.1.1.
+! Escape character is '^]'.
+! [init -> cmake_step2] The square root of 24 is 4.89898
+! [init] child "cmake_step2" exited with exit value 0
+
+For more details, please consult Goa's built-in help command 'goa help targets'
+or refer to Section [Using Sculpt as a remote test target].

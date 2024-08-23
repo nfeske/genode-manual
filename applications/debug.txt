@@ -292,7 +292,7 @@ thread has been stopped:
 !   3    LWP 2246 "ld.lib.so" pseudo_end () at [...]/spec/x86_64/lx_syscall.S:29
 
 The selected thread is marked with an '*'. Let's continue all threads and switch
-to thread 2:
+to thread 2 (see Section [Using Sculpt as a remote test target] for more details):
 
 ! (gdb) continue -a &
 ! Continuing.
@@ -466,7 +466,9 @@ the remote target using the address provided via the
 '--target-opt-sculpt-server' argument and the port provided by
 '--target-opt-sculpt-port-gdb'.
 
-Let's start GDB with this file:
+Let's start GDB with this file. In contrast to debugging on Linux, you should
+use the gdb binary from the Genode tool chain. Moreover, root privileges are
+not required.
 
 ! $ genode-x86-gdb --command /path/to/project/var/project_name.gdb
 ! GNU gdb (GDB) 13.1
@@ -488,20 +490,29 @@ Let's start GDB with this file:
 ! determining executable automatically.  Try using the "file" command.
 ! (gdb) warning: No executable has been specified and target does not support
 ! determining executable automatically.  Try using the "file" command.
-! info inferiors
+! (gdb) info inferiors
 !   Num  Description       Connection                             Executable
 ! * 1    process 1         1 (extended-remote 192.168.42.54:9999)
+
+GDB's 'info inferiors' command lists a single process. Let's have a look at
+the threads:
+
 ! (gdb) info threads
 !   Id   Target Id                   Frame 
 !   1    Thread 1.1 "system_info"    (running)
 !   2    Thread 1.2 "ep"             (running)
 ! * 3    Thread 1.3 "signal handler" (running)
+
+Fortunately, we are provided with the thread names. The "system_info" thread is
+the initial thread set up by Genode's init component. After component
+initialization, however, the entrypoint thread "ep" becomes the most
+interesting thread for Genode components. Let's therefore switch to thread 2 as
+we did in the previous section without giving any explanation:
+
 ! (gdb) thread 2
 ! [Switching to thread 2 (Thread 1.2)](running)
 
-In contrast to debugging on Linux, you should use the gdb binary from the Genode
-tool chain. Moreover, root privileges are not required. As before, symbols must
-be loaded manually:
+As before, symbols must be loaded manually:
 
 ! (gdb) symbol-file .debug/system_info.debug 
 ! Reading symbols from .debug/system_info.debug...
@@ -529,7 +540,10 @@ target system:
 !  system_info.cc:94
 ! 94                      Libc::with_libc([&] {
 
-Perfect. Happy debugging!
+Perfect. Note that in some occasions, it can be helpful to insert breakpoints
+at compile time to halt the execution before an error condition occurs. On x86,
+this can be achieved by inserting an 'asm volatile ("int3")' at the point of
+interest. Happy debugging!
 
 Further reading
 ===============

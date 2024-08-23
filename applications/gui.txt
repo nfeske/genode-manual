@@ -18,11 +18,24 @@ the corresponding
 [https://genodians.org/nfeske/2020-06-23-gui-stack - article on genodians.org].
 
 
-Dialog API
-~~~~~~~~~~
+SDL
+~~~
 
-; @nfeske: mention dialog API at all (with disclaimer for genode-internal use)?
-; [https://genode.org/documentation/release-notes/23.11#Dialog_API_for_low-complexity_interactive_applications]
+The Simple DirectMedia Layer (SDL) is a well-established cross-platform library
+often used by computer games. Ports of SDL 1.2 and SDL 2.0 are available in the
+genode-world repository. Additional SDL libraries such as SDL_image, SDL_ttf,
+SDL_net and SDL_mixer are also available.
+
+:Genode-world repository:
+
+  [https://github.com/genodelabs/genode-world/]
+
+Genode application examples
+---------------------------
+
+:Port of numptyphysics:
+
+  [https://github.com/nfeske/goa-playground/tree/master/games/numptyphysics]
 
 
 Qt5

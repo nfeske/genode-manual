@@ -32,8 +32,10 @@ This section focuses on depot-archive management with Goa. For a more
 general explanation of archive categories, please refer to Section "Package
 management" in the Genode Foundations book.
 
-Since Goa is also used for publishing depot archives the project directory is
-structured following the depot nomenclature:
+With Goa, depot archives are created and published by the commands 'goa export'
+and 'goa publish'. Depending on the project-directory content, Goa creates the
+necessary depot archives. The project directory therefore follows the depot
+nomenclature.
 
 :raw archive:
 

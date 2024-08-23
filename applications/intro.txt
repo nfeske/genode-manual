@@ -7,7 +7,14 @@ developers. Before studying the Genode Applications material, it is
 recommended to give the Genode Foundations book a read. The book can be
 downloaded at [https://genode.org].
 
-The document features a practical guide for developing and porting applications
+Another guide worth reading is the
+[https://genode.org/documentation/articles/sculpt-24-04 - Sculpt OS guide].
+Sculpt OS is one particular incarnation of the Genode OS Framework that puts
+the user in the position of full control. With Sculpt OS, you are leaving
+the well-known world of Linux. It is therefore worth familiarizing yourself with
+these new grounds before building applications for it.
+
+This document features a practical guide for developing and porting applications
 to Genode. The material facilitates the Goa software development kit (SDK), which streamlines
 the application development for the Genode OS Framework and Sculpt OS in
 particular.

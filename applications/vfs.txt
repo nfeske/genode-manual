@@ -78,8 +78,6 @@ In addition to these attributes, the <libc> node supports the following
   !   </pthread>
   ! </libc>
 
-; @nfeske: Do we need/want to mention <stack> and <heap>?
-
 
 VFS configuration
 ~~~~~~~~~~~~~~~~~
@@ -258,8 +256,6 @@ similarly named depot archives _src/vfs_<node_name>_.
 A tutorial for writing VFS plugins is available in
 Section [Writing a VFS plugin for network-packet access].
 
-; @nfeske: single exception is src/rump, rename to src/vfs_rump?
-
 There are the following single-file system plugins. As above, the optional _name_
 attribute can be used to change the file name.
 
@@ -360,9 +356,6 @@ Furthermore, the following plugins for subordinate file systems are available:
 
   The fatfs plugin provides a persistent file system that is backed by a Block
   session. It currently supports FAT and exFAT file systems.
-
-
-; @nfeske: Shall we also add vfs_libusb?
 
 
 Further reading
