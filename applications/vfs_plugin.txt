@@ -1,27 +1,22 @@
 Writing a VFS plugin for network-packet access
 ==============================================
 
-_This section is based on Johannes Schlatow's_
-_[https://genodians.org/jschlatow/2022-03-01-vfs-tap - vfs_tap article]_
-_at [https://genodians.org]_.
+_This section reproduces a minimal implementation of the original_
+_[https://genodians.org/jschlatow/2022-03-01-vfs-tap - VFS tap plugin]_
+_with Goa. The complete implementation is available in the Genode repository._
 
-_TODO: review copied text and adapt to use Goa to build the plugin_
-
-Despite Genode already providing a socket API that is backed by two different
-Virtual File System (VFS) plugins, we have no mechanism for sending/receiving
-raw Ethernet frames via the libc yet. In Linux and FreeBSD, the kernel provides virtual
-TAP devices as an interface for this purpose. We can easily emulate this
-interface by implementing a new VFS plugin. In this article, I will share my
-experiences with this particular plugin and provide some insights in the
-internals of the VFS.
+In Linux and FreeBSD, the kernel provides virtual TAP devices as an interface
+for sending/receiving raw Ethernet frames. This section demonstrates
+how this functionality can be added to Genode's VFS by means of a dedicated
+plugin.
 
 When porting software from the Unix world to Genode, we try to keep
 modifications of the 3rd-party code to a minimum. An essential part of this
 consists in providing the required libraries (e.g., libc, stdcxx). But, even with
 all libraries in place, we also need to bridge the gap between the Unix
 viewpoint of "everything is a file (descriptor)" and the Genode world of session
-interfaces. This is where the VFS comes into play: Genode’s C runtime (libc)
-maps file operations to the component’s VFS. Let’s have a look at a common
+interfaces. This is where the VFS comes into play: Genode's C runtime (libc)
+maps file operations to the component's VFS. Let's have a look at a common
 example:
 
 ! <config>
@@ -32,188 +27,174 @@ example:
 ! </config>
 
 This component config tells the libc to use _/dev/log_ for stdout and use the
-built-in log plugin of the VFS to "connect" _/dev/log_ to a LOG session. You can
-find a good overview on how to configure the VFS and what plugins are available
-in
-[http://genodians.org/m-stein/2021-06-21-vfs-1 - Martin’s article series].
+built-in log plugin of the VFS to "connect" _/dev/log_ to a LOG session. Section
+[C runtime and virtual file system] provides an overview of libc and VFS
+configuration.
 
-
-In this article, I concentrate on how to write a new plugin for the VFS by
-implementing a plugin for raw network access.
-Before we jump into the code right away, I will first sketch an overview on how
-TAP devices are used on FreeBSD/Linux and how this maps to the VFS architecture.
+For writing a VFS plugin for raw network-packet access, let's first sketch
+an overview on how TAP devices are used on FreeBSD/Linux and how
+this maps to the VFS architecture.
 
 TAP-device foundations
 ----------------------
 
-Genode’s C runtime is based on a port of FreeBSD’s libc. We therefore have a
-look at how TAP devices are used on FreeBSD before glancing at Linux.
-
-On FreeBSD, we simply open an existing TAP device (e.g. _/dev/tap0_) and are
+Genode's C runtime is based on a port of FreeBSD's libc. On FreeBSD, we simply
+open an existing TAP device (e.g. _/dev/tap0_) and are
 able to write/read to the acquired file descriptor afterwards. In addition,
 there are a few I/O control operations (ioctl), by which we can get/set the MAC
-address or get the device name for instance. Let’s look at an example:
+address or get the device name for instance. Let's look at an example:
 
 ! #include <net/if.h>
 ! #include <net/if_tap.h>
+! #include <stdio.h>
+! #include <string.h>
+! #include <unistd.h>
+! #include <fcntl.h>
+! #include <sys/ioctl.h>
+! #include <stdint.h>
 !
-! /* [...] */
-!
-! int fd0 = open("/dev/tap0", O_RDWR);
-! if (fd0 == -1) {
-!    printf("Error: open(/dev/tap0) failed\n");
-!    return 1;
-! }
-!
-! int fd1 = open("/dev/tap1", O_RDWR);
-! if (fd1 == -1) {
-!    printf("Error: open(/dev/tap1) failed\n");
-!    close(fd1);
-!    return 1;
-! }
-!
-! char mac[6];
-! memset(mac, 0, sizeof(mac));
-! if (ioctl(fd1, SIOCGIFADDR, (void *)mac) < 0) {
-!    printf("Error: Could not get MAC address of /dev/tap0.\n");
-!    close(fd0);
-!    close(fd1);
-!    return 1;
-! }
-!
-! enum { BUFFLEN = 1500 };
-! char buffer[BUFFLEN];
-! while (1) {
-!    ssize_t received = read(fd0, buffer, BUFFLEN);
-!    if (received < 0) {
-!       close(fd0);
-!       close(fd1);
+! int main()
+! {
+!    int fd0 = open("/dev/tap0", O_RDWR);
+!    if (fd0 == -1) {
+!       printf("Error: open(/dev/tap0) failed\n");
 !       return 1;
 !    }
 !
-!    ssize_t written = write(fd1, buffer, received);
-!    if (written < received) {
-!       close(fd0);
-!       close(fd1);
-!       return 1;
+!    char mac[6];
+!    memset(mac, 0, sizeof(mac));
+!    if (ioctl(fd0, SIOCGIFADDR, (void *)mac) < 0) {
+!       printf("Error: Could not get MAC address of /dev/tap0.\n");
+!    } else {
+!       printf("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2],
+!                                                      mac[3], mac[4], mac[5]);
+!    }
+!
+!    enum { BUFFLEN = 1500 };
+!    char buffer[BUFFLEN];
+!    while (1) {
+!       ssize_t received = read(fd0, buffer, BUFFLEN);
+!       if (received < 0) {
+!          close(fd0);
+!          return 1;
+!       }
+!
+!       printf("Received packet with %d bytes\n", received);
+!       size_t i=0;
+!       uint32_t *words = (uint32_t*)buffer;
+!       for (; i < received / 4; i++) {
+!          printf("%08x ", *words++);
+!
+!          if (i % 4 == 3)
+!             printf("\n");
+!       }
+!
+!       uint8_t *bytes = (uint8_t*)&buffer[i*4];
+!       for (i*=4; i < received; i++)
+!          printf("%02x", *bytes++);
+!
+!       printf("\n");
 !    }
 ! }
 
-We have just created an application that forwards Ethernet frames from tap0 to
-tap1. For demonstrative purpose, I added an ioctl call for getting the MAC
-address of tap0. A detailed description of TAP devices in FreeBSD is given in
-the corresponding
-[https://www.freebsd.org/cgi/man.cgi?query=tap&sektion=4 - man page].
+This application code receives Ethernet frames from tap0 and
+prints out the data. For demonstrative purpose, there is also an ioctl call for
+getting the MAC address of tap0. A detailed description of TAP devices in
+FreeBSD is given in the corresponding
+[https://man.freebsd.org/cgi/man.cgi?tap(4) - man page].
 
-
-In Linux, the interface is a bit different. You first open _/dev/net/tun_ and
-create the device by a 'TUNSETIFF' ioctl. This process can be conducted several
-times to create multiple devices. A detailed description can be found in
-the
-[https://www.kernel.org/doc/html/latest/networking/tuntap.html - Linux kernel documentation].
-
-
-Actually, you can also open the generic_/dev/tap_ in FreeBSD, which will return
-a file descriptor to the first available device. If only a single TAP device is
-used, however, we can get away with mapping our emulated TAP device to
-_/dev/tap_ or _/dev/net/tun_. For starters, let’s therefore focus on the
-simpler use case for our VFS plugin.
 
 Architecture
 ------------
 
-Before we dive into the VFS, let me draw a high-level picture of how Genode’s
+Before diving into the VFS, let's draw a high-level picture of how Genode's
 C runtime maps file operations to the VFS.
 
-[image img/vfs_tap]
+[tikz img/vfs_tap 100%]
 
 The figure above illustrates the plugin structure of the VFS. A plugin provides
-one or multiple files (e.g. _/dev/terminal_) that are incorporated into the
+one or multiple files (e.g. _/dev/tap0) that are incorporated into the
 directory tree of the VFS. The application is then able to perform the standard
 file operations on these files. The VFS plugin typically translates these
-operations into operations on a particular session interface (e.g., terminal
-session). The C runtime also emulates ioctl by mapping these to read/write
-accesses of pseudo files (e.g. _/dev/.terminal/…_), see the
-[https://genode.org/documentation/release-notes/20.11#Streamlined_ioctl_handling_in_the_C_runtime___VFS - release notes 20.11]
-or the corresponding
-[https://github.com/genodelabs/genode/commit/7ac32ea60c703a73477c121ab8269dfad201f428 - commit message].
-By convention, an info (e.g. _/dev/.terminal/info_) file will contain an XML
+operations into operations on a particular session interface. The C runtime also
+emulates ioctl by mapping these to read/write
+accesses of pseudo files (e.g. _/dev/.tap0/..._) as described in the
+corresponding
+[https://genode.org/documentation/release-notes/20.11#Streamlined_ioctl_handling_in_the_C_runtime___VFS - release notes]
+and
+[https://github.com/genodelabs/genode/commit/7ac32ea60 - commit message].
+
+By convention, an info file (e.g. _/dev/.tap0/info_) hosts an XML
 report containing a single XML node named after the plugin type. The node may
-contain any number of attributes to specify parameters needed by the C runtime
+comprise any number of attributes to specify parameters needed by the C runtime
 to implement the particular ioctl, e.g.:
 
-! <terminal rows="25" columns="80/>
+! <tap name="tap0" mac_addr="02:02:02:02:02:02"/>
 
 In case parameters shall be modifiable, the info file can be accompanied by a
 separate (writeable) file for each modifiable parameter.
 
+The C runtime takes care of emulating the blocking semantics of read/write operations.
 Internally, the C runtime uses the non-blocking 'Vfs::File_io_service' interface
 to perform read/write accesses on the VFS. The 'write()' operation returns
 an error if writing cannot be performed immediately. Reads are split into
 'queue_read()' and 'complete_read()' methods. In order to avoid futile polling,
 the latter are accompanied by a 'read_ready()' method, which returns 'true' if
 there is readable data, and a 'notify_read_ready()' method by which one is able
-to announce interest in receiving read-ready signals.
+to announce interest in receiving read-ready signals. Moreover, a 'write_ready()'
+method propagates the saturation of I/O buffers to the VFS user, which becomes
+important when using non-blocking file descriptors.
 
-At the same time, the C runtime takes care of emulating the blocking semantics
-of read/write operations that we have seen in our example in the beginning. I
-will come back to this down below.
 
 Usage preview
 -------------
 
-Before we start coding, let’s envision how we want to use the plugin:
+Before we start coding, let's envision how we want to use the plugin:
 
 ! <config>
 !    <vfs>
 !       <dir name="dev">
-!          <tap name="tap0" label="tap0" mode="uplink_client"
-!                                        mac="11:22:33:44:55:66" />
-!          <tap name="tap1" label="tap1" />
+!          <tap name="tap0" label="tap"/>
 !       </dir>
 !    </vfs>
 ! </config>
 
-In the above example, we mount the plugin twice to create _/dev/tap0_ and
-_/dev/tap1_. The _name_ attribute of the _<tap>_ node is mandatory. The plugin
-shall either use a NIC session or an uplink session to transmit the Ethernet
-frames to a NIC router. This is configured by the optional _mode_ argument. In
-case the plugin acts as an uplink client, we can specify the default MAC address
-to be used. Otherwise, the MAC address is assigned by the NIC router. The _label_
-attribute can be used to distinguish the session requests at the NIC router.
+In the above example, we mount the plugin at the _/dev/tap0_ file. The _name_
+attribute of the _<tap>_ node is mandatory. The plugin shall use a NIC session
+to transmit the Ethernet frames to a NIC router.  The _label_ attribute can be
+used to distinguish multiple session requests at the NIC router.
 
-Please note that I am going to omit most attributes when walking through the
-plugin implementation to keep the presentation rather concise.
+Creating a new Goa project
+--------------------------
+
+Let's start with preparing the stage for the plugin by starting a new Goa
+project.
+
+! $ mkdir -p vfs_tap/src
+! $ cd vfs_tap
+
+The VFS library uses the type of the XML node to determine the name of the
+plugin library to probe. More precisely, when adding a _<tap>_ node to the
+config, the VFS tries to load a _vfs_tap.lib.so_. Hence, we need to tell the
+build system to create a shared library with this name. Currently, Goa only
+supports library projects based on CMake. Thus, you need to create the file
+_src/CMakeLists.txt_ with the following content:
+
+! cmake_minimum_required(VERSION 3.10)
+! project(vfs_tap)
+! set(LIB_SRCS vfs_tap.cc)
+! add_library(vfs_tap SHARED ${LIB_SRCS})
+! set_target_properties(vfs_tap PROPERTIES PREFIX "")
+
+The first two lines are mandatory for CMake. Line 3-4 define the library
+build target and _vfs_tap.cc_ as the only source file. The last line removes the
+default "lib" prefix. Without this line, the build artifact would be named
+_libvfs_tap.lib.so_.
 
 Writing the vfs_tap plugin
 --------------------------
 
-Alright, now to the fun part. Let’s start with preparing the stage for our
-plugin by creating a subdirectory. Since I do not expect any dependencies other
-than _base_ and _os_, I create it in the _os_ repository.
-
-! genode/repos/> mkdir -p os/src/lib/vfs/tap
-
-The path suggests that the plugin is supposed to be built as a library. Note
-that the type of the XML node is used by the VFS to determine the name of the plugin library to
-probe. More precisely, when adding a _<tap>_ node to the config, the VFS tries
-to load a _vfs_tap.lib.so_. Hence, the build-description file goes into
-_os/lib/mk/vfs_tap.mk_ with the following content:
-
-! SRC_CC := vfs_tap.cc
-!
-! vpath %.cc $(REP_DIR)/src/lib/vfs/tap
-!
-! SHARED_LIB := yes
-
-Since libraries are only compiled implicitly, i.e., when required as a
-dependency, we can add a dummy _target.mk_ file to _os/src/lib/tap_, which will
-enable us to call 'make lib/vfs/tap':
-
-! TARGET = dummy-vfs_tap
-! LIBS = vfs_tap
-
-Now, let’s add the first few lines to _vfs_tap.cc_:
+Now, let's add the first few lines to _src/vfs_tap.cc_:
 
 ! namespace Vfs {
 !    struct Tap_file_system;
@@ -221,20 +202,21 @@ Now, let’s add the first few lines to _vfs_tap.cc_:
 !
 ! struct Vfs::Tap_file_system
 ! {
-!    using Name = String<64>;
+!    using Name  = String<64>;
 !
 !    struct Compound_file_system;
 !    struct Local_factory;
 !    struct Data_file_system;
 ! };
 !
-! /* [...] */
+! /* [...] see below */
 !
 ! extern "C" Vfs::File_system_factory *vfs_file_system_factory(void)
 ! {
 !    struct Factory : Vfs::File_system_factory
 !    {
-!       Vfs::File_system *create(Vfs::Env &env, Genode::Xml_node config) override
+!       Vfs::File_system
+!       *create(Vfs::Env &env, Genode::Xml_node config) override
 !       {
 !          return new (env.alloc())
 !             Vfs::Tap_file_system::Compound_file_system(env, config);
@@ -245,22 +227,22 @@ Now, let’s add the first few lines to _vfs_tap.cc_:
 !    return &f;
 ! }
 
-From the forward declarations, we can already see that the 'Tap_file_system' is
+From the forward declarations, you can already see that the 'Tap_file_system' is
 composed of three parts: a 'Compound_file_system', a 'Local_factory' and a
 'Data_file_system'. This is a scheme that we commonly apply when writing VFS
-plugins. We will walk through each of those step by step. Note that we could
-also make 'Tap_file_system' a namespace rather than a struct. Though, the subtle
-difference here is that the struct emphasises the inextensibility.
+plugins. Let's walk through each of those step by step. Note that you could
+also make 'Tap_file_system' a namespace rather than a struct. The subtle
+difference here is that the struct emphasizes the inextensibility.
 
-The plugin’s entrypoint is the 'vfs_file_system_factory' method that returns a
+The plugin's entrypoint is the 'vfs_file_system_factory' method that returns a
 'File_system_factory' by which the VFS is able to create a 'File_system' from
 the corresponding XML node (e.g. '<tap name="tap0"/>'). We return a
 'Compound_file_system' which serves as a top-level file system and which is able
 to instantiate arbitrary sub-directories and files on its own by using VFS
-primitives. Let’s have a closer look:
+primitives. Let's have a closer look:
 
-! class Vfs::Tap_file_system::Compound_file_system : private Local_factory,
-!                                                    public  Vfs::Dir_file_system
+! class Vfs::Tap_file_system::Compound_file_system
+! : private Local_factory, public Vfs::Dir_file_system
 ! {
 !    private:
 !
@@ -290,9 +272,9 @@ primitives. Let’s have a closer look:
 !       Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node node)
 !       :
 !          Local_factory(vfs_env, node),
-!          Vfs::Dir_file_system(vfs_env,
-!                               Xml_node(_config(Local_factory::name(node)).string()),
-!                               *this)
+!          Vfs::Dir_file_system(vfs_env, Xml_node(
+!                                  _config(Local_factory::name(node)).string()
+!                               ), *this)
 !       { }
 !
 !       static const char *name() { return "tap"; }
@@ -302,12 +284,12 @@ primitives. Let’s have a closer look:
 
 The 'Compound_file_system' is a 'Dir_file_system' and a 'Local_factory'. The
 former allows us to create a nested directory structure from XML as we are used
-to when writing a component’s _<vfs>_ config. In this case, the static
+to when writing a component's _<vfs>_ config. In this case, the static
 '_config()' method generates the following XML:
 
 ! <compound>
-!    <data name="foobar"/>
-!    <dir name=".foobar">
+!    <data name="tap0"/>
+!    <dir name=".tap0">
 !       <info/>
 !    </dir>
 ! </compound>
@@ -317,17 +299,17 @@ it instructs the 'Dir_file_system' to allow multiple sibling nodes to be present
 at the mount point. In particular, this is a _data_ file system and a
 subdirectory containing an _info_ file system. The latter has a static name,
 whereas the subdirectory and data file system are named after what the
-implementation of 'Local_factory' returns. Already knowing how the C runtime
+implementation of 'Local_factory::name()' returns (e.g. "tap0"). Already knowing how the C runtime
 interacts with the VFS, we can identify that the data file system shall provide
 read/write access to our virtual TAP device whereas the subdirectory is used for
 ioctl support. The _info_ file system follows the aforementioned convention and
 provides a file containing a '<tap>' XML node with a name attribute.
 
 Note, the 'type()' method is part of the 'File_system' interface and must return
-the XML node type to which our plugin responds.
+the XML node type to which the plugin responds.
 
 Next, we must implement the 'Local_factory'. As the name suggest, it is
-responsible for instantiating the file systems that we used in our
+responsible for instantiating the file systems that we used in the
 'Compound_file_system', i.e. the _data_ and _info_ file system:
 
 ! struct Vfs::Tap_file_system::Local_factory : File_system_factory
@@ -335,14 +317,14 @@ responsible for instantiating the file systems that we used in our
 !    Vfs::Env          &_env;
 !
 !    Name         const _name;
-!    Data_file_system   _data_fs { _env.env(), _name };
+!    Data_file_system   _data_fs { _env.env(), _env.user(), _name };
 !
 !    /* [...] see below */
 
-In the first few lines of our 'Local_factory', we already see the instantiation of
+In the first few lines of 'Local_factory', you see the instantiation of
 the _data_ file system. You have already seen the forward declaration of
-'Data_file_system' in the beginning. I will come back to this after we completed
-the 'Local_factory'. Let’s rather continue with the _info_ file system:
+'Data_file_system' in the beginning. We will come back to this after we completed
+the 'Local_factory'. Let's first continue with the _info_ file system:
 
 ! struct Vfs::Tap_file_system::Local_factory : File_system_factory
 ! {
@@ -378,10 +360,10 @@ the given type. More precisely, the string representation of its value. In case
 of the _info_ file system, we want to fill the file with '<tap name="..."/>'.
 Knowing that we are able to convert any object to 'Genode::String' by defining a
 'print(Genode::Output)' method, we can use the 'Info' struct as a type for
-'Readonly_value_file_system' and customise its string representation at the same
+'Readonly_value_file_system' and customize its string representation at the same
 time.
 
-The remaining fragment of our 'Local_factory' comprises the constructor, an
+The remaining fragment of the 'Local_factory' comprises the constructor, an
 accessor for reading the device name from the _<tap>_ node and the
 'File_system_factory' interface.
 
@@ -413,23 +395,22 @@ accessor for reading the device name from the _<tap>_ node and the
 !    }
 ! };
 
-The 'create()' method is the more interesting part. Here, we return either the
+The 'create()' method is the more interesting part. Here, it returns either the
 _data_ or _info_ file system depending on the XML node type. The function is
-called by the 'Dir_file_system' on the XML config defined by our
+called by the 'Dir_file_system' on the XML config defined by the
 'Compound_file_system'.
 
-Note that mutable parameters (such as the MAC address) are typically provided
-as additional writeable files along with the info file. For this purpose, you
-can use the 'Value_file_system' template from
-_os/include/vfs/value_file_system.h_ together with 'Genode::Watch_handler' to
-react to file modifications.
+Note that mutable parameters need to be provided as additional writeable
+files along with the info file. For this purpose, you may use the
+'Value_file_system' template from _os/include/vfs/value_file_system.h_ together
+with 'Genode::Watch_handler' to react to file modifications.
 
 The last missing piece of our puzzle is the 'Data_file_system'. Luckily, there
 is no need to take a deep dive into the VFS internals because
-'Vfs::Single_file_system' comes to our rescue. It already implements big parts
+'Vfs::Single_file_system' comes to the rescue. It already implements big parts
 of the 'Directory_service' and the 'File_io_service' interface, and leaves
-only a handful methods to be implemented by our 'Data_file_system'.
-Let’s have a look at the first fragment:
+only a handful methods to be implemented by 'Data_file_system'.
+Let's have a look at the first fragment:
 
 ! class Vfs::Tap_file_system::Data_file_system : public Vfs::Single_file_system
 ! {
@@ -442,6 +423,7 @@ Let’s have a look at the first fragment:
 !
 !       using Registered_handle = Genode::Registered<Tap_vfs_handle>;
 !       using Handle_registry   = Genode::Registry<Registered_handle>;
+!       using Open_result       = Directory_service::Open_result;
 !
 !       Genode::Env            &_env;
 !       Handle_registry         _handle_registry { };
@@ -449,11 +431,12 @@ Let’s have a look at the first fragment:
 !    public:
 !
 !       Data_file_system(Genode::Env       & env,
+!                        Vfs::Env::User    & vfs_user,
 !                        Name        const & name)
 !       :
 !          Vfs::Single_file_system(Node_type::TRANSACTIONAL_FILE, name.string(),
 !                                  Node_rwx::rw(), Genode::Xml_node("<data/>")),
-!          _env(env),
+!          _env(env)
 !       { }
 !
 !       static const char *name()   { return "data"; }
@@ -461,10 +444,10 @@ Let’s have a look at the first fragment:
 !
 !       /* [...] see below */
 
-We skip the details of 'Tap_vfs_handle' for the moment. This fragment is not
-very spectacular, though. We see that we use a 'Genode::Registry' to manage the
-'Tap_vfs_handle's. The 'Single_file_system' constructor takes a node type, a
-name, an access mode and an 'Xml_node' as arguments. For the node type, we can
+Let's skip the details of 'Tap_vfs_handle' for the moment.
+You see that we use a 'Genode::Registry' to manage the
+'Tap_vfs_handle'. The 'Single_file_system' constructor takes a node type, a
+name, an access mode and an 'Xml_node' as arguments. For the node type, you can
 choose between 'CONTINUOUS_FILE' and 'TRANSACTIONAL_FILE'. Since a network
 packet is supposed to be written as a whole and not in arbitrary chunks, we must
 choose 'TRANSACTIONAL_FILE' here. The file name is
@@ -472,20 +455,13 @@ determined from the provided XML node by looking up a _name_ parameter. Here, we
 pass an empty _<data/>_ node, in which case, the 'Single_file_system' uses the
 second argument as a file name instead.
 
-Let’s continue with completing the 'Directory_service' interface:
+Let's continue with completing the 'Directory_service' interface:
 
 ! class Vfs::Tap_file_system::Data_file_system : public Vfs::Single_file_system
 ! {
 !    private:
 !
 !       /* [...] see above */
-!
-!       using Registered_handle = Genode::Registered<Tap_vfs_handle>;
-!       using Handle_registry   = Genode::Registry<Registered_handle>;
-!       using Open_result       = Directory_service::Open_result;
-!
-!       Genode::Env            &_env;
-!       Handle_registry         _handle_registry { };
 !
 !    public:
 !
@@ -502,53 +478,63 @@ Let’s continue with completing the 'Directory_service' interface:
 !          if (!_single_file(path))
 !             return Open_result::OPEN_ERR_UNACCESSIBLE;
 !
+!          unsigned handles = 0;
+!          _handle_registry.for_each([&handles] (Tap_vfs_handle const &) {
+!             handles++;
+!          });
+!          if (handles) return Open_result::OPEN_ERR_EXISTS;
+!
 !          try {
 !             *out_handle = new (alloc)
-!                Registered_handle(_handle_registry, alloc, *this, *this, flags);
+!                Registered_handle(_handle_registry, _env, _vfs_user, alloc,
+!                                  *this, *this, flags);
 !             return Open_result::OPEN_OK;
 !          }
-!          catch (Genode::Out_of_ram)  { return Open_result::OPEN_ERR_OUT_OF_RAM; }
-!          catch (Genode::Out_of_caps) { return Open_result::OPEN_ERR_OUT_OF_CAPS; }
+!          catch (Genode::Out_of_ram)  {
+!             return Open_result::OPEN_ERR_OUT_OF_RAM; }
+!          catch (Genode::Out_of_caps) {
+!             return Open_result::OPEN_ERR_OUT_OF_CAPS; }
 !       }
 !
 ! }
 
 The only method of the 'Directory_service' interface not implemented by
 'Single_file_system' is the 'open()' method. First, we use a helper method
-'_single_file' to check whether the correct path was given. Second, we allocate
+'_single_file' to check whether the correct path was given. Second, we ensure
+that the file has not been opened yet since the FreeBSD man page says that a TAP
+device is exclusive-open. Third, we allocate
 a new 'Tap_vfs_handle', which is conveniently put into the '_handle_registry' by
 using the 'Genode::Registered' wrapper. The latter also takes care that the
-handle is removed from the registry on destruction. Note that we should also
-add a check here that ensures only a single handle is created since the FreeBSD
-man pages says that a TAP device is exclusive-open. I deliberately removed this check
-for readability, though.
+handle is removed from the registry on destruction.
 
 The read and write operations are part of the 'File_io_service' interface. This
 interface is already implemented by 'Single_file_system', which forwards most
 methods to 'Single_vfs_handle'. Let's thus look at 'Tap_vfs_handle', which
-implements the read and write operations and translates them to the uplink or
-NIC session interface. I omit the details here though, since it would inflate
-this article a lot. Note that 'Single_file_system' forwards 'complete_read()'
-to the handle's 'read()' method and always returns 'true' for 'queue_read()'.
-
+implements the read and write operations and translates them to the
+NIC session interface (details omitted for conciseness). Note that
+'Single_file_system' forwards 'complete_read()' to the handle's 'read()' method
+and always returns 'true' for 'queue_read()'.
 
 ! class Tap_vfs_handle : public Single_file_system::Single_vfs_handle
 ! {
 !    private:
-!       using Read_result  = File_io_service::Read_result;
-!       using Write_result = File_io_service::Write_result;
+!
+!       using Read_result    = File_io_service::Read_result;
+!       using Write_result   = File_io_service::Write_result;
+!
+!       Genode::Io_signal_handler<Tap_vfs_handle> _read_avail_handler {
+!         _env.ep(), *this, &Tap_vfs_handle::_handle_read_avail };
 !
 !       bool _notifying = false;
 !       bool _blocked   = false;
 !
 !       void _handle_read_avail()
 !       {
-!          if (!read_ready())
-!             return;
+!          if (!read_ready()) return;
 !
 !          if (_blocked) {
 !             _blocked = false;
-!             io_progress_response();
+!             _vfs_user.wakeup_vfs_user();
 !          }
 !
 !          if (_notifying) {
@@ -559,24 +545,50 @@ to the handle's 'read()' method and always returns 'true' for 'queue_read()'.
 !
 !    public:
 !
-!       Tap_vfs_handle(Allocator              &alloc,
+!       Tap_vfs_handle(Genode::Env            &env,
+!                      Vfs::Env::User         &vfs_user,
+!                      Allocator              &alloc,
 !                      Directory_service      &ds,
 !                      File_io_service        &fs,
 !                      int                     flags)
-!       : Single_vfs_handle  { ds, fs, alloc, flags }
-!       { }
+!       : Single_vfs_handle  { ds, fs, alloc, flags },
+!         _env(env), _vfs_user(vfs_user), _nic(/* ... */)
+!       {
+!          _nic.rx_channel()->sigh_ready_to_ack(_read_avail_handler);
+!          _nic.rx_channel()->sigh_packet_avail(_read_avail_handler);
+!       }
 !
 !       bool notify_read_ready() override
 !       {
 !          _notifying = true;
-!          retrun true;
+!          return true;
+!       }
+!       /* [...] (see below) */
+! };
+
+The _Tap_vfs_handle_ defines an signal-handler method '_handle_read_avail()' that notifies the C
+runtime or the VFS server of any progress. There are two types of progress
+notifications: I/O progress and read ready. The latter we have already come
+across when mentioning the 'notify_read_ready()' method of the
+'File_io_service'. In this implementation, we issue a read-ready response
+whenever the 'notify_read_ready()' was called before on this file handle.
+Similarly, we keep track of whether a 'read()' operation is unable to complete
+via the '_blocking' member variable. By calling 'wakeup_vfs_user()', the C
+runtime is notified of the fact that there was I/O progress, and it may retry
+the read operation. Note that the C runtime stalls any application-level signals
+when in a blocking operation, hence the '_read_avail_handler' must be declared as
+'Io_signal_handler'.
+
+! class Tap_vfs_handle : public Single_file_system::Single_vfs_handle
+! {
+!       /* [...] (see above) */
+!
+!       bool read_ready() const override
+!       {
+!          /* [...] */
 !       }
 !
-!       /************************
-!        * Vfs_handle interface *
-!        ************************/
-!
-!       bool read_ready() override
+!       bool write_ready() const override
 !       {
 !          /* [...] */
 !       }
@@ -597,143 +609,223 @@ to the handle's 'read()' method and always returns 'true' for 'queue_read()'.
 !       Write_result write(char const *src, file_size count,
 !                          file_size &out_count) override
 !       {
+!          if (!_nic.tx()->ready_to_submit())
+!             return Write_result::WRITE_ERR_WOULD_BLOCK;
+!
 !          /* [...] */
 !
 !          return Write_result::WRITE_OK;
 !       }
 ! };
 
-First, we defined a helper method '_handle_read_avail()' that notifies the C
-runtime or the VFS server of any progress. There are two types of progress
-notifications: I/O progress and read ready. The latter we have already came
-across when mentioning the 'notify_read_ready()' method of the
-'File_io_service'. In this implementation, we issue a read-ready response
-whenever the 'notify_read_ready()' was called before on this file handle.
-Similarly, we keep track of whether a 'read()' operation is unable to complete
-via the '_blocking' member variable. By issuing an I/O progress response, the C
-runtime is notified of the fact that it may retry the read operation. The last
-ingredient is inserting the proper result types: While 'READ_OK' and 'WRITE_OK'
+The last ingredient is inserting the proper result types: While 'READ_OK' and 'WRITE_OK'
 are self-explanatory, there are two common result types for unsuccessful
 reads/writes. On the one hand, 'READ_QUEUED' indicates that a previously queued
-read cannot be completed yet. On the other hand, we may return 'WRITE_ERR_WOULD_BLOCK'
-if, e.g., the submit queue of the NIC/uplink session's transmit channel is full.
+read cannot be completed. On the other hand, we may return 'WRITE_ERR_WOULD_BLOCK'
+if, e.g., the submit queue of the NIC session's transmit channel is full.
+
+Building the VFS library with Goa
+---------------------------------
+
+With the source code in place, you can try building the plugin with Goa. For this
+purpose, Goa needs to know what APIs are used by the source code. This is
+achieved by listing them in the _used_apis_ file. It's a good practice to start
+with the most obvious ones.
+
+! vfs_tap$ cat used_apis
+! genodelabs/api/base
+! genodelabs/api/os
+! genodelabs/api/vfs
+! genodelabs/api/nic_session
 
 
-Libc modifications
+Now, create an _artifacts_ file mentioning _vfs_tap.lib.so_ and try 'goa build':
+
+! vfs_tap$ echo "vfs_tap.lib.so" > artifacts
+! vfs_tap$ goa build
+! [vfs_tap] Error: no version defined for depot archive
+!   'genodelabs/api/nic_session'
+
+Apparently, Goa lacks any version information for the NIC session API. This
+information can be added by the following line in a _goarc_ file.
+
+! set version(genodelabs/api/nic_session) 2023-11-29
+
+Now, give 'goa build' another try:
+
+! vfs_tap$ goa build
+! ...
+! [vfs_tap:cmake] [100%] Linking CXX shared library vfs_tap.lib.so
+! [...]/ld: cannot find -l:ldso_so_support.lib.a: No such file or directory
+
+Oh yes, building a shared library requires adding the _so_ API to the
+_used_apis_ file.
+
+! vfs_tap$ echo "genodelabs/api/so" >> used_apis
+! vfs_tap$ goa build
+! [vfs_tap:cmake] -- Configuring done (0.0s)
+! [vfs_tap:cmake] -- Generating done (0.0s)
+! [vfs_tap:cmake] -- Build files have been written to: [...]/var/build/x86_64
+! [vfs_tap:cmake] [ 50%] Building CXX object
+!   CMakeFiles/vfs_tap.dir/vfs_tap.cc.obj
+! [vfs_tap:cmake] [100%] Linking CXX shared library vfs_tap.lib.so
+! [vfs_tap:cmake] [100%] Built target vfs_tap
+! [vfs_tap] Error: missing symbols file 'vfs_tap'
+!  
+!  You can generate this file by running 'goa extract-abi-symbols'.
+
+Well, Goa noticed that you are building a shared library object and expects
+a symbols file. Usually, when we create a library with Goa, we also want to
+export an API archive which comprises the header files and the exported symbols
+to allow linking against the library's ABI. This, however, is not needed for
+a VFS plugin library. You may therefore use an empty symbols file to satisfy
+Goa.
+
+! vfs_tap$ mkdir symbols
+! vfs_tap$ touch symbols/vfs_tap
+! vfs_tap$ goa build
+! ...
+! [vfs_tap:cmake] [100%] Built target vfs_tap
+
+Yay, you've successfully built the VFS plugin.
+
+Testing the plugin
 ------------------
 
-The 'Tap_vfs_handle' completes the (simplified) implementation of our new VFS
-plugin. However, it still requires a few libc modifications to map the specific
-ioctl to the pseudo-file system.
+Let's create a simple test application that uses the VFS plugin. For this, you
+need a separate project directory with a _src_ subdirectory:
 
-The relevant part to modify resides in _libports/src/lib/libc/vfs_plugin.cc_.
-First, we modify the 'Libc::Vfs_plugin::ioctl()' to forward the corresponding
-ioctl requests to a '_ioctl_tapctl' method that we are going to implement later.
+! vfs_tap$ mkdir -p test-vfs_tap/src
 
-! int Libc::Vfs_plugin::ioctl(File_descriptor *fd, unsigned long request, char *argp)
-! {
-!    switch (request) {
-!    /* [...] */
-!    case TAPSIFINFO:
-!    case TAPGIFINFO:
-!    case TAPSDEBUG:
-!    case TAPGDEBUG:
-!    case TAPGIFNAME:
-!    case SIOCGIFADDR:
-!    case SIOCSIFADDR:
-!       result = _ioctl_tapctl(fd, request, argp);
-!       break;
-!    default:
-!       break;
-!    }
+You'll also need to use the same depot dir, which can be achieved by adding the
+following lines to the _goarc_ file:
 
-!    /* [...] */
+! vfs_tap$ echo "set depot_dir  ./var/depot"  >> goarc
+! vfs_tap$ echo "set public_dir ./var/public" >> goarc
 
-Note, that I added all request that I know of irrespective of whether we intend
-to handle them in '_ioctl_tapctl'. Let’s have a look at the latter:
+With these settings in place, you are able to export your _vfs_tap_ archive.
+Let's assume your depot user is "john". Don't forget to initialize the version
+file and to add a _LICENSE_ file. You may start with an empty file for testing:
 
-! Libc::Vfs_plugin::Ioctl_result
-! Libc::Vfs_plugin::_ioctl_tapctl(File_descriptor *fd, unsigned long request, char *argp)
-! {
-!    bool handled = false;
-!    int  result  = 0;
+! vfs_tap$ goa bump-version
+! vfs_tap$ touch LICENSE
+! vfs_tap$ goa export --depot-user john
+! [vfs_tap] exported [...]/var/depot/john/src/vfs_tap/2024-08-02
+! [vfs_tap] exported [...]/var/depot/john/bin/x86_64/vfs_tap/2024-08-02
+
+Now, you need to add some code for the test application. Simply use the example
+code from the very beginning of this section and place it in the file
+_test-vfs_tap/src/test-vfs_tap.cc_. Also add a _Makefile_, an _artifacts_ file
+and a _used_apis_ file:
+
+! vfs_tap$ echo "test-vfs_tap: test-vfs_tap.cc" > test-vfs_tap/src/Makefile
+! vfs_tap$ echo "test-vfs_tap" > test-vfs_tap/artifacts
+! vfs_tap$ echo "genodelabs/api/libc"  >  test-vfs_tap/used_apis
+! vfs_tap$ echo "genodelabs/api/posix" >> test-vfs_tap/used_apis
+
+In order to run the test application, you need to define a runtime scenario.
+The Genode repository contains a ping application that you can use for
+generating some network traffic. When both, the ping component and the test
+application connect to the same domain of a NIC router, you should be able to
+see some output of the test application. For this purpose, create the following
+_runtime_ file at _test-vfs_tap/pkg/test-vfs_tap_:
+
+! <runtime ram="20M" caps="1000" binary="init">
+!    <requires> <timer/> </requires>
 !
-!    if (request == TAPGIFNAME) {       /* return device name */
-!       if (!argp)
-!          return { true, EINVAL };
+!    <config>
+!       <parent-provides>
+!          <service name="PD"/>
+!          <service name="CPU"/>
+!          <service name="LOG"/>
+!          <service name="ROM"/>
+!          <service name="Timer"/>
+!       </parent-provides>
 !
-!       ifreq *ifr = reinterpret_cast<ifreq*>(argp);
+!       <default caps="100"/>
+!       <default-route>
+!          <service name="Nic"> <child name="nic_router"/> </service>
+!          <any-service>        <parent/>                  </any-service>
+!       </default-route>
 !
-!       monitor().monitor([&] {
-!          _with_info(*fd, [&] (Xml_node info) {
-!             if (info.type() == "tap") {
-!                String<IFNAMSIZ> name =
-!                   info.attribute_value("name", String<IFNAMSIZ> { });
-!                copy_cstring(ifr->ifr_name, name.string(), IFNAMSIZ);
-!                handled = true;
-!             }
-!          });
+!       <start name="test-vfs_tap">
+!          <resource name="RAM" quantum="8M"/>
+!          <config>
+!             <libc stdout="/dev/log"/>
+!             <vfs>
+!                <dir name="dev"> <log/>
+!                                 <tap name="tap0"/> </dir>
+!             </vfs>
+!          </config>
+!       </start>
 !
-!          return Fn::COMPLETE;
-!       });
-!    }
+!       <start name="nic_router">
+!          <resource name="RAM" quantum="2M"/>
+!          <provides> <service name="Nic"/>
+!                     <service name="Uplink"/> </provides>
+!          <config verbose_domain_state="yes" verbose="yes">
+!             <default-policy domain="default"/>
+!             <domain name="default" interface="10.0.2.1/24"/>
+!          </config>
+!       </start>
 !
-!    /* [...] */
+!       <start name="ping">
+!          <resource name="RAM" quantum="4M"/>
+!          <config interface="10.0.2.2/24" gateway="10.0.2.1"
+!                  dst_ip="10.0.2.123" period_sec="5" verbose="no"/>
+!       </start>
+!    </config>
 !
-!    return { handled, result };
-! }
+!    <!-- [...] see below -->
+! </runtime>
 
-The result type 'Ioctl_result' lets us distinguish whether the request was
-not handled or handled with/without errors. By the example of 'TAPGIFNAME', we
-see how the monitor pattern is applied in order to enqueue an I/O job and wait
-for its completion. The aforementioned I/O progress response, e.g., triggers the
-execution of pending jobs. The helper '_with_info' simplifies accessing the
-_info_ file associated with the file descriptor.
+! <runtime>
+!    <!-- [...] see above -->
+!
+!    <content>
+!       <rom label="test-vfs_tap"/>
+!       <rom label="libc.lib.so"/>
+!       <rom label="libm.lib.so"/>
+!       <rom label="posix.lib.so"/>
+!       <rom label="vfs.lib.so"/>
+!       <rom label="vfs_tap.lib.so"/>
+!       <rom label="ping"/>
+!       <rom label="nic_router"/>
+!    </content>
+!
+! </runtime>
 
+Goa also needs to know in what archives it can find the content ROM modules
+mentioned in the _runtime_ file. This is achieved by the following _archives_
+file at _test-vfs_tap/pkg/test-vfs_tap_:
 
-Pitfalls
---------
+! genodelabs/src/init
+! genodelabs/src/libc
+! genodelabs/src/vfs
+! genodelabs/src/posix
+! genodelabs/src/nic_router
+! john/src/vfs_tap
+! jschlatow/src/ping/2024-04-11
 
-In this article, I deliberately left out quite a bit of implementation details
-to provide a more generic guide and blueprint for writing VFS plugins. The
-downside of this is that I was not able to convey some lessons learned, yet.
-Let’s make up for this in this separate section.
+Now, you can give the test scenario a try:
 
-The current implementation allows reading and writing the MAC address. When
-using 'Net::Mac_address' as type for the 'Value_file_system' template, I got a
-compile-time error, though. Looking at the implementations clarified that the
-template expects the type to have a constructor taking 0 as an argument.
-However, this cannot be unambiguously resolved for 'Net::Mac_address', which
-defines 'Mac_address(int)' and 'Mac_address(void*)'. Instead of modifying the
-template or 'Net::Mac_address', I opted for writing a simple 'Mac_file_sytem'
-class that overrides the 'value()' method of 'Value_file_system'.
+! vfs_tap$ goa run -C test-vfs_tap/
+! Genode sculpt-24.04
+! 17592186044415 MiB RAM and 18997 caps assigned to init
+! [init -> test-vfs_tap -> nic_router] [default] static IP config: interface ...
+! [init -> test-vfs_tap -> nic_router] [default] NIC sessions: 0
+! [init -> test-vfs_tap -> nic_router] [default] initiated domain
+! [init -> test-vfs_tap -> nic_router] [default] NIC sessions: 1
+! [init -> test-vfs_tap -> nic_router] [default] NIC sessions: 2
+! [init -> test-vfs_tap -> test-vfs_tap] MAC: 02:02:02:02:02:02
+! [init -> test-vfs_tap -> nic_router] [default] forward ARP request for local
+!   IP to all interfaces of the sender domain
+! [init -> test-vfs_tap -> test-vfs_tap] Received packet with 42 bytes
+! [init -> test-vfs_tap -> test-vfs_tap] ffffffff 0202ffff 01020202 01000608
+! [init -> test-vfs_tap -> test-vfs_tap] 04060008 02020100 01020202 0202000a
+! [init -> test-vfs_tap -> test-vfs_tap] ffffffff 000affff 027b
 
-After I managed to compile the vfs_tap library and my test application, and gave
-both a spin, it got stuck on the second 'read()' operation. In other words, the
-packet-available signal from the uplink session was not received. This left me
-pondering for a moment but, looking at other implementations, I noticed a
-difference: The 'Uplink_client_base' that I copied and modified to implement the
-'Tap_vfs_handler' used a 'Signal_handler' whereas other VFS plugins were using
-an 'Io_signal_handler'. As I learned from the
-[https://genode.org/documentation/release-notes/17.05#Separation_of_I_O_signals_from_application-level_signals - release notes 17.05],
-the C runtime defers applications signals as long as it remains in a blocking
-function like 'read()'and only receives I/O signals. Hence, using
-'Io_signal_handler' in my modified 'Uplink_client_base' resolved this issue.
-
-The last lesson I had to take was a page fault when closing a file descriptor in
-my test application. I actually needed to dig into this for a while to find the
-culprit. For implementing a 'Tap_vfs_handle' that translates read/write
-operations to an uplink session, I inherited from 'Uplink_client_base' in
-addition to 'Single_vfs_handle'. Yet, I had not spent any thought on the order
-of the two base classes. Putting the 'Single_vfs_handle' at second position
-caused the page fault on destruction. Why is that? There are actually multiple
-conditions that led to this. First, the 'Single_file_system' implements the
-'close()' method by destroying the object pointed to by a 'Single_vfs_handle*'.
-When 'Single_vfs_handle' is the secondary base class, however, the pointer does
-not point to the start of the memory block that we allocated when creating our
-'Registered_handle'. Instead, it will have an offset. Deep down the base
-framework, this corner case was masked and thereby triggered the page fault.
-I spare you the very details though since, with release 22.02, there is a proper
-error message in place. The take-away lesson here is that we need to put
-'Single_vfs_handle' at first position in the list of base classes.
-
+Excellent! The complete code of this tutorial is available on
+[https://github.com/jschlatow/goa-projects/tree/master/examples/vfs_tap - github].
+The official implementation of the vfs_tap plugin is part of the
+[https://github.com/genodelabs/genode/tree/master/repos/os/src/lib/vfs/tap - Genode repository].

@@ -1,19 +1,590 @@
+; vim: tw=80 et ts=2 sw=2
+
 Development & Debugging
 #######################
 
-Backtrace tool
-==============
+This chapter describes how to prepare and build Genode executables for
+debugging. Furthermore, it shows how to debug a runtime scenario on a Linux host
+and on Sculpt OS.
 
-- no-omit-frame-pointer
-- ld_verbose
-- ...
+
+Adding debug info files
+=======================
+
+Binary depot archives merely contain stripped binaries.
+[https://genode.org/documentation/release-notes/23.11#Debug_information_for_depot_binaries - Release 23.11]
+added the option to build and publish _dbg_ archives that contain
+the corresponding debug info files along with the binary archives.
+
+When provided with the '--debug' switch, Goa takes care of _dbg_ archives. A
+'goa run --debug' will thus try downloading required _dbg_ archives before
+running the scenario and link the debug info files into the _.debug_
+subdirectory of the project's run directory. Moreover, it will create debug info
+files for all binary artifacts of the project. When exporting/publishing a
+project, the '--debug' switch instructs Goa to create _dbg_ archives along with
+the created _bin_ archives.
+
+
+Using backtraces
+================
+
+Genode's _os_ API provides the utility function
+'Genode::backtrace()' to walk the stack and print the return addresses along
+the way. In order to use this function, _genodelabs/api/os_ must be added to
+the _used_apis_ file. The function is then made available by including the
+_os/backtrace.h_ header. For demonstration, let's have a look at the
+_system_info_ component (Section [Light and Versatile Graphics Library (LVGL)]).
+After inserting a 'Genode::backtrace()' in 'Info::Bar::_draw_part_event_cb()'
+in _system_info.h_ followed by an infinite loop, 'goa run' produces the
+following output:
+
+! system_info$ goa run
+! Genode sculpt-24.04
+!  17592186044415 MiB RAM and 18997 caps assigned to init
+! [init -> system_info] [Warn]  (0.000, +0) lv_init: Style sanity checks [...]
+! [init -> system_info] [Warn]  (0.000, +0) lv_style_init: Style might be [...]
+! [init -> system_info] backtrace "ep"
+
+This is obviously not very helpful. To assist the 'backtrace()' function to
+parse stack frames correctly, the build system must be instructed to preserve
+frame-pointer information. Goa now provides the command-line switch
+'--with-backtrace' for this purpose. Let's give it a try:
+
+! system_info$ goa run --with-backtrace
+! Genode sculpt-24.04
+! 17592186044415 MiB RAM and 18997 caps assigned to init
+! [init -> system_info] [Warn]  (0.000, +0) lv_init: Style sanity checks [...]
+! [init -> system_info] [Warn]  (0.000, +0) lv_style_init: Style might be [...]
+! [init -> system_info] backtrace "ep"
+! [init -> system_info]   403ff728       1003f7b
+! [init -> system_info]   403ff798       1003fd1
+! [init -> system_info]   403ff7b8       103a5ad
+! [init -> system_info]   403ff7e8  7ffff7fdedd0
+
+The second column of the backtrace data shows the return addresses on the call
+stack. The first two addresses certainly belong to the _system_info_ binary. The
+third address, however, looks as if it might already belong to a shared library.
+For evaluation of the backtrace, one needs to know to which
+addresses the shared libraries have been relocated. This information is acquired
+by adding the 'ld_verbose="yes"' attribute to the component's config. Let's try
+again:
+
+! system_info$ goa run --with-backtrace
+! Genode sculpt-24.04
+! 17592186044415 MiB RAM and 18997 caps assigned to init
+! [init -> system_info]   0x1000000 .. 0x10ffffff: linker area
+! [init -> system_info]   0x40000000 .. 0x4fffffff: stack area
+! [init -> system_info]   0x50000000 .. 0x601b2fff: ld.lib.so
+! [init -> system_info]   0x10e1d000 .. 0x10ffffff: libc.lib.so
+! [init -> system_info]   0x10d79000 .. 0x10e1cfff: vfs.lib.so
+! [init -> system_info]   0x10d37000 .. 0x10d78fff: libm.lib.so
+! [init -> system_info]   0x101c000 .. 0x11f3fff: liblvgl.lib.so
+! [init -> system_info]   0x10d2f000 .. 0x10d36fff: posix.lib.so
+! [init -> system_info]   0x11f4000 .. 0x120efff: liblvgl_support.lib.so
+! [init -> system_info]   0x120f000 .. 0x148cfff: stdcxx.lib.so
+! [init -> system_info] [Warn]  (0.000, +0) lv_init: Style sanity checks [...]
+! [init -> system_info] [Warn]  (0.000, +0) lv_style_init: Style might be [...]
+! [init -> system_info] backtrace "ep"
+! [init -> system_info]   403ff728       1003f7b
+! [init -> system_info]   403ff798       1003fd1
+! [init -> system_info]   403ff7b8       103a5ad
+! [init -> system_info]   403ff7e8  7ffff7fdedd0
+
+The output confirms that the third address belongs to _liblvgl.lib.so_. For
+convenient interpretation of the backtrace data, Goa mirrors the
+_tool/backtrace_ utility from the Genode repository. This utility
+translates the addresses from the backtrace into source code lines. The
+'goa backtrace' command executes a 'goa run --debug --with-backtrace' and
+feeds the log output into the backtrace tool:
+
+! system_info$ goa backtrace
+! Genode sculpt-24.04
+! 17592186044415 MiB RAM and 18997 caps assigned to init
+! [init -> system_info]   0x1000000 .. 0x10ffffff: linker area
+! [init -> system_info]   0x40000000 .. 0x4fffffff: stack area
+! [init -> system_info]   0x50000000 .. 0x601b2fff: ld.lib.so
+! [init -> system_info]   0x10e1d000 .. 0x10ffffff: libc.lib.so
+! [init -> system_info]   0x10d79000 .. 0x10e1cfff: vfs.lib.so
+! [init -> system_info]   0x10d37000 .. 0x10d78fff: libm.lib.so
+! [init -> system_info]   0x101c000 .. 0x11f3fff: liblvgl.lib.so
+! [init -> system_info]   0x10d2f000 .. 0x10d36fff: posix.lib.so
+! [init -> system_info]   0x11f4000 .. 0x120efff: liblvgl_support.lib.so
+! [init -> system_info]   0x120f000 .. 0x148cfff: stdcxx.lib.so
+! [init -> system_info] [Warn]  (0.000, +0) lv_init: Style sanity checks [...]
+! [init -> system_info] [Warn]  (0.000, +0) lv_style_init: Style might be [...]
+! [init -> system_info] backtrace "ep"
+! [init -> system_info]   403ff728       1003f7b
+! [init -> system_info]   403ff798       1003fd1
+! [init -> system_info]   403ff7b8       103a5ad
+! [init -> system_info]   403ff7e8  7ffff7fdedd0
+! Expect: 'interact' received 'strg+c' and was cancelled
+! Scanned image system_info
+! Scanned image ld.lib.so
+! ...
+! void Genode::log<Genode::Backtrace>(Genode::Backtrace&&)
+!     * 0x1003f7b: system_info:0x1003f7b W
+!     * /depot/genodelabs/api/base/2024-04-11/include/base/log.h:170
+!
+! Info::Bar::_draw_part_event_cb(_lv_event_t*)
+!     * 0x1003fd1: system_info:0x1003fd1 W
+!     * [...]/var/build/x86_64/system_info.h:277 (discriminator 1)
+!
+! event_send_core
+!     * 0x103a5ad: liblvgl.lib.so:0x1e5ad t
+!     * [...]/goa-projects/lvgl/lvgl/src/src/core/lv_event.c:469
+!
+! _end
+!     * 0x7ffff7fdedd0: liblvgl_support.lib.so:0x7ffff6deadd0 B
+!     * ??:0
+
+The output shows that the first address on the stack points to the backtrace method
+itself. The second address points to the '_draw_part_event_cb()' in which we
+inserted the backtrace call. The third address points to liblvgl where the
+callback method was called, however, the backtrace stops here because the
+lvgl library was not built with frame-pointer information.
+
+Let's re-export liblvgl using the '--with-backtrace' switch and try again:
+
+! lvgl$ goa export --debug --with-backtrace --depot-overwrite
+! ...
+! [lvgl] exported [...]/depot/jschlatow/api/lvgl/2024-05-06
+! [lvgl] exported [...]/depot/jschlatow/src/lvgl/2024-05-06
+! [lvgl] exported [...]/depot/jschlatow/bin/x86_64/lvgl/2024-05-06
+! [lvgl] exported [...]/depot/jschlatow/dbg/x86_64/lvgl/2024-05-06
+
+! lvgl$ cd ../system_info
+! system_info$ goa backtrace
+! ...
+! [init -> system_info] backtrace "ep"
+! [init -> system_info]   403ff6a8   1003f7b
+! [init -> system_info]   403ff718   1003fd1
+! [init -> system_info]   403ff738   103a57e
+! [init -> system_info]   403ff758   103a618
+! [init -> system_info]   403ff7a8   109d711
+! [init -> system_info]   403ff9a8   103a325
+! [init -> system_info]   403ff9c8   103a46a
+! [init -> system_info]   403ff9e8   103a618
+! [init -> system_info]   403ffa38   1048f10
+! [init -> system_info]   403ffab8   1048eb7
+! [init -> system_info]   403ffb38   1048eb7
+! [init -> system_info]   403ffbb8   1048eb7
+! [init -> system_info]   403ffc38   1048eb7
+! [init -> system_info]   403ffcb8   1049611
+! [init -> system_info]   403ffd08   10496ff
+! [init -> system_info]   403ffe38   104ab23
+! [init -> system_info]   403ffec8   109a048
+! [init -> system_info]   403fff18  10f52382
+
+! Expect: 'interact' received 'strg+c' and was cancelled
+! Scanned image system_info
+! Scanned image ld.lib.so
+! ...
+! void Genode::log<Genode::Backtrace>(Genode::Backtrace&&)
+!     * 0x1003f7b: system_info:0x1003f7b W
+!     * /depot/genodelabs/api/base/2024-04-11/include/base/log.h:170
+! 
+! Info::Bar::_draw_part_event_cb(_lv_event_t*)
+!     * 0x1003fd1: system_info:0x1003fd1 W
+!     * [...]/var/build/x86_64/system_info.h:277 (discriminator 1)
+! 
+! event_send_core
+!     * 0x103a57e: liblvgl.lib.so:0x1e57e t
+!     * [...]/goa-projects/lvgl/lvgl/src/src/core/lv_event.c:469
+! 
+! lv_event_send
+!     * 0x103a618: liblvgl.lib.so:0x1e618 T
+!     * [...]/goa-projects/lvgl/lvgl/src/src/core/lv_event.c:78
+! 
+! draw_indic
+!     * 0x109d711: liblvgl.lib.so:0x81711 t
+!     * [...]/goa-projects/lvgl/lvgl/src/src/widgets/lv_bar.c:506
+! ...
+
+Well, that looks much more helpful.
+
 
 Debugging with Goa on base-linux
 ================================
 
+The Goa tool streamlines application development and testing as it allows
+executing a Genode runtime directly on the Linux host system. Goa leverages the
+ABI compatibility of Genode executables with all supported kernels. Genode
+executables can therefore be run as Linux processes (using base-linux).
+
+Goa's default run target _linux_ creates a _<project-name>.gdb_ file in the
+project's var directory to assist with GDB's initialisation. Other run targets
+may copy this convention. As mentioned in Section [Adding debug info files],
+Goa should be provided with the '--debug' switch to prepare the run directory
+with additional debug info files:
+
+! system_info$ goa run --debug
+
+Once the scenario of interest is running, you need to find the process ID (PID)
+of the to-be-debugged component (e.g. by using 'pgrep -f'). With the PID at
+hand, you can start GDB and attach to the running process:
+
+! $ sudo gdb --command /path/to/project/var/project_name.gdb
+! GNU gdb (GDB) 14.2
+! Copyright (C) 2023 Free Software Foundation, Inc.
+! License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+! This is free software: you are free to change and redistribute it.
+! There is NO WARRANTY, to the extent permitted by law.
+! Type "show copying" and "show warranty" for details.
+! This GDB was configured as "x86_64-pc-linux-gnu".
+! Type "show configuration" for configuration details.
+! For bug reporting instructions, please see:
+! <https://www.gnu.org/software/gdb/bugs/>.
+! Find the GDB manual and other documentation resources online at:
+!     <http://www.gnu.org/software/gdb/documentation/>.
+! 
+! For help, type "help".
+! Type "apropos word" to search for commands related to "word".
+! (gdb) attach 2228
+! Attaching to process 2228
+! [New LWP 2237]
+! [New LWP 2246]
+! Reading symbols from [...]/depot/[...]/base-linux/2024-04-24/ld.lib.so...
+! (No debugging symbols found in [...]/base-linux/2024-04-24/ld.lib.so)
+! 0x000000005009f74a in ?? ()
+! (gdb) 
+! Thread 2 "ld.lib.so" stopped.
+! 0x000000005009f74a in ?? ()
+! 
+! Thread 3 "ld.lib.so" stopped.
+! 0x000000005009f74a in ?? ()
+
+On attach, GDB fails to load symbols from the binary because it does not
+know about the location of the corresponding debug info file. Moreover, GDB
+stops execution of all threads.
+
+The _<project-name>.gdb_ file instructs GDB to change into the run directory,
+where the debug info files are made available in the _.debug_ subdirectory.
+GDB provides the commands _symbol-file_ and _add-symbol-file_ for symbol loading.
+The former is used for the main binary whereas the latter is intended for adding
+shared-library symbols. Let's give it a try:
+
+! (gdb) symbol-file .debug/system_info.debug
+! Reading symbols from .debug/system_info.debug...
+!
+! (gdb) add-symbol-file .debug/ld.lib.so
+! add symbol table from file ".debug/ld.lib.so.debug"
+! (y or n) y
+! Reading symbols from .debug/ld.lib.so.debug...
+!
+! (gdb) add-symbol-file .debug/liblvgl.lib.so.debug -o 0x101b000
+! add symbol table from file ".debug/liblvgl.lib.so.debug" with all sections
+!   offset by 0x101b000
+! (y or n) y
+! Reading symbols from .debug/liblvgl.lib.so.debug...
+
+Except for the main binary and ld.lib.so, an offset address must
+be specified when loading symbols depending on where the libraries have been
+relocated. These addresses are shown by adding 'ld_verbose="yes"' to the
+component config.
+
+With the symbols loaded, GDB's 'info threads' command shows at which line each
+thread has been stopped:
+
+! (gdb) info threads
+!   Id   Target Id            Frame
+! * 1    LWP 2228 "ld.lib.so" pseudo_end () at [...]/spec/x86_64/lx_syscall.S:29
+!   2    LWP 2237 "ld.lib.so" pseudo_end () at [...]/spec/x86_64/lx_syscall.S:29
+!   3    LWP 2246 "ld.lib.so" pseudo_end () at [...]/spec/x86_64/lx_syscall.S:29
+
+The selected thread is marked with an '*'. Let's continue all threads and switch
+to thread 2 (see Section [Using Sculpt as a remote test target] for more details):
+
+! (gdb) continue -a &
+! Continuing.
+! (gdb) thread 2
+! [Switching to thread 2 (LWP 2237)]
+! (gdb) info threads
+!   Id   Target Id            Frame 
+!   1    LWP 2228 "ld.lib.so" (running)
+! * 2    LWP 2237 "ld.lib.so" (running)
+!   3    LWP 2246 "ld.lib.so" (running)
+
+At this point, you are able to step through the individual threads:
+
+! (gdb) interrupt
+! Thread 2 "ld.lib.so" stopped.
+! pseudo_end () at [...]/src/lib/syscall/spec/x86_64/lx_syscall.S:29
+! 29              ret            /* Return to caller.  */
+! (gdb) stepi
+! Genode::Native_thread::Epoll::poll (this=0x401fffe8)
+!   at [...]/src/lib/base/native_thread.cc:82
+! 82                   if ((event_count == 1) && (events[0].events == POLLIN)) {
+! (gdb)
+
+Admittedly, navigating through the depth of ld.lib.so is a bit cumbersome. For
+serious debugging, you would ideally be using breakpoints. GDB provides the 'list'
+command for showing source code. Let's peek into _system_info.cc_ and insert
+a breakpoint in 'handle_resize()':
+
+! (gdb) list system_info.cc:90
+! 85                                    .use_periodic_timer = true,
+! 86                                    .periodic_ms        = 5000,
+! 87                                    .resize_callback    = &_resize_callback,
+! 88                                    .timer_callback     = &_timer_callback,
+! 89           };
+! 90
+! 91
+! 92           void handle_resize()
+! 93           {
+! 94                   Libc::with_libc([&] {
+! (gdb) break system_info.cc:94
+! 
+! Breakpoint 1 at 0x1000d50: system_info.cc:94. (2 locations)
+! Warning:
+! Cannot insert breakpoint 1.
+! Cannot access memory at address 0x1000d50
+! Cannot insert breakpoint 1.
+! Cannot access memory at address 0x1001c79
+
+Unfortunately, base-linux prevents inserting breakpoints at runtime
+by default. You may apply the following patch to base-linux in order to enable
+software breakpoints:
+
+! --- a/repos/base-linux/src/lib/base/region_map_mmap.cc
+! +++ b/repos/base-linux/src/lib/base/region_map_mmap.cc
+! @@ -132,7 +132,7 @@ Region_map_mmap::_map_local(Dataspace_capability ds,
+!         writeable = _dataspace_writeable(ds) && writeable;
+!  
+!         int  const  fd        = _dataspace_fd(ds);
+! -       int  const  flags     = MAP_SHARED | (overmap ? MAP_FIXED : 0);
+! +       int  const  flags     = (writeable ? MAP_SHARED : MAP_PRIVATE)
+! +                               | (overmap ? MAP_FIXED : 0);
+!         int  const  prot      = PROT_READ
+!                               | (writeable  ? PROT_WRITE : 0)
+!                               | (executable ? PROT_EXEC  : 0);
+
+For providing the modified
+base-linux archive to Goa, you need to build pkg/goa and pkg/goa-linux and tell
+Goa not to use the _genodelabs_ archives but your own archives by using the
+'--run-as <user>' argument. Alternatively, you may edit Goa's linux.tcl file to
+pin only the base-linux archive to your depot.
+
+Let's opt for the latter version and provide Goa with the corresponding version
+information using a '--version-...' argument:
+
+! system_info$ goa run --debug --version-jschlatow/src/base-linux 2024-06-27
+
+After repeating the steps for symbol loading, breakpoints can be added
+successfully:
+
+! (gdb) break system_info.h:272
+! Breakpoint 1 at 0x1001890: file [...]/var/build/x86_64/system_info.h, line 272
+! (gdb) 
+! Thread 2 "ld.lib.so" hit Breakpoint 1, Info::Bar::_draw_part_event_cb
+!     at [...]/var/build/x86_64/system_info.h:272
+! 272              lv_obj_draw_part_dsc_t * dsc = lv_event_get_draw_part_dsc(e);
+
+
+
 Using Sculpt as a remote test target
 ====================================
 
-On-target debugging with GDB
-============================
+Running (and debugging) Genode applications with Goa on base-linux is typically
+the first step. For advanced runtime scenarios, Goa also supports using a Sculpt
+system as a remote test target, which eliminates the need for manually
+transferring depot archives.
 
+Goa places all files required for running a scenario in the project's run
+directory. By transferring these files to the remote system, we are basically
+able to launch the scenario on that system. A specifically tailored subsystem
+called "goa testbed" is available as a preset since Sculpt 24.04. This subsystem
+hosts a _lighttpd_ server with the _mod_webdav_ module enabled. This allows
+Goa to use the server-provided HTTP ETags to identify what files from the
+run directory need to be (re-)uploaded via HTTP PUT.
+
+In addition to lighttpd, the testbed runs a sub-init that reacts
+to changes to the config file from the synchronised run directory. Once all
+prerequisites have been synchronised, starting a scenario on the remote system
+comes down to uploading the config file. By deleting the config file from
+the remote system, the scenario is killed.
+
+Log output is made available via telnet using an integrated TCP terminal
+component. Since Sculpt 24.10, the Goa testbed uses the debug monitor for the
+sub-init in order to support debugging via GDB. The debug monitor's terminal
+connection is made available via a separate TCP terminal. The below figure
+illustrates the resulting interplay between Goa and the Goa testbed.
+
+[tikz img/goa_gdb_sculpt 100%]
+
+In order to run a Goa project on a remote Sculpt system, you first need to
+launch goa_testbed, which is best done by enabling the built-in preset.
+
+On the development system, you can switch the run target by adding the
+'--target sculpt' option to Goa's command line. The IP address of the remote
+system is specified by the '--target-opt-sculpt-server' argument
+(see 'goa help targets'). Let's give the _system info_ scenario a spin:
+
+! system_info$ goa run --target sculpt --target-opt-sculpt-server <sculpt-ip>
+! uploaded libm.lib.so (remote change)
+! uploaded stdcxx.lib.so (remote change)
+! uploaded vfs.lib.so (remote change)
+! uploaded liblvgl.lib.so (local change)
+! uploaded system_info (local change)
+! uploaded posix.lib.so (remote change)
+! uploaded liblvgl_support.lib.so (local change)
+! uploaded libc.lib.so (remote change)
+! uploaded config (local change)
+! Trying 192.168.42.54...
+! Connected to 192.168.42.54.
+! Escape character is '^]'.
+! [monitor] monitor ready
+! [init -> system_info] [Warn]  (0.000, +0) lv_init: Style sanity checks [...]
+! Expect: 'interact' received 'strg+c' and was cancelled
+! deleted config
+
+The app magically pops up on the target system and the log output is shown on
+the development system. When hitting ctrl+c, the config is deleted from the
+target system, which kills the app.
+
+For starting a debugging session, you should add the '--debug' and
+'--target-opt-sculpt-kernel' arguments. The latter tells Goa what kernel the
+remote target is running so that the debug symbols of the corresponding
+ld.lib.so library can be made available:
+
+! system_info$ goa run --debug --target sculpt \
+!   --target-opt-sculpt-server 192.168.42.54 --target-opt-sculpt-kernel nova
+
+The _sculpt_ run target follows the lead of the _linux_ target and also
+generates a _<project-name>.gdb_ to assist GDB initialisation. Let's peek into
+the file:
+
+! $ cat [...]/var/system_info.gdb
+! cd [...]/var/run
+! set non-stop on
+! set substitute-path /data/depot /home/johannes/repos/genode/depot
+! set substitute-path /depot /home/johannes/repos/genode/depot
+! target extended-remote 192.168.42.54:9999
+
+The file instructs GDB to change into the project's run directory and sets GDB
+into non-stop mode. Moreover, GDB must be pointed to the correct depot location
+on the host system. The paths from the debug info files typically refer to
+files at _/data/depot_ or _/depot_. These paths can be relocated by using
+the 'set substitute-path' command. The last line instructs GDB to connect to
+the remote target using the address provided via the
+'--target-opt-sculpt-server' argument and the port provided by
+'--target-opt-sculpt-port-gdb'.
+
+Let's start GDB with this file. In contrast to debugging on Linux, you should
+use the gdb binary from the Genode tool chain. Moreover, root privileges are
+not required.
+
+! $ genode-x86-gdb --command /path/to/project/var/project_name.gdb
+! GNU gdb (GDB) 13.1
+! Copyright (C) 2023 Free Software Foundation, Inc.
+! License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+! This is free software: you are free to change and redistribute it.
+! There is NO WARRANTY, to the extent permitted by law.
+! Type "show copying" and "show warranty" for details.
+! This GDB was configured as "--host=x86_64-pc-linux-gnu --target=x86_64-pc-elf".
+! Type "show configuration" for configuration details.
+! For bug reporting instructions, please see:
+! <https://www.gnu.org/software/gdb/bugs/>.
+! Find the GDB manual and other documentation resources online at:
+!     <http://www.gnu.org/software/gdb/documentation/>.
+! 
+! For help, type "help".
+! Type "apropos word" to search for commands related to "word".
+! warning: No executable has been specified and target does not support
+! determining executable automatically.  Try using the "file" command.
+! (gdb) warning: No executable has been specified and target does not support
+! determining executable automatically.  Try using the "file" command.
+! (gdb) info inferiors
+!   Num  Description       Connection                             Executable
+! * 1    process 1         1 (extended-remote 192.168.42.54:9999)
+
+GDB's 'info inferiors' command lists a single process. Let's have a look at
+the threads:
+
+! (gdb) info threads
+!   Id   Target Id                   Frame 
+!   1    Thread 1.1 "system_info"    (running)
+!   2    Thread 1.2 "ep"             (running)
+! * 3    Thread 1.3 "signal handler" (running)
+
+Fortunately, we are provided with the thread names. The "system_info" thread is
+the initial thread set up by Genode's init component. After component
+initialization, however, the entrypoint thread "ep" becomes the most
+interesting thread for Genode components. Let's therefore switch to thread 2 as
+we did in the previous section without giving any explanation:
+
+! (gdb) thread 2
+! [Switching to thread 2 (Thread 1.2)](running)
+
+As before, symbols must be loaded manually:
+
+! (gdb) symbol-file .debug/system_info.debug 
+! Reading symbols from .debug/system_info.debug...
+!
+! (gdb) add-symbol-file .debug/ld.lib.so.debug 
+! add symbol table from file ".debug/ld.lib.so.debug"
+! (y or n) y
+! Reading symbols from .debug/ld.lib.so.debug...
+!
+! (gdb) add-symbol-file .debug/liblvgl.lib.so.debug -o 0x101b000
+! add symbol table from file ".debug/liblvgl.lib.so.debug" with all sections
+!   offset by 0x101b000
+! (y or n) y
+! Reading symbols from .debug/liblvgl.lib.so.debug...
+
+With the most essential symbols available, you can insert a software breakpoint
+in the 'handle_resize()' method and trigger it by resizing the window on the
+target system:
+
+! (gdb) break system_info.cc:94
+! Breakpoint 2 at 0x1000d50: system_info.cc:94. (2 locations)
+! (gdb) 
+! Thread 2 "ep" hit Breakpoint 2.1, Main::Resize_callback::operator()
+!  (this=0x101abf8 <Libc::Component::construct(Libc::Env&)::main+8824>) at
+!  system_info.cc:94
+! 94                      Libc::with_libc([&] {
+
+Perfect. Note that in some occasions, it can be helpful to insert breakpoints
+at compile time to halt the execution before an error condition occurs. On x86,
+this can be achieved by inserting an 'asm volatile ("int3")' at the point of
+interest. Happy debugging!
+
+Further reading
+===============
+
+Using a VNC server on a remote test target
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Goa's ability to run applications on a remote Sculpt system comes in handy for
+testing. However, switching between keyboards to control the remote-running
+application can be a tiny inconvenience. The following article demonstrates
+how a VNC server can be put into use for remote accesses to GUI applications.
+
+:Using a headless Sculpt as a remote test target:
+
+  [https://genodians.org/jschlatow/2024-06-04-goa-sculpt-vnc]
+
+
+On-target debugging with GDB
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Live debugging of Sculpt runtime components is a built-in feature since version
+24.04. Instructions and live demo are available on genodians.org:
+
+:On-target debugging with GDB on Sculpt OS 24.04:
+
+  [https://genodians.org/chelmuth/2024-05-17-on-target-debugging]
+
+
+Performance analysis
+~~~~~~~~~~~~~~~~~~~~
+
+For an introduction to pragmatic performance analysis and tracing, please
+refer to these articles at genodians.org.
+
+:Performance analysis made easy:
+
+  [https://genodians.org/nfeske/2021-04-07-performance]
+
+:Identifying network-throughput bottlenecks with trace recording:
+
+  [https://genodians.org/jschlatow/2022-08-29-trace-recorder]

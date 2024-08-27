@@ -5,12 +5,10 @@ _This section is based on Norman Feske's_
 _[https://genodians.org/nfeske/2019-11-24-goa - Goa article]_
 _at [https://genodians.org]_.
 
-_TODO: review copied text_
-
 The development of applications for Genode used to require a lot of learning
-about Genode's way of organizing source code, our custom build system,
-and the use of run scripts. With Goa, I introduce a new tool that aims at
-largely removing these burdens from application developers.
+about Genode's way of organizing source code, the framework's custom build system,
+and the use of run scripts. The Goa tool aims at largely removing these burdens
+from application developers.
 
 In contrast to the tools that come with Genode, which were designed for
 developing complete systems, [https://github.com/genodelabs/goa - Goa] is
@@ -25,7 +23,7 @@ it streamlines the following tasks:
 
 # Building software using standard build tools like CMake, alleviating
   the need to deal with Genode's custom build system.
-  Goa takes care of automatically installing of the required Genode APIs
+  Goa takes care of automatically installing the required Genode APIs
   and supplying the right parameters to the build system so that Genode
   executables are produced.
 
@@ -34,8 +32,8 @@ it streamlines the following tasks:
   scenario.
 
 # Since Genode executables are binary-compatible between Linux and microkernels,
-  the same software as just tested on Linux can be deployed on top of the
-  other kernels. Goa takes care of exporting the software in the format
+  the same binaries as tested on Linux can be deployed on top of the
+  other kernels supported by Genode. Goa takes care of exporting the software in the format
   expected by Genode's package management.
 
 # Publishing (archiving and cryptographically signing) the software so that
@@ -53,6 +51,10 @@ Installation
   * _tclsh_ and _expect_ needed by the tools,
   * _xmllint_ for validating configurations,
 
+  Instructions for installing the Genode tool chain are available at
+  [https://genode.org/download/tool-chain].
+
+
 # Clone the Goa repository:
 
   ! git clone https://github.com/genodelabs/goa.git
@@ -65,7 +67,7 @@ Installation
     locations (e.g., if you use a 'bin/' directory in your home directory,
     issue 'ln -s <goa-dir>/bin/goa ~/bin/'), or alternatively
 
-  * Add '<goa-dir>/bin/>' to your 'PATH' environment variable, e.g.,
+  * Add '<goa-dir>/bin/' to your 'PATH' environment variable, e.g.,
     (replace '<goa-dir>' with the absolute path of your clone):
 
     ! export PATH=$PATH:<goa-dir>/bin
@@ -85,16 +87,16 @@ be the built-in help command:
 A first example, using a plain old Makefile
 ===========================================
 
-Let's say, we want to build a hello-world application that uses the raw
+Let's say, you want to build a hello-world application that uses the raw
 Genode API with no libc whatsoever.
 
 First, create a project directory, let's call it "hello":
 
-! mkdir hello
-! cd hello
+! $ mkdir hello
+! hello$ cd hello
 
 By convention, the project name corresponds to the name of the directory.
-Source codes are stored in a _src/_ sub directory. Let's create a
+Source codes are stored in a _src/_ subdirectory. Let's create a
 file at _src/hello.cc_ with the following content:
 
 ! #include <base/log.h>
@@ -114,10 +116,26 @@ Now, let's give 'goa' a first try:
 
 ! hello$ goa build
 
-This command prompts Goa to create a new directory called _var/_ within the
-project directory. The _var/_ directory is the designated place for generated
-files such as the build directory. However, upon the attempt to compile the
-program, disaster strikes:
+Goa responds with the following message:
+
+! [hello] Error: hello has a 'src' directory but lacks an 'artifacts' file.
+!                You may start with an empty file.
+
+The so-called artifacts file tells Goa about the expected end result of
+the build process. Even though we already know from our _Makefile_ that our
+only build artifact will be the executable binary called "hello", let's
+follow Goa's advise of starting with an empty _artifacts_ file. Note, you may
+consult 'goa help artifacts' for more details on the artifacts file.
+
+! hello$ touch artifacts
+
+As a notable side effect of the 'goa build' command, Goa has created a new
+directory called _var/_ within the project directory. The _var/_ directory is
+the designated place for generated files such as the build directory.
+
+Upon the next attempt of issuing the 'goa build' command, now with an
+_artifacts_ file in place, Goa attempts to compile our program but with
+pretty limited success:
 
 ! hello.cc:1:10: fatal error: base/log.h: No such file or directory
 !  #include <base/log.h>
@@ -128,46 +146,47 @@ program, disaster strikes:
 ! Error: build via make failed
 
 Our program tries to include a header file that is nowhere to be found.
-To resolve this problem, we can tell Goa that our project needs to use the
+To resolve this problem, one can tell Goa that the project needs to use the
 Genode base API, by placing a file named _used_apis_ with the following
 content into the project directory.
 
 ! genodelabs/api/base
 
-This line tells Goa that our project depends on Genode's base API that
+This line tells Goa that the project depends on Genode's base API, which
 features the _base/log.h_ and _base/component.h_ headers. When issuing
-the command 'goa build' again, we see the following message:
+the command 'goa build' again, you see the following message:
 
-! download genodelabs/api/base/2023-04-25.tar.xz
-! download genodelabs/api/base/2023-04-25.tar.xz.sig
+! download genodelabs/api/base/2023-10-24.tar.xz
+! download genodelabs/api/base/2023-10-24.tar.xz.sig
 
-Goa automatically downloaded the base API for us and installed it into a fresh
-depot at var/depot/genodelabs/api/base/2023-04-25/. But not only that, it also
-re-attempted the build of the program. If we take a look at
-_var/build/x86_64/_, we see the 'hello' executable. If the output was too
+Goa automatically downloaded the base API and installed it into a fresh
+depot at _var/depot/genodelabs/api/base/2023-10-24/_. But not only that, it also
+re-attempted the build of the program. If you take a look at
+_var/build/x86_64/_, you will see the 'hello' executable. If the output was too
 unspectacular for your taste, you may append the '--verbose' argument to the
 'goa build' command to see more details about the steps taken.
 
-To run the program, we need to tell Goa, which part of the build artifacts
-are relevant to us. In our case, it's the 'hello' executable binary. We
-can declare this information in a file called 'artifacts' with the following
-content in the project directory.
+To run the program, one needs to tell Goa, which part of the build artifacts
+are relevant. In our case, it's the 'hello' executable binary. You
+can declare this information in your _artifacts_ file by adding the following
+line. It refers to the respective file relative to the _var/build/x86_64/_
+directory.
 
 ! hello
 
-If we issue the 'goa build' command again, we can see that this file
-appears at _var/bin/x86_64/hello_. The content of the _bin_ directory
-is meant for the integration into a Genode scenario.
+If you issue the 'goa build' command again, you can see that this file appears
+at _var/bin/x86_64/hello_. The content of the _bin_ directory is meant for the
+integration into a Genode scenario.
 
 Speaking of a Genode scenario, to run the program within a Genode system,
-we have to define the "contract" between the program and the surrounding
+you have to define the "contract" between the program and the surrounding
 system. This contract has the form of a runtime package. Let's create one
 with the name "hello":
 
 ! hello$ mkdir -p pkg/hello
 
-A runtime package needs at least two files, a README file and a _runtime_
-file. The README file should give brief information about the purpose
+A runtime package needs at least two files, a _README_ file and a _runtime_
+file. The _README_ file should give brief information about the purpose
 of the Genode subsystem for human readers. The runtime file contains the
 contractual information. Create a file _pkg/hello/runtime_ with the following
 content:
@@ -179,36 +198,41 @@ content:
 !   </content>
 ! </runtime>
 
-Here we declare the binary we want to start, how much RAM and capabilities
+This file declares the binary you want to start, how much RAM and capabilities
 the subsystem expects, configuration information passed to the subsystem, and
-the content of the package. In this case, we only have a single ROM module
-called "hello", which is our binary.
+the content of the package. In this case, you only have a single ROM module
+for the binary called "hello".
 
-For running the scenario, we can use the 'goa run' command:
+Note that Goa's built-in help command provides more details on the structure of
+runtime files.
+
+! goa help runtime
+
+For running the scenario, one can use the 'goa run' command:
 
 ! hello$ goa run
 
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz.sig
-! download genodelabs/src/base-linux/2023-04-25.tar.xz
-! download genodelabs/src/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/src/init/2023-04-25.tar.xz
-! download genodelabs/src/init/2023-04-25.tar.xz.sig
-! download genodelabs/api/os/2023-04-16.tar.xz
-! download genodelabs/api/os/2023-04-16.tar.xz.sig
-! download genodelabs/api/report_session/2023-03-12.tar.xz
-! download genodelabs/api/report_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/sandbox/2021-06-24.tar.xz
-! download genodelabs/api/sandbox/2021-06-24.tar.xz.sig
-! download genodelabs/api/timer_session/2023-03-12.tar.xz
-! download genodelabs/api/timer_session/2023-03-12.tar.xz.sig
-! Genode 23.02-146-g4bb4e60d8b0 <local changes>
+! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz.sig
+! download genodelabs/src/base-linux/2023-10-24.tar.xz
+! download genodelabs/src/base-linux/2023-10-24.tar.xz.sig
+! download genodelabs/src/init/2023-10-24.tar.xz
+! download genodelabs/src/init/2023-10-24.tar.xz.sig
+! download genodelabs/api/os/2023-08-21.tar.xz
+! download genodelabs/api/os/2023-08-21.tar.xz.sig
+! download genodelabs/api/report_session/2023-05-26.tar.xz
+! download genodelabs/api/report_session/2023-05-26.tar.xz.sig
+! download genodelabs/api/sandbox/2023-10-03.tar.xz
+! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
+! download genodelabs/api/timer_session/2023-10-03.tar.xz
+! download genodelabs/api/timer_session/2023-10-03.tar.xz.sig
+! Genode sculpt-23.10
 ! 17592186044415 MiB RAM and 18997 caps assigned to init
 ! [init -> hello] Hello
 
-We can see that Goa automatically installed the dependencies needed to
+You can see that Goa automatically installed the dependencies needed to
 execute the runtime package, integrates a Genode scenario, and executes
 it directly on Linux. If you switch to another terminal, you can see
 the Genode processes:
@@ -231,7 +255,8 @@ Let's call the project "cmake_step2".
 Instead of copying the code into the _cmake_step2/src/_ directory, let us
 better tell Goa to download the code from the original tutorial. This can
 be done by creating an _import_ file in the project directory. Create the
-file _cmake_step2/import_ with the following content:
+file _cmake_step2/import_ with the following content. Please have a look
+at 'goa help import' for a detailed explanation.
 
 ! LICENSE   := BSD
 ! VERSION   := master
@@ -242,42 +267,46 @@ file _cmake_step2/import_ with the following content:
 ! DIR(cmake_step2) := src
 ! SPARSE_PATH(cmake_step2) := Help/guide/tutorial/Step2
 
-This import file describes the download of only the specified sub
-directory of the CMake project from GitHub. Let's give it a try:
+This import file describes the download of only the specified subdirectory
+of the CMake project from GitHub. Let's give it a try:
 
 ! cmake_step2$ goa import
 ! import  download https://github.com/Kitware/CMake/trunk/Help/guide/tutorial/Step2
 ! import  generate import.hash
 
-After the command finished, we find the source code sitting nicely in a new
-_src/_ directory. Let's try to build it:
+After the command finished, you find the source code sitting nicely in a new
+_src/_ directory. Let's try to build it just after creating an empty _artifacts_ file.
 
+! cmake_step2$ touch artifacts
 ! cmake_step2$ goa build
-! [cmake_step2:cmake] -- The C compiler identification is GNU 8.3.0
-! [cmake_step2:cmake] -- The CXX compiler identification is GNU 8.3.0
-! [cmake_step2:cmake] -- Check for working C compiler: /usr/local/genode/tool/19.05/bin/genode-x86-gcc
-! [cmake_step2:cmake] -- Check for working C compiler: /usr/local/genode/tool/19.05/bin/genode-x86-gcc -- works
+
+! [cmake_step2:cmake] -- The C compiler identification is GNU 12.3.0
+! [cmake_step2:cmake] -- The CXX compiler identification is GNU 12.3.0
 ! [cmake_step2:cmake] -- Detecting C compiler ABI info
 ! [cmake_step2:cmake] -- Detecting C compiler ABI info - done
+! [cmake_step2:cmake] -- Check for working C compiler: 
+!              /usr/local/genode/tool/23.05/bin/genode-x86-gcc - skipped
 ! [cmake_step2:cmake] -- Detecting C compile features
 ! [cmake_step2:cmake] -- Detecting C compile features - done
-! [cmake_step2:cmake] -- Check for working CXX compiler: /usr/local/genode/tool/19.05/bin/genode-x86-g++
-! [cmake_step2:cmake] -- Check for working CXX compiler: /usr/local/genode/tool/19.05/bin/genode-x86-g++ -- works
 ! [cmake_step2:cmake] -- Detecting CXX compiler ABI info
 ! [cmake_step2:cmake] -- Detecting CXX compiler ABI info - done
+! [cmake_step2:cmake] -- Check for working CXX compiler:
+!              /usr/local/genode/tool/23.05/bin/genode-x86-g++ - skipped
 ! [cmake_step2:cmake] -- Detecting CXX compile features
 ! [cmake_step2:cmake] -- Detecting CXX compile features - done
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
-! [cmake_step2:cmake] -- Build files have been written to: .../cmake_step2/var/build/x86_64
+! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
 ! [cmake_step2:cmake] Scanning dependencies of target Tutorial
-! [cmake_step2:cmake] [ 50%] Building CXX object CMakeFiles/Tutorial.dir/tutorial.cxx.obj
-! .../cmake_step2/src/tutorial.cxx:2:10: fatal error: cmath: No such file or directory
-!  #include <cmath>
-!           ^~~~~~~
+! [cmake_step2:cmake] [ 50%] Building CXX object
+!                     CMakeFiles/Tutorial.dir/tutorial.cxx.obj
+!  .../cmake_step2/src/tutorial.cxx:2:10: fatal error:
+!  cmath: No such file or directory
+!     2 | #include <cmath>
+!       |          ^~~~~~~
 ! compilation terminated.
 
-Apparently, the example requires the standard C++ library. We can supply
+Apparently, the example requires the standard C++ library. You can supply
 this API to the project by creating a _used_apis_ file with the following
 content:
 
@@ -287,35 +316,36 @@ content:
 
 The 'posix' API is needed because - unlike a raw Genode component - the program
 starts at a 'main' function. The libc is needed as a dependency of the
-Standard C++ library.
+standard C++ library.
 
-When issuing the 'goa build' command again, we see that Goa downloads the
+When issuing the 'goa build' command again, you see that Goa downloads the
 required APIs and successfully builds the example program:
 
 ! cmake_step2$ goa build
 
-! download genodelabs/api/libc/2023-01-23.tar.xz
-! download genodelabs/api/libc/2023-01-23.tar.xz.sig
+! download genodelabs/api/libc/2023-10-03.tar.xz
+! download genodelabs/api/libc/2023-10-03.tar.xz.sig
 ! download genodelabs/api/posix/2020-05-17.tar.xz
 ! download genodelabs/api/posix/2020-05-17.tar.xz.sig
-! download genodelabs/api/stdcxx/2022-04-27.tar.xz
-! download genodelabs/api/stdcxx/2022-04-27.tar.xz.sig
+! download genodelabs/api/stdcxx/2023-10-24.tar.xz
+! download genodelabs/api/stdcxx/2023-10-24.tar.xz.sig
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
-! [cmake_step2:cmake] -- Build files have been written to: .../cmake_step2/var/build/x86_64
-! [cmake_step2:cmake] [ 50%] Building CXX object CMakeFiles/Tutorial.dir/tutorial.cxx.obj
+! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
+! [cmake_step2:cmake] [ 50%] Building CXX object
+!                     CMakeFiles/Tutorial.dir/tutorial.cxx.obj
 ! [cmake_step2:cmake] [100%] Linking CXX executable Tutorial
 ! [cmake_step2:cmake] [100%] Built target Tutorial
 
 The resulting executable binary can be found at _var/build/x86_64/Tutorial_.
-Let's declare it a build artifact by mentioning it a new 'artifacts' file with
-the following content.
+Let's declare it a build artifact by mentioning it in the _artifacts_ by adding
+the following line.
 
 ! Tutorial
 
-To run the program, we need a runtime package that is slightly more advanced
-than the first hello example. This time, we need declare that our runtime
-requires content from other depot archives in addition to our program by
+To run the program, you need a runtime package that is slightly more advanced
+than the first hello example. This time, you need to declare that the runtime
+requires content from other depot archives in addition to your program by
 creating a file _pkg/cmake_step2/archives_ with the following content:
 
 ! genodelabs/src/posix
@@ -323,7 +353,7 @@ creating a file _pkg/cmake_step2/archives_ with the following content:
 ! genodelabs/src/vfs
 ! genodelabs/src/stdcxx
 
-This way, our sub system incorporates the shared libraries found in those
+This way, the subsystem incorporates the shared libraries found in those
 depot archives. A suitable _pkg/cmake_step2/runtime_ for running the program
 within a Genode scenario looks like this:
 
@@ -350,83 +380,66 @@ within a Genode scenario looks like this:
 !   </content>
 ! </runtime>
 
-Since the tutorial uses the C runtime, we have to supply a configuration
+Since the tutorial uses the C runtime, you have to supply a configuration
 that defines how the virtual file system of the component looks like, and
-where the program's standard output should go. We also specify the first
+where the program's standard output should go. The runtime also specifies the first
 and second arguments of the POSIX program as "Tutorial" (name of the program)
-and "24" its actual argument. The '<content>' lists all ROM modules required.
+and "24" as its actual argument. The '<content>' lists all ROM modules required.
 
 With this runtime package in place, let's give the Tutorial a run:
 
 ! cmake_step2/$ goa run
-
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
-! [cmake_step2:cmake] -- Build files have been written to: .../cmake_step2/var/build/x86_64
+! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
 ! [cmake_step2:cmake] [100%] Built target Tutorial
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/init/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/libc/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/libc/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/posix/2023-04-25.tar.xz
-! download genodelabs/bin/x86_64/posix/2023-04-25.tar.xz.sig
-! download genodelabs/bin/x86_64/stdcxx/2023-01-23.tar.xz
-! download genodelabs/bin/x86_64/stdcxx/2023-01-23.tar.xz.sig
-! download genodelabs/bin/x86_64/vfs/2023-04-27.tar.xz
-! download genodelabs/bin/x86_64/vfs/2023-04-27.tar.xz.sig
-! download genodelabs/src/base-linux/2023-04-25.tar.xz
-! download genodelabs/src/base-linux/2023-04-25.tar.xz.sig
-! download genodelabs/src/init/2023-04-25.tar.xz
-! download genodelabs/src/init/2023-04-25.tar.xz.sig
-! download genodelabs/src/libc/2023-04-25.tar.xz
-! download genodelabs/src/libc/2023-04-25.tar.xz.sig
-! download genodelabs/src/posix/2023-04-25.tar.xz
-! download genodelabs/src/posix/2023-04-25.tar.xz.sig
-! download genodelabs/src/stdcxx/2023-01-23.tar.xz
-! download genodelabs/src/stdcxx/2023-01-23.tar.xz.sig
-! download genodelabs/src/vfs/2023-04-27.tar.xz
-! download genodelabs/src/vfs/2023-04-27.tar.xz.sig
-! download genodelabs/api/base/2023-04-25.tar.xz
-! download genodelabs/api/base/2023-04-25.tar.xz.sig
-! download genodelabs/api/block_session/2023-03-12.tar.xz
-! download genodelabs/api/block_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/file_system_session/2023-03-12.tar.xz
-! download genodelabs/api/file_system_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/net/2023-04-25.tar.xz
-! download genodelabs/api/net/2023-04-25.tar.xz.sig
-! download genodelabs/api/os/2023-04-16.tar.xz
-! download genodelabs/api/os/2023-04-16.tar.xz.sig
-! download genodelabs/api/report_session/2023-03-12.tar.xz
-! download genodelabs/api/report_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/rtc_session/2023-03-12.tar.xz
-! download genodelabs/api/rtc_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/sandbox/2021-06-24.tar.xz
-! download genodelabs/api/sandbox/2021-06-24.tar.xz.sig
-! download genodelabs/api/so/2020-05-17.tar.xz
-! download genodelabs/api/so/2020-05-17.tar.xz.sig
-! download genodelabs/api/terminal_session/2023-03-12.tar.xz
-! download genodelabs/api/terminal_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/timer_session/2023-03-12.tar.xz
-! download genodelabs/api/timer_session/2023-03-12.tar.xz.sig
-! download genodelabs/api/vfs/2023-02-26.tar.xz
-! download genodelabs/api/vfs/2023-02-26.tar.xz.sig
-! Genode 23.02-146-g4bb4e60d8b0 <local changes>
+! download genodelabs/bin/x86_64/libc/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/libc/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/posix/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/posix/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/stdcxx/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/stdcxx/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/vfs/2023-10-24.tar.xz
+! download genodelabs/bin/x86_64/vfs/2023-10-24.tar.xz.sig
+! ...
+! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
+! Genode sculpt-23.10
 ! 17592186044415 MiB RAM and 18997 caps assigned to init
 ! [init -> cmake_step2] The square root of 24 is 4.89898
 ! [init] child "cmake_step2" exited with exit value 0
 
-We see that Goa takes care of downloading all dependencies needed to
+You see that Goa takes care of downloading all dependencies needed to
 host the subsystem and subsequently executes the scenario. The program
 built by the tutorial prints the result "The square root of 24 is 4.89898".
 
-Exporting and publishing
-========================
+Running the scenario on Sculpt OS
+=================================
 
-_TODO: re-use text from http://genodians.org/nfeske/2020-01-16-goa-publish_
+As icing on the cake, let's give the scenario a spin on Sculpt OS. The official
+Sculpt image is equipped with a specifically tailored preset called
+"goa testbed" which allows Goa to use the system as a remote test target.
 
-Deployment on Sculpt OS
-=======================
+Simply hook up the Sculpt system to your wifi or your wired network, and enable
+the _goa testbed_ preset. Note down the IP address and execute the following
+command on your development system:
 
-_TODO_
+! cmake_step2/$ goa run --target sculpt --target-opt-sculpt-server <sculpt-ip>
+! [cmake_step2:cmake] -- Configuring done (0.0s)
+! [cmake_step2:cmake] -- Generating done (0.0s)
+! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
+! [cmake_step2:cmake] [100%] Built target Tutorial
+! uploaded libm.lib.so (local change)
+! uploaded stdcxx.lib.so (local change)
+! uploaded vfs.lib.so (local change)
+! uploaded Tutorial (local change)
+! uploaded posix.lib.so (local change)
+! uploaded libc.lib.so (local change)
+! uploaded config (local change)
+! Trying 10.0.1.1...
+! Connected to 10.0.1.1.
+! Escape character is '^]'.
+! [init -> cmake_step2] The square root of 24 is 4.89898
+! [init] child "cmake_step2" exited with exit value 0
+
+For more details, please consult Goa's built-in help command 'goa help targets'
+or refer to Section [Using Sculpt as a remote test target].

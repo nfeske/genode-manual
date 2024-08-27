@@ -37,3 +37,51 @@ proc process_image_latex {txtblock} {
 	printline " \\end{center}\n"
 	
 }
+
+### TIKZ IMAGE ###
+proc process_tikz_latex {txtblock} {
+	set tikz_size 101
+	set tikz_relw "columnwidth"
+
+	regexp {\[(tikz \w+.*)\]} [lindex $txtblock 0] dummy tikz_info
+	if {$tikz_info == ""} return
+	set tikz_name [lindex $tikz_info 1]
+
+	regexp { (\d+)%} $tikz_info dummy tikz_size
+	if {[regexp {full-span} $tikz_info dummy]} {
+		set tikz_relw "textwidth"
+	}
+
+	set resizebox ""
+	if {$tikz_size <= 100} {
+		set resizebox "\\resizebox{[expr $tikz_size.0/100]\\$tikz_relw}{!}"
+	}
+
+	set tikz_cap ""
+	foreach tikz_capline $txtblock {
+		set txt [linetxt $tikz_capline]
+		regsub {^\[.*\]} $txt "" txt
+		regsub {^ *}     $txt "" txt
+		append tikz_cap $txt " "
+	}
+	regsub { *$} $tikz_cap "" tikz_cap
+
+	#
+	# If no caption is provided, we insert the tikz image as is. If a caption
+	# is provided, we host the tikz image in a figure environment.
+	#
+	if {$tikz_cap == ""} {
+		printline "\\begin{center}"
+		printline " $resizebox{\\input{$tikz_name.tikz}}"
+		printline "\\end{center}"
+	} else {
+		printline ""
+		printline " \\begin{figure}\[tbp\]"
+		printline "  \\begin{center}"
+		printline "   $resizebox{\\input{$tikz_name.tikz}}"
+		printline "   \\caption{[out_latex $tikz_cap]}"
+		printline "   \\label{[label_latex $tikz_name]}"
+		printline "  \\end{center}"
+		printline " \\end{figure}"
+	}
+}

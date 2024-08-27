@@ -1,4 +1,4 @@
-GENODE_VERSION = 24.xx
+GENODE_VERSION = 24.11
 PDF = genode-applications-$(subst .,-,$(GENODE_VERSION)).pdf
 
 all: $(PDF)
@@ -24,9 +24,9 @@ gui
 debug
 tutorials
 unix
-library_porting
-qt_porting
+unix_publish
 vfs_plugin
+lomiri_calculator
 endef
 
 default: $(PDF)

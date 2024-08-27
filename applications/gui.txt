@@ -1,16 +1,117 @@
+; vim: tw=80 et ts=2 sw=2
+
 Graphical User Interfaces
 =========================
 
-Dialog API
-----------
+Since its first release, Genode came with its own low-level GUI stack centered
+around a component called _Nitpicker GUI server_. Nitpicker provides three types
+of session interfaces: GUI, Capture, and Event. Similar to the NIC router,
+Nitpicker is a resource multiplexer. It mediates between framebuffer driver,
+input drivers, and applications. Applications use the GUI session interface,
+which provides low-level access for writing to the framebuffer and receiving
+input events. Rather than sticking to low-level drawing methods, GUI frameworks
+provide a more suitable level of abstraction for application development.
 
-- mention only, API not stable and only for internal use
+This section provides an overview of the available GUI frameworks for Genode.
+For a more detailed explanation of Genode's low-level GUI stack, please refer to
+the corresponding
+[https://genodians.org/nfeske/2020-06-23-gui-stack - article on genodians.org].
 
-Qt5 applications
-----------------
 
-Mobile SDK based on Lomiri UI Toolkit
--------------------------------------
+SDL
+~~~
 
-LVGL
-----
+The Simple DirectMedia Layer (SDL) is a well-established cross-platform library
+often used by computer games. Ports of SDL 1.2 and SDL 2.0 are available in the
+genode-world repository. Additional SDL libraries such as SDL_image, SDL_ttf,
+SDL_net and SDL_mixer are also available.
+
+:Genode-world repository:
+
+  [https://github.com/genodelabs/genode-world/]
+
+Genode application examples
+---------------------------
+
+:Port of numptyphysics:
+
+  [https://github.com/nfeske/goa-playground/tree/master/games/numptyphysics]
+
+
+Qt5
+~~~
+
+Qt is a popular cross-platform application development framework. Early
+versions of Genode already included a port of Qt4 that was later updated to Qt5.
+Since Genode's port of the Falkon browser bases on Qt, and QtWebengine in
+particular, this is the best supported GUI framework for Genode applications.
+
+:Qt5 examples and tutorials:
+
+  [https://doc.qt.io/qt-5/qtexamplesandtutorials.html]
+
+Genode application examples
+---------------------------
+
+:Falkon web browser:
+
+  [https://github.com/genodelabs/genode-world/tree/master/recipes/pkg/falkon]
+
+:Qt textedit:
+
+  [https://github.com/genodelabs/genode/tree/master/repos/libports/recipes/pkg/qt5_textedit]
+
+
+Mobile SDK based on Ubuntu/Lomiri UI Toolkit
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Ubuntu UI Toolkit bases on Qt5 and particularly targets
+touchscreen-optimized application development. Since UBports resumed the
+development for Ubuntu Touch after Canonical dropped support, the toolkit was
+renamed from _Ubuntu UI Toolkit_ to _Lomiri UI Toolkit_.
+
+:Port of Ubuntu UI Toolkit:
+
+  [https://github.com/genodelabs/genode-world/tree/master/recipes/pkg/ubuntu_ui_toolkit]
+
+:Porting the calculator app from Lomiri UI Toolkit:
+
+  see Section [Porting Lomiri Calculator App]
+
+:UBports website:
+
+  [https://ubports.com/]
+
+Genode application examples
+---------------------------
+
+:Morph browser:
+
+  [https://github.com/genodelabs/genode-world/tree/master/recipes/pkg/morph_browser]
+
+:Linphone app:
+
+  [https://genodians.org/jws/2023-11-16-sip-client-for-genode]
+
+
+Light and Versatile Graphics Library (LVGL)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+LVGL is a popular graphics library to create modern UIs for embedded devices.
+Being optimized for embedded devices, LVGL comes with a small memory footprint.
+This makes it a perfect fit for rather simple Genode applications.
+
+Since LVGL targets embedded devices, it is typically used as a statically linked
+library and stripped down to the particular needs. For Genode, however, LVGL
+is available as a shared library (api/lvgl) with almost all features enabled. The
+LVGL library is accompanied by a support library (api/lvgl_support) providing
+the LVGL driver backends that interact with Genode's GUI session. Both libraries
+are still in experimental state.
+
+:LVGL documentation:
+
+  [https://docs.lvgl.io/master/]
+
+:Dynamic desktop background "system info":
+
+  [https://genodians.org/jschlatow/2024-02-07-system-info]
