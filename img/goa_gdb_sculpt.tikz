@@ -12,7 +12,7 @@
 	\tikzstyle{servernode}  = [basenode, bottom color=servercolor,  minimum width=14ex]
 	\tikzstyle{defaultnode} = [basenode, bottom color=defaultcolor, minimum width=14ex]
 
-	\tikzstyle{display} = [minimum width=16em, minimum height=10em, draw, thick];
+	\tikzstyle{display} = [minimum width=14em, minimum height=8.75em, draw, thick];
 
 	\tikzstyle{infoflow} = [opacity=0.5,
 	                        decoration={markings,
@@ -24,12 +24,12 @@
 	%
 
 	\node[display] at (0, 0) (sculpt-pc) {};
-	\node[display] at (20,0) (goa-pc)    {};
+	\node[display] at (17,0) (goa-pc)    {};
 
 	\node[above=.5 of sculpt-pc, align=center, font=\Large\sffamily] {Sculpt OS};
 	\node[above=.5 of goa-pc,    align=center, font=\Large\sffamily] {Linux};
 
-	\node[servernode, right= 1 of sculpt-pc]  (tcp-telnet) {TCP Terminal};
+	\node[servernode, right=.7 of sculpt-pc]  (tcp-telnet) {TCP Terminal};
 	\node[servernode, below=.5 of tcp-telnet] (tcp-gdb)    {TCP Terminal};
 	\node[servernode, above=.5 of tcp-telnet] (tcp-http)   {HTTP Server};
 
@@ -37,7 +37,7 @@
 	\node[right=.1 of tcp-telnet] (port-telnet) {\texttt{tcp:23}};
 	\node[right=.1 of tcp-gdb]    (port-gdb)    {\texttt{tcp:9999}};
 
-	\node[appnode, left=  1 of goa-pc] (telnet) {telnet};
+	\node[appnode, left= .7 of goa-pc] (telnet) {telnet};
 	\node[appnode, below=.5 of telnet] (gdb)    {gdb};
 	\node[appnode, above=.5 of telnet] (curl)   {curl};
 
@@ -55,39 +55,48 @@
 	%
 
 	\foreach \b in {sculpt, goa} {
-		\coordinate[above=.15 of \b-pc] (\b-cam);
-		\draw[thick] (\b-cam) circle (2pt);
+		% coordinates for display frame
+		\path (\b-pc.north west)+(-8pt, 8pt) coordinate (pc-topleft) --
+		      (\b-pc.south west)+(-8pt,-8pt) coordinate (pc-botleft) --
+		      (\b-pc.south east)+( 8pt,-8pt) coordinate (pc-botright) --
+		      (\b-pc.north east)+( 8pt, 8pt) coordinate (pc-topright);
 
-		\path (\b-pc.north west)+(-10pt, 10pt) coordinate (pc-topleft) --
-		      (\b-pc.south west)+(-10pt,-10pt) coordinate (pc-botleft) --
-		      (\b-pc.south east)+( 10pt,-10pt) coordinate (pc-botright) --
-		      (\b-pc.north east)+( 10pt, 10pt) coordinate (pc-topright);
+		% coordinates for laptop body
+		\path (pc-botleft)++(-.9cm,-1.8cm) coordinate (kb-topleft) --
+		     ++(2pt,-6pt)                  coordinate (kb-botleft);
 
-		\path (pc-botleft)++(-1cm,-2cm) coordinate (kb-topleft) --
-		     ++(2pt,-8pt)               coordinate (kb-botleft);
+		\path (pc-botright)++(.9cm,-1.8cm) coordinate (kb-topright) --
+		     ++(-2pt,-6pt)                 coordinate (kb-botright);
 
-		\path (pc-botright)++(1cm,-2cm) coordinate (kb-topright) --
-		     ++(-2pt,-8pt)              coordinate (kb-botright);
-
+		% draw display frame
 		\draw[thick,rounded corners,fill=black!25] (pc-topleft) [sharp corners]
 			-- (pc-botleft)
 			-- (pc-botright) [rounded corners]
 			-- (pc-topright) -- cycle;
+
+		% draw laptop body
 		\draw[thick,rounded corners,fill=black!30] (pc-botleft)
 			-- (kb-topleft)
 			-- (kb-botleft)
 			-- (kb-botright)
 			-- (kb-topright)
 			-- (pc-botright);
-		\draw[thick,fill=black!20] (pc-botleft) [rounded corners]
-			--  coordinate [pos=0.1,xshift=12pt] (\b-keys-topleft)
-			    coordinate [pos=0.5] (\b-kbleft) (kb-topleft)
-			    coordinate [pos=0.7,xshift=12pt] (\b-keys-botleft)
-			-- (kb-topright) [sharp corners]
-			-- coordinate [pos=0.3,xshift=-12pt] (\b-keys-botright)
-			   coordinate [pos=0.5] (\b-kbright) (pc-botright)
-			   coordinate [pos=0.9,xshift=-12pt] (\b-keys-topright);
 
+		% draw top of laptop body
+		\draw[thick,fill=black!20] (pc-botleft) [rounded corners]
+			--  coordinate [pos=0.1,xshift=10pt] (\b-keys-topleft)
+			    coordinate [pos=0.8] (\b-kbleft) (kb-topleft)
+			    coordinate [pos=0.7,xshift=10pt] (\b-keys-botleft)
+			-- (kb-topright) [sharp corners]
+			-- coordinate [pos=0.3,xshift=-10pt] (\b-keys-botright)
+			   coordinate [pos=0.2] (\b-kbright) (pc-botright)
+			   coordinate [pos=0.9,xshift=-10pt] (\b-keys-topright);
+
+		% draw webcam
+		\coordinate[above=.15 of \b-pc] (\b-cam);
+		\draw[thick,fill=black!10] (\b-cam) circle (1.6pt);
+
+		% generate coordinates for keys
 		\draw[thick,fill=black!30] (\b-keys-topleft)
 		          -- (\b-keys-botleft)  \foreach \i in {20,43,70}                   {coordinate[pos=\i/100]   (\b-keys-left\i)}
 		          -- (\b-keys-botright) \foreach \i in {11,22,32,41,50,59,68,78,89} {coordinate[pos=\i/100]   (\b-keys-bot\i)}
@@ -115,12 +124,12 @@
 	% Screen content
 	%
 
-	\path [fill overzoom image={sticks_blue.png}, fill image opacity=0.78] (sculpt-pc.north east) rectangle (sculpt-pc.south west);
-	\path [fill tile image*={width=2cm}{grid.png}, fill image opacity=0.78] (sculpt-pc.north east) rectangle (sculpt-pc.south west);
-	\node [anchor=north,align=center,white,outer sep=5pt] at (sculpt-pc.north) {\Large\bfseries{Goa Testbed}};
+	\path [fill overzoom image={img/sticks_blue.png}, fill image opacity=0.78] (sculpt-pc.north east) rectangle (sculpt-pc.south west);
+	\path [fill tile image*={width=2cm}{img/grid.png}, fill image opacity=0.78] (sculpt-pc.north east) rectangle (sculpt-pc.south west);
+	\node [anchor=north,align=center,white,outer sep=5pt] at (sculpt-pc.north) {\large\bfseries{Goa Testbed}};
 
 	\path [fill=black] (goa-pc.north east) rectangle (goa-pc.south west);
-	\node [green,align=center] at (goa-pc.center) {\normalsize\texttt{\$ goa run --target sculpt}};
+	\node [green,align=center] at (goa-pc.center) {\normalsize\texttt{\$ goa run -\!-target sculpt}};
 
 \end{tikzpicture}
 

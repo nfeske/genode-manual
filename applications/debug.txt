@@ -406,7 +406,10 @@ the remote system, the scenario is killed.
 Log output is made available via telnet using an integrated TCP terminal
 component. Since Sculpt 24.10, the Goa testbed uses the debug monitor for the
 sub-init in order to support debugging via GDB. The debug monitor's terminal
-connection is made available via a separate TCP terminal.
+connection is made available via a separate TCP terminal. The below figure
+illustrates the resulting interplay between Goa and the Goa testbed.
+
+[tikz img/goa_gdb_sculpt 100%]
 
 In order to run a Goa project on a remote Sculpt system, you first need to
 launch goa_testbed, which is best done by enabling the built-in preset.
