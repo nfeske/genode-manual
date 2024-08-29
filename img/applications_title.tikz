@@ -97,7 +97,32 @@
 		     opacity=0.7, scale=2] {Johannes Schlatow};
 
 	\node [inner sep=0pt] (screenshot) at (current page.center) {\phantom{\includegraphics[width=.8\paperwidth]{goa_testbed_screenshot.png}}};
-	\clip [rounded corners] (screenshot.south west) rectangle (screenshot.north east);
-	\node [opacity=0.8, inner sep=0pt] (screenshot) at (current page.center) {\includegraphics[width=.8\paperwidth]{goa_testbed_screenshot.png}};
+
+	\tikzstyle {drawscreen} = [titlecolor,ultra thick,fill=black,fill opacity=0.2]
+
+	\path (screenshot.north west)+(-17pt, 17pt) coordinate (screen-topleft) --
+	      (screenshot.south west)+(-17pt,-17pt) coordinate (screen-botleft) --
+	      (screenshot.south east)+( 17pt,-17pt) coordinate (screen-botright) --
+	      (screenshot.north east)+( 17pt, 17pt) coordinate (screen-topright);
+
+	\draw[drawscreen,rounded corners=6pt] (screen-topleft)
+		-- (screen-botleft)
+		-- (screen-botright)
+		-- (screen-topright) -- cycle;
+
+	\path (screen-botleft) -- (screen-botright)
+		coordinate [pos=0.45]               (stand-topleft)
+		coordinate [pos=0.45,yshift=-1.5cm] (stand-botleft)
+		coordinate [pos=0.55]               (stand-topright)
+		coordinate [pos=0.55,yshift=-1.5cm] (stand-botright);
+	\draw[drawscreen] (stand-topleft) -- (stand-botleft) -- (stand-botright) -- (stand-topright);
+
+	\path (stand-botright)+(2cm,-17pt) coordinate (stand-right);
+	\draw[drawscreen] (stand-botleft) -- ++(-2cm,0) -- ++(0,-17pt) -- (stand-right) -- ++(0,17pt) -- (stand-botright);
+
+	\node [draw=titlecolor,rounded corners=2pt,ultra thick, opacity=0.8, inner sep=1pt] (screenshot) at (current page.center) {\includegraphics[width=.8\paperwidth]{goa_testbed_screenshot.png}};
+
+	\coordinate[above=.25 of screenshot] (cam);
+	\draw[drawscreen,very thick] (cam) circle (4pt);
 
 \end{tikzpicture}
