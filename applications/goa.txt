@@ -412,13 +412,22 @@ You see that Goa takes care of downloading all dependencies needed to
 host the subsystem and subsequently executes the scenario. The program
 built by the tutorial prints the result "The square root of 24 is 4.89898".
 
+
 Running the scenario on Sculpt OS
 =================================
 
-As icing on the cake, let's give the scenario a spin on Sculpt OS. The official
-Sculpt image is equipped with a specifically tailored preset called
-"goa testbed" which allows Goa to use the system as a remote test target.
+As icing on the cake, let's give the scenario a spin on a microkernel.
+Sculpt OS is a Genode-based general-purpose OS compatible with commodity
+PC hardware. It is used as day-to-day OS by the Genode developers and can
+be downloaded as ready-to-use system image:
 
+:Sculpt OS download:
+
+  [https://genode.org/download/sculpt]
+
+The official Sculpt image is equipped with a specifically tailored preset
+called "goa testbed" which allows Goa to use the system as a remote test
+target.
 Simply hook up the Sculpt system to your wifi or your wired network, and enable
 the _goa testbed_ preset. Note down the IP address and execute the following
 command on your development system:

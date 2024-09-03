@@ -3,7 +3,7 @@ Foundations
 
 This chapter summarizes the most essential foundations of the Genode OS
 Framework. For a more detailed view, please refer to the Genode Foundations
-book available at https://genode.org.
+book available at [https://genode.org].
 
 
 Genode's init component
