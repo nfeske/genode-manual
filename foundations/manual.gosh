@@ -119,7 +119,7 @@ proc process_verbatim_latex {txtblock} {
 	printline "\\begin{flushleft}"
 	printline "\\begin{tikzpicture}"
 	printline "\\node\[font=\\small] (verbatim) {"
-	printline "\\begin{lstlisting}"
+	printline "\\begin{lstlisting}\[resetmargins=true]"
 	foreach txtline $txtblock {
 		set txt [linetxt $txtline]
 		regsub     {^\!} $txt ""   txt
