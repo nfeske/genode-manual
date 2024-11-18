@@ -38,17 +38,22 @@ Genode application examples
   [https://github.com/nfeske/goa-playground/tree/master/games/numptyphysics]
 
 
-Qt5
-~~~
+Qt (5/6)
+~~~~~~~~
 
 Qt is a popular cross-platform application development framework. Early
-versions of Genode already included a port of Qt4 that was later updated to Qt5.
+versions of Genode already included a port of Qt4 that was later updated to Qt5
+and, most recently, Qt6.
 Since Genode's port of the Falkon browser bases on Qt, and QtWebengine in
 particular, this is the best supported GUI framework for Genode applications.
 
 :Qt5 examples and tutorials:
 
   [https://doc.qt.io/qt-5/qtexamplesandtutorials.html]
+
+:Qt6 examples and tutorials:
+
+  [https://doc.qt.io/qt-6/qtexamplesandtutorials.html]
 
 Genode application examples
 ---------------------------
@@ -57,7 +62,7 @@ Genode application examples
 
   [https://github.com/genodelabs/genode-world/tree/master/recipes/pkg/falkon]
 
-:Qt textedit:
+:Qt5 textedit:
 
   [https://github.com/genodelabs/genode/tree/master/repos/libports/recipes/pkg/qt5_textedit]
 
