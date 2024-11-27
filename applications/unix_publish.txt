@@ -448,7 +448,7 @@ place, the scenario can be enabled/disabled in the "Options" tab of the
 "+" menu.
 
 For more details, please consult the
-[https://genode.org/documentation/articles/sculpt-24-04#Runtime_management - Sculpt OS documentation].
+[https://genode.org/documentation/articles/sculpt-24-10#Runtime_management - Sculpt OS documentation].
 
 Publishing a depot index
 ------------------------
@@ -497,4 +497,4 @@ documentation for more details.
 
 :Sculpt OS documentation:
 
-  [https://genode.org/documentation/articles/sculpt-24-04]
+  [https://genode.org/documentation/articles/sculpt-24-10]
