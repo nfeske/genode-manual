@@ -413,8 +413,9 @@ microhypervisor, the following preparatory steps are needed:
   source code of the _dde_linux_ repository:
   ! <genode-dir>/tool/ports/prepare_port linux jitterentropy
 
-  The source code will be downloaded to
-  _<genode-dir>/contrib/linux-<hash>/_ respectively.
+  The source code will be downloaded to the
+  _linux-<hash>_ and _jitterentropy-<hash>_ subdirectories within
+  the _<genode-dir>/contrib/_ directory.
 
 # To boot the scenario as an operating system on a PC, a boot loader is
   needed. The build process produces a bootable disk or ISO image
