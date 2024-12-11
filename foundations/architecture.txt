@@ -1771,7 +1771,7 @@ Figure [img/rpc_layers] depicts the software layers of the RPC mechanism.
   request.
   For each entrypoint, there exists an associated untyped
   capability that is created with the entrypoint. This capability
-  and can be combined with an IPC client object to perform calls to the
+  can be combined with an IPC client object to perform calls to the
   server.
   The _IPC reply-and-wait_ operation delivers the content of the reply buffer
   to the last caller and then waits for a new request using a platform-specific
