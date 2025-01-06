@@ -114,6 +114,8 @@ in the used API archives. Knowing that Qt5Core is part of the _qt5_base_ archive
 let's add this to the _used_apis_ file.
 
 ! calculator$ echo 'ssumpf/api/qt5_base' > used_apis
+! calculator$ goa build
+! ...
 ! [lomiri-calculator-app] Error: no version defined for depot
 !                         archive 'ssumpf/api/qt5_base'
 
