@@ -6,7 +6,7 @@ Each device where multiple software functions are consolidated on a single
 CPU employs some sort of operating system that multiplexes the physical
 CPU for the different functions.
 In our age when even mundane household items get connected to the internet,
-it becomes increasingly hard to find devices where this is not the case.
+it becomes increasingly difficult to find devices where this is not the case.
 
 ; maybe we could replace CPU by "platform", "hardware", or "device"?
 ; that would include any hardware resource esp. RAM beside the CPU too.
@@ -18,7 +18,7 @@ trustworthy? In most cases, nobody knows that for sure. Even the device
 vendors are unable to guarantee the absence of vulnerabilities or hidden
 functions. This is not by malice. The employed commodity software stacks are
 simply too complex to reason about them.
-Software is universally known to be not perfect.
+Software is universally known to be imperfect.
 So we have seemingly come to accept the common practice where vendors
 provide a stream of software and firmware updates that fix
 vulnerabilities once they become publicly known.
@@ -53,7 +53,7 @@ call for the consolidation of multiple functions on a single ECU.
 At this point, separation kernels are considered to partition the
 hardware resources into isolated compartments. Because the isolation is
 only as strong as the correctness of the isolation kernel, such kernels
-must undergo a thorough evaluation. In the face of being liable,
+must undergo a thorough evaluation. In the face of being held liable,
 an oversight during the evaluation may have disastrous consequences for the
 vendor. Each line of code to be evaluated is an expense. Hence, separation
 kernels are minimized to the lowest possible complexity - up to only a
@@ -91,7 +91,7 @@ problem when such systems get connected to the internet:
 Is my internet router under control of a bot net? Is my mobile phone remotely
 manipulated to wiretap me? Is my TV spying on me when switched off? Are
 my sensitive documents stored on my computer prone to leakage?
-Faithfully, we hope the answers to those question to be no. But because
+Faithfully, we hope the answers to those question to be no. But since
 it is impossible to reason about the trusted computing base of the employed
 operating systems, there are no answers.
 
