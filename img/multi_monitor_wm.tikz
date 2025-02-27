@@ -1,0 +1,166 @@
+\begin{tikzpicture}
+
+	\definecolor{appcolor}        {rgb}{1,1,0.7}
+	\definecolor{defaultcolor}    {rgb}{1,1,1}
+	\definecolor{criticalcolor}   {rgb}{0.9,0.5,0.4}
+	\definecolor{kernelcolor}     {rgb}{0.6,0.8,0.7}
+	\definecolor{monitorcolor}    {rgb}{0.8,0.8,0.8}
+
+	\tikzstyle{treenode} = [component, path fading=flow fade, align=center,
+	                        rounded corners=1, minimum height=7ex, minimum width=9ex]
+
+	\tikzstyle{service} = [draw=black, draw opacity=0.4, ball color=defaultcolor, fill opacity=0.2,
+	                       rounded corners=0, shape=semicircle,
+	                       inner sep=1.3ex, outer sep=0, above]
+
+	\tikzstyle{api} = [anchor=west, sloped=false, pos=0.8, scale=0.7]
+
+	\tikzstyle{appnode}    = [treenode, bottom color=appcolor]
+	\tikzstyle{muxnode}    = [treenode, bottom color=criticalcolor]
+	\tikzstyle{drivernode} = [treenode, bottom color=kernelcolor, minimum width=9ex]
+	\tikzstyle{monitornode} = [treenode, bottom color=monitorcolor,
+	                           minimum width=10ex, minimum height=7ex, rounded corners=0]
+	\tikzstyle{lcd} = [color=white, fill=black, fill opacity=0.8,
+	                   minimum width=9.7ex, minimum height=6.7ex]
+	\tikzstyle{panorama} = [draw=black, draw opacity=0.5, fill=white, fill opacity=0.3]
+
+	\tikzstyle{treesessionarrow} = [arrow, thick]
+
+	\tikzstyle{details} = [rectangle callout, draw opacity=0.3, fill=white, fill opacity=0.2,
+	                       text opacity=1, rounded corners=3, draw]
+
+	\tikzstyle{mapping} = [draw, opacity=0.15]
+
+	\tikzstyle{screen} = [panorama, minimum width=5ex, minimum height=3.5ex]
+
+	\node[muxnode, minimum width=20ex] (nitpicker) { };
+	\node[at=(nitpicker.west), scale=0.6, align=left, anchor=west] { Nitpicker \\ GUI server };
+	\path (nitpicker.north) node[service, scale=0.4] (gui)     {};
+	\path (nitpicker.south) node[service, scale=0.4, below, shape border rotate=180] (capture) {};
+	\path (gui.south) node[anchor=north, scale=0.4] {GUI};
+	\path (capture.north) node[anchor=south, scale=0.4] {Capture};
+
+	\node[below=3ex of nitpicker, drivernode, minimum width=20ex] (driver) { };
+	\node[at=(driver.west), align=left, scale=0.6, anchor=west] { Display \\ driver };
+
+	\node[monitornode, below=3ex of driver, xshift=-7ex] (edp)  {};
+	\node[at=(edp), lcd] {eDP};
+	\node[monitornode, below=3ex of driver, xshift=11ex]  (hdmi) {};
+	\node[at=(hdmi), lcd] {HDMI};
+
+	\node[at=(nitpicker), panorama, minimum width=12ex, minimum height=4ex, xshift=2.5ex] (panorama) {};
+	\node[at=(panorama), scale=0.5] {panorama};
+	\path[draw, opacity=0.2, densely dashed] (panorama.south) -- (panorama.north);
+	\path[treesessionarrow] (driver.north) -- (capture.south);
+
+	\node[at=(driver), panorama, minimum width=6ex, minimum height=4ex, xshift=-1ex] (edpfb) {};
+	\node[at=(edpfb), scale=0.5, align=center] {eDP \\ framebuffer};
+	\node[at=(driver), panorama, minimum width=6ex, minimum height=4ex, xshift=6ex] (hdmifb) {};
+	\node[at=(hdmifb), scale=0.5, align=center] {HDMI \\ framebuffer};
+
+	\draw[arrow, ->, thick] (edpfb) -- (edp);
+	\draw[arrow, ->, thick] (hdmifb) -- (hdmi);
+
+	\draw[mapping] (edpfb.north west) -- (panorama.north west);
+	\draw[mapping] (edpfb.south east) -- (panorama.south);
+	\draw[mapping] (hdmifb.south west) -- (panorama.south);
+	\draw[mapping] (hdmifb.north east) -- (panorama.south east);
+
+	% wm
+
+	\node[above=3ex of nitpicker, muxnode, minimum width=20ex] (wm) { };
+	\node[at=(wm.west), scale=0.6, align=left, anchor=west] { Window \\ manager };
+	\path (wm.north) node[service, scale=0.4] (wmgui)     {};
+	\path (wmgui.south) node[anchor=north, scale=0.4] {GUI};
+	\path[treesessionarrow] (wm.south) -- (gui.north);
+
+	\node[at=(wm), panorama, minimum width=6ex, minimum height=4ex, xshift=-1ex] (primary) {};
+	\node[at=(primary), scale=0.5, align=center] {primary \\ display};
+	\node[at=(wm), panorama, minimum width=6ex, minimum height=4ex, xshift=6ex] (secondary) {};
+	\node[at=(secondary), scale=0.5, align=center] {secondary \\ display};
+
+	\draw[mapping] (primary.south west) -- (panorama.north west);
+	\draw[mapping] (primary.north east) -- (panorama.north);
+	\draw[mapping] (secondary.north west) -- (panorama.north);
+	\draw[mapping] (secondary.south east) -- (panorama.north east);
+
+	% layouter
+
+	\node[above=3ex of wm, appnode, minimum width=20ex] (layouter) { };
+	\node[at=(layouter.west), scale=0.6, align=left, anchor=west] { Window \\ layouter };
+
+	\node[at=(layouter), scale=0.5, xshift=3ex, yshift=5ex] {screens};
+
+	\node[at=(layouter), screen, xshift=-1ex, yshift=0ex]  (screen3) {};
+	\node[at=(screen3), scale=0.5, opacity=0.5] {3};
+	\node[at=(layouter), screen, xshift=-1.5ex, yshift=-0.5ex]  (screen2) {};
+	\node[at=(screen2), scale=0.5, opacity=0.5] {2};
+	\node[at=(layouter), screen, xshift=-2ex, yshift=-1ex] (screen1) {};
+	\node[at=(screen1), scale=0.5, opacity=0.5] {1};
+
+	\draw[mapping] (screen1.south west) -- (primary.north west);
+	\draw[mapping] (screen1.north east) -- (primary.north east);
+
+	\node[at=(layouter), screen, xshift=7ex, yshift=0ex]  (screen6) {};
+	\node[at=(screen6), scale=0.5, opacity=0.5] {6};
+	\node[at=(layouter), screen, xshift=6.5ex, yshift=-0.5ex]  (screen5) {};
+	\node[at=(screen5), scale=0.5, opacity=0.5] {5};
+	\node[at=(layouter), screen, xshift=6ex, yshift=-1ex] (screen4) {};
+	\node[at=(screen4), scale=0.5, opacity=0.5] {4};
+
+	\draw[mapping] (screen4.north west) -- (secondary.north west);
+	\draw[mapping] (screen4.south east) -- (secondary.north east);
+
+	\path[treesessionarrow] (layouter.south) -- (wmgui.north);
+
+	\node[above=4ex of wm, xshift=-14ex, appnode, minimum width=5ex, minimum height=4ex] (app2) { };
+	\node[above=4ex of wm, xshift=-20ex, appnode, minimum width=5ex, minimum height=4ex] (app1) { };
+	\node[at=(app1), scale=0.6] { App };
+	\node[at=(app2), scale=0.6] { App };
+
+	\path[treesessionarrow] (app1.south) .. controls +(0,-3ex) and +(-4ex,2ex) .. (wmgui.160);
+	\path[treesessionarrow] (app2.south) .. controls +(0,-2ex) and +(-1ex,2ex) .. (wmgui.120);
+
+	% decorator
+
+	\node[above=3ex of wm, xshift=21ex, appnode, minimum width=20ex] (decorator) { };
+	\node[at=(decorator.west), scale=0.6, align=left, anchor=west] { Window \\ decorator };
+
+	\node[at=(decorator), panorama, minimum width=12ex, minimum height=4ex, xshift=2.5ex] (decorations) {};
+	\path[treesessionarrow] (decorator.south) .. controls +(0,-3ex) and +(4ex,2ex) .. (wmgui.60);
+
+	\draw[mapping] (decorations.north west) -- (panorama.north west);
+	\draw[mapping] (decorations.south east) -- (panorama.south east);
+
+	\node[at=(decorations), xshift=-3ex, minimum width=2ex, minimum height=1.5ex, draw] (w1) {};
+	\draw (w1.153) -- (w1.27);
+	\node[at=(decorations), xshift=2ex, yshift=-0.5ex, minimum width=3ex, minimum height=1.5ex, draw] (w2) {};
+	\draw (w2.160) -- (w2.20);
+
+	\tikzstyle{infoflow} = [opacity=0.4,
+	                        decoration={markings,
+	                        mark=between positions 0.1 and 1 step 1ex with {\arrow{latex}}},
+	                        postaction={decorate}]
+
+	\path[infoflow] (layouter.40)
+		.. controls +(2ex,2ex) and +(-2ex,4ex) .. node[above, scale=0.5] {window layout} (decorations.120);
+	
+	% layouter rules
+
+	\node[umlinfo, xshift=-3.5ex, above=2ex of layouter, minimum width=4ex, minimum height=4ex] (rules) { };
+	\node[at=(rules), scale=0.6] { rules };
+	\path[infoflow] (rules.west)
+		.. controls +(-2ex,-1ex) and +(-2ex,1ex) .. (layouter.150);
+
+	\path[infoflow] (layouter.100)
+		.. controls +(2ex,1ex) and +(2ex,-1ex) .. (rules.east);
+
+	% nitpicker config
+
+	\node[umlinfo, left=5ex of nitpicker, minimum height=5ex, minimum width=6ex ] (config) { };
+	\node[at=(config), scale=0.6, align=center] { panorama \\ definition };
+
+	\path[infoflow] (config.east) -- (nitpicker.west);
+
+\end{tikzpicture}
+
