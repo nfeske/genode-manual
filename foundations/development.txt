@@ -1480,7 +1480,7 @@ Release version
 
 The version number of a Genode release refers to the release date. The
 two-digit major number corresponds to the last two digits of the year and
-the two-digit minor number corresponds to the month. For example, "24.05".
+the two-digit minor number corresponds to the month. For example, "25.05".
 
 Each Genode release represents a snapshot of the master branch taken at
 release time. It is complemented by the following commits:

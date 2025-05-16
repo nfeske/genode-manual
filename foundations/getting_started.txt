@@ -74,7 +74,7 @@ Git checks out the most recent Genode master branch commit, so, let's
 now switch to the version used in this manual:
 
 ! cd <genode-dir>
-! git checkout -b 24.05 24.05
+! git checkout -b 25.05 25.05
 
 
 Source-tree structure
