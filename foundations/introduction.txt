@@ -306,7 +306,7 @@ stacks.
   * Device drivers for a variety of ARM-based SoCs, in particular the NXP i.MX
     family.
   * A GUI stack including a low-complexity GUI server, window management,
-    and widget toolkits such as Qt5.
+    and widget toolkits such as Qt.
   * Networking components such as TCP/IP stacks and packet-level network
     services.
   * Applications based on the POSIX interface, including GNU coreutils, bash,

@@ -53,7 +53,7 @@ proc get_cmd_arg { arg_name default_value } {
 #
 # XXX evaluate command-line argument
 #
-proc code_url { } { return "https://github.com/genodelabs/genode/blob/24.05/" }
+proc code_url { } { return "https://github.com/genodelabs/genode/blob/25.05/" }
 
 
 ##
@@ -992,7 +992,7 @@ proc class_detailed_description { class_token } {
 proc namespace_name { namespace_token } {
 
 	set namespace_name_token [sub_token $namespace_token identifier]
-	set namespace_name       [tok_text $namespace_name_token]
+	set namespace_name       [unfold_token $namespace_name_token]
 
 	return $namespace_name
 }
@@ -1054,6 +1054,16 @@ proc is_typedef { token } {
 
 
 ##
+# Return true if token is a using type alias
+#
+proc is_using { token } {
+
+	if {[tok_type $token] == "usingalias"} { return 1 }
+	return 0
+}
+
+
+##
 # Return true if token is a typed enum
 #
 proc is_enum_typedef { token } {
@@ -1073,6 +1083,19 @@ proc is_enum_typedef { token } {
 proc enum_type_name { enum_token } {
 
 	return [unfold_token [sub_token $enum_token identifier]]
+}
+
+
+proc enum_values { enum_token } {
+
+	set enum_block [sub_token $enum_token enumblock]
+	if {$enum_block == ""} { return "" }
+
+	set values { }
+	foreach_sub_token [tok_text $enum_block] plain { } token {
+		if {[tok_type $token] == "enumentry"} {
+			lappend values [unfold_token $token] } }
+	return $values
 }
 
 
@@ -1154,10 +1177,15 @@ proc collect_types_from_sequence { namespace_name sequence } {
 			set def  [unfold_token [sub_token $token identifier]]
 			set desc [mlcomment_parts $token]
 			lappend result [list "typedef" $name $def $desc]
+		} elseif {[is_using $token]} {
+			set name [unfold_token [sub_token $token typename]]
+			set def  [unfold_token [sub_token $token identifier]]
+			lappend result [list "typedef" $name $def ""]
 		} elseif {[is_enum_typedef $token]} {
-			set name [enum_type_name $token]
+			set name [enum_type_name  $token]
+			set def  [enum_values     $token]
 			set desc [mlcomment_parts $token]
-			lappend result [list "enum" $name "" $desc]
+			lappend result [list "enum" $name $def $desc]
 		} else {
 			set sub_typedef_token [sub_typedef $namespace_name $token]
 			if {$sub_typedef_token != ""} {

@@ -189,8 +189,7 @@ those components. The mechanism is best illustrated by an example:
 !     <service name="CPU"/>
 !     <service name="LOG"/>
 !   </parent-provides>
-!   <start name="timer" caps="100">
-!     <resource name="RAM" quantum="1M"/>
+!   <start name="timer" ram="1M" caps="100">
 !     <provides> <service name="Timer"/> </provides>
 !     <route>
 !       <service name="PD">  <parent/> </service>
@@ -199,20 +198,19 @@ those components. The mechanism is best illustrated by an example:
 !       <service name="LOG"> <parent/> </service>
 !     </route>
 !   </start>
-!   <start name="test-timer" caps="200">
-!     <resource name="RAM" quantum="1M"/>
+!   <start name="test-timer" ram="1M" caps="200">
 !     <route>
-!       <service name="Timer">  <child name="timer"/> </service>
-!       <service name="PD">     <parent/>             </service>
-!       <service name="ROM">    <parent/>             </service>
-!       <service name="CPU">    <parent/>             </service>
-!       <service name="LOG">    <parent/>             </service>
+!       <service name="Timer"> <child name="timer"/> </service>
+!       <service name="PD">    <parent/>             </service>
+!       <service name="ROM">   <parent/>             </service>
+!       <service name="CPU">   <parent/>             </service>
+!       <service name="LOG">   <parent/>             </service>
 !     </route>
 !   </start>
 ! </config>
 
 First, there is the declaration of services provided by the parent of the
-configured init instance. In this case, we declare that the parent provides a
+configured init instance. In this case, we declare that the parent provides
 a LOG service.
 For each child to start, there is a '<start>' node describing the assigned RAM
 and capability budget, declaring services provided by the child,
@@ -395,15 +393,16 @@ Resource assignment
 Physical memory budget
 ----------------------
 
-Each '<start>' node must be equipped with a declaration of the amount of
-RAM assigned to the child via a '<resource>' sub node.
-
-! <resource name="RAM" quantum="1M"/>
+Unless a global default is defined (see below),
+each '<start>' node must be equipped with a declaration of the amount of
+RAM assigned to the child via the 'ram' attribute. Attribute values can
+be suffixed with 'K', 'M', or 'G' to express multiples of KiB, MiB, or 'GiB'
+respectively.
 
 If the specified amount exceeds the available resources,
 the available resources are assigned almost completely to the child.
 This makes it possible to assign all remaining resources to the last child by
-simply specifying an overly large quantum.
+simply specifying an overly large value.
 Note that this special case should only be used for static configurations.
 In dynamic scenarios, components can temporarily disappear during the
 reconfiguration, which temporary frees their resources. Once released,
@@ -437,29 +436,21 @@ to components. Second, capability budgets can be traded between clients and
 servers such that servers are able to account capability allocations to their
 clients.
 
-Each '<start>' node can be equipped with a 'caps' attribute with
-the amount of capabilities assigned to the component. As a rule of
-thumb, the setup costs of a component are 35 capabilities. Hence, for
-typical components, an amount of 100 is a practical value.
-To alleviate the need to equip each '<start>' node with the same default
-value, the init configuration accepts a default declaration as follows:
-! <default caps="100"/>
-Unless a '<start>' node is equipped with a custom 'caps' attribute, the
-default value is used.
+Analogously to the RAM budget, each '<start>' node can be equipped with a
+'caps' attribute with the amount of capabilities assigned to the component. As
+a rule of thumb, the setup costs of a component are 35 capabilities. Hence,
+for typical components, an amount of 100 is a practical value.
 
-If a component runs out of capabilities, core's PD service prints a warning to
-the log. To observe the consumption of capabilities per component in detail,
-core's PD service is equipped with a diagnostic mode, which can be enabled via
-the 'diag' attribute in the target node of init's routing rules. E.g., the
-following route enables the diagnostic mode for the PD session:
 
-! <route>
-!   <service name="PD"> <parent diag="yes"/> </service>
-!   ...
-! </route>
+Init-wide resource defaults
+---------------------------
 
-With the 'diag' attribute enabled, core prints a log message each time the
-PD consumes, frees, or transfers its capability budget.
+To alleviate the need to equip each '<start>' node with the repeated common
+resource assignments, the init configuration accepts a default declaration as
+follows:
+! <default ram="1M" caps="100"/>
+These default values are used whenever a '<start>' node lacks an explicit
+assignment of 'ram' or 'caps'.
 
 
 Multiple instantiation of a single ELF binary
@@ -484,17 +475,17 @@ session label into account. The latter may be used by the server as a key for
 selecting a policy at the server side. To simplify server-side policies, init
 supports the rewriting of session labels in the target node
 of a matching session route. For example, an interactive shell ("shell") may
-have the following session route for the "home" file system:
+have the following session route for its file system:
 
 !<route>
-!  <service name="File_system" label="home">
+!  <service name="File_system" label="/">
 !    <child name="vfs"/>
 !  </service>
 !  ...
 !</route>
 
 At the "vfs" file-system server, the label of the file-system session will
-appear as "shell -> home". This information may be evaluated by the vfs's
+appear as "shell -> /". This information may be evaluated by the vfs's
 server-side policy. However, when renaming the shell instance, we'd need to
 update this server-side policy.
 
@@ -503,15 +494,55 @@ the server. The label can instead represent the role of the client, or a name
 of a physical resource. For example, the route could be changed to this:
 
 !<route>
-!  <service name="File_system" label="home">
-!    <child name="vfs" label="primary_user"/>
+!  <service name="File_system" label="/">
+!    <child name="vfs" label="/primary_user/"/>
 !  </service>
 !  ...
 !</route>
 
 Whenever the vfs receives the session request, it is presented with the label
-"primary_user". The fact that the client is "shell" is not taken into account
-for the server-side policy selection.
+"/primary_user/" prompting it to hand out the directory _/primary_user_
+as the root of the client's file system.
+
+
+Partial session-label rewriting
+-------------------------------
+
+In hierarchic scenarios (e.g., nested instances of init), labels assume a form
+like "runtime -> system_shell -> terminal -> config". The client's intent (in
+this case, the client wants to obtain "config") is successively watermarked by
+the components in the chain of authority involved in the session creation.
+In the example, the terminal's session request traverses the system-shell init
+as well as the runtime init before reaching the server.
+
+In short, the label encodes two things: the expression of the client's intent
+(naming a server-provided resource like ROM module), and an unforgeable (by
+the client) representation of the client's identity as observed by the server.
+The former is the last part of the label whereas the latter are all the
+leading parts.
+
+Init's label-rewriting mechanism is a useful tool of abstraction, which allows
+for grouping clients to roles. However, if the label can only be rewritten as
+a whole, the rewriting rule needs to encompass both the client's identity and the
+client's intent. Should the client's intent vary (e.g., a client requesting a
+variety of ROM modules), a dedicated rewriting rule is needed for each case.
+To make such policies easier to express, init allows for the selective
+rewriting of only the identity or the resource part of the session label
+using the attributes 'identity', 'resource', and 'prepend_resource'.
+For example,
+
+:'identity="rw"': replaces the identity part of the label by "rw" while
+  keeping the resource part. So the client's identity can be replaced by
+  a role while keeping the client's intent intact.
+
+:'resource="/bin/"': replaces the client's intent while retaining the
+  client's identity. Here, a client's request for a file-system session
+  becomes hardwired to one directory of the server.
+
+:'prepend_resource="/usr/local"': prepends the resource part of the label with
+  a given prefix. The example restricts the client-provided path to the
+  bounds of the server's _/usr/local/_ directory, similar to the effect of
+  Unix' chroot.
 
 
 Nested configuration
@@ -535,15 +566,13 @@ child is routed to the timer service started at the first-level init instance.
 !     <service name="CPU"/>
 !     <service name="PD"/>
 !   </parent-provides>
-!   <start name="timer" caps="100">
-!     <resource name="RAM" quantum="1M"/>
+!   <start name="timer" ram="1M" caps="100">
 !     <provides><service name="Timer"/></provides>
 !     <route>
 !       <any-service> <parent/> </any-service>
 !     </route>
 !   </start>
-!   <start name="init" caps="1000">
-!     <resource name="RAM" quantum="10M"/>
+!   <start name="init" ram="10M" caps="1000">
 !     <config>
 !       <parent-provides>
 !         <service name="Timer"/>
@@ -552,8 +581,7 @@ child is routed to the timer service started at the first-level init instance.
 !         <service name="CPU"/>
 !         <service name="PD"/>
 !       </parent-provides>
-!       <start name="test-timer" caps="200">
-!         <resource name="RAM" quantum="1M"/>
+!       <start name="test-timer" ram="1M" caps="200">
 !         <route>
 !           <any-service> <parent/> </any-service>
 !         </route>
@@ -580,8 +608,7 @@ nodes via '<config>' sub nodes, component configurations may be placed in
 separate ROM modules by facilitating the session-label rewriting mechanism
 described in Section [Session-label rewriting]:
 
-! <start name="nitpicker">
-!   <resource name="RAM" quantum="1M"/>
+! <start name="nitpicker" ram="1M">
 !   <route>
 !     <service name="ROM" label="config">
 !       <parent label="nitpicker.config"/>

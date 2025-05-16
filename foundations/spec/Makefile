@@ -18,8 +18,8 @@ VERBOSE ?= @
 # download is triggered via the class_index.mk dependency.
 #
 
-GENODE_GIT_URL := https://github.com/genodelabs/genode.git
-GENODE_GIT_REV := 23.05
+GENODE_GIT_URL := https://github.com/nfeske/genode.git
+GENODE_GIT_REV := origin/foundations-25-05
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
@@ -197,6 +197,7 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/base/log.h \
                          repos/base/include/base/output.h \
                          repos/base/include/base/stdint.h \
+                         repos/base/include/base/ram.h \
                          repos/base/include/spec/64bit/base/fixed_stdint.h \
                          repos/base/include/spec/32bit/base/fixed_stdint.h \
                          repos/base/include/rom_session/rom_session.h \
@@ -227,6 +228,6 @@ ALL_CLASS_NAMES = $(foreach C,$(CLASSES),${CLASS_NAME($C)})
 
 check_spec_complete: class_index.mk
 	@$(foreach C,$(ALL_CLASS_NAMES),\
-	    (grep "$C" ../functional_specification.txt > /dev/null || \
+	    (grep "$C" ../api.txt > /dev/null || \
 	     echo "missing class description for '$C'");)
 

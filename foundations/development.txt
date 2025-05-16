@@ -132,13 +132,6 @@ The _<port-name>.hash_ file contains the fingerprint of the corresponding
 port description, thereby uniquely identifying a version of the port
 as expected by the checked-out Genode version.
 
-For step-by-step instructions on how to add a port using the mechanism,
-please refer to the porting guide:
-
-:Genode Porting Guide:
-
-  [https://genode.org/documentation/developer-resources/porting]
-
 
 Build system
 ============
@@ -864,7 +857,7 @@ the different categories.
 Archives are named with their version as suffix, appended via a slash. The
 suffix is maintained by the author of the archive. The recommended naming
 scheme is the use of the release date as version suffix, e.g.,
-'report_rom/2017-05-14'.
+'report_rom/2025-05-26'.
 
 
 Raw-data archive
@@ -914,9 +907,9 @@ called 'used_apis', which contains a list of API-archive names with each
 name on a separate line. For example, the 'used_apis' file of the 'report_rom'
 source archive looks as follows:
 
-! base/2024-04-11
-! os/2024-04-11
-! report_session/2023-05-26
+! base/2025-05-26
+! os/2025-05-26
+! report_session/2024-08-28
 
 The 'used_apis' file declares the APIs needed to incorporate into the build
 process when building the source archive. Hence, they represent _build-time_
@@ -924,9 +917,9 @@ _dependencies_ on the specific API versions.
 
 A source archive may be equipped with a top-level file called 'api' containing
 the name of exactly one API archive. If present, it declares that the source
-archive _implements_ the specified API. For example, the 'libc/2024-04-18'
+archive _implements_ the specified API. For example, the 'libc/2025-05-26'
 source archive contains the actual source code of the libc and libm as well as
-an 'api' file with the content 'libc/2024-04-11'. The latter refers to the API
+an 'api' file with the content 'libc/2025-05-26'. The latter refers to the API
 implemented by this version of the libc source package (note the differing
 versions of the API and source archives)
 
@@ -955,12 +948,12 @@ Package archive
 A package archive contains an 'archives' file with a list of archive names
 that belong together at runtime. Each listed archive appears on a separate line.
 For example, the 'archives' file of the package archive for the window
-manager 'wm/2024-04-11' looks as follows:
+manager 'wm/2025-05-26' looks as follows:
 
-! genodelabs/raw/wm/2020-06-21
-! genodelabs/src/wm/2024-04-11
-! genodelabs/src/report_rom/2024-04-11
-! genodelabs/src/init/2024-04-11
+! genodelabs/raw/wm/2025-02-26
+! genodelabs/src/wm/2025-05-26
+! genodelabs/src/report_rom/2025-05-26
+! genodelabs/src/init/2025-05-26
 
 In contrast to the list of 'used_apis' of a source archive, the content of
 the 'archives' file denotes the origin of the respective archives
@@ -998,7 +991,7 @@ subdirectory.
 Subsuming archives in a subdirectory that correspond to their origin
 (user) serves two purposes. First, it provides a user-local name space for
 versioning archives. E.g., there might be two versions of a
-'nitpicker/2024-04-11' source archive, one by "genodelabs" and one by
+'nitpicker/2025-05-26' source archive, one by "genodelabs" and one by
 "nfeske". However, since each version resides in its origin's subdirectory,
 version-naming conflicts between different origins cannot happen. Second, by
 allowing multiple archive origins in the depot side-by-side, package archives
@@ -1055,7 +1048,7 @@ official "genodelabs" depot user is located at _gems/sculpt/depot/genodelabs/_.
 If both the public key and the download locations are defined, the download
 tool can be used as follows:
 
-! ./tool/depot/download genodelabs/src/zlib/2024-04-11
+! ./tool/depot/download genodelabs/src/zlib/2025-04-09
 
 The tool automatically downloads the specified archives and their
 dependencies. For example, as the zlib depends on the libc API, the libc API
@@ -1067,7 +1060,7 @@ all binary archives, for the 64-bit x86 architecture. Downloaded binary
 archives are always accompanied with their corresponding source and used API
 archives.
 
-! ./tool/depot/download genodelabs/pkg/x86_64/wm/2024-04-11
+! ./tool/depot/download genodelabs/pkg/x86_64/wm/2025-04-28
 
 Archive content is not downloaded directly to the depot. Instead, the
 individual archives and signature files are downloaded to a quarantine area in
@@ -1094,7 +1087,7 @@ CPU architecture. For example, the following command builds the 'zlib'
 library for the 64-bit x86 architecture. It executes four concurrent jobs
 during the build process.
 
-! ./tool/depot/build genodelabs/bin/x86_64/zlib/2024-04-11 -j4
+! ./tool/depot/build genodelabs/bin/x86_64/zlib/2025-04-09 -j4
 
 Note that the command expects a specific version of the source archive as
 argument. The depot may contain several versions. So the user has to decide,
@@ -1132,7 +1125,7 @@ GNU privacy guard.
 To publish archives, one needs to provide the specific version to publish.
 For example:
 
-! ./tool/depot/publish <you>/pkg/x86_64/wm/2024-04-11
+! ./tool/depot/publish <you>/pkg/x86_64/wm/2025-05-26
 
 To accommodate the common case of publishing the current version of the source
 tree, there exists the following shortcut:
@@ -1144,14 +1137,17 @@ in the depot. It then proceeds with the archiving and signing operations. For
 the latter, the pass phrase for your private key will be requested. The
 publish tool then outputs the information about the processed archives, e.g.:
 
-! publish /.../public/<you>/api/gems/2023-11-29.tar.xz
-! publish /.../public/<you>/bin/x86_64/init/2024-04-11.tar.xz
-! publish /.../public/<you>/bin/x86_64/report_rom/2024-04-11.tar.xz
-! publish /.../public/<you>/bin/x86_64/wm/2024-04-11.tar.xz
-! publish /.../public/<you>/pkg/wm/2024-04-11.tar.xz
-! publish /.../public/<you>/src/init/2024-04-11.tar.xz
-! publish /.../public/<you>/src/report_rom/2024-04-11.tar.xz
-! publish /.../public/<you>/src/wm/2024-04-11.tar.xz
+! publish /.../public/<you>/api/framebuffer_session/2024-10-07.tar.xz
+! publish /.../public/<you>/api/gems/2025-05-26.tar.xz
+! ...
+! publish /.../public/<you>/bin/x86_64/init/2025-05-26.tar.xz
+! publish /.../public/<you>/bin/x86_64/report_rom/2025-05-26.tar.xz
+! publish /.../public/<you>/bin/x86_64/wm/2025-05-26.tar.xz
+! publish /.../public/<you>/pkg/wm/2025-05-26.tar.xz
+! publish /.../public/<you>/raw/wm/2025-02-26.tar.xz
+! publish /.../public/<you>/src/init/2025-05-26.tar.xz
+! publish /.../public/<you>/src/report_rom/2025-05-26.tar.xz
+! publish /.../public/<you>/src/wm/2025-05-26.tar.xz
 
 According to the output, the tool populates a directory called _public/_
 at the root of the Genode source tree with the to-be-published archives.
@@ -1480,7 +1476,7 @@ Release version
 
 The version number of a Genode release refers to the release date. The
 two-digit major number corresponds to the last two digits of the year and
-the two-digit minor number corresponds to the month. For example, "24.05".
+the two-digit minor number corresponds to the month. For example, "25.05".
 
 Each Genode release represents a snapshot of the master branch taken at
 release time. It is complemented by the following commits:

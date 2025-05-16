@@ -74,7 +74,7 @@ Git checks out the most recent Genode master branch commit, so, let's
 now switch to the version used in this manual:
 
 ! cd <genode-dir>
-! git checkout -b 24.05 24.05
+! git checkout -b 25.05 25.05
 
 
 Source-tree structure
@@ -590,9 +590,7 @@ _<genode-dir>/repos/lab/run/hello.run_ with the following content:
 !     <any-service> <parent/> </any-service>
 !   </default-route>
 !   <default caps="100"/>
-!   <start name="hello">
-!     <resource name="RAM" quantum="10M"/>
-!   </start>
+!   <start name="hello" ram="10M"/>
 ! </config>
 !}
 !build_boot_image [build_artifacts]
@@ -754,13 +752,10 @@ run script.
 !     <any-service> <parent/> <any-child/> </any-service>
 !   </default-route>
 !   <default caps="100"/>
-!   <start name="timer">
-!     <resource name="RAM" quantum="1M"/>
+!   <start name="timer" ram="1M">
 !     <provides> <service name="Timer"/> </provides>
 !   </start>
-!   <start name="hello">
-!     <resource name="RAM" quantum="10M"/>
-!   </start>
+!   <start name="hello" ram="10M"/>
 ! </config>
 !}
 !build_boot_image [build_artifacts]
@@ -814,6 +809,19 @@ There are several possible ways to continue your exploration.
   :Sculpt OS:
 
     [https://genode.org/download/sculpt]
+
+  The Goa software-development kit streamlines the development, porting,
+  testing, packaging, and publishing of applications for Sculpt OS.
+  You can find the practical use of Goa described in great detail in the
+  _"Genode Applications"_ book.
+
+  :Goa SDK:
+
+    [https://github.com/genodelabs/goa]
+
+  :Genode Applications book:
+
+    [https://genode.org/documentation/genode-applications-25-04.pdf]
 
 # Genode comprises a *feature set* of hundreds of ready-to-use components,
   which are fun to discover and to combine. Most components are not only

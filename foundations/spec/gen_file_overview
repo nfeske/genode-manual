@@ -68,56 +68,14 @@ proc generate_namespace_functions { namespace_name } {
 }
 
 
-proc generate_type_definitions { typedefs } {
+proc generate_namespace_type_definitions { typedefs } {
 
 	if {[llength $typedefs] > 0} {
 		set section_label "Type"
 		if {[llength $typedefs] > 1} { append section_label "s" }
-		puts "\\apisection{$section_label}{0.95,0.95,0.95}"
+			puts "\\apisection{$section_label}{0.95,0.95,0.95}"
 		puts "\\apiboxcontent{"
-		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
-
-		set first 0
-		foreach typedef $typedefs {
-
-			if {!$first} { puts {\noalign{\medskip}} }
-			set first 0
-
-			set typedef_type [lindex $typedef 0]
-			set typedef_name [lindex $typedef 1]
-			set typedef_def  [lindex $typedef 2]
-			set typedef_desc [lindex $typedef 3]
-
-			if {$typedef_type == "subtype"} {
-				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
-				puts " & is a subtype of \\texttt{[out_latex "$typedef_def"]}\\\\"
-			}
-
-			if {$typedef_type == "typedef"} {
-				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
-				puts " & is defined as \\texttt{[out_latex "$typedef_def"]}\\\\"
-			}
-
-			if {$typedef_type == "enum"} {
-				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
-				puts " & is an enumeration type\\\\"
-			}
-
-			if {[llength $typedef_desc] > 0} {
-				puts {\noalign{\medskip}}
-				puts "   & [out_latex [lindex $typedef_desc 0]]\\\\"
-
-				if {[llength $typedef_desc] > 1} {
-
-					foreach part [lrange $typedef_desc 1 end] {
-					puts {\noalign{\medskip}}
-						puts "   & [out_latex $part]"
-					}
-				}
-				puts "    \\\\"
-			}
-		}
-		puts "  \\end{tabularx}"
+		generate_type_definitions $typedefs
 		puts "}"
 	}
 }
@@ -141,9 +99,7 @@ if {[llength $global_typedefs] > 0} {
 	if {$brief_description != ""} {
 		puts "\\apiboxcontent{[out_latex $brief_description]}" }
 
-	# type definitions
-	generate_type_definitions $global_typedefs
-
+	generate_namespace_type_definitions $global_typedefs
 	generate_link_to_header
 
 	puts { \end{apibox}}
@@ -169,9 +125,7 @@ foreach namespace_name [namespaces_in_header] {
 	if {$brief_description != ""} {
 		puts "\\apiboxcontent{[out_latex $brief_description]}" }
 
-	# types
-	set typedefs [namespace_types $namespace_name]
-	generate_type_definitions $typedefs
+	generate_namespace_type_definitions [namespace_types $namespace_name]
 
 	# functions
 	set function_tokens [namespace_functions $namespace_name]

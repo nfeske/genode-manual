@@ -248,9 +248,48 @@ application-level entry function 'Component::construct'.
 C++ runtime
 ===========
 
-Genode is implemented in C++ and relies on all C++ features required to use
-the language in its idiomatic way. This includes the use of exceptions
-and runtime-type information.
+Since the birth of the project in 2008, Genode has employed C++ exceptions for
+propagating error conditions, the rationale having been that this form of
+error handling would facilitate the use of the language as intended by the
+language designers.
+
+However, in version 21.11, we started
+[https://genodians.org/nfeske/2021-11-26-attempt-no-exceptions - exploring]
+the use of [https://en.wikipedia.org/wiki/Tagged_union - sum types] as a
+potential alternative to exceptions. This form of error handling has become
+widely popularized by the Rust programming language with its 'Result<T,E>'
+type, which fosters a programming style that emphasises the proper handling of
+error conditions over the happy path. Once we identified workable patterns for
+redesigning Genode's formerly exception-heavy APIs, we ultimately reached the
+conclusion to relieve Genode's base framework from the burden of the C++
+exception mechanism in version 25.05.
+
+What are these burdens specifically? They boil down to two problems that
+cannot be surmounted without language changes.
+
+First, the C++ exception mechanism requires a dynamic memory allocator.
+This allocator needs to be flexible about allocation sizes because those sizes
+ultimately depend on the exception types. Even though the exception types used
+by Genode are known, the C++ runtime must also be compatible with 3rd-party
+code and the exception types used therein. The allocator must also be
+thread-safe. In other words, there is the unwritten assumption that the C++
+runtime sits atop a C runtime providing malloc. Genode's C-less C++ runtime
+deviates from this beaten track. Even though we certainly made it work, it
+cannot be made perfect because it contradicts with Genode's rigid
+resource-partitioning regime.
+
+Second, and more importantly, the compiler gives the developer no means to
+statically check that no error condition remains unconsidered. This property,
+however, is fundamentally needed to attain assurance. Our coping strategy
+combined disciplined annotations in the form of comments with extensive
+testing. But as with any measure that depends on discipline and testing,
+certainty remains unattainable.
+
+Sum types overcome both of these two hard problems. As they can be expressed
+using C++ templates without any cleverness, there exists a natural migration
+path away from exceptions. In Genode, the basic building blocks for
+exception-less error handling are the 'Attempt<T,E>' and 'Unique_attempt<T,E>'
+utilities located at _base/attempt.h_.
 
 
 Rationale behind using exceptions
@@ -271,7 +310,7 @@ complete C library is available.
 
 In principle, C++ can be used without exceptions and RTTI (by passing the
 arguments '-fno-exceptions' and '-fno-rtti' to GCC). However, without
-those features, it is hardly possible to use the language as designed.
+those features, parts of the C++ language become unavailable.
 
 For example, when the operator 'new' is used, it performs two steps:
 Allocating the memory needed to hold the to-be-created object and calling
@@ -348,12 +387,17 @@ Consequently, by using exceptions, the robustness of object-oriented code
 (i.e., code that relies on C++ constructors) can be greatly improved over code
 that avoids exceptions.
 
+Hence, the case for or against the use of the C++ exception mechanism is not
+clear cut but should be made per component individually. For foundational
+components like Genode's core or resource multiplexers, the consistent use of
+sum-types-based error handling is preferable over exceptions. But for
+higher-level components, in particular those interfacing with 3rd-party C++
+libraries, the use of exceptions is natural.
+
 
 Bare-metal C++ runtime
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Acknowledging the rationale given in the previous section, there is
-still the problem of the complexity added by the exception mechanism.
 For Genode, the complexity of the trusted computing base is a fundamental
 metric. The C++ exception mechanism with its dependency to the C library
 arguably adds significant complexity. The code complexity of a C
@@ -1265,8 +1309,7 @@ signal contexts as first-class kernel objects. Core's
 PD service is merely used to arbitrate the creation and destruction of
 those kernel objects but it does not play the role of a signal-delivery proxy.
 Instead, signals are communicated directly by using the public kernel
-operations _await_signal_, _cancel_next_await_signal_, _submit_signal_, and
-_ack_signal_.
+operations _await_signal_, _submit_signal_, and _ack_signal_.
 
 
 Execution on the NOVA microhypervisor (base-nova)
