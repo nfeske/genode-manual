@@ -42,18 +42,14 @@ it streamlines the following tasks:
 Installation
 ============
 
-# Install the latest Genode tool chain on a GNU/Linux OS on a 64-bit x86 PC.
-  It is recommended to use the latest long-term support (LTS) version of
-  Ubuntu. Make sure that your installation satisfies the following
-  requirements.
+# It is recommended to use the latest long-term support (LTS) version of
+  Ubuntu on a 64-bit x86 PC. Make sure that your installation satisfies the
+  following requirements.
 
   * _libSDL-dev_ needed to run system scenarios directly on your host OS,
   * _tclsh_ and _expect_ needed by the tools,
   * _xmllint_ for validating configurations,
-
-  Instructions for installing the Genode tool chain are available at
-  [https://genode.org/download/tool-chain].
-
+  * _bubblewrap_ for sandboxed build environments
 
 # Clone the Goa repository:
 
@@ -71,6 +67,15 @@ Installation
     (replace '<goa-dir>' with the absolute path of your clone):
 
     ! export PATH=$PATH:<goa-dir>/bin
+
+# Provide the latest Genode toolchain by either
+
+  * Installing the Genode toolchain following the instructions at
+    [https://genode.org/download/tool-chain]
+
+  * Making sure _squashfs-tools_ and _squashfuse_ are installed so that Goa
+    is able to download the latest Genode toolchain and make it available in
+    the sandboxed build environment
 
 # Optionally, enable bash completion by adding the following line to your
   '~/.bashrc' file:
@@ -93,7 +98,8 @@ Genode API with no libc whatsoever.
 First, create a project directory, let's call it "hello":
 
 ! $ mkdir hello
-! hello$ cd hello
+! $ cd hello
+! hello$
 
 By convention, the project name corresponds to the name of the directory.
 Source codes are stored in a _src/_ subdirectory. Let's create a
@@ -156,11 +162,11 @@ This line tells Goa that the project depends on Genode's base API, which
 features the _base/log.h_ and _base/component.h_ headers. When issuing
 the command 'goa build' again, you see the following message:
 
-! download genodelabs/api/base/2023-10-24.tar.xz
-! download genodelabs/api/base/2023-10-24.tar.xz.sig
+! download genodelabs/api/base/2025-04-09.tar.xz
+! download genodelabs/api/base/2025-04-09.tar.xz.sig
 
 Goa automatically downloaded the base API and installed it into a fresh
-depot at _var/depot/genodelabs/api/base/2023-10-24/_. But not only that, it also
+depot at _var/depot/genodelabs/api/base/2025-04-09/_. But not only that, it also
 re-attempted the build of the program. If you take a look at
 _var/build/x86_64/_, you will see the 'hello' executable. If the output was too
 unspectacular for your taste, you may append the '--verbose' argument to the
@@ -212,24 +218,24 @@ For running the scenario, one can use the 'goa run' command:
 
 ! hello$ goa run
 
-! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz.sig
-! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz.sig
-! download genodelabs/src/base-linux/2023-10-24.tar.xz
-! download genodelabs/src/base-linux/2023-10-24.tar.xz.sig
-! download genodelabs/src/init/2023-10-24.tar.xz
-! download genodelabs/src/init/2023-10-24.tar.xz.sig
-! download genodelabs/api/os/2023-08-21.tar.xz
-! download genodelabs/api/os/2023-08-21.tar.xz.sig
-! download genodelabs/api/report_session/2023-05-26.tar.xz
-! download genodelabs/api/report_session/2023-05-26.tar.xz.sig
-! download genodelabs/api/sandbox/2023-10-03.tar.xz
-! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
-! download genodelabs/api/timer_session/2023-10-03.tar.xz
-! download genodelabs/api/timer_session/2023-10-03.tar.xz.sig
-! Genode sculpt-23.10
-! 17592186044415 MiB RAM and 18997 caps assigned to init
+! download genodelabs/bin/x86_64/base-linux/2025-04-28.tar.xz
+! download genodelabs/bin/x86_64/base-linux/2025-04-28.tar.xz.sig
+! download genodelabs/bin/x86_64/init/2025-04-28.tar.xz
+! download genodelabs/bin/x86_64/init/2025-04-28.tar.xz.sig
+! download genodelabs/src/base-linux/2025-04-28.tar.xz
+! download genodelabs/src/base-linux/2025-04-28.tar.xz.sig
+! download genodelabs/src/init/2025-04-28.tar.xz
+! download genodelabs/src/init/2025-04-28.tar.xz.sig
+! download genodelabs/api/os/2025-04-09.tar.xz
+! download genodelabs/api/os/2025-04-09.tar.xz.sig
+! download genodelabs/api/report_session/2024-08-28.tar.xz
+! download genodelabs/api/report_session/2024-08-28.tar.xz.sig
+! download genodelabs/api/sandbox/2025-01-29.tar.xz
+! download genodelabs/api/sandbox/2025-01-29.tar.xz.sig
+! download genodelabs/api/timer_session/2024-08-28.tar.xz
+! download genodelabs/api/timer_session/2024-08-28.tar.xz.sig
+! Genode sculpt-25.04
+! 17592186044415 MiB RAM and 19000 caps assigned to init
 ! [init -> hello] Hello
 
 You can see that Goa automatically installed the dependencies needed to
@@ -323,12 +329,12 @@ required APIs and successfully builds the example program:
 
 ! cmake_step2$ goa build
 
-! download genodelabs/api/libc/2023-10-03.tar.xz
-! download genodelabs/api/libc/2023-10-03.tar.xz.sig
+! download genodelabs/api/libc/2025-04-09.tar.xz
+! download genodelabs/api/libc/2025-04-09.tar.xz.sig
 ! download genodelabs/api/posix/2020-05-17.tar.xz
 ! download genodelabs/api/posix/2020-05-17.tar.xz.sig
-! download genodelabs/api/stdcxx/2023-10-24.tar.xz
-! download genodelabs/api/stdcxx/2023-10-24.tar.xz.sig
+! download genodelabs/api/stdcxx/2025-04-09.tar.xz
+! download genodelabs/api/stdcxx/2025-04-09.tar.xz.sig
 ! [cmake_step2:cmake] -- Configuring done
 ! [cmake_step2:cmake] -- Generating done
 ! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
@@ -393,18 +399,19 @@ With this runtime package in place, let's give the Tutorial a run:
 ! [cmake_step2:cmake] -- Generating done
 ! [cmake_step2:cmake] -- Build files have been written to: .../var/build/x86_64
 ! [cmake_step2:cmake] [100%] Built target Tutorial
-! download genodelabs/bin/x86_64/libc/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/libc/2023-10-24.tar.xz.sig
-! download genodelabs/bin/x86_64/posix/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/posix/2023-10-24.tar.xz.sig
-! download genodelabs/bin/x86_64/stdcxx/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/stdcxx/2023-10-24.tar.xz.sig
-! download genodelabs/bin/x86_64/vfs/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/vfs/2023-10-24.tar.xz.sig
+! download genodelabs/bin/x86_64/libc/2025-04-09.tar.xz
+! download genodelabs/bin/x86_64/libc/2025-04-09.tar.xz.sig
+! download genodelabs/bin/x86_64/posix/2025-04-09.tar.xz
+! download genodelabs/bin/x86_64/posix/2025-04-09.tar.xz.sig
+! download genodelabs/bin/x86_64/stdcxx/2025-04-09.tar.xz
+! download genodelabs/bin/x86_64/stdcxx/2025-04-09.tar.xz.sig
+! download genodelabs/bin/x86_64/vfs/2025-04-28.tar.xz
+! download genodelabs/bin/x86_64/vfs/2025-04-28.tar.xz.sig
 ! ...
-! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
-! Genode sculpt-23.10
-! 17592186044415 MiB RAM and 18997 caps assigned to init
+! download genodelabs/api/sandbox/2025-01-29.tar.xz
+! download genodelabs/api/sandbox/2025-01-29.tar.xz.sig
+! Genode sculpt-25.04
+! 17592186044415 MiB RAM and 19000 caps assigned to init
 ! [init -> cmake_step2] The square root of 24 is 4.89898
 ! [init] child "cmake_step2" exited with exit value 0
 
