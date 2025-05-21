@@ -1,4 +1,4 @@
-GENODE_VERSION = 24.11
+GENODE_VERSION = 25.05
 PDF = genode-applications-$(subst .,-,$(GENODE_VERSION)).pdf
 
 all: $(PDF)
