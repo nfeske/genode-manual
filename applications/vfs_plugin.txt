@@ -748,8 +748,7 @@ _runtime_ file at _test-vfs_tap/pkg/test-vfs_tap_:
 !          <any-service>        <parent/>                  </any-service>
 !       </default-route>
 !
-!       <start name="test-vfs_tap">
-!          <resource name="RAM" quantum="8M"/>
+!       <start name="test-vfs_tap" ram="8M">
 !          <config>
 !             <libc stdout="/dev/log"/>
 !             <vfs>
@@ -759,8 +758,7 @@ _runtime_ file at _test-vfs_tap/pkg/test-vfs_tap_:
 !          </config>
 !       </start>
 !
-!       <start name="nic_router">
-!          <resource name="RAM" quantum="2M"/>
+!       <start name="nic_router" ram="2M">
 !          <provides> <service name="Nic"/>
 !                     <service name="Uplink"/> </provides>
 !          <config verbose_domain_state="yes" verbose="yes">
@@ -769,8 +767,7 @@ _runtime_ file at _test-vfs_tap/pkg/test-vfs_tap_:
 !          </config>
 !       </start>
 !
-!       <start name="ping">
-!          <resource name="RAM" quantum="4M"/>
+!       <start name="ping" ram="4M">
 !          <config interface="10.0.2.2/24" gateway="10.0.2.1"
 !                  dst_ip="10.0.2.123" period_sec="5" verbose="no"/>
 !       </start>

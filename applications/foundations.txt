@@ -42,8 +42,7 @@ configuration as XML. The configuration of Genode's init component, e.g.,
 contains a <start> node for each child component to be started. For
 illustration, let's have a look at a simple example:
 
-! <start name="fs_rom">
-!   <resource name="RAM" quantum="10M"/>
+! <start name="fs_rom" ram="10M">
 !   <provides>
 !     <service name="ROM"/>
 !   </provides>
@@ -57,7 +56,7 @@ illustration, let's have a look at a simple example:
 * The _name_ attribute of the <start> node refers the name of the child
   component and is identical to the binary name.
   A different binary name can be specified by adding a <binary> sub node.
-* The <resource> node specifies the amount of RAM delegated to the component.
+* The _ram_ attribute specifies the amount of RAM delegated to the component.
 * The <provides> node contains the list of session interfaces provided by
   the component.
 * The <config> node specifies the content of the component's config ROM.

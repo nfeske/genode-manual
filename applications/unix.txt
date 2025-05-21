@@ -178,8 +178,7 @@ following configuration.
 !     <service name="Timer"/>
 !   </parent-provides>
 !
-!   <start name="vfs" caps="100">
-!     <resource name="RAM" quantum="10M"/>
+!   <start name="vfs" caps="100" ram="10M">
 !     <provides> <service name="File_system"/> </provides>
 !     <config>
 !       <vfs> <tar name="bash.tar"/> </vfs>
@@ -277,8 +276,7 @@ $ ps u
 The second piece of the puzzle is the 'fs_rom' server, which can be added
 to the <config> node of _pkg/unix/runtime_ with the following snippet:
 
-! <start name="vfs_rom" caps="100">
-!   <resource name="RAM" quantum="10M"/>
+! <start name="vfs_rom" caps="100" ram="10M">
 !   <binary name="fs_rom"/>
 !   <provides> <service name="ROM"/> </provides>
 !   <config/>
@@ -332,8 +330,7 @@ following output.
 That looks promising. Now with the bash executable available as ROM module,
 let's give the bash shell a spin:
 
-! <start name="/bin/bash" caps="1000">
-!   <resource name="RAM" quantum="10M" />
+! <start name="/bin/bash" caps="1000" ram="10M">
 !   <config>
 !     <libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
 !           rtc="/dev/null"/>
@@ -463,8 +460,7 @@ The _raw/unix.config_ file:
 !     <service name="Timer"/>
 !   </parent-provides>
 !
-!   <start name="vfs" caps="100">
-!     <resource name="RAM" quantum="10M"/>
+!   <start name="vfs" caps="100" ram="10M">
 !     <provides> <service name="File_system"/> </provides>
 !     <config>
 !       <vfs> <tar name="bash.tar"/> </vfs>
@@ -473,8 +469,7 @@ The _raw/unix.config_ file:
 !     <route> <any-service> <parent/> </any-service> </route>
 !   </start>
 !
-!   <start name="vfs_rom" caps="100">
-!     <resource name="RAM" quantum="10M"/>
+!   <start name="vfs_rom" caps="100" ram="10M">
 !     <binary name="fs_rom"/>
 !     <provides> <service name="ROM"/> </provides>
 !     <config/>
@@ -484,8 +479,7 @@ The _raw/unix.config_ file:
 !     </route>
 !   </start>
 !
-!   <start name="/bin/bash" caps="1000">
-!     <resource name="RAM" quantum="10M" />
+!   <start name="/bin/bash" caps="1000" ram="10M">
 !     <config>
 !       <libc stdin="/dev/null" stdout="/dev/log" stderr="/dev/log"
 !             rtc="/dev/null"/>
