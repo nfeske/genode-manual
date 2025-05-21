@@ -3,6 +3,13 @@ source "../foundations/manual.gosh"
 
 proc title_tikz {} { return {\input{img/applications_title.tikz}} }
 
+### DESCRIPTION (overwrite style) ###
+proc process_description_latex {txtblock} {
+	printline "\\begin{description}\[style=sameline]"
+	handle_txtblock description $txtblock
+	printline "\\end{description}"
+}
+
 ### IMAGE ###
 proc process_image_latex {txtblock} {
 	set img_info ""
