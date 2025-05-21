@@ -101,10 +101,18 @@ look like this:
 ! interface=tap0
 ! domain=lan
 ! dhcp-range=10.0.100.2,10.0.100.2,12h
+! dhcp-option=6,1.1.1.1
 
 With this file, you are able to start the DHCP server from the command line:
 
 ! $ sudo dnsmasq -C dnsmasq.conf
+
+The DHCP server also announces a DNS server (1.1.1.1). In order to actually
+permit network traffic to the physical interface, you must enable IP forwarding
+and NATing:
+
+! $ sudo sysctl net.ipv4.ip_forward=1
+! $ sudo iptables -t nat -A POSTROUTING -j MASQUERADE
 
 In the _runtime_ file of a Goa project, you are further able to set the name of
 the tap device and also specify additional domains and forwarding rules for the
