@@ -216,7 +216,7 @@ Now, let's add the first few lines to _src/vfs_tap.cc_:
 !    struct Factory : Vfs::File_system_factory
 !    {
 !       Vfs::File_system
-!       *create(Vfs::Env &env, Genode::Xml_node config) override
+!       *create(Vfs::Env &env, Genode::Xml_node const &config) override
 !       {
 !          return new (env.alloc())
 !             Vfs::Tap_file_system::Compound_file_system(env, config);
@@ -246,9 +246,9 @@ primitives. Let's have a closer look:
 ! {
 !    private:
 !
-!       typedef Tap_file_system::Name Name;
+!       using Name = Tap_file_system::Name;
 !
-!       typedef String<200> Config;
+!       using Config = String<200>;
 !       static Config _config(Name const &name)
 !       {
 !          char buf[Config::capacity()] { };
@@ -269,7 +269,7 @@ primitives. Let's have a closer look:
 !
 !    public:
 !
-!       Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node node)
+!       Compound_file_system(Vfs::Env &vfs_env, Genode::Xml_node const &node)
 !       :
 !          Local_factory(vfs_env, node),
 !          Vfs::Dir_file_system(vfs_env, Xml_node(
@@ -371,13 +371,13 @@ accessor for reading the device name from the _<tap>_ node and the
 ! {
 !    /* [...] see above */
 !
-!    Local_factory(Vfs::Env &env, Xml_node config)
+!    Local_factory(Vfs::Env &env, Xml_node const &config)
 !    :
 !       _env(env),
 !       _name(name(config))
 !    { }
 !
-!    static Name name(Xml_node config)
+!    static Name name(Xml_node const &config)
 !    {
 !       return config.attribute_value("name", Name("tap"));
 !    }
@@ -386,7 +386,7 @@ accessor for reading the device name from the _<tap>_ node and the
 !     ** Factory interface **
 !     ***********************/
 !
-!    Vfs::File_system *create(Vfs::Env&, Xml_node node) override
+!    Vfs::File_system *create(Vfs::Env&, Xml_node const &node) override
 !    {
 !       if (node.has_type("data")) return &_data_fs;
 !       if (node.has_type("info")) return &_info_fs;
@@ -649,7 +649,7 @@ Now, create an _artifacts_ file mentioning _vfs_tap.lib.so_ and try 'goa build':
 Apparently, Goa lacks any version information for the NIC session API. This
 information can be added by the following line in a _goarc_ file.
 
-! set version(genodelabs/api/nic_session) 2023-11-29
+! set version(genodelabs/api/nic_session) 2025-04-09
 
 Now, give 'goa build' another try:
 
@@ -710,8 +710,8 @@ file and to add a _LICENSE_ file. You may start with an empty file for testing:
 ! vfs_tap$ goa bump-version
 ! vfs_tap$ touch LICENSE
 ! vfs_tap$ goa export --depot-user john
-! [vfs_tap] exported [...]/var/depot/john/src/vfs_tap/2024-08-02
-! [vfs_tap] exported [...]/var/depot/john/bin/x86_64/vfs_tap/2024-08-02
+! [vfs_tap] exported [...]/var/depot/john/src/vfs_tap/2025-05-21
+! [vfs_tap] exported [...]/var/depot/john/bin/x86_64/vfs_tap/2025-05-21
 
 Now, you need to add some code for the test application. Simply use the example
 code from the very beginning of this section and place it in the file
@@ -802,13 +802,13 @@ file at _test-vfs_tap/pkg/test-vfs_tap_:
 ! genodelabs/src/posix
 ! genodelabs/src/nic_router
 ! john/src/vfs_tap
-! jschlatow/src/ping/2024-04-11
+! jschlatow/src/ping/2025-04-09
 
 Now, you can give the test scenario a try:
 
 ! vfs_tap$ goa run -C test-vfs_tap/
-! Genode sculpt-24.04
-! 17592186044415 MiB RAM and 18997 caps assigned to init
+! Genode sculpt-25.04
+! 17592186044415 MiB RAM and 19000 caps assigned to init
 ! [init -> test-vfs_tap -> nic_router] [default] static IP config: interface ...
 ! [init -> test-vfs_tap -> nic_router] [default] NIC sessions: 0
 ! [init -> test-vfs_tap -> nic_router] [default] initiated domain
