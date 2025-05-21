@@ -27,6 +27,7 @@ unix
 unix_publish
 vfs_plugin
 lomiri_calculator
+more_tutorials
 endef
 
 default: $(PDF)

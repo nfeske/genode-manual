@@ -1,0 +1,9 @@
+Further reading
+===============
+
+More tutorials and stories around Goa are available on the federated blog
+_genodians.org_ or, maybe, you're ready to share you own story by now...
+
+:Goa-related articles on genodians.org:
+
+  [http://genodians.org/topics-goa]
