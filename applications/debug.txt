@@ -147,10 +147,10 @@ Let's re-export liblvgl using the '--with-backtrace' switch and try again:
 
 ! lvgl$ goa export --debug --with-backtrace --depot-overwrite
 ! ...
-! [lvgl] exported [...]/depot/jschlatow/api/lvgl/2024-05-06
-! [lvgl] exported [...]/depot/jschlatow/src/lvgl/2024-05-06
-! [lvgl] exported [...]/depot/jschlatow/bin/x86_64/lvgl/2024-05-06
-! [lvgl] exported [...]/depot/jschlatow/dbg/x86_64/lvgl/2024-05-06
+! [lvgl] exported [...]/depot/john/api/lvgl/2024-05-06
+! [lvgl] exported [...]/depot/john/src/lvgl/2024-05-06
+! [lvgl] exported [...]/depot/john/bin/x86_64/lvgl/2024-05-06
+! [lvgl] exported [...]/depot/john/dbg/x86_64/lvgl/2024-05-06
 
 ! lvgl$ cd ../system_info
 ! system_info$ goa backtrace
@@ -367,7 +367,7 @@ pin only the base-linux archive to your depot.
 Let's opt for the latter version and provide Goa with the corresponding version
 information using a '--version-...' argument:
 
-! system_info$ goa run --debug --version-jschlatow/src/base-linux 2024-06-27
+! system_info$ goa run --debug --version-john/src/base-linux 2024-06-27
 
 After repeating the steps for symbol loading, breakpoints can be added
 successfully:
