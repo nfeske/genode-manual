@@ -181,8 +181,8 @@ archives and signatures. For example,
 
 ! $ find var/public/genodelabs/bin/x86_64/terminal
 ! var/public/genodelabs/bin/x86_64/terminal
-! var/public/genodelabs/bin/x86_64/terminal/2023-10-24.tar.xz.sig
-! var/public/genodelabs/bin/x86_64/terminal/2023-10-24.tar.xz
+! var/public/genodelabs/bin/x86_64/terminal/2025-04-09.tar.xz.sig
+! var/public/genodelabs/bin/x86_64/terminal/2025-04-09.tar.xz
 
 The 'sig' file is the signature that was created via the private PGP
 key of Genode Labs when terminal was originally published.
@@ -219,7 +219,8 @@ but specifying the user name "john" this time.
 ! Error: version for archive john/raw/unix_3rd undefined
 !
 !  Create a 'version' file in your project directory, or 
-!  define 'set version(john/raw/unix_3rd) <version>' in your .goarc file.
+!  define 'set version(john/raw/unix_3rd) <version>' in your goarc file,
+!  or specify '--version-john/raw/unix_3rd <version>' as argument.
 
 This time, Goa seems to be happy about the depot user name, but it apparently
 misses any version information about the project. Indeed, while following the
@@ -263,7 +264,8 @@ With the README file in place, let's try again:
 ! $ goa export --depot-user john
 ! Error: archive john/raw/unix_3rd/2023-11-15 already exists in the depot
 !
-!  You may specify '--depot-overwrite' to replace the existing version.
+!  You may specify '--depot-overwrite' to replace or '--depot-retain' to keep
+!  the existing version.
 
 Goa wants to save us from accidentally overwriting existing depot content,
 which can happen, for example, if you made changes in the project but forgot to
@@ -489,7 +491,7 @@ single command.
 ! [intro] exported .../intro/var/depot/john/index/24.04
 ! publish .../intro/var/public/john/pkg/unix_3rd/2023-11-15.tar.xz
 ! publish .../intro/var/public/john/raw/unix_3rd/2023-11-15.tar.xz
-! publish .../intro/var/public/john/index/24.04.xz
+! publish .../intro/var/public/john/index/25.04.xz
 
 After syncing your depot content to the web server. Users are able to
 install your unix_3rd package via the Sculpt UI. Please refer to the Sculpt

@@ -55,12 +55,12 @@ Let's see what happens when issuing the 'run' command:
 
 ! unix$ goa run
 
-! download genodelabs/bin/x86_64/bash/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/bash/2023-10-24.tar.xz.sig
-! download genodelabs/src/bash/2023-10-24.tar.xz
-! download genodelabs/src/bash/2023-10-24.tar.xz.sig
-! download genodelabs/api/libc/2023-10-03.tar.xz
-! download genodelabs/api/libc/2023-10-03.tar.xz.sig
+! download genodelabs/bin/x86_64/bash/2025-04-28.tar.xz
+! download genodelabs/bin/x86_64/bash/2025-04-28.tar.xz.sig
+! download genodelabs/src/bash/2025-04-28.tar.xz
+! download genodelabs/src/bash/2025-04-28.tar.xz.sig
+! download genodelabs/api/libc/2025-04-09.tar.xz
+! download genodelabs/api/libc/2025-04-09.tar.xz.sig
 ! download genodelabs/api/noux/2023-06-15.tar.xz
 ! download genodelabs/api/noux/2023-06-15.tar.xz.sig
 ! download genodelabs/api/posix/2020-05-17.tar.xz
@@ -86,14 +86,14 @@ Besides the binaries, it also fetches all source codes. You can find all the
 downloads at _var/depot/_. One particularly interesting directory is the
 binary archive for bash:
 
-! unix$ ls var/depot/genodelabs/bin/x86_64/bash/2023-10-24/
+! unix$ ls var/depot/genodelabs/bin/x86_64/bash/2025-04-28/
 !
 ! bash.tar
 
 It contains a single tar archive, which in turn, contains all installation
 files of bash. Let's take a look inside:
 
-! unix$ tar tf var/depot/genodelabs/bin/x86_64/bash/2023-10-24/bash.tar
+! unix$ tar tf var/depot/genodelabs/bin/x86_64/bash/2025-04-28/bash.tar
 
 ! ./
 ! ./share
@@ -119,26 +119,26 @@ After issuing 'goa run' again, Goa downloads the additional packages
 needed to run our _pkg/unix_ on Linux, integrates the scenario, and starts it.
 
 ! unix$ goa run
-! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/base-linux/2023-10-24.tar.xz.sig
-! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz
-! download genodelabs/bin/x86_64/init/2023-10-24.tar.xz.sig
-! download genodelabs/src/base-linux/2023-10-24.tar.xz
-! download genodelabs/src/base-linux/2023-10-24.tar.xz.sig
-! download genodelabs/src/init/2023-10-24.tar.xz
-! download genodelabs/src/init/2023-10-24.tar.xz.sig
-! download genodelabs/api/base/2023-10-24.tar.xz
-! download genodelabs/api/base/2023-10-24.tar.xz.sig
-! download genodelabs/api/os/2023-08-21.tar.xz
-! download genodelabs/api/os/2023-08-21.tar.xz.sig
-! download genodelabs/api/report_session/2023-05-26.tar.xz
-! download genodelabs/api/report_session/2023-05-26.tar.xz.sig
-! download genodelabs/api/sandbox/2023-10-03.tar.xz
-! download genodelabs/api/sandbox/2023-10-03.tar.xz.sig
-! download genodelabs/api/timer_session/2023-10-03.tar.xz
-! download genodelabs/api/timer_session/2023-10-03.tar.xz.sig
-! Genode sculpt-23.10
-! 17592186044415 MiB RAM and 18997 caps assigned to init
+! download genodelabs/bin/x86_64/base-linux/2025-04-28.tar.xz
+! download genodelabs/bin/x86_64/base-linux/2025-04-28.tar.xz.sig
+! download genodelabs/bin/x86_64/init/2025-04-28.tar.xz
+! download genodelabs/bin/x86_64/init/2025-04-28.tar.xz.sig
+! download genodelabs/src/base-linux/2025-04-28.tar.xz
+! download genodelabs/src/base-linux/2025-04-28.tar.xz.sig
+! download genodelabs/src/init/2025-04-28.tar.xz
+! download genodelabs/src/init/2025-04-28.tar.xz.sig
+! download genodelabs/api/base/2025-04-09.tar.xz
+! download genodelabs/api/base/2025-04-09.tar.xz.sig
+! download genodelabs/api/os/2025-04-09.tar.xz
+! download genodelabs/api/os/2025-04-09.tar.xz.sig
+! download genodelabs/api/report_session/2024-08-28.tar.xz
+! download genodelabs/api/report_session/2024-08-28.tar.xz.sig
+! download genodelabs/api/sandbox/2025-01-29.tar.xz
+! download genodelabs/api/sandbox/2025-01-29.tar.xz.sig
+! download genodelabs/api/timer_session/2024-08-28.tar.xz
+! download genodelabs/api/timer_session/2024-08-28.tar.xz.sig
+! Genode sculpt-25.04
+! 17592186044415 MiB RAM and 19000 caps assigned to init
 
 You can find _bash.tar_ added to the _var/run/_ directory, which comprises all
 the ROM modules of our Genode system.
@@ -195,11 +195,10 @@ the root of the virtual file system in a read-only fashion.
 When trying to 'run' the scenario now, you see a bunch of messages:
 
 ! unix$ goa run
-!
 ! [unix] config <parent-provides> mentions a timer service;
 !        consider adding <timer/> as a required runtime service
-! Genode sculpt-23.10
-! 17592186044415 MiB RAM and 18997 caps assigned to init
+! Genode sculpt-25.04
+! 17592186044415 MiB RAM and 19000 caps assigned to init
 ! [init -> unix] Error: vfs: environment ROM session denied ...
 
 The first message points out that init's '<parent-provides>' declaration
@@ -221,7 +220,7 @@ To make this ingredient available to our scenario, we have to
 declare it in the _archives_ and as <content> in the _runtime_ file.
 While we are at it, lets also capture the need for 'init' because our entire
 scenario is based on this component.
-Let's add the following lines to _pkg/unix/archive_:
+Let's add the following lines to _pkg/unix/archives_:
 
 ! genodelabs/src/vfs
 ! genodelabs/src/init
@@ -259,15 +258,14 @@ entry to the _runtime_ file. The <content> should now look as follows:
 When running the scenario again, we see a sign of hope:
 
 ! unix$ goa run
-
-! Genode sculpt-23.10
-! 17592186044415 MiB RAM and 18997 caps assigned to init
+! Genode sculpt-25.04
+! 17592186044415 MiB RAM and 19000 caps assigned to init
 
 No further errors! That means that the VFS server is running and has
 presumably mounted the _bash.tar_ archive. On a second terminal, you can
 indeed observe the VFS server showing up.
 
-$ ps u
+! $ ps u
 ! ... [Genode] init
 ! ... [Genode] init -> timer
 ! ... [Genode] init -> unix
@@ -302,9 +300,8 @@ attribute to init's <config> node. Another try of 'goa run' reveals the
 following output.
 
 ! unix$ goa run
-!
-! Genode sculpt-23.10
-! 17592186044415 MiB RAM and 18997 caps assigned to init
+! Genode sculpt-25.04
+! 17592186044415 MiB RAM and 19000 caps assigned to init
 ! [init -> unix] parent provides
 ! [init -> unix]   service "ROM"
 ! [init -> unix]   service "LOG"
@@ -312,18 +309,18 @@ following output.
 ! [init -> unix]   service "CPU"
 ! [init -> unix]   service "PD"
 ! [init -> unix]   service "Timer"
-! [init -> unix] child "vfs"
-! [init -> unix]   RAM quota:  9992K
-! [init -> unix]   cap quota:  66
-! [init -> unix]   ELF binary: vfs
-! [init -> unix]   priority:   0
-! [init -> unix]   provides service File_system
 ! [init -> unix] child "vfs_rom"
 ! [init -> unix]   RAM quota:  9992K
 ! [init -> unix]   cap quota:  66
 ! [init -> unix]   ELF binary: fs_rom
 ! [init -> unix]   priority:   0
 ! [init -> unix]   provides service ROM
+! [init -> unix] child "vfs"
+! [init -> unix]   RAM quota:  9992K
+! [init -> unix]   cap quota:  66
+! [init -> unix]   ELF binary: vfs
+! [init -> unix]   priority:   0
+! [init -> unix]   provides service File_system
 ! [init -> unix] child "vfs" announces service "File_system"
 ! [init -> unix] child "vfs_rom" announces service "ROM"
 
@@ -432,6 +429,8 @@ to declare via a <rom> node in the _runtime_ file.
 For reference, the _pkg/unix/runtime_ file should now look as follows:
 
 ! <runtime ram="100M" caps="5000" binary="init" config="unix.config">
+!
+!   <requires> <timer/> </requires>
 !
 !   <content>
 !     <rom label="init"/>
@@ -550,7 +549,7 @@ To satisfy this sanity check, let's add the following line to the
 
 Upon the next 'goa run', we can see that Goa automatically downloads the
 basic components of the GUI stack. Not only that. When starting the scenario,
-a new window with a greenish background pops up. When hovering the mouse over the window,
+a new window with a blue-ish screen pops up. When hovering the mouse over the window,
 you can see a small mouse pointer. If you are curious how the
 GUI stack is assembled in detail, please have a look at _var/run/config_.
 Yet, from the perspective of our Unix scenario, these exact details are not
@@ -562,7 +561,6 @@ With these preconditions in place, we can start a graphical terminal
 in our _unix.config_ by adding the following <start> node:
 
 ! <start name="terminal" caps="110">
-!   <resource name="RAM" quantum="10M"/>
 !   <provides> <service name="Terminal"/> </provides>
 !   <route>
 !     <service name="ROM" label="config">
@@ -680,7 +678,7 @@ The following lines must be added to the <content> node in _pkg/unix/runtime_
 ! </content>
 
 Good news! On the next try of 'goa run', you can see the error gone and are
-greeted with a black screen instead.
+greeted with a black-ish screen instead.
 The log output of '/bin/bash' looks as usual.
 
 
