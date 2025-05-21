@@ -15,8 +15,8 @@ renamed to _Lomiri UI Toolkit_.
 
 The port of the toolkit is available in the genode-world repository
 (see Section [Mobile SDK based on Ubuntu/Lomiri UI Toolkit]).
-Ready-to-use depot archives can be found in
-[https://depot.genode.org/ssumpf - Sebastian Sumpf's depot].
+Ready-to-use depot archives for x86_64 are available in
+[https://depot.genode.org/jschlatow - Johannes Schlatow's depot].
 
 This section walks through the porting procedure of the
 [https://gitlab.com/ubports/development/apps/lomiri-calculator-app/ - Lomiri Calculator App]
@@ -54,9 +54,9 @@ create an _import_ file with the following content:
 
 Syntactically, the file is a makefile that merely defines a couple of variables
 documented by 'goa help import'. With the above definitions, you are importing the
-source code from a tar archive. The tool also supports git and svn. Note that
-the app version 3.3.7 was the last version before Ubuntu UI Toolkit got renamed
-to Lomiri.
+source code from a tar archive. The tool also supports git and svn (see
+'goa help import'). Note that the app version 3.3.7 was the last version before
+Ubuntu UI Toolkit got renamed to Lomiri.
 
 With the _import_ file present, you are able to run 'goa import', which places
 the source code into the _src/_ subdirectory.
@@ -113,17 +113,7 @@ providing a file named _FindQt5Core.cmake_. Goa is able to locate these files
 in the used API archives. Knowing that Qt5Core is part of the _qt5_base_ archive,
 let's add this to the _used_apis_ file.
 
-! calculator$ echo 'ssumpf/api/qt5_base' > used_apis
-! calculator$ goa build
-! ...
-! [lomiri-calculator-app] Error: no version defined for depot
-!                         archive 'ssumpf/api/qt5_base'
-
-Well, since Goa only comes with the version information of official archives
-from the genodelabs depot, you have to provide the version information. This
-is achieved by adding the version definition in a _goarc_ file:
-
-! calculator$ echo 'set version(ssumpf/api/qt5_base) 2024-04-18' >> goarc
+! calculator$ echo 'genodelabs/api/qt5_base' > used_apis
 ! calculator$ goa build
 ! ...
 ! CMake Error at CMakeLists.txt:17 (find_package):
@@ -146,10 +136,19 @@ is achieved by adding the version definition in a _goarc_ file:
 ! [calculator:cmake] -- Configuring incomplete, errors occurred!
 
 Qt5Qml is part of the _qt5_declarative_ archive. Let's add the corresponding
-API archive and version information:
+API archive to the _used_apis_ file:
 
-! calculator$ echo 'ssumpf/api/qt5_declarative' >> used_apis
-! calculator$ echo 'set version(ssumpf/api/qt5_declarative) 2024-02-25' >> goarc
+! calculator$ echo 'jschlatow/api/qt5_declarative' >> used_apis
+! calculator$ goa build
+! ...
+! [lomiri-calculator-app] Error: no version defined for depot
+!                         archive 'jschlatow/api/qt5_declarative'
+
+Well, since Goa only comes with the version information of official archives
+from the genodelabs depot, you have to provide the version information. This
+is achieved by adding the version definition in a _goarc_ file:
+
+! calculator$ echo 'set version(jschlatow/api/qt5_declarative) 2024-02-25' >> goarc
 ! calculator$ goa build
 ! ...
 ! [calculator:cmake] -- Build files have been written to:
@@ -160,18 +159,15 @@ API archive and version information:
 ! [calculator:cmake] Install the project...
 ! [calculator:cmake] -- Install configuration: ""
 ! [calculator:cmake] -- Installing: //manifest.json
-! CMake Error at cmake_install.cmake:49 (file):
-!   file INSTALL cannot copy file
-!   "/.../goa-projects/calculator/var/build/x86_64/manifest.json" to
-!   "//manifest.json": Permission denied.
-! 
-! 
-! make: *** [Makefile:110: install] Error 1
-! [calculator] Error: install via cmake failed:
-!  child process exited abnormally
+! [calculator:cmake] -- Installing: //ubuntu-calculator-app.apparmor
+! [calculator:cmake] -- Installing: /share/qml/graphics/ubuntu-calculator-app.svg
+! ...
 
-Yikes, the build succeeded but the installation failed writing to the
-file-system root. This is puzzling because Goa calls 'cmake install' with
+Yikes, the build succeeded and apparently installed files into the
+file-system root. Luckily, no file system was harmed because Goa executes
+'cmake install' in a sandboxed environment, which only has write access to the
+build directory. It is puzzling, though, it tried writing to the file-system
+root in the first place because Goa calls 'cmake install' with
 'CMAKE_INSTALL_PREFIX= /.../var/build/<arch>/install/'. Looking at
 _src/CMakeFile.txt_ reveals the 'CLICK_MODE' option, which sets
 'CMAKE_PREFIX_PATH' to '/'. Fortunately, Goa allows providing arbitrary
@@ -275,7 +271,7 @@ a few lines as indicated by the inline comments:
 !   </content>
 ! </runtime>
 
-With this _runtime_ file at _pkg_calculator_, you are able to execute 'goa run'.
+With this _runtime_ file at _pkg/calculator_, you are able to execute 'goa run'.
 Note that Goa automatically executes all the required stages such as importing
 and building so that you don't need to worry about invoking these manually.
 
@@ -291,8 +287,8 @@ and building so that you don't need to worry about invoking these manually.
 Oops! We missed putting the Ubuntu UI Toolkit package archive into the _archives_
 file. Let's amend this:
 
-! calculator$ echo "ssumpf/pkg/ubuntu_ui_toolkit" > pkg/calculator/archives
-! calculator$ echo 'set version(ssumpf/pkg/ubuntu_ui_toolkit) 2024-06-03' \
+! calculator$ echo "jschlatow/pkg/ubuntu_ui_toolkit" > pkg/calculator/archives
+! calculator$ echo 'set version(jschlatow/pkg/ubuntu_ui_toolkit) 2025-05-19' \
 ! >> goarc
 ! calculator$ goa run
 ! ...
@@ -335,20 +331,14 @@ a try:
 ! import  git Cloning into 'src'...
 ! import  update src
 ! import  generate import.hash
-! [qt5_quickcontrols2_suru] Error: could not find matching qt5_base API in depot
+! [qt5_quickcontrols2_suru] Error: build via qmake failed: unable to detect Qt version
+!
+! Please add qt5_base or qt6_base to your 'used_apis' file.
 
 Goa detected that this is a qmake project and is therefore looking for a
-_qt5_base_ API archive. However, you haven't defined this in the _used_apis_
-file yet. Let's fix this:
+corresponding API archive. Let's do as suggested:
 
 ! qt5_quickcontrols2_suru$ echo "genodelabs/api/qt5_base" > used_apis
-
-Note that you can benefit from the version information already
-specified in the calculator's _goarc_ file. Goa reads all _goarc_ files it finds
-along the path from the project directory to your home directory. You may thus
-move the _goarc_ file in the directory hierarchy to share it between both
-projects.
-
 ! qt5_quickcontrols2_suru$ goa build
 ! ...
 ! /[...]/depot/genodelabs/api/qt5_base/[...]/include/QtCore/qglobal.h:45:12:
@@ -416,7 +406,7 @@ There are a bunch of library files missing. Goa creates these from the symbol
 files found in the used API archives. 'ldso_so_support' is provided by
 'genodelabs/api/so', 'qt5_component' is provided by
 'genodelabs/api/qt5_component', and the Qt5 libraries are provided by
-'ssumpf/api/qt5_declarative' and 'ssumpf/api/qt5_quickcontrols2'. The resulting
+'jschlatow/api/qt5_declarative' and 'jschlatow/api/qt5_quickcontrols2'. The resulting
 _used_apis_ file should therefore look like this:
 
 ! genodelabs/api/qt5_base
@@ -425,11 +415,15 @@ _used_apis_ file should therefore look like this:
 ! genodelabs/api/mesa
 ! genodelabs/api/so
 ! genodelabs/api/qt5_component
-! ssumpf/api/qt5_declarative
-! ssumpf/api/qt5_quickcontrols2/2023-05-26
+! jschlatow/api/qt5_declarative
+! jschlatow/api/qt5_quickcontrols2/2023-05-26
 
-Note that Goa allows specifying version information directly in the _used_apis_
-file as done for 'ssumpf/api/qt5_quickcontrol2'.
+Note that you can benefit from the version information already
+specified in the calculator's _goarc_ file. Goa reads all _goarc_ files it finds
+along the path from the project directory to your home directory. You may thus
+move the _goarc_ file in the directory hierarchy to share it between both
+projects. Goa allows specifying version information directly in the _used_apis_
+file as done for 'jschlatow/api/qt5_quickcontrol2'.
 
 After executing 'goa build' successfully, you may have a look at the build
 directory at _var/build/x86_64_ to identify the build artifacts. For QML
@@ -482,7 +476,7 @@ Let's run 'goa export' again:
 !                           archive john/src/qt5_quickcontrols2_suru undefined
 !  
 !  Create a 'version' file in your project directory, or 
-!  define 'set version(jschlatow/src/qt5_quickcontrols2_suru) <version>'
+!  define 'set version(john/src/qt5_quickcontrols2_suru) <version>'
 !  in your goarc file.
 
 Goa features a 'bump-version' command to create/update the version file. It
@@ -538,6 +532,24 @@ which you exported the _qt5_quickcontrols2_suru_ project.
 
 ! calculator$ echo "set search_dir ../" >> goarc
 ! calculator$ echo "set depot_dir ~/depot" >> goarc
+! calculator$ goa run
+! [calculator] Error: In .../projects/calculator/goarc:
+!  Path variable 'search_dir' set to '.../projects'
+!  defines an invalid path. Valid paths are:
+!
+!  /.../projects/calculator
+!
+!  You may consider setting 'allowed_paths' in your $HOME/goarc or /goarc file.
+
+To protect you from malicious configuration files, Goa validates the path
+variables set in any _goarc_ file. By default, Goa does not allow leaving the
+scope of the current working directory. You can explicitly specify accepted
+paths by appending them to the 'allowed_paths' variable. This must be done in a
+privileged configuration file located at your home directory or the file-system
+root.
+
+! $ echo 'lappend allowed_paths ~/depot' >> ~/goarc
+! $ echo 'lappend allowed_paths /path/to/projects' >> ~/goarc
 ! calculator$ goa run
 ! ...
 ! [init -> calculator] Error: ROM-session creation failed
