@@ -1,0 +1,18 @@
+Changelog
+#########
+
+:25.05:
+
+* Updated Sculpt version and URLs.
+* Section [Getting started with Goa]: Updated install instruction (bubblewrap and optional tool chain). Minor updates in tutorial.
+* Section [Genode's init component]: Added ram attribute.
+* Section [VFS plugins]: Updated lxip and lwip, added xoroshiro.
+* Section [Networking]: Added example for IP forwarding and NATing on host system.
+* Section [Development & Debugging]: Changed depot user to "john".
+* Section [Tutorials]: Added "Further Reading" subsection.
+* Section [Sticking together a little Unix]: Minor updates in tutorial.
+* Section [Exporting and publishing]: Minor updates in tutorial.
+* Section [Writing a VFS plugin for network-packet access]: Updated to Sculpt 25.04.
+* Section [Porting Lomiri Calculator App]: Updated tutorial due to Goa sandboxing.
+
+:24.11: Initial version
