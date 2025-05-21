@@ -222,8 +222,15 @@ attribute can be used to change the file name.
 
 :<jitterentropy name="jitterentropy"/>:
 
-  Provides a random number generator based on CPU jitter. It is typically used
-  for emulation of _/dev/random_ and _/dev/urandom_.
+  Provides a random number generator or entropy source based on CPU jitter. It
+  is typically used for emulation of _/dev/random_.
+
+:<xoroshiro name="xoroshiro" seed_path="..."/>:
+
+  Provides a pseudo-random number generator (PRNG) based on the Xoroshiro128+
+  algorithm. It reseeds itself after a specific amount of state was
+  consumed. The _seed_path_ specifies the file in the VFS that is read to
+  reseed the PRNG. It is best suited for emulating _/dev/urandom_.
 
 :<oss name="oss" play_enabled="yes" record_enabled="yes"/>:
 
@@ -291,19 +298,20 @@ Furthermore, the following plugins for subordinate file systems are available:
   please have a look at the fonts_fs
   [https://github.com/genodelabs/genode/blob/master/repos/gems/recipes/raw/fonts_fs/fonts_fs.config - raw archive].
 
-:<lxip dhcp="false" ip_addr="..." netmask="..." gateway="..." nameserver="..."/>:
+:<lxip dhcp="false" ip_addr="..." netmask="..." gateway="..." nameserver="..." mtu="..." label="..."/>:
 
   The lxip plugin provides a socket file system and maps its file operations
   to the Linux IP stack backed by a NIC session. The plugin either uses DHCP
-  or a static configuration according to the provided attributes.
+  or a static configuration according to the provided attributes. The optional
+  _mtu_ attribute sets the MTU. In addition, the _label_ attribute can be used
+  to change the NIC session label.
 
-:<lwip dhcp="false" label="lwip" .../>:
+:<lwip .../>:
 
   The lwip plugin provides a socket file system and maps its file operations
   to the Lightweight IP stack backed by a NIC session. The plugin accepts the
   same attributes as the lxip plugin to enable DHCP or set a static IP
-  configuration. In addition, the _label_ attribute can be used to change
-  the NIC session label.
+  configuration.
 
 :<rump fs="..." ram="..." writeable="yes"/>:
 
