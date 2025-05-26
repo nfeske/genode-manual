@@ -68,10 +68,13 @@ Installation
 
     ! export PATH=$PATH:<goa-dir>/bin
 
-# Provide the latest Genode toolchain by either
+# Provide the Genode toolchain by either
 
   * Installing the Genode toolchain following the instructions at
-    [https://genode.org/download/tool-chain]
+    [https://genode.org/download/tool-chain]. Note that Goa uses the same
+    toolchain version as was used for the targeted Sculpt OS version. In
+    consequence, the biennial toolchain update conducted in the framework's
+    May-release will only take effect in Goa with the next Sculpt release.
 
   * Making sure _squashfs-tools_ and _squashfuse_ are installed so that Goa
     is able to download the latest Genode toolchain and make it available in
