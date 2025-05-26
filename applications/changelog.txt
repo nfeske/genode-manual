@@ -14,5 +14,6 @@ Changelog
 * Section [Exporting and publishing]: Minor updates in tutorial.
 * Section [Writing a VFS plugin for network-packet access]: Updated to Sculpt 25.04.
 * Section [Porting Lomiri Calculator App]: Updated tutorial due to Goa sandboxing.
+* Added Section [Porting the curl command-line tool and binary].
 
 :24.11: Initial version

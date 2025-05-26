@@ -27,6 +27,7 @@ unix
 unix_publish
 vfs_plugin
 lomiri_calculator
+curl
 more_tutorials
 changelog
 endef

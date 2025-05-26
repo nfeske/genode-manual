@@ -1,0 +1,665 @@
+; vim: tw=80 et ts=2 sw=2
+
+Porting the curl command-line tool and binary
+=============================================
+
+_This section is based on an_
+_[https://genodians.org/jschlatow/2025-03-07-porting-curl - article]_
+_originally published_
+_at [https://genodians.org]._
+
+For more than a decade, there is a port of the curl library for Genode available.
+Yet, with the use of Sculpt OS as a daily driver, as well as the rise of Goa,
+porting the command-line tool is very appealing.
+
+Importing the curl source code
+------------------------------
+
+As always, let's start with a new project directory:
+
+! $ mkdir -p ports/curl
+
+Since Goa mirrors the import tool from the Genode repository, you can take the
+existing _import_ file as a blueprint. After updating the version and eliminating
+a few specifics of Genode's build system, your _import_ file should look like
+this:
+
+! $ cat ports/curl/import
+! LICENSE   := MIT
+! DOWNLOADS := curl.archive
+! VERSION   := 8.12.0
+!
+! URL(curl) := https://curl.se/download/curl-$(VERSION).tar.gz
+! SHA(curl) := b72ec874e403c90462dc3019c5b24cc3cdd895247402bf23893b3b59419353bc
+! SIG(curl) := ${URL(curl)}.asc
+! KEY(curl) := daniel@haxx.se
+! DIR(curl) := src
+!
+! PATCHES   := $(addprefix patches,max_write_size.patch)
+
+The patch file is taken from the Genode repository and is best placed into the
+_patches/_ subdirectory. The file looks as follows:
+
+! ports/curl$ cat patches/max_write_size.patch
+! +++ src/include/curl/curl.h
+! @@ -247,6 +247,10 @@
+!  #define CURL_MAX_WRITE_SIZE 16384
+!  #endif
+!
+! +/* Genode: override the default to foster the batching of network packets */
+! +#undef  CURL_MAX_WRITE_SIZE
+! +#define CURL_MAX_WRITE_SIZE 262144
+! +
+!  #ifndef CURL_MAX_HTTP_HEADER
+!  /* The only reason to have a max limit for this is to avoid the risk of a bad
+!     server feeding libcurl with a never-ending header that will cause reallocs!
+
+With these prerequisites, you should be able to run 'goa import':
+
+! ports/curl$ goa import
+! import  extract curl-8.12.0.tar.gz (curl)
+! import  apply patches/max_write_size.patch
+! import  generate import.hash
+
+
+First successful build
+----------------------
+
+Goa tries to detect the used build system by evaluating the presence of specific
+files in the _src/ _directory (e.g. _Makefile_, _CMakeList.txt_).
+According to the [https://curl.se/docs/install.html - build instructions for curl],
+the recommended way is to use './configure' but there is
+also (partial) CMake support. In order to take the beaten track, let's remove the
+_CMakeList.txt_ file and give 'goa build' a try:
+
+! ports/curl$ rm src/CMakeList.txt
+! ports/curl$ goa build
+! Error: ports/curl has a 'src' directory but lacks an 'artifacts' file.
+!   You may start with an empty file.
+
+Doing as suggested and retrying:
+
+! ports/curl$ touch artifacts
+! ports/curl$ goa build
+! [...]
+! [curl:autoconf] checking how to run the C preprocessor...
+!   /usr/local/genode/tool/23.05/bin/genode-x86-cpp
+! configure: error: in `ports/curl/var/build/x86_64':
+! configure: error: C preprocessor "/usr/local/genode/tool/23.05/bin/genode-x86-cpp"
+!   fails sanity check
+! See `config.log' for more details
+
+This is a somewhat inexpressive error. However, knowing that you're trying to build
+a POSIX application but haven't instructed Goa to use the posix and libc API,
+let's populate the _used_apis_ file correspondingly:
+
+! ports/curl$ echo "genodelabs/api/libc"  >  used_apis
+! ports/curl$ echo "genodelabs/api/posix" >> used_apis
+! ports/curl$ goa build
+! [...]
+! configure: error: select TLS backend(s) or disable TLS with --without-ssl.
+! 
+! Select from these:
+! 
+!   --with-amissl
+!   --with-bearssl
+!   --with-gnutls
+!   --with-mbedtls
+!   --with-openssl (also works for BoringSSL and libressl)
+!   --with-rustls
+!   --with-schannel
+!   --with-secure-transport
+!   --with-wolfssl
+
+Alright, curl requires us to select a TLS backend. In Goa, you can supply
+command-line arguments to './configure' by adding them to a _configure_args_
+file. Let's try '--with-openssl' and also add the corresponding API:
+
+! ports/curl$ echo "--with-openssl" > configure_args
+! ports/curl$ echo "genodelabs/api/openssl" >> used_apis
+! ports/curl$ goa build
+! ...
+! [curl:autoconf] checking for psl_builtin in -lpsl... no
+! configure: error: libpsl libs and/or directories were not found where specified!
+
+Curl is unable to locate libpsl. Let's try telling it to not use it:
+
+! ports/curl$ echo "--without-libpsl" >> configure_args
+! ports/curl$ goa build
+! [...]
+! In file included from tool_operate.c:79:
+! tool_xattr.h:34:12: fatal error: sys/extattr.h: No such file or directory
+!    34 | #  include <sys/extattr.h>
+
+Looking at _tool_xattr.h_, you may notice the following lines:
+
+! #elif (defined(__FreeBSD_version) && (__FreeBSD_version > 500000)) || \
+!       defined(__MidnightBSD_version)
+! #  include <sys/types.h>
+! #  include <sys/extattr.h>
+! #  define USE_XATTR
+
+In spite of being based on FreeBSD's libc, Genode's C-runtime does not have
+a _sys/extattr.h_. Let's try again after removing the lines above.
+
+! ports/curl$ goa build
+! [curl:make] Making all in lib
+! [curl:make] Making all in docs
+! [curl:make] Making all in .
+! [curl:make] Making all in cmdline-opts
+! [curl:make] Making all in libcurl
+! [curl:make] Making all in opts
+! [curl:make] Making all in src
+! [curl:make]   CC       curl-tool_operate.o
+! [curl:make]   CC       curl-tool_stderr.o
+! [curl:make]   CC       curl-tool_strdup.o
+! [curl:make]   CC       curl-tool_urlglob.o
+! [curl:make]   CC       curl-tool_util.o
+! [curl:make]   CC       curl-tool_vms.o
+! [curl:make]   CC       curl-tool_writeout.o
+! [curl:make]   CC       curl-tool_writeout_json.o
+! [curl:make]   CC       curl-tool_xattr.o
+! [curl:make]   CC       curl-var.o
+! [curl:make]   HUGE     tool_hugehelp.c
+! [curl:make]   CC       ../lib/curl-base64.o
+! /bin/sh: line 1: tool_hugehelp.c: Read-only file system
+! /bin/sh: line 2: tool_hugehelp.c: Read-only file system
+
+Oops, apparently there is a write access to _tool_hugetable.c_. Since the file
+is present in the _src/_ directory, it is provided by Goa as a read-only file to
+the sandboxed build environment. Looking into the code clarifies that the file
+is auto-generated, hence you can simply remove it from _src/_
+
+! ports/curl$ rm src/src/tool_hugehelp.c
+! ports/curl$ goa build
+! [curl:make] Making all in lib
+! [curl:make] Making all in docs
+! [curl:make] Making all in .
+! [curl:make] Making all in cmdline-opts
+! [curl:make] Making all in libcurl
+! [curl:make] Making all in opts
+! [curl:make] Making all in src
+! [curl:make]   CC       ../lib/curl-curl_get_line.o
+! [curl:make]   CC       ../lib/curl-curl_multibyte.o
+! [curl:make]   CC       ../lib/curl-dynbuf.o
+! [curl:make]   CC       ../lib/curl-nonblock.o
+! [curl:make]   CC       ../lib/curl-strtoofft.o
+! [curl:make]   CC       ../lib/curl-timediff.o
+! [curl:make]   CC       ../lib/curl-version_win32.o
+! [curl:make]   CC       ../lib/curl-warnless.o
+! [curl:make]   HUGE     tool_hugehelp.c
+! [curl:make]   CC       curl-tool_ca_embed.o
+! [curl:make]   CC       curl-tool_hugehelp.o
+! [curl:make]   CCLD     curl
+! [curl:make] Making all in scripts
+! [curl:make] Making install in lib
+! ...
+
+
+Refining the configuration
+--------------------------
+
+Having completed the first successful build, it's time to review the
+configuration. The output of 'goa build --rebuild' contains the status summary
+of './configure':
+
+! [curl:autoconf] 
+! [curl:autoconf]   curl version:     8.12.0
+! [curl:autoconf]   SSL:              enabled (OpenSSL)
+! [curl:autoconf]   SSH:              no      (--with-{libssh,libssh2})
+! [curl:autoconf]   zlib:             no      (--with-zlib)
+! [curl:autoconf]   brotli:           no      (--with-brotli)
+! [curl:autoconf]   zstd:             no      (--with-zstd)
+! [curl:autoconf]   GSS-API:          no      (--with-gssapi)
+! [curl:autoconf]   GSASL:            no      (libgsasl not found)
+! [curl:autoconf]   TLS-SRP:          enabled
+! [curl:autoconf]   resolver:         POSIX threaded
+! [curl:autoconf]   IPv6:             enabled
+! [curl:autoconf]   Unix sockets:     enabled
+! [curl:autoconf]   IDN:              no      (--with-{libidn2,winidn})
+! [curl:autoconf]   Build docs:       enabled (--disable-docs)
+! [curl:autoconf]   Build libcurl:    Shared=no, Static=yes
+! [curl:autoconf]   Built-in manual:  enabled
+! [curl:autoconf]   --libcurl option: enabled (--disable-libcurl-option)
+! [curl:autoconf]   Verbose errors:   enabled (--disable-verbose)
+! [curl:autoconf]   Code coverage:    disabled
+! [curl:autoconf]   SSPI:             no      (--enable-sspi)
+! [curl:autoconf]   ca cert bundle:   no
+! [curl:autoconf]   ca cert path:     no
+! [curl:autoconf]   ca cert embed:    no
+! [curl:autoconf]   ca fallback:      no
+! [curl:autoconf]   LDAP:             no      (--enable-ldap / --with-ldap-lib /
+!                                              --with-lber-lib)
+! [curl:autoconf]   LDAPS:            no      (--enable-ldaps)
+! [curl:autoconf]   IPFS/IPNS:        enabled
+! [curl:autoconf]   RTSP:             enabled
+! [curl:autoconf]   RTMP:             no      (--with-librtmp)
+! [curl:autoconf]   PSL:              no      (--with-libpsl)
+! [curl:autoconf]   Alt-svc:          enabled (--disable-alt-svc)
+! [curl:autoconf]   Headers API:      enabled (--disable-headers-api)
+! [curl:autoconf]   HSTS:             enabled (--disable-hsts)
+! [curl:autoconf]   HTTP1:            enabled (internal)
+! [curl:autoconf]   HTTP2:            no      (--with-nghttp2)
+! [curl:autoconf]   HTTP3:            no      (--with-ngtcp2 --with-nghttp3,
+!                                              --with-quiche, --with-openssl-quic,
+!                                              --with-msh3)
+! [curl:autoconf]   ECH:              no      (--enable-ech)
+! [curl:autoconf]   HTTPS RR:         no      (--enable-httpsrr)
+! [curl:autoconf]   SSLS-EXPORT:      no      (--enable-ssls-export)
+! [curl:autoconf]   Protocols:        dict file ftp ftps gopher gophers http
+!                                     https imap imaps ipfs ipns mqtt pop3 pop3s
+!                                     rtsp smb smbs smtp smtps telnet tftp ws wss
+! [curl:autoconf]   Features:         alt-svc AsynchDNS HSTS HTTPS-proxy IPv6
+!                                     Largefile NTLM SSL threadsafe TLS-SRP
+!                                     UnixSockets
+! [curl:autoconf]
+
+Apparently, the CA cert bundle and path are missing. Having a TLS-enabled
+binary would be much more useful if there was a way for curl to use a
+CA bundle. Calling './configure --help' in the _src/_ subdirectory clarifies
+what arguments to use for this. Let's add them to the _configure_args_ file:
+
+! ports/curl$ echo "--with-ca-path=/etc/ssl/certs" >> configure_args
+! ports/curl$ echo "--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt" \
+!   >> configure_args
+
+In order to apply the modified arguments, you need to force Goa into recreating
+the build directory by adding the '--rebuild' switch:
+
+! ports/curl$ goa build --rebuild
+! [...]
+! [curl:autoconf]   ca cert bundle:   /etc/ssl/certs/ca-certificates.crt
+! [curl:autoconf]   ca cert path:     /etc/ssl/certs
+! [...]
+
+There are two other optional dependencies that may raise your attention: zlib
+and SSH. Since there already exist Genode ports for both libraries, simply add
+the corresponding dependencies to the _used_apis_ file and supplement the
+configure args:
+
+! ports/curl$ echo "genodelabs/api/zlib" >> used_apis
+! ports/curl$ echo "genodelabs/api/libssh" >> used_apis
+! ports/curl$ echo "--with-zlib" >> configure_args
+! ports/curl$ echo "--with-libssh" >> configure_args
+! ports/curl$ goa build --rebuild
+! [curl:autoconf] 
+! [curl:autoconf]   curl version:     8.12.0
+! [curl:autoconf]   SSL:              enabled (OpenSSL)
+! [curl:autoconf]   SSH:              enabled (libssh)
+! [curl:autoconf]   zlib:             enabled
+! [curl:autoconf]   brotli:           no      (--with-brotli)
+! [curl:autoconf]   zstd:             no      (--with-zstd)
+! [curl:autoconf]   GSS-API:          no      (--with-gssapi)
+! [curl:autoconf]   GSASL:            no      (libgsasl not found)
+! [curl:autoconf]   TLS-SRP:          enabled
+! [curl:autoconf]   resolver:         POSIX threaded
+! [curl:autoconf]   IPv6:             enabled
+! [curl:autoconf]   Unix sockets:     enabled
+! ...
+
+Note that './configure' makes use of pkg-config in order to detect certain
+library dependencies. The _genodelabs/api/zlib_ archive therefore includes a
+_zlib.pc_ file, which indicates the availability of the zlib library in the
+build environment set up by Goa.
+
+! ports/curl$ cat var/depot/genodelabs/api/zlib/2025-02-26/zlib.pc
+! Name: zlib
+! Description: zlib compression library
+! Version: 1.2.8
+! Libs: -l:zlib.lib.so
+
+
+Capturing local changes as patches
+----------------------------------
+
+Having modified the content of _src/_, you also need to capture these changes
+as patches so that 'goa import' reproduces the same result. Goa conveniently
+provides the 'goa diff' command to inspect the changes. The easiest way would be
+to redirect the entire output to a single patch file and modify the _import_ file
+to include this patch.
+
+! ports/curl$ goa diff > patches/all_changes.patch
+
+For better structure, however, you may split the changes into separate patch files.
+
+Exporting the binary archive
+----------------------------
+
+Before exporting a binary archive, you need to define what artifacts to be
+included. For command-line tools that not only come as a singular binary, you
+can package all required files into a tar container. Goa assists selecting
+the required files by automatically executing 'make install' (if available),
+which places these files into the _install/_ subdirectory of the build directory.
+For curl, let's include _install/bin_ and _install/share_ into a
+_curl.tar_ container as follows (see 'goa help artifacts' for more details):
+
+! ports/curl$ echo "curl.tar: install/bin" > artifacts
+! ports/curl$ echo "curl.tar: install/share" >> artifacts
+
+Now, you can try to export the archive:
+
+! ports/curl$ goa export --depot-user john
+! [...]
+! [curl] Error: cannot export src or api archive because the license is undefined
+!  
+!  Create a 'LICENSE' file for the project, or 
+!  define 'set license <path>' in your goarc file, or 
+!  specify '--license <path>' as argument.
+
+Since curl presents its license in the _COPYING_ file, you may define
+the license path in the project's _goarc_ file:
+
+! ports/curl$ echo "set license src/COPYING" >> goarc
+! ports/curl$ goa export --depot-user john
+! [...]
+! [curl] Error: version for archive john/src/curl undefined
+!  
+!  Create a 'version' file in your project directory, or 
+!  define 'set version(john/src/curl) <version>' in your goarc file, 
+!  or specify '--version-john/src/curl <version>' as argument
+
+Goa comes with the 'goa bump-version' command to populate the _version_ file:
+
+! ports/curl$ goa bump-version
+! ports/curl$ goa export --depot-user john
+! [...]
+! [curl] exported ports/curl/var/depot/john/src/curl/2025-05-26
+! [curl] exported ports/curl/var/depot/john/bin/x86_64/curl/2025-05-26
+
+The exported binary archive contains the _curl.tar_ container that can be
+imported into a VFS using the '<tar name="curl.tar"/>' plugin. Along with a CA
+bundle at _/etc/ssl/certs/ca-certificates.crt_, you can run a bash on this VFS
+and use the curl command-line tool. Note that this also requires the enablement
+of network for the bash. An example is available in Johannes Schlatow's
+[https://github.com/jschlatow/goa-projects/tree/master/apps/unix_shell - unix_shell runtime].
+
+Building the shared library
+---------------------------
+
+This is where the porting-ride becomes a bit rough. Looking at _install/lib/_ in the
+project's build directory indicates that 'goa build' has not built a shared
+library, yet. Moreover, the following line of the build output stands out:
+
+! [curl:autoconf]   Build libcurl:    Shared=no, Static=yes
+
+Unfortunately, adding '--enable-shared' to _configure_args_ does not change
+this. Looking at and debugging _src/configure_ reveals that the script is unable
+to determine the dynamic linker. The following patch rectifies this:
+
+!    shlibpath_var=LD_LIBRARY_PATH
+!    ;;
+! .
+! +genode*)
+! +  dynamic_linker="Genode ld.lib.so"
+! +  shrext_cmds=.lib.so
+! +  libname_spec='$name'
+! +  library_names_spec='$libname$shared_ext'
+! +  ;;
+! +
+!  *)
+!    dynamic_linker=no
+!    ;;
+
+By default, Goa provides the './configure' command with '--host=x86_64-pc-elf'.
+As this is not known to the script, it lands in the '*)' case, setting
+'dynamic_linker=no'. In order to set the dynamic linker correctly, the patch adds
+the 'genode*)' case and also sets the library name so that the build creates
+the file _curl.lib.so_. In order to make use of this modification, you must
+also add '--host=x86_64-pc-genode' to the _configure_args_:
+
+! ports/curl$ goa build --rebuild
+! [...]
+! [curl:autoconf]   Build libcurl:    Shared=yes, Static=yes
+! [...]
+! ports/curl$ ls var/build/x86_64/install/lib/
+! curl.a  curl.lib.so  libcurl.la  pkgconfig
+
+Wow, it built successfully. That almost seems too easy. Anyway, let's add the
+library to the _artifacts_ file, create an _api_ file and export a new
+archive version:
+
+! ports/curl$ echo install/lib/curl.lib.so >> artifacts
+! ports/curl$ echo install/include/curl/ > api
+! ports/curl$ goa bump-version
+! ports/curl$ goa export --depot-user john
+! [...]
+! [curl] Error: missing symbols file 'curl'
+!
+!  You can generate this file by running 'goa extract-abi-symbols'
+
+Well, we forgot to create the symbol file. Fortunately, Goa reminds us of this
+fact as it detected a shared library file in the build artifacts.
+
+! ports/curl$ goa extract-abi-symbols
+! The following library symbols file(s) were created:
+!   > `symbols/curl
+! Please review the symbols files(s) and add them to your repository.
+
+After reviewing the file and removing the comment at the very first line, you
+can give 'goa export' a try:
+
+! ports/curl$ goa export --depot-user john
+! [...]
+! [curl] Error: program headers of 'curl.lib.so' don't match their definition
+!        in genode_rel.ld
+! 
+!  Please check that the shared-object linker flags have been passed correctly.
+
+Well, for every shared library, Goa uses the linker script _genode_rel.ld_.
+Apparently, the corresponding linker flags were not passed along. The reason for
+this is actually found in the interplay of './configure' and libtool. The former
+sets 'archive_cmds' that is used by libtool to build shared libraries. As the target
+system is unknown to _src/configure_, we need to patch it to set the linker flags
+correctly. Goa assists this by providing the flags in form of the 'LDLIBS_SHARED'
+environment variable:
+
+!      # See if GNU ld supports shared libraries.
+!      case $host_os in
+! +    genode*)
+! +      archive_cmds='$CC $libobjs $deplibs '$LDLIBS_SHARED' -o $lib'
+! +      archive_expsym_cmds=''
+! +      ;;
+!      aix[3-9]*)
+!        # On AIX/PPC, the GNU linker is very broken
+
+With this patch, let's try to rebuild:
+
+! ports/curl$ goa build --rebuild
+! [...]
+! /usr/local/genode/tool/[...]/ld: cannot find -l:ldso_so_support.lib.a:
+!   No such file or directory
+
+This is an easy one, _ldso_so_support.lib.a_ is provided by the _so_ api archive:
+
+! ports/curl$ echo "genodelabs/api/so" >> used_apis
+! ports/curl$ goa export --depot-overwrite --depot-user john
+! [...]
+! [curl] exported ports/curl/var/depot/john/api/curl/2025-05-26
+! [curl] exported ports/curl/var/depot/john/src/curl/2025-05-26
+! [curl] exported ports/curl/var/depot/john/bin/x86_64/curl/2025-05-26
+
+Unfortunately, when testing the command-line tool, you will
+noticed that building the shared library broke the command-line tool because it
+was linked against _../lib/.libs/curl.lib.so_:
+
+! ports/curl$ ldd var/build/x86_64/install/bin/curl
+!        linux-vdso.so.1 (0x0000799381ee4000)
+!        ../lib/.libs/curl.lib.so (0x0000799381e39000)
+! [...]
+
+Executing this binary, the runtime fails to open a ROM session
+with label "../lib/.libs/curl.lib.so". You can either apply label-rewriting or
+resort to fixing the root cause by tricking libtool into preferring static linking
+for the libtool-managed libraries. The following patch of _src/src/Makefile.in_
+adds the '-static-libtool-libs' option to the corresponding command:
+
+! ports/curl$ goa diff
+! +++ src/src/Makefile.in 2025-03-07 12:34:58.101914423 +0100
+! @@ -324,7 +324,7 @@
+!  curl_DEPENDENCIES = $(top_builddir)/lib/libcurl.la
+!  curl_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+!         $(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+! -       $(curl_LDFLAGS) $(LDFLAGS) -o $@
+! +       $(curl_LDFLAGS) $(LDFLAGS) -static-libtool-libs -o $@
+!  AM_V_P = $(am__v_P_@AM_V@)
+!  am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
+!  am__v_P_0 = false
+
+
+A simple test project
+---------------------
+
+In order to give the newly exported library a spin, you may create a test project
+that imports the _simple.c_ from curl. The following _import_ file does the trick:
+
+! LICENSE   := curl
+! DOWNLOADS := curl.archive
+! VERSION   := 8.12.1
+! 
+! URL(curl) := https://curl.se/download/curl-$(VERSION).tar.gz
+! SHA(curl) := 7b40ea64947e0b440716a4d7f0b7aa56230a5341c8377d7b609649d4aea8dbcf
+! SIG(curl) := ${URL(curl)}.asc
+! KEY(curl) := daniel@haxx.se
+! DIR(curl) := tmp
+! 
+! PATCHES   := $(addprefix patches/,Makefile.patch \
+!                                   no_ssl.patch)
+! 
+! DIRS := src
+! DIR_CONTENT(src) := tmp/docs/examples/simple.c
+
+Note that it uses a somewhat quirky trick of the import tool: Instead of
+unpacking the source code into _src/_, it uses _tmp/_ and manually define the
+directory content of _src/_. This way, you are able to only extract the _simple.c_.
+Since this example uses SSL, which we do not want to deal with at the moment, you
+may simply change the URL in _example.c_ (done by _no_ssl.patch_). You can also
+add a custom Makefile via a separate patch. The Makefile looks as follows:
+
+! ports/test-curl$ cat src/Makefile
+! test-curl: simple
+!   @mv simple test-curl
+
+You are able to built the test application with the following _used_apis_ and
+_artifacts_ files:
+
+! ports/test-curl$ cat used_apis
+! genodelabs/api/libc
+! genodelabs/api/posix
+! john/api/curl
+
+! ports/test-curl$ cat artifacts
+! test-curl
+
+! ports/test-curl$ goa build
+! [test-curl] Error: no version defined for depot archive 'john/api/curl'
+
+Since you have the curl port available as a goa-project, let's try to point Goa
+to it:
+
+! ports/test-curl$ goa build --search-dir ../curl
+! [test-curl] Error: depot user 'john' is not known in depot at
+!   ports/test-curl/var/depot
+
+When exporting the curl project, Goa created the archives in
+_ports/curl/var/depot_. Now, in the scope of the new test-curl project, it is
+unable to locate this directory. Yet, you may explicitly point Goa to the depot
+directory using the '--depot-dir' argument:
+
+! ports/test-curl$ goa build --search-dir ../curl --depot-dir ../curl/var/depot
+
+Note that you may also set the corresponding config variables via a _goarc_
+file. See 'goa help config' for more details.
+
+After adding a pretty straightforward runtime - let's omit the details
+here - you can give the test project a spin:
+
+! ports/test-curl$ goa run --search-dir ../curl --depot-dir ../curl/var/depot
+! [...]
+! [init -> test-curl] <div>
+! [init -> test-curl]     <h1>Example Domain</h1>
+! [init -> test-curl]     <p>This domain is for use in illustrative examples
+!                         in documents. You may use this
+! [init -> test-curl]     domain in literature without prior coordination or
+!                         asking for permission.</p>
+! [init -> test-curl]     <p><a href="https://www.iana.org/domains/example">
+!                         More information...</a></p>
+! [init -> test-curl] </div>
+! [init -> test-curl] </body>
+! [init -> test-curl] </html>
+! [init -> test-curl] Warning: clock_gettime(): missing real-time clock
+! [init] child "test-curl" exited with exit value 0
+
+There it is! The test application using curl.lib.so works perfectly.
+
+Tweaking the API archive
+------------------------
+
+In order to work as a replacement for the official _genodelabs/api/curl_
+archive, you may add a _FindCURL.cmake_ and _libcurl.pc_ file. These files
+assist CMake resp. pkg-config in detecting the presence of the curl library
+whenever its mentioned in the _used_apis_ file.
+The _libcurl.pc_ is actually built along with the library based on the
+_libcurl.pc.in_ file. You may patch the file to discard irrelevant information...
+
+! @@ -22,10 +22,6 @@
+!  #
+!  ###########################################################################
+! .
+! -prefix=@prefix@
+! -exec_prefix=@exec_prefix@
+! -libdir=@libdir@
+! -includedir=@includedir@
+!  supported_protocols="@SUPPORT_PROTOCOLS@"
+!  supported_features="@SUPPORT_FEATURES@"
+! .
+! @@ -35,7 +31,4 @@
+!  Version: @CURLVERSION@
+!  Requires: @LIBCURL_PC_REQUIRES@
+!  Requires.private: @LIBCURL_PC_REQUIRES_PRIVATE@
+! -Libs: -L${libdir} -lcurl @LIBCURL_PC_LIBS@
+! +Libs: -lcurl @LIBCURL_PC_LIBS@
+! -Libs.private: @LIBCURL_PC_LDFLAGS_PRIVATE@ @LIBCURL_PC_LIBS_PRIVATE@
+! -Cflags: -I${includedir} @LIBCURL_PC_CFLAGS@
+! -Cflags.private: @LIBCURL_PC_CFLAGS_PRIVATE@
+
+...and add the file to the _api_ artifacts:
+
+! ports/curl$ echo "libcurl.pc" >> api
+
+For _FindCURL.cmake_, you can add the most minimalistic file to the project
+directory...
+
+! ports/curl$ mkdir files
+! ports/curl$ echo "set(CURL_FOUND True)" > files/FindCURL.cmake
+
+...utilize some import magic to make this file available in the _src/_
+subdirectory...
+
+! ports/curl$ tail -n2 import
+! DIRS := src
+! DIR_CONTENT(src) := $(addprefix $(REP_DIR)/files/,FindCURL.cmake)
+
+...add the file to the _api_ artifacts...
+
+! ports/curl$ echo "FindCURL.cmake" >> api
+
+...and re-export the archives to apply the changes:
+
+! ports/curl$ goa export --rebuild --depot-overwrite --depot-user john
+! [...]
+! [curl] exported ports/curl/var/depot/jschlatow/api/curl/2025-05-26
+! [curl] exported ports/curl/var/depot/jschlatow/src/curl/2025-05-26
+! [curl] exported ports/curl/var/depot/jschlatow/bin/x86_64/curl/2025-05-26
+! ports/curl$ ls var/depot/jschlatow/api/2025-05-26
+! FindCURL.cmake  include  lib  libcurl.pc  LICENSE
+
+Congratulations! The complete code is available in Johannes Schlatow's
+goa-projects repository.
+
+:Ported Curl executable and binary:
+
+  [https://github.com/jschlatow/goa-projects/tree/master/ports/curl]
+
+:test-curl project:
+
+  [https://github.com/jschlatow/goa-projects/tree/master/test/test-curl]
