@@ -475,17 +475,17 @@ session label into account. The latter may be used by the server as a key for
 selecting a policy at the server side. To simplify server-side policies, init
 supports the rewriting of session labels in the target node
 of a matching session route. For example, an interactive shell ("shell") may
-have the following session route for the "home" file system:
+have the following session route for its file system:
 
 !<route>
-!  <service name="File_system" label="home">
+!  <service name="File_system" label="/">
 !    <child name="vfs"/>
 !  </service>
 !  ...
 !</route>
 
 At the "vfs" file-system server, the label of the file-system session will
-appear as "shell -> home". This information may be evaluated by the vfs's
+appear as "shell -> /". This information may be evaluated by the vfs's
 server-side policy. However, when renaming the shell instance, we'd need to
 update this server-side policy.
 
@@ -494,15 +494,55 @@ the server. The label can instead represent the role of the client, or a name
 of a physical resource. For example, the route could be changed to this:
 
 !<route>
-!  <service name="File_system" label="home">
-!    <child name="vfs" label="primary_user"/>
+!  <service name="File_system" label="/">
+!    <child name="vfs" label="/primary_user/"/>
 !  </service>
 !  ...
 !</route>
 
 Whenever the vfs receives the session request, it is presented with the label
-"primary_user". The fact that the client is "shell" is not taken into account
-for the server-side policy selection.
+"/primary_user/" prompting it to hand out the directory _/primary_user_
+as the root of the client's file system.
+
+
+Partial session-label rewriting
+-------------------------------
+
+In hierarchic scenarios (e.g., nested instances of init), labels assume a form
+like "runtime -> system_shell -> terminal -> config". The client's intent (in
+this case, the client wants to obtain "config") is successively watermarked by
+the components in the chain of authority involved in the session creation.
+In the example, the terminal's session request traverses the system-shell init
+as well as the runtime init before reaching the server.
+
+In short, the label encodes two things: the expression of the client's intent
+(naming a server-provided resource like ROM module), and an unforgeable (by
+the client) representation of the client's identity as observed by the server.
+The former is the last part of the label whereas the latter are all the
+leading parts.
+
+Init's label-rewriting mechanism is a useful tool of abstraction, which allows
+for grouping clients to roles. However, if the label can only be rewritten as
+a whole, the rewriting rule needs to encompass both the client's identity and the
+client's intent. Should the client's intent vary (e.g., a client requesting a
+variety of ROM modules), a dedicated rewriting rule is needed for each case.
+To make such policies easier to express, init allows for the selective
+rewriting of only the identity or the resource part of the session label
+using the attributes 'identity', 'resource', and 'prepend_resource'.
+For example,
+
+:'identity="rw"': replaces the identity part of the label by "rw" while
+  keeping the resource part. So the client's identity can be replaced by
+  a role while keeping the client's intent intact.
+
+:'resource="/bin/"': replaces the client's intent while retaining the
+  client's identity. Here, a client's request for a file-system session
+  becomes hardwired to one directory of the server.
+
+:'prepend_resource="/usr/local"': prepends the resource part of the label with
+  a given prefix. The example restricts the client-provided path to the
+  bounds of the server's _/usr/local/_ directory, similar to the effect of
+  Unix' chroot.
 
 
 Nested configuration
