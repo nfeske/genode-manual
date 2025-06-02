@@ -39,9 +39,8 @@
             $<$any-service$>$ $<$any-child/$>$ $<$parent/$>$ $<$/any-service$>$
             }\\
           $<$/default-route$>$\\
-          $<$start name="virtualbox" caps="1000"$>$\\
+          $<$start name="virtualbox" ram="1G" caps="1000"$>$\\
             \nestinglevel{
-            $<$resource name="RAM" quantum="1G"/$>$\\
             \configlevel{fill=black!2}{
               $<$config vbox\_file="test.vbox" vm\_name="TestVM"$>$\\
               \nestinglevel{
