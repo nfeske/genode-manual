@@ -1008,7 +1008,7 @@ For code consistency, exception types should inherit from the
 'Exception' base class. By convention, exceptions carry no payload.
 
 ; Genode::Exception
-[raw spec/classes/genode/exception/description]
+; [raw spec/classes/genode/exception/description]
 
 
 Exception-less error handling
@@ -1420,28 +1420,36 @@ Physical memory allocation
 ==========================
 
 Throughout Genode, physical memory is allocated in the form of RAM dataspaces
-by using the 'Ram_allocator' interface. This interface is implemented by
-the PD session and thereby allows a component to use its RAM budget.
-The RAM dataspaces allocated from the 'Ram_allocator' interface may serve
-as backing store for fine-grained component-local allocators such as the 'Heap'
+by using the 'Ram::Constrained_allocator' interface. As indicated by its
+name, allocations are constrained by a resource budget and must be expected
+to fail for 'Alloc_error' conditions. For brevity, 'Ram_allocator' is provided
+as an alias.
+The interface is notably provided by the 'Env::ram()' accessor, which allows a
+component to use its RAM budget for allocating RAM at a granularity of 4 KiB.
+After allocating, a RAM dataspace remains inaccessible by the component
+until locally mapped via 'Local_rm::attach'.
+The allocated RAM dataspaces may serve as backing store for fine-grained
+component-local allocators such as the 'Heap'
 (Section [Component-local allocators]).
+A RAM dataspace may be shared with other components by passing the allocated
+dataspace capability as an argument to an RPC.
 
-; Genode::Ram_allocator
-[raw spec/classes/genode/ram_allocator/description]
+; Genode::Ram::Constrained_allocator
+[raw spec/classes/genode/ram/constrained_allocator/description]
 
-Constraining RAM allocations
-----------------------------
+Accounted RAM allocations
+-------------------------
 
-The operations of the 'Ram_allocator' interface are the basis for Genode's RAM
-accounting. In cases where a server needs to allocate RAM on behalf of
-its clients, the interface provides a natural hook to track and constrain
-the client-specific RAM usage. The 'Constrained_ram_allocator' implements
-the interface by forwarding all operations to another 'Ram_allocator'
-instance while restricting allocations to a quota limit. Exceeding the
-limit results in an 'Out_of_ram' exception.
+The operations of the 'Ram::Constrained_allocator' interface are the basis for
+Genode's RAM accounting. In cases where a server needs to allocate RAM on
+behalf of its clients, the interface provides a natural hook to track and
+constrain the client-specific RAM usage. The 'Ram::Accounted_allocator'
+utility implements the interface by forwarding all operations to another
+RAM allocator instance while restricting allocations to a quota limit.
+Exceeding the limit results in the respective 'Alloc_error' condition.
 
-; Genode::Constrained_ram_allocator
-[raw spec/classes/genode/constrained_ram_allocator/description]
+; Genode::Ram::Accounted_allocator
+[raw spec/classes/genode/ram/accounted_allocator/description]
 
 
 Component-local allocators

@@ -19,7 +19,7 @@ VERBOSE ?= @
 #
 
 GENODE_GIT_URL := https://github.com/nfeske/genode.git
-GENODE_GIT_REV := merge_to_staging
+GENODE_GIT_REV := 288d994785ff2532c2f5b73ef2486caf0da61473
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
@@ -227,6 +227,6 @@ ALL_CLASS_NAMES = $(foreach C,$(CLASSES),${CLASS_NAME($C)})
 
 check_spec_complete: class_index.mk
 	@$(foreach C,$(ALL_CLASS_NAMES),\
-	    (grep "$C" ../functional_specification.txt > /dev/null || \
+	    (grep "$C" ../api.txt > /dev/null || \
 	     echo "missing class description for '$C'");)
 
