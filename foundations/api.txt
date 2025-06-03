@@ -339,6 +339,8 @@ C++ supplements
 ; Genode::Noncopyable
 [raw spec/classes/genode/noncopyable/description]
 
+; Genode::Callable
+
 
 API primitives
 ==============
@@ -566,6 +568,9 @@ Section [Remote procedure calls] and the signalling API described in Section
 
 ; XXX Genode::Pd_session_client
 
+; Genode::Pd_account
+; Genode::Pd_ram_allocator
+; Genode::Pd_local_rm
 ; Genode::Pd_session
 [raw spec/classes/genode/pd_session/description]
 
@@ -928,6 +933,7 @@ how portions of the virtual framebuffer are composed on screen.
 ; XXX Gui::Session_client
 [raw spec/classes/gui/session/description]
 
+; Gui::Top_level_view
 ; Gui::Connection
 [raw spec/classes/gui/connection/description]
 
@@ -951,6 +957,8 @@ Capture session interface
 
 ; XXX Framebuffer::Session_client
 
+; Framebuffer::Transfer
+; Framebuffer::Blit_batch
 ; Framebuffer::Mode
 [raw spec/classes/framebuffer/mode/description]
 
@@ -1400,25 +1408,22 @@ allocating/deallocating IDs for objects.
 ; Genode::Id_space
 [raw spec/classes/genode/id_space/description]
 
-
-Bit array
-~~~~~~~~~
-
-Bit arrays are typically used for the allocation of IDs. The 'Bit_array_base'
-class operates on a memory buffer specified to its constructor. The
-'Bit_array' class template addresses the common case where the ID space
-is dimensioned at compile time. It takes the number of bits as arguments
-and hosts the memory buffer for storing the bits within the object.
-
-; Genode::Bit_array_base
-[raw spec/classes/genode/bit_array_base/description]
-
-; Genode::Bit_array<>
-[raw spec/classes/genode/bit_array/description]
-
-
 [raw spec/clearpage]
 
+;Bit array
+;~~~~~~~~~
+;
+;Bit arrays are typically used for the allocation of IDs. The 'Bit_array_base'
+;class operates on a memory buffer specified to its constructor. The
+;'Bit_array' class template addresses the common case where the ID space
+;is dimensioned at compile time. It takes the number of bits as arguments
+;and hosts the memory buffer for storing the bits within the object.
+;
+;; Genode::Bit_array_base
+;[raw spec/classes/genode/bit_array_base/description]
+;
+;; Genode::Bit_array<>
+;[raw spec/classes/genode/bit_array/description]
 
 
 ;Ring buffer
@@ -1641,6 +1646,7 @@ component-local allocators such as the 'Heap'
 A RAM dataspace may be shared with other components by passing the allocated
 dataspace capability as an argument to an RPC.
 
+; Genode::Ram_allocator
 ; Genode::Ram::Constrained_allocator
 [raw spec/classes/genode/ram/constrained_allocator/description]
 
@@ -1665,6 +1671,7 @@ Component-local allocators
 The interface for allocating component-local memory at byte granularity is
 defined at _base/memory.h_.
 
+; Genode::Memory::Constrained_allocator
 [raw spec/classes/genode/memory/constrained_allocator/description]
 
 In contrast to the allocation of physical RAM that refers to a dataspace,
@@ -1672,6 +1679,7 @@ a memory allocation is represented by a component-local pointer and size in
 bytes. The most common case of constructing a new object at dynamically
 allocated memory is covered by the 'Constrained_obj_allocator<T>'.
 
+; Genode::Memory::Constrained_obj_allocator
 [raw spec/classes/genode/memory/constrained_obj_allocator/description]
 
 The 'create' method constructs an object on backing store allocated from
