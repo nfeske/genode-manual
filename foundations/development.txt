@@ -132,13 +132,6 @@ The _<port-name>.hash_ file contains the fingerprint of the corresponding
 port description, thereby uniquely identifying a version of the port
 as expected by the checked-out Genode version.
 
-For step-by-step instructions on how to add a port using the mechanism,
-please refer to the porting guide:
-
-:Genode Porting Guide:
-
-  [https://genode.org/documentation/developer-resources/porting]
-
 
 Build system
 ============

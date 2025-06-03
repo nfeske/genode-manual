@@ -200,11 +200,11 @@ those components. The mechanism is best illustrated by an example:
 !   </start>
 !   <start name="test-timer" ram="1M" caps="200">
 !     <route>
-!       <service name="Timer">  <child name="timer"/> </service>
-!       <service name="PD">     <parent/>             </service>
-!       <service name="ROM">    <parent/>             </service>
-!       <service name="CPU">    <parent/>             </service>
-!       <service name="LOG">    <parent/>             </service>
+!       <service name="Timer"> <child name="timer"/> </service>
+!       <service name="PD">    <parent/>             </service>
+!       <service name="ROM">   <parent/>             </service>
+!       <service name="CPU">   <parent/>             </service>
+!       <service name="LOG">   <parent/>             </service>
 !     </route>
 !   </start>
 ! </config>

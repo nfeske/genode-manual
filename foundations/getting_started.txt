@@ -590,9 +590,7 @@ _<genode-dir>/repos/lab/run/hello.run_ with the following content:
 !     <any-service> <parent/> </any-service>
 !   </default-route>
 !   <default caps="100"/>
-!   <start name="hello">
-!     <resource name="RAM" quantum="10M"/>
-!   </start>
+!   <start name="hello" ram="10M"/>
 ! </config>
 !}
 !build_boot_image [build_artifacts]
@@ -754,13 +752,10 @@ run script.
 !     <any-service> <parent/> <any-child/> </any-service>
 !   </default-route>
 !   <default caps="100"/>
-!   <start name="timer">
-!     <resource name="RAM" quantum="1M"/>
+!   <start name="timer" ram="1M">
 !     <provides> <service name="Timer"/> </provides>
 !   </start>
-!   <start name="hello">
-!     <resource name="RAM" quantum="10M"/>
-!   </start>
+!   <start name="hello" ram="10M"/>
 ! </config>
 !}
 !build_boot_image [build_artifacts]

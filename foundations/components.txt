@@ -1128,12 +1128,12 @@ directories and symbolic links.
 The directory functions are complemented with an interface for receiving
 notifications upon file or directory changes using asynchronous notifications.
 
-Session labelling
------------------
+Session creation
+----------------
 
-Each file-system session request has to carry a path (starting and ending
-with '/') as last session argument. It selects the server-side directory to be
-handed out as the root of the file-system client. As the path is part of
+At session-creation time, the last element of the session label selects the
+path (starting and ending with '/') of the server-side directory to be
+handed out as the root for the file-system client. As the path is part of
 the session label, it can be rewritten by the components along the chain of
 command involved in the session creation. Init's label-rewriting mechanism
 accommodates such policies via the 'resource' and 'prepend_resource'
@@ -1197,9 +1197,9 @@ a RAM file system with different policies.
 
 ! <config>
 !   <!-- constrain sessions according to their labels -->
-!   <policy label="shell -> root" root="/" />
-!   <policy label="shell -> home" root="/home/user" />
-!   <policy label="shell -> tmp"  root="/tmp" writeable="yes" />
+!   <policy label="shell -> root -> /" root="/" />
+!   <policy label="shell -> home -> /" root="/home/user" />
+!   <policy label="shell -> tmp -> /"  root="/tmp" writeable="yes" />
 ! </config>
 
 Each time a session is created, the server matches the supplied session label

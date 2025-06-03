@@ -31,7 +31,7 @@ support the use cases present in Genode.
 General conventions
 -------------------
 
-The functional specification adheres to the following general conventions:
+The following API description adheres to the following conventions:
 
 * Static member functions are called _class functions_. All other member
   functions are called _methods_.
@@ -66,6 +66,278 @@ The functional specification adheres to the following general conventions:
 
 * The directory path presented under "Header" sections is a hyperlink to the
   corresponding source code at GitHub.
+
+
+Fundamental types
+=================
+
+Integer types
+~~~~~~~~~~~~~
+
+Genode provides common integer types in its namespace.
+Integer types that can be derived from built-in compiler
+types are defined in _base/stdint.h_ and _base/fixed_stdint.h_.
+Whereas the types defined at _stdint.h_ abstracts from bit widths,
+the latter encodes the respective bit widths in the type names.
+
+[raw spec/repos/base/include/base/stdint.h.overview]
+
+[raw spec/clearpage]
+
+The fixed-width integer types for 32-bit architectures are defined
+as follows.
+
+[raw spec/repos/base/include/spec/32bit/base/fixed_stdint.h.overview]
+
+[raw spec/clearpage]
+
+The fixed-width integer types for 64-bit architectures are defined
+as follows.
+
+[raw spec/repos/base/include/spec/64bit/base/fixed_stdint.h.overview]
+
+[raw spec/clearpage]
+
+
+Common error types
+~~~~~~~~~~~~~~~~~~
+
+The base framework expresses error conditions as enum types. Each method
+can in principle be accompanied by an error type that precisely models
+each possible error condition. However, for methods sharing the same
+set of error conditions, the central definition of error types at
+_base/error.h_ streamlines the propagation of errors along call chains.
+
+Constrained allocations
+-----------------------
+
+!enum class Alloc_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
+
+'Alloc_error' represents the error conditions returned by resource-constrained
+allocators, and indirectly by any functionality that internally depends on
+such allocations. This is the case for most services that operate on
+client-accounted resources.
+
+'OUT_OF_RAM' and 'OUT_OF_CAPS' reflects the depletion of the client's resource
+budget. It can in principle be resolved by the client upgrading the resource
+budget of the allocator.
+
+'DENIED' expresses a situation where the allocator cannot satisfy the
+allocation for reasons unresolvable by the client. For example, the allocator
+may have a hard limit of the number of allocations, or the allocation of a
+large contiguous range is prevented by internal fragmentation, or a requested
+alignment constraint cannot be met. In these cases, the allocator reflects the
+condition to the caller to stay healthy and let the caller fail gracefully or
+consciously panic at the caller side.
+
+Session creation
+----------------
+
+!enum class Session_error { DENIED, OUT_OF_RAM, OUT_OF_CAPS,
+!                           INSUFFICIENT_RAM, INSUFFICIENT_CAPS };
+
+One of the 'Session_error' conditions can occur when establishing a
+connection to a service provided by another component.
+
+'DENIED' reflects that the session request could not be fulfilled due to a
+policy decision of the server, the parent, or another intermediate component
+on the route from the client to the server. This condition is unresolvable by
+the client. As sessions are considered as the life supplies for clients,
+'DENIED' is considered as fatal, most likely caused by a
+configuration/integration mistake.
+
+'OUT_OF_RAM' and 'OUT_OF_CAPS' reflect the client-local depletion of the
+resources needed to allocate the meta data for the new session. This condition
+can occur in situations where the client is a resource-multiplexing server
+that acts on behalf of its clients. So the budget is deliberately constrained,
+and 'OUT_OF_RAM' or 'OUT_OF_CAPS' can be escalated to the respective client of
+the resource multiplexer.
+
+In contrast to 'OUT_OF_RAM and 'OUT_OF_CAPS', which refer to client-local
+resources, 'INSUFFICIENT_RAM' and 'INSUFFICIENT_CAPS' originates from the
+server expressing the need for a budget higher than the session resources
+offered by the client. The client can resolve these conditions by repeating
+the session request with an increased budget offering.
+
+Data generation
+---------------
+
+!enum class Buffer_error { EXCEEDED };
+
+A 'Buffer_error' reflects the condition where generated data does not
+fit a statically-dimensioned buffer. The most prominent example is the
+'Xml_generator', which operates on a prior allocated buffer. The
+'Expanding_reporter' handles this error by successively enlarging the buffer
+and re-attempting the generation of data.
+
+Unexpected errors
+-----------------
+
+There exist four documented error conditions that should never occur in
+well-behaving programs. Those conditions are enumerated as 'Unexpected_error'
+type.
+
+:INDEX_OUT_OF_BOUNDS:
+  an 'Array' or 'Bit_array' is accessed without index validation
+
+:NONEXISTENT_SUB_NODE:
+  use of 'Xml_node::sub_node' instead of 'with_sub_node'
+
+:ACCESS_UNCONSTRUCTED_OBJ:
+  a check of 'Constructible::constructed()' is missing
+
+:IPC_BUFFER_EXCEEDED:
+  the IPC marshalling/unmarshalling exceeds the maximum IPC-buffer size
+
+Those runtime conditions are considered as programming errors. They result in
+a diagnostic message, followed by the raising of a corresponding exception as
+defined at _base/exception.h_.
+
+Exception types
+---------------
+
+Genode applies exception-less error handling to the entirety of the base
+framework while retaining exception support for components built on top. By
+convention, exception types are solely used to express error conditions but do
+not carry payload. For code consistency, exception types should inherit from
+the 'Exception' base class.
+
+; Genode::Exception
+; [raw spec/classes/genode/exception/description]
+
+
+Error handling
+~~~~~~~~~~~~~~
+
+The basic building block of propagating error conditions is the 'Attempt'
+utility provided by _util/attempt.h_. By using a return value of type
+'Attempt<T,E>', the returned value can either be a valid value of type 'T' or
+an error value of type 'E'. The name reflects its designated use as a carrier
+for return values.
+
+; Genode::Attempt
+[raw spec/classes/genode/attempt/description]
+
+To illustrate the use of the 'Attempt' utility, here is an excerpt of the
+'Thread::info()' interface that provides information of a thread's stack.
+
+! class Genode::Thread
+! {
+!   ...
+!   struct Stack_info { addr_t base, top; };
+!
+!   enum class Stack_error { STACK_AREA_EXHAUSTED, STACK_TOO_LARGE };
+!
+!   using Info_result = Attempt<Stack_info, Stack_error>;
+!
+!   Info_result info() const;
+!   ...
+! };
+
+As expressed by the 'Stack_error' type, there are certain conditions where no
+stack information is available. The 'Info_result' type precisely models the
+possible outcomes of 'info()'. Whenever 'info()' succeeds, the value will hold
+an object of type 'Stack_info'. Otherwise, it will hold an error value of type
+'Stack_error'.
+
+At the caller side, the 'Attempt' utility is extremely rigid. The caller can
+access the value only when providing both a handler for the value and a
+handler for the error code. For example, with 'thread' being a reference to a
+'Thread', a  call to 'info' may look like this:
+
+! thread.info().with_result(
+!   [&] (Thread::Stack_info info) {
+!     ...
+!   },
+!   [&] (Thread::Stack_error e) {
+!     switch (e) {
+!
+!     case Thread::Stack_error::STACK_AREA_EXHAUSTED:
+!       ...
+!       break;
+!
+!     case Thread::Stack_error::STACK_TOO_LARGE:
+!       ...
+!       break;
+!     }
+!   });
+
+Which of both lambda functions gets called depends on the success of the
+'info' call. The value returned by 'info' is only reachable by the code in the
+scope of the lambda function. The code within this scope can rely on the
+validity of the argument.
+
+By expressing error codes as an enum class, we let the compiler assist us to
+cover all possible error cases (using switch). This is a key benefit over the
+use of exceptions, which are unfortunately not covered by function/method
+signatures. By using the 'Attempt' utility, we implicitly tie functions
+together with their error conditions using C++ types. As another benefit over
+'catch' handlers, the use of 'switch' allows us to share error handling code
+for different conditions by grouping 'case' statements.
+
+Result-type conversions
+-----------------------
+
+Note that in the example above, the valid 'info' object cannot leave the scope
+of its lambda function. Sometimes, however, we need to pass a return value
+along a chain of callers. This situation is covered by the 'Attempt::convert'
+method. Analogously to 'with_result', it takes two lambda functions as
+arguments. But in contrast to 'with_result', both lambda functions return a
+value of the same type. This naturally confronts the programmer with the
+question of how to convert all possible errors to this specific type. If this
+question cannot be answered for all error cases, the design of the code is
+most likely flawed. Unlike Rust's 'Result<T,E>', there is deliberately no
+notion of 'unwrap'.
+
+Non-copyable result types
+-------------------------
+
+The 'Attempt' utility supports any type 'T' that is copyable and can be passed
+as value. Situations where the returned type is not copyable, for example a
+factory method returning a reference to a created object, are accommodated by
+the new 'Unique_attempt' utility.
+
+; Genode::Unique_attempt
+[raw spec/classes/genode/unique_attempt/description]
+
+The 'Unique_attempt' utility combines the 'Attempt' with
+[https://en.cppreference.com/w/cpp/memory/unique_ptr - unique-pointer]
+semantics. In contrast to 'Attempt', it is able to hold a non-copyable object
+or a reference. Like a unique pointer, the lifetime of the pointed-to object
+is bounded by the lifetime of the 'Unique_attempt'. It thereby fosters a
+strong sense of ownership of the allocated object. In most cases, it is
+suitable to host a 'Unique_attempt' as member variable at the owning object.
+
+Being designated for enclosing a non-copyable object, a 'Unique_attempt'
+cannot be copied. But it can be re-assigned. Hence, when used as a member
+variable, it can be updated. Upon re-assigning a new value, the originally
+enclosed object is destructed.
+
+Enforced error handling
+-----------------------
+
+Return values based on 'Attempt' and 'Unique_attempt' enforce the deliberate
+handling of errors. Both utilities are marked as 'nodiscard', which tells the
+compiler that values of these types must be evaluated at the caller side. The
+omission of error handling produces a compile error. Combined with the
+explicitly enumerated error conditions specified for the 'Attempt'-based
+result type, the enforced error handling leaves *no possible error condition
+unconsidered*. Even if the caller deliberately ignores an error, this
+ignorance must be explicitly written down in the code. This in turn, raises
+eyebrows - and the right questions about dealing with corner cases.
+
+To facilitate the enforced error handling in the absence of a return value,
+the 'Ok' type allows for the easy creation of a suitable result type. For
+example, 'Trace::Connection::trace' returns the type
+! using Trace_result = Attempt<Ok, Trace_error>;
+imposing the handling of the 'Trace_error' conditions on the caller.
+
+
+C++ supplements
+~~~~~~~~~~~~~~~
+
+; Genode::Noncopyable
+[raw spec/classes/genode/noncopyable/description]
 
 
 API primitives
@@ -978,266 +1250,6 @@ useful for implementing two-wire protocols like I2C in software.
 ;; Rtc::Session
 
 
-Fundamental types
-=================
-
-Integer types
-~~~~~~~~~~~~~
-
-Genode provides common integer types in its namespace.
-Integer types that can be derived from built-in compiler
-types are defined in _base/stdint.h_ and _base/fixed_stdint.h_.
-Whereas the types defined at _stdint.h_ abstracts from bit widths,
-the latter encodes the respective bit widths in the type names.
-
-[raw spec/repos/base/include/base/stdint.h.overview]
-
-[raw spec/repos/base/include/spec/64bit/base/fixed_stdint.h.overview]
-
-[raw spec/clearpage]
-
-
-Common error types
-~~~~~~~~~~~~~~~~~~
-
-The base framework expresses error conditions as enum types. Each method
-can in principle be accompanied by an error type that precisely models
-each possible error condition. However, for methods sharing the same
-set of error conditions, the central definition of error types at
-_base/error.h_ streamlines the propagation of errors along call chains.
-
-Constrained allocations
------------------------
-
-!enum class Alloc_error { OUT_OF_RAM, OUT_OF_CAPS, DENIED };
-
-'Alloc_error' represents the error conditions returned by resource-constrained
-allocators, and indirectly by any functionality that internally depends on
-such allocations. This is the case for most services that operate on
-client-accounted resources.
-
-'OUT_OF_RAM' and 'OUT_OF_CAPS' reflects the depletion of the client's resource
-budget. It can in principle be resolved by the client upgrading the resource
-budget of the allocator.
-
-'DENIED' expresses a situation where the allocator cannot satisfy the
-allocation for reasons unresolvable by the client. For example, the allocator
-may have a hard limit of the number of allocations, or the allocation of a
-large contiguous range is prevented by internal fragmentation, or a requested
-alignment constraint cannot be met. In these cases, the allocator reflects the
-condition to the caller to stay healthy and let the caller fail gracefully or
-consciously panic at the caller side.
-
-Session creation
-----------------
-
-!enum class Session_error { DENIED, OUT_OF_RAM, OUT_OF_CAPS,
-!                           INSUFFICIENT_RAM, INSUFFICIENT_CAPS };
-
-One of the 'Session_error' conditions can occur when establishing a
-connection to a service provided by another component.
-
-'DENIED' reflects that the session request could not be fulfilled due to a
-policy decision of the server, the parent, or another intermediate component
-on the route from the client to the server. This condition is unresolvable by
-the client. As sessions are considered as the life supplies for clients,
-'DENIED' is considered as fatal, most likely caused by a
-configuration/integration mistake.
-
-'OUT_OF_RAM' and 'OUT_OF_CAPS' reflect the client-local depletion of the
-resources needed to allocate the meta data for the new session. This condition
-can occur in situations where the client is a resource-multiplexing server
-that acts on behalf of its clients. So the budget is deliberately constrained,
-and 'OUT_OF_RAM' or 'OUT_OF_CAPS' can be escalated to the respective client of
-the resource multiplexer.
-
-In contrast to 'OUT_OF_RAM and 'OUT_OF_CAPS', which refer to client-local
-resources, 'INSUFFICIENT_RAM' and 'INSUFFICIENT_CAPS' originates from the
-server expressing the need for a budget higher than the session resources
-offered by the client. The client can resolve these conditions by repeating
-the session request with an increased budget offering.
-
-Data generation
----------------
-
-!enum class Buffer_error { EXCEEDED };
-
-A 'Buffer_error' reflects the condition where generated data does not
-fit a statically-dimensioned buffer. The most prominent example is the
-'Xml_generator', which operates on a prior allocated buffer. The
-'Expanding_reporter' handles this error by successively enlarging the buffer
-and re-attempting the generation of data.
-
-Unexpected errors
------------------
-
-There exist four documented error conditions that should never occur in
-well-behaving programs. Those conditions are enumerated as 'Unexpected_error'
-type.
-
-:INDEX_OUT_OF_BOUNDS:
-  an 'Array' or 'Bit_array' is accessed without index validation
-
-:NONEXISTENT_SUB_NODE:
-  use of 'Xml_node::sub_node' instead of 'with_sub_node'
-
-:ACCESS_UNCONSTRUCTED_OBJ:
-  a check of 'Constructible::constructed()' is missing
-
-:IPC_BUFFER_EXCEEDED:
-  the IPC marshalling/unmarshalling exceeds the maximum IPC-buffer size
-
-Those runtime conditions are considered as programming errors. They result in
-a diagnostic message, followed by the raising of a corresponding exception as
-defined at _base/exception.h_.
-
-Exception types
----------------
-
-Genode applies exception-less error handling to the entirety of the base
-framework while retaining exception support for components built on top. By
-convention, exception types are solely used to express error conditions but do
-not carry payload. For code consistency, exception types should inherit from
-the 'Exception' base class.
-
-; Genode::Exception
-; [raw spec/classes/genode/exception/description]
-
-
-Error handling
-~~~~~~~~~~~~~~
-
-The basic building block of propagating error conditions is the 'Attempt'
-utility provided by _util/attempt.h_. By using a return value of type
-'Attempt<T,E>', the returned value can either be a valid value of type 'T' or
-an error value of type 'E'. The name reflects its designated use as a carrier
-for return values.
-
-; Genode::Attempt
-[raw spec/classes/genode/attempt/description]
-
-To illustrate the use of the 'Attempt' utility, here is an excerpt of the
-'Thread::info()' interface that provides information of a thread's stack.
-
-! class Genode::Thread
-! {
-!   ...
-!   struct Stack_info { addr_t base, top; };
-!
-!   enum class Stack_error { STACK_AREA_EXHAUSTED, STACK_TOO_LARGE };
-!
-!   using Info_result = Attempt<Stack_info, Stack_error>;
-!
-!   Info_result info() const;
-!   ...
-! };
-
-As expressed by the 'Stack_error' type, there are certain conditions where no
-stack information is available. The 'Info_result' type precisely models the
-possible outcomes of 'info()'. Whenever 'info()' succeeds, the value will hold
-an object of type 'Stack_info'. Otherwise, it will hold an error value of type
-'Stack_error'.
-
-At the caller side, the 'Attempt' utility is extremely rigid. The caller can
-access the value only when providing both a handler for the value and a
-handler for the error code. For example, with 'thread' being a reference to a
-'Thread', a  call to 'info' may look like this:
-
-! thread.info().with_result(
-!   [&] (Thread::Stack_info info) {
-!     ...
-!   },
-!   [&] (Thread::Stack_error e) {
-!     switch (e) {
-!
-!     case Thread::Stack_error::STACK_AREA_EXHAUSTED:
-!       ...
-!       break;
-!
-!     case Thread::Stack_error::STACK_TOO_LARGE:
-!       ...
-!       break;
-!     }
-!   });
-
-Which of both lambda functions gets called depends on the success of the
-'info' call. The value returned by 'info' is only reachable by the code in the
-scope of the lambda function. The code within this scope can rely on the
-validity of the argument.
-
-By expressing error codes as an enum class, we let the compiler assist us to
-cover all possible error cases (using switch). This is a key benefit over the
-use of exceptions, which are unfortunately not covered by function/method
-signatures. By using the 'Attempt' utility, we implicitly tie functions
-together with their error conditions using C++ types. As another benefit over
-'catch' handlers, the use of 'switch' allows us to share error handling code
-for different conditions by grouping 'case' statements.
-
-Result-type conversions
------------------------
-
-Note that in the example above, the valid 'info' object cannot leave the scope
-of its lambda function. Sometimes, however, we need to pass a return value
-along a chain of callers. This situation is covered by the 'Attempt::convert'
-method. Analogously to 'with_result', it takes two lambda functions as
-arguments. But in contrast to 'with_result', both lambda functions return a
-value of the same type. This naturally confronts the programmer with the
-question of how to convert all possible errors to this specific type. If this
-question cannot be answered for all error cases, the design of the code is
-most likely flawed. Unlike Rust's 'Result<T,E>', there is deliberately no
-notion of 'unwrap'.
-
-Non-copyable result types
--------------------------
-
-The 'Attempt' utility supports any type 'T' that is copyable and can be passed
-as value. Situations where the returned type is not copyable, for example a
-factory method returning a reference to a created object, are accommodated by
-the new 'Unique_attempt' utility.
-
-; Genode::Unique_attempt
-[raw spec/classes/genode/unique_attempt/description]
-
-The 'Unique_attempt' utility combines the 'Attempt' with
-[https://en.cppreference.com/w/cpp/memory/unique_ptr - unique-pointer]
-semantics. In contrast to 'Attempt', it is able to hold a non-copyable object
-or a reference. Like a unique pointer, the lifetime of the pointed-to object
-is bounded by the lifetime of the 'Unique_attempt'. It thereby fosters a
-strong sense of ownership of the allocated object. In most cases, it is
-suitable to host a 'Unique_attempt' as member variable at the owning object.
-
-Being designated for enclosing a non-copyable object, a 'Unique_attempt'
-cannot be copied. But it can be re-assigned. Hence, when used as a member
-variable, it can be updated. Upon re-assigning a new value, the originally
-enclosed object is destructed.
-
-Enforced error handling
------------------------
-
-Return values based on 'Attempt' and 'Unique_attempt' enforce the deliberate
-handling of errors. Both utilities are marked as 'nodiscard', which tells the
-compiler that values of these types must be evaluated at the caller side. The
-omission of error handling produces a compile error. Combined with the
-explicitly enumerated error conditions specified for the 'Attempt'-based
-result type, the enforced error handling leaves *no possible error condition
-unconsidered*. Even if the caller deliberately ignores an error, this
-ignorance must be explicitly written down in the code. This in turn, raises
-eyebrows - and the right questions about dealing with corner cases.
-
-To facilitate the enforced error handling in the absence of a return value,
-the 'Ok' type allows for the easy creation of a suitable result type. For
-example, 'Trace::Connection::trace' returns the type
-! using Trace_result = Attempt<Ok, Trace_error>;
-imposing the handling of the 'Trace_error' conditions on the caller.
-
-
-C++ supplements
-~~~~~~~~~~~~~~~
-
-; Genode::Noncopyable
-[raw spec/classes/genode/noncopyable/description]
-
-
 Data structures
 ===============
 
@@ -1369,6 +1381,8 @@ elements to a local scope at the caller.
 
 ; Genode::Dictionary
 [raw spec/classes/genode/dictionary/description]
+
+[raw spec/clearpage]
 
 
 ID space
@@ -1731,15 +1745,15 @@ Heap and sliced heap
 
 [raw spec/clearpage]
 
-Bit allocator
-~~~~~~~~~~~~~
-
-; Genode::Bit_allocator<>
-[raw spec/classes/genode/bit_allocator/description]
-
-; XXX should be removed
-;; Genode::Synchronized_allocator<>
-;; Genode::Synchronized_range_allocator<>
+;Bit allocator
+;~~~~~~~~~~~~~
+;
+;; Genode::Bit_allocator<>
+;[raw spec/classes/genode/bit_allocator/description]
+;
+;; XXX should be removed
+;;; Genode::Synchronized_allocator<>
+;;; Genode::Synchronized_range_allocator<>
 
 
 String processing

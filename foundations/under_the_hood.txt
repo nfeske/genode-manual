@@ -1309,8 +1309,7 @@ signal contexts as first-class kernel objects. Core's
 PD service is merely used to arbitrate the creation and destruction of
 those kernel objects but it does not play the role of a signal-delivery proxy.
 Instead, signals are communicated directly by using the public kernel
-operations _await_signal_, _cancel_next_await_signal_, _submit_signal_, and
-_ack_signal_.
+operations _await_signal_, _submit_signal_, and _ack_signal_.
 
 
 Execution on the NOVA microhypervisor (base-nova)
