@@ -1126,6 +1126,17 @@ directories and symbolic links.
 The directory functions are complemented with an interface for receiving
 notifications upon file or directory changes using asynchronous notifications.
 
+Session labelling
+-----------------
+
+Each file-system session request has to carry a path (starting and ending
+with '/') as last session argument. It selects the server-side directory to be
+handed out as the root of the file-system client. As the path is part of
+the session label, it can be rewritten by the components along the chain of
+command involved in the session creation. Init's label-rewriting mechanism
+accommodates such policies via the 'resource' and 'prepend_resource'
+attributes as described in Section [Session-label rewriting].
+
 Use cases
 ---------
 
