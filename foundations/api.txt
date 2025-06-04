@@ -1646,6 +1646,8 @@ component-local allocators such as the 'Heap'
 A RAM dataspace may be shared with other components by passing the allocated
 dataspace capability as an argument to an RPC.
 
+[raw spec/repos/base/include/base/ram.h.overview]
+
 ; Genode::Ram_allocator
 ; Genode::Ram::Constrained_allocator
 [raw spec/classes/genode/ram/constrained_allocator/description]

@@ -197,6 +197,7 @@ FILE_OVERVIEW_HEADERS := repos/base/include/util/string.h \
                          repos/base/include/base/log.h \
                          repos/base/include/base/output.h \
                          repos/base/include/base/stdint.h \
+                         repos/base/include/base/ram.h \
                          repos/base/include/spec/64bit/base/fixed_stdint.h \
                          repos/base/include/spec/32bit/base/fixed_stdint.h \
                          repos/base/include/rom_session/rom_session.h \
