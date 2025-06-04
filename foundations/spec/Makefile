@@ -19,7 +19,7 @@ VERBOSE ?= @
 #
 
 GENODE_GIT_URL := https://github.com/nfeske/genode.git
-GENODE_GIT_REV := 288d994785ff2532c2f5b73ef2486caf0da61473
+GENODE_GIT_REV := origin/foundations-25-05
 
 ifeq ($(GENODE_DIR),)
 GENODE_DIR := genode.git
