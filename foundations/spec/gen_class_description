@@ -308,6 +308,7 @@ proc generate_methods { class_token } {
 	regexp {(.*)::([^:]+)} [class_name $class_token] dummy namespace_name class_name
 
 	set members_sequence [public_and_protected_class_members $class_token]
+
 	foreach_sub_token $members_sequence plain { } token {
 
 		if {[is_function $token] && [method_is_interesting $token]} {
@@ -355,6 +356,9 @@ if {[is_class_template $class_token]} {
 	set arguments [class_template_arguments $class_token]
 	generate_list_of_arguments $arguments "Template argument" "Template arguments"
 }
+
+set members_sequence [public_and_protected_class_members $class_token]
+generate_type_definitions [collect_types_from_sequence "" $members_sequence]
 
 set accessor_tokens [accessor_functions $class_token]
 if {[llength $accessor_tokens] > 0} {
