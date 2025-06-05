@@ -68,6 +68,19 @@ proc generate_namespace_functions { namespace_name } {
 }
 
 
+proc generate_namespace_type_definitions { typedefs } {
+
+	if {[llength $typedefs] > 0} {
+		set section_label "Type"
+		if {[llength $typedefs] > 1} { append section_label "s" }
+			puts "\\apisection{$section_label}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		generate_type_definitions $typedefs
+		puts "}"
+	}
+}
+
+
 # global scope
 set global_typedefs [global_types]
 
@@ -86,16 +99,7 @@ if {[llength $global_typedefs] > 0} {
 	if {$brief_description != ""} {
 		puts "\\apiboxcontent{[out_latex $brief_description]}" }
 
-	# type definitions
-	if {[llength $global_typedefs] > 0} {
-		set section_label "Type"
-		if {[llength $global_typedefs] > 1} { append section_label "s" }
-		puts "\\apisection{$section_label}{0.95,0.95,0.95}"
-		puts "\\apiboxcontent{"
-		generate_type_definitions $global_typedefs
-		puts "}"
-	}
-
+	generate_namespace_type_definitions $global_typedefs
 	generate_link_to_header
 
 	puts { \end{apibox}}
@@ -121,9 +125,7 @@ foreach namespace_name [namespaces_in_header] {
 	if {$brief_description != ""} {
 		puts "\\apiboxcontent{[out_latex $brief_description]}" }
 
-	# types
-	set typedefs [namespace_types $namespace_name]
-	generate_type_definitions $typedefs
+	generate_namespace_type_definitions [namespace_types $namespace_name]
 
 	# functions
 	set function_tokens [namespace_functions $namespace_name]
