@@ -267,6 +267,31 @@ proc method_prefix { method_token } {
 }
 
 
+proc generate_class_local_types { namespace_name class_name class_token } {
+
+	set members_sequence [public_and_protected_class_members $class_token]
+	set typedefs [collect_types_from_sequence "" $members_sequence]
+	if {[llength $typedefs] == 0} {
+		return }
+
+	set class_link  "$namespace_name\::$class_name"
+
+	puts "{ \\noindent \\raggedleft"
+	puts {\begin{tikzpicture}[inner sep=0]}
+	puts { \tikzstyle{every node} = [font=\small] }
+	puts { \begin{apibox}{0.8,0.85,0.9}}
+	puts "\\apiclassboxtitle{\\texttt{\\small \\strut [out_latex $namespace_name]}}"
+	puts "  {\\texttt{\\small \\strut \\hyperlink{$class_link}{[out_latex $class_name]}}}"
+	puts "  {\\normalsize types}"
+	puts "\\apiboxcontent{"
+	generate_type_definitions $typedefs
+	puts "}"
+	puts { \end{apibox}}
+	puts "\\end{tikzpicture}"
+	puts "}"
+}
+
+
 proc generate_method_description { namespace_name class_name method_token } {
 
 	set method_name [function_name $method_token]
@@ -357,9 +382,6 @@ if {[is_class_template $class_token]} {
 	generate_list_of_arguments $arguments "Template argument" "Template arguments"
 }
 
-set members_sequence [public_and_protected_class_members $class_token]
-generate_type_definitions [collect_types_from_sequence "" $members_sequence]
-
 set accessor_tokens [accessor_functions $class_token]
 if {[llength $accessor_tokens] > 0} {
 	set accessors_label "Accessor"
@@ -391,6 +413,8 @@ generate_link_to_header
 puts { \end{apibox}}
 puts "\\end{tikzpicture} }}"
 puts " "
+
+generate_class_local_types $namespace_name $only_class_name $class_token
 
 # detailed description
 set detailed_description [class_detailed_description $class_token]

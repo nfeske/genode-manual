@@ -1086,6 +1086,19 @@ proc enum_type_name { enum_token } {
 }
 
 
+proc enum_values { enum_token } {
+
+	set enum_block [sub_token $enum_token enumblock]
+	if {$enum_block == ""} { return "" }
+
+	set values { }
+	foreach_sub_token [tok_text $enum_block] plain { } token {
+		if {[tok_type $token] == "enumentry"} {
+			lappend values [unfold_token $token] } }
+	return $values
+}
+
+
 ##
 # Return true if struct or class is a mere subtype
 #
@@ -1169,9 +1182,10 @@ proc collect_types_from_sequence { namespace_name sequence } {
 			set def  [unfold_token [sub_token $token identifier]]
 			lappend result [list "typedef" $name $def ""]
 		} elseif {[is_enum_typedef $token]} {
-			set name [enum_type_name $token]
+			set name [enum_type_name  $token]
+			set def  [enum_values     $token]
 			set desc [mlcomment_parts $token]
-			lappend result [list "enum" $name "" $desc]
+			lappend result [list "enum" $name $def $desc]
 		} else {
 			set sub_typedef_token [sub_typedef $namespace_name $token]
 			if {$sub_typedef_token != ""} {
@@ -1247,59 +1261,4 @@ proc namespace_functions { namespace_name } {
 proc global_types { } {
 
 	return [collect_types_from_sequence "" [tok_text content0]]
-}
-
-
-proc generate_type_definitions { typedefs } {
-
-	if {[llength $typedefs] > 0} {
-		set section_label "Type"
-		if {[llength $typedefs] > 1} { append section_label "s" }
-		puts "\\apisection{$section_label}{0.95,0.95,0.95}"
-		puts "\\apiboxcontent{"
-		puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
-
-		set first 0
-		foreach typedef $typedefs {
-
-			if {!$first} { puts {\noalign{\medskip}} }
-			set first 0
-
-			set typedef_type [lindex $typedef 0]
-			set typedef_name [lindex $typedef 1]
-			set typedef_def  [lindex $typedef 2]
-			set typedef_desc [lindex $typedef 3]
-
-			if {$typedef_type == "subtype"} {
-				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
-				puts " & is a subtype of \\texttt{[out_latex "$typedef_def"]}\\\\"
-			}
-
-			if {$typedef_type == "typedef"} {
-				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
-				puts " & is defined as \\texttt{[out_latex "$typedef_def"]}\\\\"
-			}
-
-			if {$typedef_type == "enum"} {
-				puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
-				puts " & is an enumeration type\\\\"
-			}
-
-			if {[llength $typedef_desc] > 0} {
-				puts {\noalign{\medskip}}
-				puts "   & [out_latex [lindex $typedef_desc 0]]\\\\"
-
-				if {[llength $typedef_desc] > 1} {
-
-					foreach part [lrange $typedef_desc 1 end] {
-					puts {\noalign{\medskip}}
-						puts "   & [out_latex $part]"
-					}
-				}
-				puts "    \\\\"
-			}
-		}
-		puts "  \\end{tabularx}"
-		puts "}"
-	}
 }

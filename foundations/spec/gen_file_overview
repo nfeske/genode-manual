@@ -87,7 +87,14 @@ if {[llength $global_typedefs] > 0} {
 		puts "\\apiboxcontent{[out_latex $brief_description]}" }
 
 	# type definitions
-	generate_type_definitions $global_typedefs
+	if {[llength $global_typedefs] > 0} {
+		set section_label "Type"
+		if {[llength $global_typedefs] > 1} { append section_label "s" }
+		puts "\\apisection{$section_label}{0.95,0.95,0.95}"
+		puts "\\apiboxcontent{"
+		generate_type_definitions $global_typedefs
+		puts "}"
+	}
 
 	generate_link_to_header
 

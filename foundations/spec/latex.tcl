@@ -186,3 +186,56 @@ proc generate_link_to_header { } {
 }
 
 
+proc generate_type_definitions { typedefs } {
+
+	puts "  \\begin{tabularx}{0.96\\textwidth}{lX}"
+
+	set first 0
+	foreach typedef $typedefs {
+
+		if {!$first} { puts {\noalign{\medskip}} }
+		set first 0
+
+		set typedef_type [lindex $typedef 0]
+		set typedef_name [lindex $typedef 1]
+		set typedef_def  [lindex $typedef 2]
+		set typedef_desc [lindex $typedef 3]
+
+		if {$typedef_type == "subtype"} {
+			puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
+			puts " & is subtype of \\texttt{[out_latex "$typedef_def"]}\\\\"
+		}
+
+		if {$typedef_type == "typedef"} {
+			puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
+			puts " & is \\texttt{[out_latex "$typedef_def"]}\\\\"
+		}
+
+		if {$typedef_type == "enum"} {
+			puts -nonewline "    \\texttt{\\textbf{[out_latex $typedef_name]}}"
+			puts " &"
+			set first 1
+			foreach value $typedef_def {
+				if {!$first} { puts "\\newline" }
+				set first 0
+				puts "\\texttt{[out_latex $value]}"
+			}
+			puts "\\\\"
+		}
+
+		if {[llength $typedef_desc] > 0} {
+			puts {\noalign{\medskip}}
+			puts "   & [out_latex [lindex $typedef_desc 0]]\\\\"
+
+			if {[llength $typedef_desc] > 1} {
+
+				foreach part [lrange $typedef_desc 1 end] {
+				puts {\noalign{\medskip}}
+					puts "   & [out_latex $part]"
+				}
+			}
+			puts "    \\\\"
+		}
+	}
+	puts "  \\end{tabularx}"
+}
