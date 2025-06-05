@@ -886,22 +886,26 @@ parameters
 
 [raw spec/clearpage]
 
-Event session interface
-~~~~~~~~~~~~~~~~~~~~~~~
 
-An event session (Section [Event]) represents a stream of user-input events
-from client to server.
-
-; XXX Event::Session_client
-
-; Event::Session
-[raw spec/classes/event/session/description]
-
-; Event::Connection
-[raw spec/classes/event/connection/description]
-
-
-[raw spec/clearpage]
+;Event session interface
+;~~~~~~~~~~~~~~~~~~~~~~~
+;
+;XXX the generated info does not suffice to understand how events are
+;    submitted.
+;
+;An event session (Section [Event]) represents a stream of user-input events
+;from client to server.
+;
+;; XXX Event::Session_client
+;
+;; Event::Session
+;[raw spec/classes/event/session/description]
+;
+;; Event::Connection
+;[raw spec/classes/event/connection/description]
+;
+;
+;[raw spec/clearpage]
 
 Capture session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~
