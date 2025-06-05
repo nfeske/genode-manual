@@ -11,7 +11,7 @@ top of Sculpt OS. It shows the fun and productive way of crafting component
 compositions out of Genode's readily available building blocks. What could be a
 better example than building an old-school operating system - Unix - that we all
 know and love? You can find the results of this tutorial in
-[https://github.com/nfeske/goa-playground - Norman's playground repository].
+[https://codeberg.org/nfeske/goa-projects - Norman's Goa-projects repository].
 
 
 Preparations

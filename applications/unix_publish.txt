@@ -9,14 +9,14 @@ Let's follow up on the Unix tutorial from
 Section [Sticking together a little Unix] and make the scenario available in
 form of a ready-to-use depot.
 
-In Norman's Goa playground repository, you can find the results of the Unix
+In Norman's Goa-projects repository, you can find the results of the Unix
 tutorial in the _intro_ directory. This section uses the
-[https://github.com/nfeske/goa-playground/tree/master/intro/unix_3rd - unix_3rd]
+[https://codeberg.org/nfeske/goa-projects/src/branch/main/intro/unix_3rd - unix_3rd]
 subdirectory as the basis for the steps described below.
 
-:Norman's Goa playground repository:
+:Norman's Goa projects repository:
 
-  [https://github.com/nfeske/goa-playground]
+  [https://codeberg.org/nfeske/goa-projects]
 
 Software-publishing prerequisites
 ---------------------------------
@@ -157,12 +157,12 @@ A quick look back at the project we wish to publish
 ---------------------------------------------------
 
 To publish the depot content for a given Goa project, first change to the
-project directory. For example, within the 'goa-playground' repository linked
+project directory. For example, within the 'goa-projects' repository linked
 above, you would change to the 'unix_3rd' directory.
 
-! $ git clone https://github.com/nfeske/goa-playground.git
+! $ git clone https://codeberg.org/nfeske/goa-projects.git
 
-! $ cd goa-playground/intro/unix_3rd/
+! $ cd goa-projects/intro/unix_3rd/
 
 Before proceeding, please make sure to use the latest version of the Goa tool.
 
@@ -460,7 +460,7 @@ provided by the user. Sculpt OS downloads the index and presents the users with
 a UI for deploying the referred packages.
 
 Fortunately, Goa assists with managing and publishing a depot index. Let's
-give it a try! In the Goa playground repository, change into the _intro/_
+give it a try! In the Goa-projects repository, change into the _intro/_
 directory and create the following index file.
 
 ! <index>
