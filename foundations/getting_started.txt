@@ -810,6 +810,19 @@ There are several possible ways to continue your exploration.
 
     [https://genode.org/download/sculpt]
 
+  The Goa software-development kit streamlines the development, porting,
+  testing, packaging, and publishing of applications for Sculpt OS.
+  You can find the practical use of Goa described in great detail in the
+  _"Genode Applications"_ book.
+
+  :Goa SDK:
+
+    [https://github.com/genodelabs/goa]
+
+  :Genode Applications book:
+
+    [https://genode.org/documentation/genode-applications-25-04.pdf]
+
 # Genode comprises a *feature set* of hundreds of ready-to-use components,
   which are fun to discover and to combine. Most components are not only
   accompanied with documentation in the form of README files local to the
