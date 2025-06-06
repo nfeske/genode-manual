@@ -954,27 +954,6 @@ how portions of the virtual framebuffer are composed on screen.
 
 [raw spec/clearpage]
 
-Capture session interface
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-; XXX description, reference to components section
-
-; XXX Framebuffer::Session_client
-
-; Framebuffer::Transfer
-; Framebuffer::Blit_batch
-; Framebuffer::Mode
-[raw spec/classes/framebuffer/mode/description]
-
-; Capture::Session
-[raw spec/classes/capture/session/description]
-
-; Capture::Connection
-[raw spec/classes/capture/connection/description]
-
-
-[raw spec/clearpage]
-
 Platform session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
