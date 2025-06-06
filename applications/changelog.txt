@@ -1,7 +1,7 @@
 Changelog
 #########
 
-:25.05:
+:25.04:
 
 * Updated Sculpt version and URLs.
 * Section [Getting started with Goa]: Updated install instruction (bubblewrap and optional tool chain). Minor updates in tutorial.

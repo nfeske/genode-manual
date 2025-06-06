@@ -1,5 +1,5 @@
-GENODE_VERSION = 25.05
-PDF = genode-applications-$(subst .,-,$(GENODE_VERSION)).pdf
+SCULPT_VERSION = 25.04
+PDF = genode-applications-$(subst .,-,$(SCULPT_VERSION)).pdf
 
 all: $(PDF)
 

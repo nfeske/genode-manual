@@ -84,7 +84,7 @@
 
 	\path (genode)
 		node[below=2cm, font=\normalsize \sffamily, color=titlecol,
-		     opacity=0.8, scale=2.65] (osf) {Operating System Framework 24.11};
+		     opacity=0.8, scale=2.65] (osf) {Sculpt Operating System 25.04};
 
 	\definecolor{subtitlecol} {rgb}{0.95,0.85,0.5}
 
