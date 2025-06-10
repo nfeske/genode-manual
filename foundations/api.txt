@@ -887,25 +887,44 @@ parameters
 [raw spec/clearpage]
 
 
-;Event session interface
-;~~~~~~~~~~~~~~~~~~~~~~~
-;
-;XXX the generated info does not suffice to understand how events are
-;    submitted.
-;
-;An event session (Section [Event]) represents a stream of user-input events
-;from client to server.
-;
-;; XXX Event::Session_client
-;
-;; Event::Session
-;[raw spec/classes/event/session/description]
-;
-;; Event::Connection
-;[raw spec/classes/event/connection/description]
-;
-;
-;[raw spec/clearpage]
+Event session interface
+~~~~~~~~~~~~~~~~~~~~~~~
+
+An event session (Section [Event]) represents a stream of user-input events
+from client to server. Events are communicated by the combination of shared
+memory and synchronous RPC (Section [Synchronous bulk transfer]). The use
+of synchronous RPC instead of asynchronous notifications reduces latency
+when using a chain of event-processing components. For example, input
+drivers are typically combined with an event filter before the user input
+reaches the GUI server.
+
+Note that each RPC implies a context switch from the client to the server and
+back. To keep the number of context switches reasonably low, in particular in
+the presence of highly sensitive touch devices that produce tightly related
+events at a rapid rate, the event session interface facilitates the batching
+of events.
+A batch of events is submitted via the 'Session_client::with_batch' method
+that provides scoped access to a 'Batch::submit' interface to a caller's
+functor. Events are propagated to the server when leaving the scope of the
+functor or when the shared input buffer fills up.
+
+; Event::Session
+[raw spec/classes/event/session/description]
+
+The 'Event::Session' deliberately does not provide a public RPC interface but
+serves merely as base mechanism for setting up the shared memory between
+client and server by 'Session_client'. The latter provides the actual API
+method 'with_batch' while hiding the technicalities about shared memory and
+the notification of the server.
+
+; Event::Session_client
+[raw spec/classes/event/session_client/description]
+
+; Event::Connection
+[raw spec/classes/event/connection/description]
+
+
+[raw spec/clearpage]
 
 Capture session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -951,29 +970,8 @@ how portions of the virtual framebuffer are composed on screen.
 ; Input::Connection
 [raw spec/classes/input/session/description]
 
-
 [raw spec/clearpage]
 
-Capture session interface
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-; XXX description, reference to components section
-
-; XXX Framebuffer::Session_client
-
-; Framebuffer::Transfer
-; Framebuffer::Blit_batch
-; Framebuffer::Mode
-[raw spec/classes/framebuffer/mode/description]
-
-; Capture::Session
-[raw spec/classes/capture/session/description]
-
-; Capture::Connection
-[raw spec/classes/capture/connection/description]
-
-
-[raw spec/clearpage]
 
 Platform session interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
