@@ -111,15 +111,23 @@ proc process_verbatim_latex {txtblock} {
 		set txtblock [lrange $txtblock 0 [expr [llength $txtblock]-2]]
 	}
 
+	# since texlive 2025, we need to reduce vertical spacing of flushleft
+	# environment inside itemize/enumerate environments
+	printline "\\vskip -\\topsep"
+	printline "\\vskip -\\partopsep"
+	printline "\\vskip -\\parsep"
+	printline "\\begin{flushleft}"
+	printline "\\begin{tikzpicture}"
+	# the listing is vertically centered by setting ysep to 0 and
+	# enabling an invisible frame
+	printline "\\node\[font=\\small, text width=\\linewidth, inner ysep=0pt] (verbatim) {"
+	printline "\\begin{lstlisting}\[resetmargins=true,belowskip=0pt,aboveskip=0pt,frame=tb,framerule=0pt,framesep=3pt]"
+
 	#
 	# For the output of verbatim text, we use 'puts' rather than
 	# 'printline' because 'printline' would indent the text, which
 	# is not desired within a verbatim environment.
 	#
-	printline "\\begin{flushleft}"
-	printline "\\begin{tikzpicture}"
-	printline "\\node\[font=\\small, text width=\\linewidth] (verbatim) {"
-	printline "\\begin{lstlisting}\[resetmargins=true]"
 	foreach txtline $txtblock {
 		set txt [linetxt $txtline]
 		regsub     {^\!} $txt ""   txt
