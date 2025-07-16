@@ -35,7 +35,7 @@ repositories:
 
 :Port of numptyphysics:
 
-  [https://github.com/nfeske/goa-playground/tree/master/games/numptyphysics]
+  [https://codeberg.org/nfeske/goa-projects/src/branch/main/games/numptyphysics]
 
 
 Qt (5/6)
