@@ -30,8 +30,8 @@ SDL_net and SDL_mixer are also available.
 
   [https://github.com/genodelabs/genode-world/]
 
-Genode application examples
----------------------------
+Examples of Genode applications making use of SDL are available in the following
+repositories:
 
 :Port of numptyphysics:
 
@@ -55,8 +55,7 @@ particular, this is the best supported GUI framework for Genode applications.
 
   [https://doc.qt.io/qt-6/qtexamplesandtutorials.html]
 
-Genode application examples
----------------------------
+Examples of Genode applications making use of Qt:
 
 :Falkon web browser:
 
@@ -87,8 +86,7 @@ renamed from _Ubuntu UI Toolkit_ to _Lomiri UI Toolkit_.
 
   [https://ubports.com/]
 
-Genode application examples
----------------------------
+Examples of Genode applications making use of the Ubuntu UI Toolkit:
 
 :Morph browser:
 
