@@ -10,7 +10,7 @@ proc produce_head_latex {} {
 	printline {\documentclass[a4paper,normalheadings]{scrartcl}}
 	printline {\usepackage[T1]{fontenc}}
 	printline {\linespread{1.05} % avoid foot-note markers to mess up the line spacing}
-	printline {\usepackage[norule,perpage]{footmisc}}
+	printline {\usepackage[norule,perpage,bottom]{footmisc}}
 	printline {\usepackage{lmodern}}
 	printline {\usepackage[english]{babel}}
 	printline {\usepackage[small,bf,hang]{caption}}
