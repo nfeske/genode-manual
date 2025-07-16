@@ -12,7 +12,6 @@ proc produce_head_latex {} {
 	printline {\linespread{1.05} % avoid foot-note markers to mess up the line spacing}
 	printline {\usepackage[norule,perpage]{footmisc}}
 	printline {\usepackage{lmodern}}
-	printline {\usepackage[utf8x]{inputenc}}
 	printline {\usepackage[english]{babel}}
 	printline {\usepackage[small,bf,hang]{caption}}
 	printline {\usepackage{epsfig}}
@@ -32,6 +31,9 @@ proc produce_head_latex {} {
 	printline "\\usepackage\[pdftex,pdfauthor={$authors},pdftitle={$title},pagebackref=true,colorlinks=true,linkcolor=darkblue,citecolor=darkblue,urlcolor=darkblue\]{hyperref}"
 	printline {\usepackage{enumitem} % for colored items as used in spec }
 	printline {\usepackage{tabularx} % for tables with paragraphs as used in spec }
+	printline {\usepackage[skins,listings,breakable]{tcolorbox} % for nicely boxed listings }
+	# replace "empty" with "standard" and use "colback=red!10!white" for showing overful boxes
+	printline {\tcbset{empty,halign=flush left,tcbox width=forced left,frame engine=empty,left=4pt,top=2pt,bottom=2pt,borderline west={1.2pt}{0pt}{black!5}}}
 	printline {\input{img/tikz-preamble.tex}}
 	printline {\urlstyle{same}}
 
@@ -111,17 +113,11 @@ proc process_verbatim_latex {txtblock} {
 		set txtblock [lrange $txtblock 0 [expr [llength $txtblock]-2]]
 	}
 
-	# since texlive 2025, we need to reduce vertical spacing of flushleft
-	# environment inside itemize/enumerate environments
-	printline "\\vskip -\\topsep"
-	printline "\\vskip -\\partopsep"
-	printline "\\vskip -\\parsep"
-	printline "\\begin{flushleft}"
-	printline "\\begin{tikzpicture}"
-	# the listing is vertically centered by setting ysep to 0 and
-	# enabling an invisible frame
-	printline "\\node\[font=\\small, text width=\\linewidth, inner ysep=0pt] (verbatim) {"
-	printline "\\begin{lstlisting}\[resetmargins=true,belowskip=0pt,aboveskip=0pt,frame=tb,framerule=0pt,framesep=3pt]"
+	set breakable ""
+	if {[llength $txtblock] > 3} {
+		set breakable ",breakable" }
+
+	printline "\\begin{tcblisting}{listing options={style=tcblatex,breaklines=false},listing only$breakable}"
 
 	#
 	# For the output of verbatim text, we use 'puts' rather than
@@ -134,9 +130,5 @@ proc process_verbatim_latex {txtblock} {
 		regsub -all {\t} $txt "  " txt
 		puts "$txt"
 	}
-	printline "\\end{lstlisting}"
-	printline "};"
-	printline "\\path\[very thick, draw=black!5\] (verbatim.north west) -- (verbatim.south west);"
-	printline "\\end{tikzpicture}"
-	printline "\\end{flushleft}"
+	printline "\\end{tcblisting}"
 }

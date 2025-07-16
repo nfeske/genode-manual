@@ -161,7 +161,6 @@ project directory. For example, within the 'goa-projects' repository linked
 above, you would change to the 'unix_3rd' directory.
 
 ! $ git clone https://codeberg.org/nfeske/goa-projects.git
-
 ! $ cd goa-projects/intro/unix_3rd/
 
 Before proceeding, please make sure to use the latest version of the Goa tool.
@@ -202,7 +201,7 @@ To create depot content for a project, Goa features the 'goa export'
 command. Let's give it a try without a second thought.
 
 ! $ goa export
-
+!
 ! Error: missing definition of depot user
 !
 !  You can define your depot user name by setting the 'depot_user' 
@@ -215,7 +214,7 @@ within the depot that will host your content. Let us try the command again,
 but specifying the user name "john" this time.
 
 ! $ goa export --depot-user john
-
+!
 ! Error: version for archive john/raw/unix_3rd undefined
 !
 !  Create a 'version' file in your project directory, or 
@@ -237,7 +236,6 @@ called _version_:
 Let's give 'goa export' another try.
 
 ! $ goa export --depot-user john
-
 ! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-11-15
 ! Error: missing README file at pkg/unix_3rd/README
 
@@ -245,7 +243,6 @@ This looks like a partial success! When inspecting _var/depot/_ now, you
 can indeed find content that looks pretty familiar.
 
 ! $ ls var/depot/john/raw/unix_3rd/2023-11-15/
-
 ! terminal.config  unix.config  vimrc
 
 However, let's pay attention to the 'Error:' part of the message. By
@@ -278,7 +275,6 @@ command sets the version file to the current date or, if this would not change
 the version, adds/increments an alphabetical suffix.
 
 ! $ goa export --depot-user john --depot-overwrite
-
 ! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-11-15
 ! [unix_3rd] exported .../unix_3rd/var/depot/john/pkg/unix_3rd/2023-11-15
 
@@ -315,7 +311,6 @@ This command implicitly executes the 'goa export' command. So you need to
 specify all information that you supplied to 'export'.
 
 ! $ goa publish --depot-user john --depot-overwrite
-
 ! [unix_3rd] exported .../unix_3rd/var/depot/john/raw/unix_3rd/2023-11-15
 ! [unix_3rd] exported .../unix_3rd/var/depot/john/pkg/unix_3rd/2023-11-15
 ! Error: missing public key at .../unix_3rd/var/depot/john/pubkey

@@ -220,7 +220,6 @@ runtime files.
 For running the scenario, one can use the 'goa run' command:
 
 ! hello$ goa run
-
 ! download genodelabs/bin/x86_64/base-linux/2025-04-28.tar.xz
 ! download genodelabs/bin/x86_64/base-linux/2025-04-28.tar.xz.sig
 ! download genodelabs/bin/x86_64/init/2025-04-28.tar.xz
@@ -288,7 +287,6 @@ _src/_ directory. Let's try to build it just after creating an empty _artifacts_
 
 ! cmake_step2$ touch artifacts
 ! cmake_step2$ goa build
-
 ! [cmake_step2:cmake] -- The C compiler identification is GNU 12.3.0
 ! [cmake_step2:cmake] -- The CXX compiler identification is GNU 12.3.0
 ! [cmake_step2:cmake] -- Detecting C compiler ABI info
@@ -331,7 +329,6 @@ When issuing the 'goa build' command again, you see that Goa downloads the
 required APIs and successfully builds the example program:
 
 ! cmake_step2$ goa build
-
 ! download genodelabs/api/libc/2025-04-09.tar.xz
 ! download genodelabs/api/libc/2025-04-09.tar.xz.sig
 ! download genodelabs/api/posix/2020-05-17.tar.xz

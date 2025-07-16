@@ -54,7 +54,6 @@ The _pkg/unix/runtime_ file:
 Let's see what happens when issuing the 'run' command:
 
 ! unix$ goa run
-
 ! download genodelabs/bin/x86_64/bash/2025-04-28.tar.xz
 ! download genodelabs/bin/x86_64/bash/2025-04-28.tar.xz.sig
 ! download genodelabs/src/bash/2025-04-28.tar.xz
@@ -94,7 +93,6 @@ It contains a single tar archive, which in turn, contains all installation
 files of bash. Let's take a look inside:
 
 ! unix$ tar tf var/depot/genodelabs/bin/x86_64/bash/2025-04-28/bash.tar
-
 ! ./
 ! ./share
 ! ./share/doc
@@ -602,7 +600,7 @@ When trying 'goa run' again, we see that we exchanged the previous errors
 with a new one. Let's call it progress:
 
 ! [unix] Error: Unable to find content ROM module 'terminal.config'.
-
+!
 !  You either need to add it to the 'raw/' directory 
 !  or add the corresponding dependency to the 'archives' file.
 

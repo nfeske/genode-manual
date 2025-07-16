@@ -773,12 +773,6 @@ _runtime_ file at _test-vfs_tap/pkg/test-vfs_tap_:
 !       </start>
 !    </config>
 !
-!    <!-- [...] see below -->
-! </runtime>
-
-! <runtime>
-!    <!-- [...] see above -->
-!
 !    <content>
 !       <rom label="test-vfs_tap"/>
 !       <rom label="libc.lib.so"/>

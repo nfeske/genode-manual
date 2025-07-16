@@ -174,7 +174,6 @@ Let's re-export liblvgl using the '--with-backtrace' switch and try again:
 ! [init -> system_info]   403ffe38   104ab23
 ! [init -> system_info]   403ffec8   109a048
 ! [init -> system_info]   403fff18  10f52382
-
 ! Expect: 'interact' received 'strg+c' and was cancelled
 ! Scanned image system_info
 ! Scanned image ld.lib.so
