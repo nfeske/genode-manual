@@ -69,10 +69,10 @@
 	\path (configrom) node[left=-6ex, fill=white, dropshadow, align=left,
                        chamfered rectangle, draw, draw opacity=0.5,
                        chamfered rectangle corners=north east,
-                       inner sep=0]
+                       inner sep=0,text width=14ex,inner sep=0pt]
 	{
 		\tiny
-		\begin{lstlisting}
+		\begin{lstlisting}[aboveskip=0pt,belowskip=0pt]
 <config>
    <sdl_audio_volume
          value="85"/>
