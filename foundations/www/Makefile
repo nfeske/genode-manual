@@ -11,7 +11,7 @@ CHAPTERS := introduction \
             under_the_hood \
             api
 
-REPO_URL := https://github.com/genodelabs/genode/blob/23.05
+REPO_URL := https://github.com/genodelabs/genode/blob/25.05
 
 # return list of sections for given basename of chapter
 sections = $(shell ./splitter/filter-sec.sh list < ../$1.txt)
