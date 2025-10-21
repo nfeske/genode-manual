@@ -829,6 +829,15 @@ Init reports this information in its state report via the new attribute
 'skipped_heartbeats="N"' where N denotes the number of periods since the child
 became unresponsive.
 
+In practice, the most common way to deal with an unresponsive child is the
+restart of the child. The restarting can in principle be accomplished by
+increasing the 'version' attribute of the child's 'start' node by a management
+component that monitors init's state report and updates init's configuration.
+As this kind of response is so common, init readily supports this common case,
+alleviating the need for implementing such a feedback-control loop. The
+automatic restarting can be enabled by setting the 'restart_after_skipped'
+attribute of the child's '<heartbeat>' node to a value greater than 0.
+
 Of course, the mechanism won't deliver 100% accuracy. There may be situations
 like long-running calculations where long times of unresponsiveness are
 expected from a healthy component. Vice versa, in a multi-threaded
